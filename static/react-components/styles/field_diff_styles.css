@@ -1,0 +1,131 @@
+.diff {
+    background-color: var(--diff-background-color);
+    border-collapse: collapse;
+    color: var(--diff-text-color);
+    table-layout: fixed;
+    width: 100%;
+    padding: 4px;
+}
+
+.diff::-moz-selection {
+    background-color: var(--diff-selection-background-color);
+    color: var(--diff-text-color);
+}
+
+.diff::selection {
+    background-color: var(--diff-selection-background-color);
+    color: var(--diff-text-color);
+}
+
+.diff td {
+    padding-bottom: 0;
+    padding-top: 0;
+    vertical-align: top;
+}
+
+.diff-line {
+    /* padding: 0 4px; */
+}
+
+.diff-gutter>a {
+    color: inherit;
+    display: block;
+}
+
+.diff-gutter {
+    cursor: pointer;
+    padding: 0 1ch;
+    text-align: right;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}
+
+.diff-gutter-insert {
+    background-color: var(--diff-gutter-insert-background-color);
+    color: var(--diff-text-color);
+}
+
+.diff-gutter-delete {
+    background-color: var(--diff-gutter-delete-background-color);
+    color: var(--diff-text-color);
+}
+
+.diff-gutter-omit {
+    cursor: default;
+}
+
+.diff-gutter-selected {
+    background-color: var(--diff-gutter-selected-background-color);
+    color: var(--diff-text-color);
+}
+
+.diff-code {
+    word-wrap: break-word;
+    padding: 0 0 0 .5em;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.diff-code-edit {
+    color: inherit;
+}
+
+.diff-code-insert {
+    background-color: var(--diff-code-insert-background-color);
+    color: var(--diff-text-color);
+}
+
+.diff-code-insert .diff-code-edit {
+    background-color: var(--diff-code-insert-edit-background-color);
+    color: var(--diff-text-color);
+}
+
+.diff-code-delete {
+    background-color: var(--diff-code-delete-background-color);
+    color: var(--diff-text-color);
+}
+
+.diff-code-delete .diff-code-edit {
+    background-color: var(--diff-code-delete-edit-background-color);
+    color: var(--diff-text-color);
+}
+
+.diff-code-selected {
+    background-color: var(--diff-code-selected-background-color);
+    color: var(--diff-text-color);
+}
+
+.diff-widget-content {
+    vertical-align: top;
+}
+
+.diff-gutter-col {
+    width: 7ch;
+}
+
+.diff-gutter-omit {
+    height: 0;
+}
+
+.diff-gutter-omit:before {
+    background-color: var(--diff-omit-gutter-line-color);
+    content: " ";
+    display: block;
+    height: 100%;
+    margin-left: 4.6ch;
+    overflow: hidden;
+    white-space: pre;
+    width: 2px;
+}
+
+.diff-decoration {
+    line-height: 1.5;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+}
+
+.diff-decoration-content {
+
+}

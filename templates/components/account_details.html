@@ -1,0 +1,206 @@
+<div class="grid max-w-7xl grid-cols-1 gap-x-3 gap-y-10 px-4 py-16 sm:px-6 md:grid-cols-2 lg:px-8">
+    <div>
+        <h2 class="text-base/7 font-semibold text-foreground">Personal information</h2>
+        <p class="mt-1 text-sm/6 text-muted-foreground">Manage your account details and profile settings.</p>
+    </div>
+    <div class="bg-card rounded-lg p-8 border border-border">
+        <dl class="divide-y divide-border/20 flex flex-col gap-5">
+
+            <div class="flex justify-start items-center gap-10">
+                <form action="/upload-profile-picture" method="post" enctype="multipart/form-data" class="cursor-pointer">
+                    <!-- Hidden file input -->
+                    <input type="file" id="profilePictureInput" name="file" accept="image/*" style="display:none;">
+                    <!-- Clickable container for profile picture update -->
+                    <div id="profilePictureContainer" title="Click to update profile picture">
+                        <div class="flex items-center">
+                            <div>
+                                {% if user.profile_picture_url and user.profile_picture_url != 'None' %}
+                                <img class="inline-block size-14 rounded-full"
+                                    src="/profile-picture/{{ user.profile_picture_url }}" alt="">
+                                {% else %}
+                                <div class="inline-block size-14 rounded-full bg-muted flex items-center justify-center">
+                                    <svg class="size-6 text-muted-foreground" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium text-card-foreground">{{user.email}}</p>
+                                <p class="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Update profile picture</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- New error message element -->
+                    <div id="errorMessage" style="color: red; display: none;"></div>
+                </form>
+
+                <div>
+                    <form action="/auth/logout" method="post">
+                        <input 
+                            value="Log out"
+                            type="submit" 
+                            class="cursor-pointer border border-border rounded-md bg-secondary px-4 py-1.5 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/80 transition-colors"
+                        />
+                    </form>
+                </div>
+            </div>
+
+            <!-- Start of grid layout for user details -->
+            <div class="pt-5 grid grid-cols-2 gap-x-4 gap-y-8">
+                <!-- Full name row -->
+                <dt class="text-sm/6 font-medium text-foreground">Full name</dt>
+                <dd class="flex items-center text-sm/6 text-card-foreground">
+                    <span id="name-value">{{ user.name or 'Click to add' }}</span>
+                    <button id="edit-name" class="ml-2 text-muted-foreground hover:text-foreground transition-colors" title="Edit">
+                        <!-- Pencil icon SVG -->
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                                d="M17.414 2.586a2 2 0 0 0-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 0 0 0-2.828z" />
+                            <path fill-rule="evenodd" d="M2 15.5V18h2.5l8.414-8.414-2.5-2.5L2 15.5z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <!-- Placeholder for name error message -->
+                    <div id="name-error" class="text-destructive text-xs ml-2" style="display: none;"></div>
+                </dd>
+
+                <!-- Email address row -->
+                <dt class="text-sm/6 font-medium text-foreground">Email address</dt>
+                <dd class="text-sm/6 text-card-foreground">
+                    <span id="email-value">{{ user.email }}</span>
+                    <!-- Placeholder for email error message (if needed in future) -->
+                    <div id="email-error" class="text-destructive text-xs" style="display: none;"></div>
+                </dd>
+
+                <!-- Social login accounts row -->
+                <dt class="text-sm/6 font-medium text-foreground">Social login accounts</dt>
+                <dd class="text-sm text-card-foreground">
+                    {% if oauth_accounts | length == 0 %}
+                    <div id="social_accounts">
+                        <p>No social login accounts linked.</p>
+                    </div>
+                    {% else %}
+                    <ul id="social_accounts" role="list" class="flex flex-col gap-4">
+                        {% for account in oauth_accounts %}
+                        {% if account.account_id.startswith('google') %}
+                        {% set provider = 'Google' %}
+                        {% elif account.account_id.startswith('github') %}
+                        {% set provider = 'Github' %}
+                        {% endif %}
+
+                        <li id="{{provider}}-social-login" class="flex items-center">
+                            <div class="flex items-center gap-4">
+                                {% if provider == 'Google' %}
+                                <!-- Google icon SVG (reduced size) -->
+                                <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="32" height="32" viewBox="0 0 50 50">
+                                    <path
+                                        d="M 25.996094 48 C 13.3125 48 2.992188 37.683594 2.992188 25 C 2.992188 12.316406 13.3125 2 25.996094 2 C 31.742188 2 37.242188 4.128906 41.488281 7.996094 L 42.261719 8.703125 L 34.675781 16.289063 L 33.972656 15.6875 C 31.746094 13.78125 28.914063 12.730469 25.996094 12.730469 C 19.230469 12.730469 13.722656 18.234375 13.722656 25 C 13.722656 31.765625 19.230469 37.269531 25.996094 37.269531 C 30.875 37.269531 34.730469 34.777344 36.546875 30.53125 L 24.996094 30.53125 L 24.996094 20.175781 L 47.546875 20.207031 L 47.714844 21 C 48.890625 26.582031 47.949219 34.792969 43.183594 40.667969 C 39.238281 45.53125 33.457031 48 25.996094 48 Z">
+                                    </path>
+                                </svg>
+                                <span class="font-medium text-sm">Google</span> 
+
+                                {% elif provider == 'Github' %}
+                                <!-- Github icon SVG (reduced size) -->
+                                <svg width="32" height="32" viewBox="0 0 98 96" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z" fill="#24292f"/></svg>
+
+                                <span class="font-medium text-sm">Github</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </dd>
+            </div> <!-- End of grid layout -->
+        </dl>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        function showError(field, message) {
+            const errorElem = document.getElementById(field + '-error');
+            // Ensure the error element exists relative to the input/span's parent (dd element)
+             if (!errorElem) {
+                 console.error('Error element not found for:', field); // Debugging
+                 return; // Or handle error appropriately
+             }
+            errorElem.textContent = message;
+            errorElem.style.display = 'block'; // Make sure it's visible
+        }
+        function clearError(field) {
+            const errorElem = document.getElementById(field + '-error');
+            if (errorElem) {
+                errorElem.textContent = '';
+                errorElem.style.display = 'none'; // Hide it
+            }
+        }
+        function bindClick(field, element) {
+            element.addEventListener('click', () => enableEdit(field));
+        }
+        function enableEdit(field) {
+            const span = document.getElementById(field + '-value');
+            const button = document.getElementById('edit-' + field);
+            const originalValue = span?.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = originalValue === 'Click to add' ? '' : originalValue;
+            input.className = span.className + ' border rounded px-2 py-1 w-full'; // Added styling for input
+            clearError(field);
+            // Hide pencil icon on edit
+            button.style.display = 'none';
+            input.addEventListener('blur', () => {
+                const newValue = input.value.trim();
+                clearError(field); // Clear previous errors
+
+                if (newValue === '') {
+                    showError(field, field.charAt(0).toUpperCase() + field.slice(1) + ' cannot be empty.');
+                    // Revert visually but keep focus for correction
+                    // span.textContent = originalValue; // Keep input visible for correction
+                    // input.replaceWith(span);
+                    // button.style.display = ''; // restore button
+                    input.focus(); // Keep focus on input
+                    return; // Stop further processing
+                }
+                if (field === 'email' && !/.+@.+\..+/.test(newValue)) {
+                     showError(field, 'Invalid email format.');
+                     input.focus();
+                     return;
+                 }
+                fetch('/api/user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [field]: newValue })
+                })
+                    .then(resp => {
+                        if (!resp.ok) {
+                            // Attempt to read error message from backend if available
+                             return resp.json().then(err => { throw new Error(err.message || 'Update failed.') });
+                         }
+                         return resp.json();
+                    })
+                    .then(() => {
+                        span.textContent = newValue;
+                        input.replaceWith(span);
+                        button.style.display = ''; // restore button
+                        bindClick(field, span); // Re-bind click event to the span
+                    })
+                    .catch((error) => {
+                         showError(field, error.message || 'Update failed.');
+                         input.focus();
+                    });
+            });
+            // submit the form when the user presses Enter
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                }
+            });
+            span.replaceWith(input);
+            input.focus();
+        }
+        // Bind click events on both the spans and pencil buttons
+        bindClick('name', document.getElementById('name-value'));
+        document.getElementById('edit-name').addEventListener('click', () => enableEdit('name'));
+    });
+</script>

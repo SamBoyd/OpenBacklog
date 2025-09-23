@@ -1,0 +1,15 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier",
+    "./node_modules/gts/",
+    "plugin:storybook/recommended"
+  ],
+  "plugins": ["react", "@typescript-eslint", "prettier"],
+  "rules": {
+    "prettier/prettier": "error",
+    "indent": ["error", { "allowIndentationTabs": false }]
+  }
+}

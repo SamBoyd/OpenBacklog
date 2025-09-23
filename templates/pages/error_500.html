@@ -1,0 +1,29 @@
+{% extends "layouts/header_layout.html" %}
+
+{% block content %}
+
+<!--
+  This example requires updating your template:
+
+  ```
+  <html class="h-full">
+  <body class="h-full">
+  ```
+-->
+<main class="grid min-h-screen place-items-center px-6 py-24 sm:py-32 lg:px-8">
+    <div class="text-center">
+      <p class="font-semibold text-foreground text-4xl">
+        {% if status_code %}{{ status_code }}{% else %}500{% endif %}
+      </p>
+      <h1 class="mt-4 text-balance text-5xl font-semibold tracking-tight text-foreground sm:text-7xl">Something went wrong.</h1>
+      <p class="mt-6 text-pretty text-lg font-medium text-muted-foreground sm:text-xl/8">I'm sorry, something went wrong. Please try again later. If the problem persists, please contact support.</p>
+      <div class="mt-10 flex items-center justify-center gap-x-6">
+        <a href="/" class="rounded-md bg-foreground px-3.5 py-2.5 text-sm font-semibold text-background shadow-sm hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">Go back home</a>
+        <a href="/support" class="rounded-md bg-foreground px-3.5 py-2.5 text-sm font-semibold text-background shadow-sm hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">Contact support</a>
+      </div>
+    </div>
+  </main>
+  
+
+
+{% endblock %}

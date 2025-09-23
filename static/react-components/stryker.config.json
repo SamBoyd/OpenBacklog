@@ -1,0 +1,6 @@
+{
+    "testRunner": "vitest",
+        "vitest": {
+        "dir": "./components"
+    }
+}

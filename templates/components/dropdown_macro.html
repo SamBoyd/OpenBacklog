@@ -1,0 +1,60 @@
+{% macro dropdown_menu(selected_value="Select", dropdown_menu_id="dropdown-menu", menu_items=[{'label': 'Placeholder', 'url': '#'}]) %}
+<div class="relative inline-block text-left">
+    <div>
+        <button type="button"
+            class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+            id="{{ dropdown_menu_id }}-menu-button" aria-expanded="true" aria-haspopup="true">
+            <span id="{{ dropdown_menu_id }}-selected">{{ selected_value }}</span>
+            <svg class="-mr-1 size-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"
+                data-slot="icon">
+                <path fill-rule="evenodd"
+                    d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
+                    clip-rule="evenodd" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Dropdown: hidden by default -->
+    <div id="{{ dropdown_menu_id }}"
+        class="absolute right-0 z-10 mt-2 w-56 origin-top-right hidden rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none"
+        role="menu" aria-orientation="vertical" aria-labelledby="menu-button" tabindex="-1">
+        <div class="py-1" role="none">
+            {# Loop through menu items #}
+            {% for item in menu_items %}
+            <span class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 {% if item.label == selected_value %} bg-gray-100 {% endif %}" role="menuitem" tabindex="-1">{{ item.label }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Wrap your script block code in an immediately-invoked function expression (IIFE)
+    // so that each macro usage's variables remain local.
+(function() {
+    const menuButton = document.getElementById('{{ dropdown_menu_id }}-menu-button');
+    const dropdownMenu = document.getElementById('{{ dropdown_menu_id }}');
+    const selectedText = document.getElementById('{{ dropdown_menu_id }}-selected');
+    menuButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', (e) => {
+        if (!menuButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
+            dropdownMenu.classList.add('hidden');
+        }
+    });
+    // Update selected value on item click
+    dropdownMenu.querySelectorAll('span[role="menuitem"]').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectedText.textContent = item.textContent.trim();
+            dropdownMenu.classList.add('hidden');
+            // Dispatch a custom event with the new value
+            menuButton.dispatchEvent(new CustomEvent('dropdownChanged', {
+                detail: { newValue: selectedText.textContent }
+            }));
+        });
+    });
+})();
+</script>
+{% endmacro %}

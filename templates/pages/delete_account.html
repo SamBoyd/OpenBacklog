@@ -1,0 +1,63 @@
+{% extends 'layouts/header_layout.html' %}
+
+{% block content %}
+
+<div class="min-h-screen px-4 sm:px-6 lg:px-8 pt-40">
+  <div class="max-w-2xl mx-auto">
+    <div class="bg-card rounded-lg border border-border p-8 shadow-sm">
+      <form action="/confirm-delete-account" method="post" class="space-y-8">
+        <input id="csrf" name="csrftoken" type="hidden" value="{{ csrf_token }}">
+        
+        <!-- Header Section -->
+        <div class="text-center">
+          <h1 class="text-2xl font-bold text-foreground">Delete Account</h1>
+          <p class="mt-2 text-sm text-muted-foreground">
+            This action is permanent and cannot be undone
+          </p>
+        </div>
+
+        <!-- Reason Selection -->
+        <fieldset class="space-y-6">
+          <legend class="text-base font-semibold text-foreground">Why are you deleting your account?</legend>
+          <div class="space-y-4">
+            {% for reason in reasons %}
+            <div class="flex items-center">
+              <input id="reason{{ loop.index }}" value="{{ reason }}" name="reason" type="radio" {% if loop.first %}checked{% endif %}
+                class="relative size-4 rounded-full border border-border bg-background checked:border-primary checked:bg-primary accent-primary transition-colors">
+              <label for="reason{{ loop.index }}" class="ml-3 block text-sm font-medium text-foreground cursor-pointer">{{ reason }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <!-- Warning and Action Section -->
+        <div class="bg-destructive/5 border border-destructive/20 rounded-lg p-6 space-y-4">
+          <div class="flex items-start space-x-3">
+            <svg class="w-6 h-6 text-destructive mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+            <div>
+              <h3 class="text-sm font-semibold text-destructive">Warning</h3>
+              <p class="text-sm text-destructive mt-1">
+                Account deletion will permanently remove all your data including tasks, initiatives, and workspace settings. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          
+          <div class="flex flex-col sm:flex-row gap-3 pt-2">
+            <button type="submit"
+              class="inline-flex justify-center rounded-md bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground shadow-sm hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive transition-colors">
+              Confirm Deletion
+            </button>
+            <a href="/account"
+              class="inline-flex justify-center rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground shadow-sm hover:bg-secondary/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary transition-colors">
+              Cancel
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

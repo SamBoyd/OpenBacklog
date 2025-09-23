@@ -1,0 +1,298 @@
+<div class="grid max-w-7xl grid-cols-1 gap-x-3 gap-y-10 px-4 py-16 sm:px-6 md:grid-cols-2 lg:px-8">
+    <div>
+        <h2 class="text-base/7 font-semibold text-foreground">Workspace management</h2>
+        <p class="mt-1 text-sm/6 text-muted-foreground">Manage your workspaces and their settings.</p>
+    </div>
+    <div class="bg-card rounded-lg p-8 border border-border flex flex-col gap-4">
+        {% for workspace in workspaces %}
+        <div class="flex flex-col gap-0.5 bg-secondary/20 rounded-lg border border-border/50" data-workspace-id="{{ workspace.id }}">
+            <div class="px-4 py-5 sm:p-6 flex flex-row">
+                <div class='w-8 h-8 text-sm bg-primary rounded-full flex items-center justify-center text-primary-foreground'
+                    data-testid="workspace-icon-initial">
+                    {{ workspace.name[0]|upper }}
+                </div>
+
+                <div class="flex-grow ml-4">
+                    <h3
+                        class="text-base font-semibold text-foreground w-full flex hover:bg-secondary/50 px-2 py-1 rounded-md transition-colors">
+                        <span id="name-value-{{ workspace.id }}" class="cursor-pointer flex-grow">{{ workspace.name
+                            }}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                            <path
+                                d="m2.695 14.762-1.262 3.155a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.886L17.5 5.501a2.121 2.121 0 0 0-3-3L3.58 13.419a4 4 0 0 0-.885 1.343Z" />
+                        </svg>
+                    </h3>
+
+                    <div class="mt-2 sm:flex sm:items-start sm:justify-between">
+                        <div
+                            class="text-base text-muted-foreground w-full flex hover:bg-secondary/50 px-2 py-1 rounded-md transition-colors">
+                            <span id="description-value-{{ workspace.id }}" class="cursor-pointer flex-grow">
+                                {% if workspace.description != none %}
+                                {{ workspace.description }}
+                                {% else %}
+                                Click to add a description
+                                {% endif %}
+                            </span>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                                class="size-5">
+                                <path
+                                    d="m2.695 14.762-1.262 3.155a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.886L17.5 5.501a2.121 2.121 0 0 0-3-3L3.58 13.419a4 4 0 0 0-.885 1.343Z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="self-end mr-2 mb-2 sm:ml-6 sm:mt-0 sm:flex sm:shrink-0  sm:items-center flex flex-col justify-end">
+                <button type="button" id="delete-workspace-{{ workspace.id }}"
+                    class="inline-flex items-center rounded-md bg-destructive px-3 py-2 text-sm font-semibold text-destructive-foreground shadow-sm hover:bg-destructive/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-destructive transition-colors">
+                    Delete workspace
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="bg-secondary/20 rounded-lg border border-border/50">
+            <div class="flex flex-col gap-0.5 px-4 py-5 sm:p-6">
+                <h3 class="text-base font-semibold text-foreground">Add Workspace</h3>
+                <div class="mt-2 sm:flex sm:items-start sm:justify-between">
+                    <div class="max-w-xl text-sm text-muted-foreground">
+                        <p>
+                            Currently, each user is limited to one workspace OpenBacklog is still new and
+                            still overcoming some technical hurdles.
+                            I intend to allow multiple workspaces in the near future.
+                        </p>
+                    </div>
+                </div>
+                <div class="self-end mt-5 sm:ml-6 sm:mt-0 sm:flex sm:shrink-0 sm:items-center">
+                    <button type="button" disabled
+                        class="inline-flex items-center rounded-md bg-muted px-3 py-2 text-sm font-semibold text-muted-foreground shadow-sm cursor-not-allowed">
+                        Add Workspace
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        function loadAndValidateJWT() {
+            // Ensure we're in a browser environment
+            if (typeof document === 'undefined') {
+                throw new Error('No document available');
+            }
+            const match = document.cookie.match(new RegExp('(^| )auth0_jwt=([^;]+)'));
+            if (!match) {
+                throw new Error('JWT cookie not found');
+            }
+            const token = match[2];
+            // Simple validation: JWT must have 3 parts separated by dots
+            if (token.split('.').length !== 3) {
+                throw new Error('Invalid JWT format');
+            }
+
+            return token;
+        }
+
+        function autoHideError(workspaceId, field, timeoutMs = 5000) {
+            setTimeout(() => {
+                clearError(workspaceId, field);
+            }, timeoutMs);
+        }
+
+        function showError(workspaceId, field, input, message) {
+            let errorId = `${field}-error-${workspaceId}`;
+            let errorElem = document.getElementById(errorId);
+            if (!errorElem) {
+                errorElem = document.createElement('div');
+                errorElem.id = errorId;
+                errorElem.style.color = 'red';
+                errorElem.style.fontSize = '0.8em';
+                input.parentNode.insertBefore(errorElem, input.nextSibling);
+            }
+            errorElem.textContent = message;
+
+            // Auto-hide the error after 5 seconds
+            autoHideError(workspaceId, field);
+        }
+
+        function clearError(workspaceId, field) {
+            const errorElem = document.getElementById(`${field}-error-${workspaceId}`);
+            if (errorElem) errorElem.textContent = '';
+        }
+
+        function bindClick(workspaceId, field, element) {
+            element.addEventListener('click', () => enableEdit(workspaceId, field));
+        }
+
+        function enableEdit(workspaceId, field) {
+            const spanId = `${field}-value-${workspaceId}`;
+            const buttonId = `edit-${field}-${workspaceId}`;
+
+            const span = document.getElementById(spanId);
+            const button = document.getElementById(buttonId);
+            const originalValue = span?.textContent.trim();
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = originalValue === 'Click to add' ? '' : originalValue;
+            input.className = 'border border-border rounded-md p-1 w-full text-foreground bg-background';
+
+            clearError(workspaceId, field);
+            // Hide pencil icon on edit
+            // button.style.display = 'none';
+
+            input.addEventListener('blur', () => {
+                clearError(workspaceId, field);
+                const newValue = input.value.trim();
+                if (newValue === '') {
+                    if (field === 'name') {
+                        showError(workspaceId, field, input, 'Workspace name cannot be empty.');
+                        input.value = originalValue;
+                        input.focus();
+                        return;
+                    }
+                }
+
+                let token;
+                try {
+                    token = loadAndValidateJWT();
+                } catch (error) {
+                    showError(workspaceId, field, input, 'Authentication error: ' + error.message);
+                    input.focus();
+                    return;
+                }
+
+                // Construct the workspace DTO with all current values
+                const workspace = {
+                    id: workspaceId,
+                    name: field === 'name' ? newValue : document.getElementById(`name-value-${workspaceId}`).textContent.trim(),
+                    description: field === 'description' ? newValue : document.getElementById(`description-value-${workspaceId}`).textContent.trim(),
+                    icon: null
+                };
+
+                // If description is "Click to add", set it to empty string for the API
+                if (workspace.description === 'Click to add') {
+                    workspace.description = '';
+                }
+
+                fetch('https://samboyd.ngrok.app/api/workspace', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(workspace)
+                })
+                    .then(resp => {
+                        if (!resp.ok) {
+                            // Handle HTTP errors like 401 Unauthorized
+                            if (resp.status === 401) {
+                                throw new Error('Authentication failed');
+                            }
+                            return resp.json().then(data => {
+                                throw new Error(data.error || 'Server error');
+                            });
+                        }
+                        return resp.json();
+                    })
+                    .then((data) => {
+                        if (data) {
+                            let displayValue = newValue;
+                            if (field === 'description' && newValue === '') {
+                                displayValue = 'Click to add';
+                            }
+                            span.textContent = displayValue;
+                            input.replaceWith(span);
+                            button.style.display = ''; // restore button
+                            bindClick(workspaceId, field, span);
+                        } else {
+                            showError(workspaceId, field, input, data.error || 'Update failed.');
+                            input.focus();
+                        }
+                    })
+                    .catch((error) => {
+                        showError(workspaceId, field, input, error.message || 'Update failed.');
+                        input.focus();
+                    });
+            });
+
+            // submit the form when the user presses Enter
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                }
+            });
+
+            span.replaceWith(input);
+            input.focus();
+        }
+
+        // Initialize all workspace edit fields
+        document.querySelectorAll('[data-workspace-id]').forEach(workspace => {
+            const workspaceId = workspace.getAttribute('data-workspace-id');
+
+            // Setup name editing
+            const nameValue = document.getElementById(`name-value-${workspaceId}`);
+            // Remove reference to non-existent element
+            bindClick(workspaceId, 'name', nameValue);
+
+            // Setup description editing
+            const descValue = document.getElementById(`description-value-${workspaceId}`);
+            // Remove reference to non-existent element
+            bindClick(workspaceId, 'description', descValue);
+
+            // Setup delete workspace confirmation
+            const deleteButton = document.getElementById(`delete-workspace-${workspaceId}`);
+            if (deleteButton) {
+                deleteButton.addEventListener('click', () => {
+                    const workspaceName = document.getElementById(`name-value-${workspaceId}`).textContent.trim();
+
+                    // Create confirmation dialog
+                    if (confirm(`Are you sure you want to delete "${workspaceName}" workspace?\n\nWARNING: This will permanently delete all tasks and initiatives in this workspace. This action is irreversible.`)) {
+                        let token;
+                        try {
+                            token = loadAndValidateJWT();
+                        } catch (error) {
+                            alert('Authentication error: ' + error.message);
+                            return;
+                        }
+
+                        // Send delete request to the backend
+                        fetch(`https://samboyd.ngrok.app/api/workspace/${workspaceId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        })
+                            .then(resp => {
+                                if (!resp.ok) {
+                                    if (resp.status === 401) {
+                                        throw new Error('Authentication failed');
+                                    }
+                                    return resp.json().then(data => {
+                                        throw new Error(data.error || 'Server error');
+                                    });
+                                }
+                                return resp.json();
+                            })
+                            .then(() => {
+                                // Remove the workspace element from the DOM
+                                const workspaceElement = document.querySelector(`[data-workspace-id="${workspaceId}"]`);
+                                if (workspaceElement) {
+                                    workspaceElement.remove();
+                                }
+
+                                // Reload the page to reflect the changes
+                                window.location.reload();
+                            })
+                            .catch(error => {
+                                alert('Failed to delete workspace: ' + error.message);
+                            });
+                    }
+                });
+            }
+        });
+    });
+</script>

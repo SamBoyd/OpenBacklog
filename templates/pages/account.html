@@ -1,0 +1,120 @@
+{% extends 'layouts/header_layout.html' %}
+
+{% block content %}
+
+<div class="divide-y divide-border/20">
+
+
+    <div class="pt-20 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-3xl font-bold text-foreground mb-8">Settings</h1>
+        </div>
+    </div>
+
+    {# Display user details #}
+    <div id="account-section">
+        {% include 'components/account_details.html' %}
+    </div>
+
+    {# Workspace management #}
+    <div id="workspaces-section">
+        {% include 'components/workspace_management.html' %}
+    </div>
+
+    {# OpenBacklog Token Management #}
+    <div id="openbacklog-tokens-section">
+        {% include 'components/api_key_management.html' %}
+    </div>
+
+    {# GitHub Integration #}
+    <div id="github-section">
+        {% include 'components/github_app_management.html' %}
+    </div>
+
+    {# Subscriptions & Billing #}
+
+    {# Account deletion #}
+    <div id="delete-account-section">
+        {% include 'components/account_deletion.html' %}
+    </div>
+</div>
+
+<script>
+    // Profile picture upload logic
+    (function () {
+        var form = document.querySelector('form[action="/upload-profile-picture"]');
+        var fileInput = document.getElementById('profilePictureInput');
+        var container = document.getElementById('profilePictureContainer');
+        var errorMsg = document.getElementById('errorMessage');
+
+        container.addEventListener('click', function () {
+            errorMsg.style.display = 'none';
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function () {
+            if (this.files.length > 0) {
+                var file = this.files[0];
+                // Check for 2Mb max file size
+                if (file.size > 2097152) { // 2 * 1024 * 1024 bytes
+                    errorMsg.textContent = "File size exceeds 2Mb limit.";
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+                // Check for image file type image/png
+                if (file.type !== 'image/png') {
+                    errorMsg.textContent = "Only .png files are allowed.";
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+
+
+                // Clear error message if any
+                errorMsg.style.display = 'none';
+                var formData = new FormData(form);
+                fetch(form.action, {
+                    method: form.method,
+                    body: formData,
+                    credentials: "same-origin"
+                })
+                    .then(function (data) {
+                        window.location.reload();
+                    });
+            }
+        });
+    })();
+
+    // Navigation scrolling logic
+    (function () {
+        const navLinksContainer = document.getElementById('account-nav-links');
+        if (!navLinksContainer) return;
+
+        const navLinks = navLinksContainer.querySelectorAll('a');
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+
+                if (targetElement) {
+                    // Remove active class from all links
+                    navLinks.forEach(l => l.classList.remove('text-indigo-400'));
+                    // Add active class to the clicked link
+                    this.classList.add('text-indigo-400');
+
+                    // Scroll to the target element
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+                    // Optional: Update URL hash without jumping (for better UX/bookmarking)
+                    // if (history.pushState) {
+                    //     history.pushState(null, null, targetId);
+                    // } else {
+                    //     location.hash = targetId;
+                    // }
+                }
+            });
+        });
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,23 @@
+// Component-specific styles
+@use 'colors' as c;
+
+
+
+// Card styles
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: v.$spacing-4;
+  
+  &-header {
+    font-size: v.$font-size-xl;
+    font-weight: 600;
+    margin-bottom: v.$spacing-4;
+    color: c.$gray-800;
+  }
+  
+  &-body {
+    color: c.$gray-600;
+  }
+}

@@ -1,0 +1,39 @@
+{% extends 'layouts/header_layout.html' %}
+
+{% block content %}
+<h1>Repositories</h1>
+
+{% if not has_github_installation %}
+<button type="button"
+    onclick="window.location.href='/github/install';"
+    class="flex flex-col justify-center items-center relative block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+    {% include 'assets/github_icon.html' %}
+    <span class="mt-2 block text-sm font-semibold text-gray-900">Connect your Github repo</span>
+</button>
+
+<h2 class="mt-6 text-xl font-semibold">
+    Why connect your GitHub repositories?
+</h2>
+<p class="mt-2">
+    Connecting your GitHub repositories allows you to:
+</p>
+<ul class="list-disc ml-6 mt-2">
+    <li>Link tasks and initiatives directly to code</li>
+    <li>Track progress alongside your development work</li>
+    <li>Automatically update task status based on commits and pull requests</li>
+    <li>Keep your team in sync with development progress</li>
+</ul>
+
+{% else %}
+
+<div class="mt-4">
+    <h2 class="text-xl font-semibold mb-4">Your Repositories</h2>
+    
+   {% include 'components/github_app/repository_list.html' %}
+
+   {% include 'components/github_app/admin.html' %}
+</div>
+
+{% endif %}
+
+{% endblock %}

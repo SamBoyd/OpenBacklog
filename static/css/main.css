@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme transition */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+
+/* Light theme */
+:root, .light {
+  --background: 0 0 98; /* #fafafa */
+  --foreground: 213 22 15; /* #24292e */
+  
+  /* Surface colors */
+  --card: 255 255 255; /* #ffffff */
+  --card-foreground: 213 22 15; /* #24292e */
+  --popover: 255 255 255;
+  --popover-foreground: 213 22 15;
+  
+  /* Brand colors */
+  --primary: 180 17 51; /* #6B9797 */
+  --primary-foreground: 0 0 98; /* #ffffff */
+
+  --secondary: 220 14 96; /* #f6f8fa */
+  --secondary-foreground: 213 22 15; /* #24292e */
+  
+  /* UI colors */
+  --muted: 213 25 34; /* #6a737d */
+  --muted-foreground: 220 14 60; /* #f6f8fa */
+  --accent: 212 100 50; /* #0366d6 */
+  --accent-foreground: 0 0 98; /* #fafafa */
+  
+  /* Status colors */
+  --destructive: 354 84 57; /* #d73a49 */
+  --destructive-foreground: 0 0 98; /* #fafafa */
+  --success: 142 76 36; /* #28a745 */
+  --success-foreground: 0 0 98; /* #fafafa */
+  
+  /* Border colors */
+  --border: 213 22 15; /* 213 22 15; /* #24292e */
+  --input: 213 22 15; /* #24292e */
+  --ring: 213 22 15; /* #24292e */
+
+  /* Selected colors */
+  --selected: 212 100 50; /* #0366d6 */
+  --selected-foreground: 0 0 98; /* #fafafa */
+
+  /* Sidebar colors */
+  --sidebar: 213 22 15; /* #ffffff */
+  --sidebar-foreground: 0 0 98; /* #fafafa */
+
+  --diffgreen: 130 79 83; /* #b1f6bd */
+  --diffgreen-foreground: 0 0 98;
+
+  --diffred: 4 75 45; /* #cb2a1d */
+  --diffred-foreground: 0 0 98;
+
+  /* Diff colors */
+  --diff-background-color: initial;
+  --diff-text-color: #24292e;
+  --diff-font-family:  'Roboto Condensed', system-ui, -apple-system, sans-serif;
+  --diff-selection-background-color: #b3d7ff;
+  --diff-selection-text-color: #f8f8f88c;
+  --diff-code-insert-background-color: #b2f7be;
+  --diff-code-insert-text-color: #0a0a0a;
+  --diff-code-delete-background-color: #752223;
+  --diff-code-delete-text-color: #24292e;
+  --diff-code-insert-edit-background-color: #0366d6;
+  --diff-code-insert-edit-text-color: #24292e;
+  --diff-code-delete-edit-background-color: #0366d6;
+  --diff-code-delete-edit-text-color: #24292e;
+  --diff-code-selected-background-color: #0366d6;
+  --diff-code-selected-text-color: #24292e;
+  --diff-omit-gutter-line-color: #cb2a1d;
+}
+
+/* Dark theme */
+.dark {
+  /* Base colors */
+  --background: 201 25 4; /* #242522 */
+  --foreground: 0 0 90; /* #EDEDED */
+  
+  /* Surface colors */
+  --card: 201 25 4; /* #0a0a0a */
+  --card-foreground: 0 0 70; /* #f8f8f8 */
+  --popover: 201 25 4;
+  --popover-foreground: 0 0 70;
+  
+  /* Brand colors */
+  --primary: 180 17 51; /* #6B9797 */
+  --primary-foreground: 0 0 98; /* #ffffff */
+
+  --secondary: 24 24 27; /* #18181b */
+  --secondary-foreground: 0 0 70; /* #f8f8f8 */
+  
+  /* UI colors */
+  --muted: 201 20 19; /* #9EBC9E */
+  --muted-foreground: 0 0 70; /* #252623 */
+
+  --accent: 56 189 248; /* #38bdf8 */
+  --accent-foreground: 0 0 70; /* #f8f8f8 */
+  
+  /* Status colors */
+  --destructive: 239 68 68; /* #ef4444 */
+  --destructive-foreground: 0 0 98; /* #fafafa */
+  --success: 16 185 129; /* #10b981 */
+  --success-foreground: 0 0 98; /* #fafafa */
+  
+  /* Border colors */
+  --border:  201 25 4; /* #252623 */
+  --input: 39 39 42; /* #27272a */
+  --ring: 3 105 161; /* #0369a1 */
+
+  /* Selected colors */
+  --selected: 248 10 15; /* #0366d6 */
+  --selected-foreground: 248 10 100; /* #ffffff */
+
+  --sidebar: 201 20 10; /* #252623 */
+  --sidebar-foreground: 0 0 70; /* #f8f8f8 */
+
+  --diffgreen: 130 79 83; /* #b1f6bd */
+  --diffgreen-foreground: 0 0 98;
+
+  --diffred: 4 75 45; /* #cb2a1d */
+  --diffred-foreground: 0 0 98;
+
+  /* Diff colors */
+  --diff-background-color: initial;
+  --diff-text-color: #f8f8f889;
+  --diff-selection-background-color: #b3d7ff;
+  --diff-selection-text-color: #f8f8f88c;
+  --diff-code-insert-background-color: #b2f7be;
+  --diff-code-insert-text-color: #0a0a0a;
+  --diff-code-delete-background-color: #752223;
+  --diff-code-delete-text-color: #f8f8f8;
+  --diff-code-insert-edit-background-color: #0366d6;
+  --diff-code-insert-edit-text-color: #f8f8f8;
+  --diff-code-delete-edit-background-color: #0366d6;
+  --diff-code-delete-edit-text-color: #f8f8f8;
+  --diff-code-selected-background-color: #0366d6;
+  --diff-code-selected-text-color: #f8f8f8;
+  --diff-omit-gutter-line-color: #cb2a1d;
+}
+
+/* spacing */
+:root {
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  --border-color: var(--border);
+
+  /* Tooltip styles */
+  --rt-color-white: #EDEDED;
+  --rt-color-dark: #242522;
+  --rt-color-success: #8dc572;
+  --rt-color-error: #be6464;
+  --rt-color-warning: #f0ad4e;
+  --rt-color-info: #337ab7;
+  --rt-opacity: 0.9;
+  --rt-transition-show-delay: 0.15s;
+  --rt-transition-closing-delay: 0.15s;
+}
+
+/* Font sizes */
+.font-compact {
+  --font-sm: 0.75rem;
+  --font-base: 0.875rem;
+  --font-lg: 1.25rem;
+}
+:root {
+  --font-sm: 0.875rem;
+  --font-base: 1rem;
+  --font-lg: 1.875rem;
+}
+.font-spacious {
+  --font-sm: 1rem;
+  --font-base: 1.25rem;
+  --font-lg: 2rem;
+}
+
+
+/* Global styles */
+html, body {
+  font-family: 'Roboto Condensed', sans-serif;
+} 

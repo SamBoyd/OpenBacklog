@@ -1,0 +1,472 @@
+services:
+  nginx:
+    container_name: nginx
+    build:
+      context: ..
+      dockerfile: docker/nginx.Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - ../docker/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ../docker/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - fastapi
+      - postgrest
+      - landing-page
+
+  landing-page:
+    container_name: landing-page
+    image: node:18-alpine
+    working_dir: /app
+    ports:
+      - "7777:7777"
+    volumes:
+      - ../../openbacklog-landing-page:/app
+    command: >
+      sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 7777"
+    environment:
+      - NODE_ENV=development
+
+  fastapi:
+    container_name: fastapi
+    build:
+      context: ..
+      dockerfile: docker/fastapi.Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Database connection strings - match lowercase as expected in Settings class
+      - database_name=${database_name}
+      - database_app_user_username=${database_app_user_username}
+      - database_app_user_password=${database_app_user_password}
+      - database_url=${database_url}
+      - async_database_url=${async_database_url}
+      # Application settings - match lowercase as expected in Settings class
+      - environment=${environment}
+      - app_domain=${app_domain}
+      # Development auth settings - match lowercase as expected in Settings class
+      - dev_jwt_secret=${dev_jwt_secret:-dev-secret-key}
+      - dev_jwt_algorithm=${dev_jwt_algorithm:-HS256}
+      - dev_jwt_lifetime_seconds=${dev_jwt_lifetime_seconds:-3600}
+      - dev_user_email=${dev_user_email:-dev@localhost}
+      - dev_user_password=${dev_user_password:-devpassword}
+      # Auth0 configuration - match lowercase as expected in Settings class
+      - auth0_application_id=${auth0_application_id}
+      - auth0_audience=${auth0_audience}
+      - auth0_client_id=${auth0_client_id}
+      - auth0_client_secret=${auth0_client_secret}
+      - auth0_domain=${auth0_domain}
+      - cookie_lifetime_seconds=${cookie_lifetime_seconds}
+      - auth0_login_cookie_name=${auth0_login_cookie_name}
+      - auth0_jwt_cookie_name=${auth0_jwt_cookie_name}
+      - auth0_refresh_token_cookie_name=${auth0_refresh_token_cookie_name}
+      # Postgrest roles - match lowercase as expected in Settings class
+      - postgrest_authenticator__role=${postgrest_authenticator__role}
+      - postgrest_anonymous__role=${postgrest_anonymous__role}
+      - postgrest_authenticated_role=${postgrest_authenticated_role}
+      - postgrest_authenticator__password=${postgrest_authenticator__password}
+      # Cloudflare R2 storage - match lowercase as expected in Settings class
+      - cloudflare_account_id=${cloudflare_account_id}
+      - r2_access_key_id=${r2_access_key_id}
+      - r2_secret_access_key=${r2_secret_access_key}
+      - r2_profile_picture_bucket_name=${r2_profile_picture_bucket_name}
+      - default_profile_picture=${default_profile_picture}
+      # GitHub integration - match lowercase as expected in Settings class
+      - github_app_id=${github_app_id}
+      - github_app_private_key=${github_app_private_key}
+      - github_webhook_secret=${github_webhook_secret}
+      # Vault integration - match lowercase as expected in Settings class
+      - vault_url=${vault_url}
+      - vault_cert_path=${vault_cert_path}
+      - vault_cert_key_path=${vault_cert_key_path}
+      - vault_role_id_path=${vault_role_id_path}
+      - vault_secret_id_path=${vault_secret_id_path}
+      - vault_verify_cert=${vault_verify_cert}
+      - sentry_url=${sentry_url}
+      - csrf_token_name=${csrf_token_name}
+      - csrf_token_value=${csrf_token_value}
+      - OPENMETER_API_ENDPOINT=${OPENMETER_API_ENDPOINT}
+      - OPENMETER_API_KEY=${OPENMETER_API_KEY}
+      - auth_provider=dev
+      - allow_new_signups=${allow_new_signups}
+      - static_site_url=${static_site_url}
+      - static_site_domain=${static_site_domain}
+    volumes:
+      - ../vault:/app/vault:ro
+      - ../:/app
+    depends_on:
+      litellm_proxy:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthcheck')"]
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mcp_server:
+    container_name: mcp_server
+    build:
+      context: ..
+      dockerfile: docker/mcp_server.Dockerfile
+    ports:
+      - "9000:9000"
+    environment:
+      # Database connection strings - match lowercase as expected in Settings class
+      - environment=${environment}
+      - database_name=${database_name}
+      - database_app_user_username=${database_app_user_username}
+      - database_app_user_password=${database_app_user_password}
+      - database_url=${database_url}
+      - async_database_url=${async_database_url}
+      # Application settings - match lowercase as expected in Settings class
+      - environment=${environment}
+      - app_domain=${app_domain}
+      # Auth0 configuration - match lowercase as expected in Settings class
+      - auth0_application_id=${auth0_application_id}
+      - auth0_audience=${auth0_audience}
+      - auth0_client_id=${auth0_client_id}
+      - auth0_client_secret=${auth0_client_secret}
+      - auth0_domain=${auth0_domain}
+      - cookie_lifetime_seconds=${cookie_lifetime_seconds}
+      - auth0_login_cookie_name=${auth0_login_cookie_name}
+      - auth0_jwt_cookie_name=${auth0_jwt_cookie_name}
+      - auth0_refresh_token_cookie_name=${auth0_refresh_token_cookie_name}
+      # Postgrest roles - match lowercase as expected in Settings class
+      - postgrest_authenticator__role=${postgrest_authenticator__role}
+      - postgrest_anonymous__role=${postgrest_anonymous__role}
+      - postgrest_authenticated_role=${postgrest_authenticated_role}
+      - postgrest_authenticator__password=${postgrest_authenticator__password}
+      # Cloudflare R2 storage - match lowercase as expected in Settings class
+      - cloudflare_account_id=${cloudflare_account_id}
+      - r2_access_key_id=${r2_access_key_id}
+      - r2_secret_access_key=${r2_secret_access_key}
+      - r2_profile_picture_bucket_name=${r2_profile_picture_bucket_name}
+      - default_profile_picture=${default_profile_picture}
+      # GitHub integration - match lowercase as expected in Settings class
+      - github_app_id=${github_app_id}
+      - github_app_private_key=${github_app_private_key}
+      - github_webhook_secret=${github_webhook_secret}
+      # Vault integration - match lowercase as expected in Settings class
+      - vault_url=${vault_url}
+      - vault_cert_path=${vault_cert_path}
+      - vault_cert_key_path=${vault_cert_key_path}
+      - vault_role_id_path=${vault_role_id_path}
+      - vault_secret_id_path=${vault_secret_id_path}
+      - vault_verify_cert=${vault_verify_cert}
+      - sentry_url=${sentry_url}
+      - csrf_token_name=${csrf_token_name}
+      - csrf_token_value=${csrf_token_value}
+    volumes:
+      - ../:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  litellm_proxy:
+    build: https://github.com/samboyd/litellm.git#7569-openmeter-event-bug
+    ports:
+      - "4000:4000"
+    environment:
+      # Master key for API access
+      - MASTER_KEY=${litellm_master_key}
+      # Database configuration - use the same database as the main app
+      - DATABASE_URL=${LITELLM_DATABASE_URL}
+      - LITELLM_DATABASE_URL=${LITELLM_DATABASE_URL}
+      # LiteLLM specific settings
+      - LITELLM_LOG_LEVEL=${LITELLM_LOG_LEVEL:-INFO}
+      - LITELLM_AUTH_MODE=${LITELLM_AUTH_MODE:-basic}
+      - LITELLM_RATE_LIMITING_ENABLED=${LITELLM_RATE_LIMITING_ENABLED:-true}
+      - LITELLM_MONITORING_ENABLED=${LITELLM_MONITORING_ENABLED:-true}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENMETER_API_ENDPOINT=${OPENMETER_API_ENDPOINT}
+      - OPENMETER_API_KEY=${OPENMETER_API_KEY}
+    volumes:
+      - litellm_data:/app/data
+      - ../config/litellm:/app/config:ro
+    depends_on:
+      postgres_litellm:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/readiness')"]
+      interval: 5s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: ["--port", "4000", "--host", "0.0.0.0", "--config", "/app/config/config.yaml"]
+
+  job_processor:
+    container_name: job_processor
+    build:
+      context: ..
+      dockerfile: docker/background_service.Dockerfile
+    environment:
+      - QUEUE_NAME=${QUEUE_NAME:-default}
+      - POLLING_INTERVAL=${POLLING_INTERVAL:-10}
+      # Database connection strings - match lowercase as expected in Settings class
+      - database_name=${database_name}
+      - database_app_user_username=${database_app_user_username}
+      - database_app_user_password=${database_app_user_password}
+      - database_url=${database_url}
+      - async_database_url=${async_database_url}
+      # Application settings - match lowercase as expected in Settings class
+      - environment=${environment}
+      - app_domain=${app_domain}
+      # Auth0 configuration - match lowercase as expected in Settings class
+      - auth0_application_id=${auth0_application_id}
+      - auth0_audience=${auth0_audience}
+      - auth0_client_id=${auth0_client_id}
+      - auth0_client_secret=${auth0_client_secret}
+      - auth0_domain=${auth0_domain}
+      - cookie_lifetime_seconds=${cookie_lifetime_seconds}
+      - auth0_login_cookie_name=${auth0_login_cookie_name}
+      - auth0_jwt_cookie_name=${auth0_jwt_cookie_name}
+      - auth0_refresh_token_cookie_name=${auth0_refresh_token_cookie_name}
+      # Postgrest roles - match lowercase as expected in Settings class
+      - postgrest_authenticator__role=${postgrest_authenticator__role}
+      - postgrest_anonymous__role=${postgrest_anonymous__role}
+      - postgrest_authenticated_role=${postgrest_authenticated_role}
+      - postgrest_authenticator__password=${postgrest_authenticator__password}
+      # Cloudflare R2 storage - match lowercase as expected in Settings class
+      - cloudflare_account_id=${cloudflare_account_id}
+      - r2_access_key_id=${r2_access_key_id}
+      - r2_secret_access_key=${r2_secret_access_key}
+      - r2_profile_picture_bucket_name=${r2_profile_picture_bucket_name}
+      - default_profile_picture=${default_profile_picture}
+      # GitHub integration - match lowercase as expected in Settings class
+      - github_app_id=${github_app_id}
+      - github_app_private_key=${github_app_private_key}
+      - github_webhook_secret=${github_webhook_secret}
+      # Vault integration - match lowercase as expected in Settings class
+      - vault_url=${vault_url}
+      - vault_cert_path=${vault_cert_path}
+      - vault_cert_key_path=${vault_cert_key_path}
+      - vault_role_id_path=${vault_role_id_path}
+      - vault_secret_id_path=${vault_secret_id_path}
+      - vault_verify_cert=${vault_verify_cert}
+      - sentry_url=${sentry_url}
+      - csrf_token_name=${csrf_token_name}
+      - csrf_token_value=${csrf_token_value}
+      - OPENMETER_API_ENDPOINT=${OPENMETER_API_ENDPOINT}
+      - OPENMETER_API_KEY=${OPENMETER_API_KEY}
+    volumes:
+      - ../vault:/app/vault:ro
+      - ../:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  unified_background_worker:
+    container_name: unified_background_worker
+    build:
+      context: ..
+      dockerfile: docker/unified_background_worker.Dockerfile
+    environment:
+      - POLLING_INTERVAL=${POLLING_INTERVAL:-120}
+      # Database connection strings - match lowercase as expected in Settings class
+      - database_name=${database_name}
+      - database_app_user_username=${database_app_user_username}
+      - database_app_user_password=${database_app_user_password}
+      - database_url=${database_url}
+      - async_database_url=${async_database_url}
+      # Application settings - match lowercase as expected in Settings class
+      - environment=${environment}
+      - app_domain=${app_domain}
+      # Auth0 configuration - match lowercase as expected in Settings class
+      - auth0_application_id=${auth0_application_id}
+      - auth0_audience=${auth0_audience}
+      - auth0_client_id=${auth0_client_id}
+      - auth0_client_secret=${auth0_client_secret}
+      - auth0_domain=${auth0_domain}
+      - cookie_lifetime_seconds=${cookie_lifetime_seconds}
+      - auth0_login_cookie_name=${auth0_login_cookie_name}
+      - auth0_jwt_cookie_name=${auth0_jwt_cookie_name}
+      - auth0_refresh_token_cookie_name=${auth0_refresh_token_cookie_name}
+      # Postgrest roles - match lowercase as expected in Settings class
+      - postgrest_authenticator__role=${postgrest_authenticator__role}
+      - postgrest_anonymous__role=${postgrest_anonymous__role}
+      - postgrest_authenticated_role=${postgrest_authenticated_role}
+      - postgrest_authenticator__password=${postgrest_authenticator__password}
+      # Cloudflare R2 storage - match lowercase as expected in Settings class
+      - cloudflare_account_id=${cloudflare_account_id}
+      - r2_access_key_id=${r2_access_key_id}
+      - r2_secret_access_key=${r2_secret_access_key}
+      - r2_profile_picture_bucket_name=${r2_profile_picture_bucket_name}
+      - default_profile_picture=${default_profile_picture}
+      # GitHub integration - match lowercase as expected in Settings class
+      - github_app_id=${github_app_id}
+      - github_app_private_key=${github_app_private_key}
+      - github_webhook_secret=${github_webhook_secret}
+      # Vault integration - match lowercase as expected in Settings class
+      - vault_url=${vault_url}
+      - vault_cert_path=${vault_cert_path}
+      - vault_cert_key_path=${vault_cert_key_path}
+      - vault_role_id_path=${vault_role_id_path}
+      - vault_secret_id_path=${vault_secret_id_path}
+      - vault_verify_cert=${vault_verify_cert}
+      - sentry_url=${sentry_url}
+      - csrf_token_name=${csrf_token_name}
+      - csrf_token_value=${csrf_token_value}
+      - langsmith_tracing=${langsmith_tracing}
+      - langsmith_api_key=${langsmith_api_key}
+      - langsmith_openai_api_key=${langsmith_openai_api_key}
+      - dev_jwt_secret=${dev_jwt_secret}
+      - dev_jwt_algorithm=${dev_jwt_algorithm}
+      - dev_jwt_lifetime_seconds=${dev_jwt_lifetime_seconds}
+      - dev_jwt_oauth_account_name=${dev_jwt_oauth_account_name}
+      - dev_user_email=${dev_user_email}
+      - dev_user_password=${dev_user_password}
+      - LITELLM_LOG_LEVEL=${LITELLM_LOG_LEVEL:-INFO}
+      - litellm_url=${litellm_url}
+      - litellm_master_key=${litellm_master_key}
+      - litellm_master_key_vault_path=${litellm_master_key_vault_path}
+      - openmeter_base_url=${openmeter_base_url}
+      - openmeter_api_token=${openmeter_api_token}
+      - stripe_secret_key=${stripe_secret_key}
+      - stripe_webhook_secret=${stripe_webhook_secret}
+      - stripe_price_id=${stripe_price_id}
+      - OPENMETER_API_ENDPOINT=${OPENMETER_API_ENDPOINT}
+      - OPENMETER_API_KEY=${OPENMETER_API_KEY}
+    volumes:
+      - ../vault:/app/vault:ro
+      - ../:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fastapi:
+        condition: service_healthy
+
+  postgrest:
+    container_name: postgrest
+    image: postgrest/postgrest:v12.2.8
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      # Use variables sourced from .env
+      - PGRST_DB_URI=postgres://${postgrest_authenticator__role}:${postgrest_authenticator__password}@postgres:5432/${POSTGRES_DB}
+      - PGRST_DB_SCHEMAS=${POSTGRES_DB_PRIVATE_SCHEMA}
+      - PGRST_DB_ANON_ROLE=${POSTGRES_ANONYMOUS_ROLE}
+      # valid access token check
+      - PGRST_DB_PRE_REQUEST=dev.verify_token
+      # Default to production-safe values if not overridden by .env
+      - PGRST_OPENAPI_MODE=ignore-privileges
+      # JWT settings - use dev JWT secret when dev auth is enabled
+      - PGRST_JWT_SECRET=${dev_jwt_secret:-dev-secret-key}
+      - PGRST_JWT_ROLE_CLAIM_KEY=${POSTGREST_JWT_ROLE_CLAIM_KEY}
+      # Logging and other settings
+      - PGRST_LOG_LEVEL=debug
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
+  postgres:
+    container_name: postgres
+    image: postgres:16 # Pinned version
+    # set shared memory limit when using docker-compose
+    ports:
+      - "5433:5432"
+    shm_size: 128mb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      # Use variables sourced from .env
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGREST_ANONYMOUS__ROLE=${postgrest_anonymous__role}
+      - POSTGREST_AUTHENTICATED_ROLE=${postgrest_authenticated_role}
+      - POSTGREST_AUTHENTICATOR__ROLE=${postgrest_authenticator__role}
+      - POSTGRES_DB_PRIVATE_SCHEMA=${postgres_db_private_schema:-private}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  postgres_memory:
+    container_name: postgres_memory
+    image: postgres:16 # Pinned version
+    # set shared memory limit when using docker-compose
+    ports:
+      - "5434:5432"
+    shm_size: 128mb
+    volumes:
+      - postgres_data_memory:/tmp/memory_db
+    environment:
+      # Use variables sourced from .env
+      - POSTGRES_USER=${POSTGRES_MEMORY_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_MEMORY_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_MEMORY_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  postgres_litellm:
+    container_name: postgres_litellm
+    image: postgres:16 # Pinned version
+    # set shared litellm limit when using docker-compose
+    ports:
+      - "5435:5432"
+    shm_size: 128mb
+    volumes:
+      - postgres_data_litellm:/tmp/litellm_db
+    environment:
+      # Use variables sourced from .env
+      - POSTGRES_USER=${POSTGRES_LITELLM_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_LITELLM_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_LITELLM_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  stripe_webhook_listener:
+    container_name: stripe_webhook_listener
+    image: stripe/stripe-cli:latest
+    command: ["listen", "--forward-to", "http://fastapi:8000/api/stripe/webhook"]
+    depends_on:
+      - fastapi
+    restart: unless-stopped
+    profiles: ["dev"] # Only run when dev profile is active
+
+  vault-dev:
+    container_name: vault-dev
+    image: vault:1.13.3 # Pinned version
+    ports:
+      - "8200:8200"
+    environment:
+      # Use variable sourced from .env
+      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_DEV_ROOT_TOKEN_ID}
+      - VAULT_ADDR=http://0.0.0.0:8200
+    command: "server -dev -dev-listen-address='0.0.0.0:8200' -dev-root-token-id=${VAULT_DEV_ROOT_TOKEN_ID}"
+    cap_add:
+      - IPC_LOCK
+    profiles: ["dev"] # Only run when dev profile is active
+
+
+  jupyter:
+    container_name: jupyter
+    build:
+      context: ..
+      dockerfile: docker/jupyter.Dockerfile
+    ports:
+      - "8888:8888"
+    volumes:
+      - ../:/home/jovyan/work/
+
+volumes:
+  postgres_data:
+  postgres_data_memory:
+  postgres_data_litellm:
+  litellm_data:
+  redis_data:

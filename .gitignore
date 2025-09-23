@@ -1,0 +1,78 @@
+# Git worktree dirs
+extraction-error
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+.coverage
+*.env*
+!.env.example
+
+# FastAPI
+instance/
+*.log
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+.pyenv
+.nvmrc
+
+# IDEs
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+#Mutation tests
+mutants/
+html/
+.mutmut-cache
+
+# sqlite database
+*.sqlite3
+*.db
+
+# build files
+build/
+dist/
+*.egg-info/
+*.egg/
+*.egg-info
+*.dist-info
+*.dist/
+*.build/
+**/node_modules/
+static/css/output.css
+static/react-components/build/
+static/react-components/storybook-static/
+static/react-components/styles/tailwind.scss
+static/css/dist/
+vault/
+
+# dev tools
+.aider/
+.claude/
+**/.claude/
+*CLAUDE.md
+.mcp.json
+.cursor
+copilot.md
+plans/
+quickNotes*
+*scratch*
+documentation/
+content-design-system/
+
+# Jupyter lab
+.cache/
+.jupyter/
+.local/
+.ipython
+.ipynb*

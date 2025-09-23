@@ -1,0 +1,451 @@
+/* Variable definitions FIRST */
+@use 'forward';
+
+/* Theme transition */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Light theme */
+:root,
+.light {
+  --background: 0 0 98;
+  /* #fafafa */
+  --foreground: 213 22 15;
+  /* #24292e */
+
+  /* Surface colors */
+  --card: 255 255 255;
+  /* #ffffff */
+  --card-foreground: 213 22 15;
+  /* #24292e */
+  --popover: 255 255 255;
+  --popover-foreground: 213 22 15;
+
+  /* Brand colors */
+  --primary: 180 17 51;
+  /* #6B9797 */
+  --primary-foreground: 0 0 98;
+  /* #ffffff */
+
+  --secondary: 220 14 96;
+  /* #f6f8fa */
+  --secondary-foreground: 213 22 15;
+  /* #24292e */
+
+  /* UI colors */
+  --muted: 213 25 34;
+  /* #6a737d */
+  --muted-foreground: 220 14 60;
+  /* #f6f8fa */
+  --accent: 180 17 51;
+  /* #6B9797 */
+  --accent-foreground: 0 0 98;
+  /* #fafafa */
+
+  /* Status colors */
+  --destructive: 354 84 57;
+  /* #d73a49 */
+  --destructive-foreground: 0 0 98;
+  /* #fafafa */
+  --success: 142 76 36;
+  /* #28a745 */
+  --success-foreground: 0 0 98;
+  /* #fafafa */
+
+  /* Task status colors */
+  --status-todo: 210 20 98;
+  /* #f1f5f9 - gray-100 */
+  --status-todo-foreground: 215 28 17;
+  /* #334155 - slate-700 */
+  --status-in-progress: 48 96 89;
+  /* #fef08a - yellow-200 */
+  --status-in-progress-foreground: 23 92 22;
+  /* #854d0e - amber-800 */
+  --status-done: 142 72 73;
+  /* #bbf7d0 - green-200 */
+  --status-done-foreground: 138 76 32;
+  /* #166534 - green-800 */
+
+  /* Approve/Reject colors */
+  --approve: 180 17 51;
+  /* #6B9797 */
+  --approve-foreground: 0 0 98;
+  /* #ffffff */
+  --reject: 354 84 57;
+  /* #d73a49 */
+  --reject-foreground: 0 0 98;
+  /* #fafafa */
+
+  /* Action colors */
+  --action-create: 142 76 36;
+  /* Same as success */
+  --action-create-foreground: 0 0 98;
+  --action-update: 212 100 50;
+  /* Same as accent */
+  --action-update-foreground: 0 0 98;
+  --action-delete: 354 84 57;
+  /* Same as destructive */
+  --action-delete-foreground: 0 0 98;
+
+  /* Border colors */
+  --border: 0 0 88;
+  /* #24292e */
+  --input: 0 0 98;
+  /* #fafafa */
+  --ring: 213 22 15;
+  /* #24292e */
+
+  /* Selected colors */
+  --selected: 212 100 50;
+  /* #0366d6 */
+  --selected-foreground: 0 0 98;
+  /* #fafafa */
+
+  /* Sidebar colors */
+  --sidebar: 213 22 15;
+  /* #ffffff */
+  --sidebar-foreground: 0 0 98;
+  /* #fafafa */
+
+  --diffgreen: 82 51 71;
+  /* #c0dc91 */
+  --diffgreen-foreground: 213 22 15;
+
+  --diffred: 359 92 81;
+  /* #fdeff0 */
+  --diffred-foreground: 356 77 96;
+  /* #24292e */
+
+  --skeleton: 213 22 37;
+
+  --appbackground: 0 0 98;
+  /* hsl as used by tailwind */
+  --appbackgroundgradient1: #75b6fb;
+  --appbackgroundgradient2: #58e7d4;
+  --appbackgroundgradient3: #6B9797;
+
+  /* Gradient intensity controls */
+  --gradient-opacity: 0.2;
+  --gradient-start-percent: 100;
+  --gradient-end-percent: 50;
+
+  /* Diff colors */
+  --diff-background-color: initial;
+  --diff-text-color: #24292e;
+  --diff-font-family: var(--font-mono);
+  --diff-selection-background-color: #b8d3f0;
+  --diff-code-insert-background-color: #b6ffcf;
+  --diff-code-delete-background-color: #fccece;
+  --diff-code-insert-edit-background-color: #b6ffcf;
+  --diff-code-delete-edit-background-color: #ffa8af;
+  --diff-code-selected-background-color: #b8d3f0;
+
+  /* Change Autocomplete styles in Chrome*/
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    border: 0px solid var(--border);
+    -webkit-text-fill-color: #24292e;
+    -webkit-box-shadow: 0 0 0px 1000px var(--background) inset;
+    box-shadow: 0 0 0px 1000px var(--background) inset;
+    transition: background-color 5000s ease-in-out 0s;
+    color: #24292e;
+  }
+}
+
+/* Dark theme */
+.dark {
+  /* Base colors */
+  --background: 201 25 4;
+  /* #060809 */
+  --foreground: 0 0 90;
+  /* #EDEDED */
+
+  /* Surface colors */
+  --card: 201 25 4;
+  /* #0a0a0a */
+  --card-foreground: 0 0 70;
+  /* #f8f8f8 */
+  --popover: 201 25 4;
+  --popover-foreground: 0 0 70;
+
+  /* Brand colors */
+  --primary: 180 17 51;
+  /* #6B9797 */
+  --primary-foreground: 0 0 98;
+  /* #ffffff */
+
+  --secondary: 24 24 27;
+  /* #18181b */
+  --secondary-foreground: 0 0 70;
+  /* #f8f8f8 */
+
+  /* UI colors */
+  --muted: 0 0 75;
+  /* #9EBC9E */
+  --muted-foreground: 0 0 70;
+  /* #252623 */
+
+  --accent: 180 17 51;
+  /* #6B9797 */
+  --accent-foreground: 0 0 70;
+  /* #f8f8f8 */
+
+  /* Status colors */
+  --destructive: 354 84 57;
+  /* #d73a49 */
+  --destructive-foreground: 0 0 98;
+  /* #fafafa */
+  --success: 16 185 129;
+  /* #10b981 */
+  --success-foreground: 0 0 98;
+  /* #fafafa */
+
+  /* Task status colors */
+  --status-todo: 215 25 27;
+  /* #475569 - slate-600 */
+  --status-todo-foreground: 210 40 98;
+  /* #f8fafc - slate-50 */
+  --status-in-progress: 45 93 47;
+  /* #ca8a04 - yellow-600 */
+  --status-in-progress-foreground: 48 96 96;
+  /* #fef9c3 - yellow-100 */
+  --status-done: 142 76 43;
+  /* #22c55e - green-500 */
+  --status-done-foreground: 141 84 95;
+  /* #dcfce7 - green-50 */
+
+  /* Approve/Reject colors */
+  --approve: 180 17 51;
+  /* #6B9797 */
+  --approve-foreground: 0 0 98;
+  /* #ffffff */
+  --reject: 239 68 68;
+  /* #ef4444 */
+  --reject-foreground: 0 0 98;
+  /* #fafafa */
+
+  /* Action colors */
+  --action-create: 116 185 129;
+  /* Same as success */
+  --action-create-foreground: 0 0 98;
+  --action-update: 56 189 248;
+  /* Same as accent */
+  --action-update-foreground: 0 0 70;
+  /* Use accent foreground */
+  --action-delete: 239 68 68;
+  /* Same as destructive */
+  --action-delete-foreground: 0 0 98;
+
+  /* Border colors */
+  --border: 0 0 30;
+  /* #252623 */
+  --input: 201 25 4;
+  /* #242522 */
+  --ring: 3 105 161;
+  /* #0369a1 */
+
+  /* Selected colors */
+  --selected: 248 10 15;
+  /* #0366d6 */
+  --selected-foreground: 248 10 100;
+  /* #ffffff */
+
+  --sidebar: 201 20 10;
+  /* #252623 */
+  --sidebar-foreground: 0 0 70;
+  /* #f8f8f8 */
+  --diffgreen: 82 51 11;
+  --diffgreen-foreground: 213 22 95;
+
+  --diffred: 359 92 11;
+  --diffred-foreground: 356 77 96;
+
+  --skeleton: 0 0 95;
+
+  --appbackground: 201 25 4;
+  /* hsl as used by tailwind */
+  --appbackgroundgradient1: #0366d6;
+  --appbackgroundgradient2: #0366d6;
+  --appbackgroundgradient3: #0366d6;
+
+  /* Gradient intensity controls */
+  --gradient-opacity: 0.07;
+  --gradient-start-percent: 80;
+  --gradient-end-percent: 0;
+
+  --diff-background-color: 'transparent';
+  --diff-text-color: #f8f8f8;
+  --diff-font-family: var(--font-mono);
+  --diff-selection-background-color: #333d49;
+  --diff-code-insert-background-color: #194d2c;
+  --diff-code-delete-background-color: #462929;
+  --diff-code-insert-edit-background-color: #194d2c;
+  --diff-code-delete-edit-background-color: #462929;
+  --diff-code-selected-background-color: #333d49;
+
+    /* Change Autocomplete styles in Chrome*/
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    textarea:-webkit-autofill,
+    textarea:-webkit-autofill:hover,
+    textarea:-webkit-autofill:focus,
+    select:-webkit-autofill,
+    select:-webkit-autofill:hover,
+    select:-webkit-autofill:focus {
+      border: 0px solid var(--border);
+      -webkit-text-fill-color: #EDEDED;
+      -webkit-box-shadow: 0 0 0px 1000px var(--background) inset;
+      box-shadow: 0 0 0px 1000px var(--background) inset;
+      transition: background-color 5000s ease-in-out 0s;
+      color: #EDEDED;
+    }
+}
+
+/* spacing */
+:root {
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  --border-color: var(--border);
+
+  /* Font families */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+               "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+               "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace;
+
+  /* Tooltip styles */
+  --rt-color-white: #EDEDED;
+  --rt-color-dark: #242522;
+  --rt-color-success: #8dc572;
+  --rt-color-error: #be6464;
+  --rt-color-warning: #f0ad4e;
+  --rt-color-info: #337ab7;
+  --rt-opacity: 0.9;
+  --rt-transition-show-delay: 0.15s;
+  --rt-transition-closing-delay: 0.15s;
+}
+
+/* Font sizes */
+.font-compact {
+  --font-sm: 0.75rem;
+  --font-base: 0.875rem;
+  --font-lg: 1.25rem;
+}
+:root {
+  --font-sm: 0.875rem;
+  --font-base: 1rem;
+  --font-lg: 1.875rem;
+}
+.font-spacious {
+  --font-sm: 1rem;
+  --font-base: 1.25rem;
+  --font-lg: 2rem;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
+html,
+body {
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums; /* better aligned numbers in UI */
+}
+
+pre,
+code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+@keyframes fade {
+  0%, 100% {
+    opacity: 0.3; /* Dots are slightly visible */
+  }
+  50% {
+    opacity: 1; /* Full opacity */
+  }
+}
+
+.animate-dots {
+  display: inline-flex;
+  /* align-items: flex-end; Removed as not needed for opacity */
+}
+
+.animate-dots span {
+  display: inline-block;
+  margin: 0 1px; /* Adjust spacing between dots */
+  animation: fade 3.4s infinite;
+}
+
+/* Apply staggered delays */
+.animate-dots span:nth-child(1) { animation-delay: 0.0s; }
+.animate-dots span:nth-child(2) { animation-delay: 0.1s; }
+.animate-dots span:nth-child(3) { animation-delay: 0.2s; }
+.animate-dots span:nth-child(4) { animation-delay: 0.3s; }
+.animate-dots span:nth-child(5) { animation-delay: 0.4s; }
+.animate-dots span:nth-child(6) { animation-delay: 0.5s; }
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.minimal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.5) transparent;
+}
+
+/* For Chrome, Edge, and Safari */
+.minimal-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+
+.minimal-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.5);
+  border-radius: 4px;
+}
+
+.minimal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.7);
+}
+
+.minimal-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.marquee-container:hover .marquee-content {
+  animation-play-state: paused;
+}
+
+@layer base {
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}

@@ -1,0 +1,32 @@
+---
+id: 12868491-b79b-4271-8241-e7d80fa62e6d
+---
+stateDiagram-v2
+    [*] --> New : CreateAccount
+
+    %% Subscription 
+    New --> ActiveSubscription : SignupSubscription
+    ActiveSubscription --> NoSubscription : CancelSubscription
+    NoSubscription --> ActiveSubscription : SignupSubscription
+
+    %% Token Usage
+    ActiveSubscription --> MeteredBilling: UsageRecorded 
+    ActiveSubscription --> Suspended: UsageRecorded
+    MeteredBilling --> Suspended : UsageRecorded
+
+    %% Next billing cycle renews monthly credits
+    MeteredBilling --> ActiveSubscription : NextBillingCycle
+    Suspended --> ActiveSubscription : NextBillingCycle
+
+    %% TopUp the account balance
+    Suspended --> MeteredBilling : TopUp
+
+    %% Refund path for account balance
+    MeteredBilling --> Suspended : RefundApproved
+    Suspended --> NoSubscription : CancelSubscription
+
+    %% FRAUD path — one-way to Closed
+    MeteredBilling --> Closed : ChargebackDetected
+    ActiveSubscription --> Closed : ChargebackDetected
+    NoSubscription --> Closed : ChargebackDetected
+    Suspended --> Closed : ChargebackDetected

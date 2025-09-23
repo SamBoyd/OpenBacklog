@@ -1,0 +1,136 @@
+{% extends 'layouts/base.html' %}
+{% import "macros.html" as macros %}
+
+
+{% block body %}
+<div>
+  <!-- Background gradient container -->
+  <div class="fixed -z-10 top-0 left-0 right-0 h-full overflow-hidden">
+    <!-- First radial gradient - scrolls slower -->
+    <div class="absolute -top-[50vh] left-0 right-0 h-[300vh] bg-gradient-1" id="gradient-1a"></div>
+    <div class="absolute -top-[50vh] left-0 right-0 h-[300vh] bg-gradient-1" id="gradient-1b"></div>
+    <div class="absolute -top-[50vh] left-0 right-0 h-[300vh] bg-gradient-1" id="gradient-1c"></div>
+
+    <!-- Second radial gradient - scrolls slower -->
+    <div class="absolute -top-[50vh] left-0 right-0 h-[300vh] bg-gradient-2" id="gradient-2"></div>
+
+    <!-- Third radial gradient - scrolls faster -->
+    <div class="absolute -top-[50vh] left-0 right-0 h-[300vh] bg-gradient-3" id="gradient-3"></div>
+  </div>
+
+  <main class="min-h-screen flex flex-col">
+    <!-- Modal-style box in center -->
+    <div class="flex-1 flex items-center justify-center px-4">
+      <div class="bg-white/10 backdrop-blur-md border border-white/12 rounded-lg p-8 max-w-md w-full shadow-2xl">
+        <!-- Logo and title -->
+        <div class="text-center mb-8">
+          <div class="flex items-center justify-center space-x-3 mb-4">
+            <span class="text-3xl font-bold tracking-wide text-foreground">OpenBacklog</span>
+          </div>
+        </div>
+
+        <!-- Sign in/Sign up buttons -->
+        {% if not user %}
+        <div class="space-y-4">
+          <span id="login-btn-desktop"
+            class="login-btn-trigger w-full block text-center text-sm rounded-lg px-4 py-3 text-foreground hover:text-primary cursor-pointer bg-sidebar border border-border/20 hover:bg-sidebar/80 transition-colors">
+            Sign in
+          </span>
+
+          <span id="signup-btn-desktop"
+            class="login-btn-trigger w-full block text-center text-sm rounded-lg px-4 py-3 text-background hover:text-primary cursor-pointer bg-foreground border border-background hover:bg-foreground/90 transition-colors">
+            Sign up
+          </span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-8 border-foreground/10 cursor-default">
+      <div class="max-w-6xl mx-auto px-4 text-center">
+        <p class="text-foreground font-bold bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text text-transparent">
+          Built by Solo Developers, for Solo Developers.
+        </p>
+      </div>
+    </footer>
+  </main>
+</div>
+
+<style>
+  :root {
+    --appbackgroundgradient1: rgba(95, 58, 255, 0.4);
+    --appbackgroundgradient2: rgba(255, 84, 198, 0.4);
+    --appbackgroundgradient3: rgba(38, 174, 230, 0.4);
+    --gradient-opacity: 0.1;
+    --scroll-offset: 0px;
+  }
+
+  .bg-gradient-1 {
+    opacity: var(--gradient-opacity);
+    transform: translateY(calc(var(--scroll-offset) * 0.5));
+  }
+
+  #gradient-1a {
+    background: radial-gradient(circle at 10% 40%, var(--appbackgroundgradient1) 0, transparent 20%);
+  }
+
+  #gradient-1b {
+    background: radial-gradient(circle at 60% 40%, var(--appbackgroundgradient1) 0, transparent 20%);
+  }
+
+  #gradient-1c {
+    background: radial-gradient(circle at 90% 40%, var(--appbackgroundgradient1) 0, transparent 20%);
+  }
+
+  .bg-gradient-2 {
+    background: radial-gradient(circle at 80% 20%, var(--appbackgroundgradient2) 0, transparent 25%);
+    opacity: var(--gradient-opacity);
+    transform: translateY(calc(var(--scroll-offset) * -0.2));
+  }
+
+  .bg-gradient-3 {
+    background: radial-gradient(circle at 50% 70%, var(--appbackgroundgradient3) 0, transparent 20%);
+    opacity: var(--gradient-opacity);
+    transform: translateY(calc(var(--scroll-offset) * -0.5));
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Function to update the scroll offset CSS variable
+    const updateScrollOffset = (event) => {
+      // Determine the target element (either a specific scrollable element or window)
+      const target = event?.target instanceof Element ? event.target : window;
+      let scrollY = 0;
+
+      if (target === window) {
+        scrollY = window.scrollY;
+      } else if (target instanceof Element && 'scrollTop' in target) {
+        scrollY = target.scrollTop;
+      } else {
+        return; // Don't update if we don't know the target
+      }
+
+      document.documentElement.style.setProperty('--scroll-offset', `${scrollY}px`);
+    };
+
+    // Initial call to set the offset
+    updateScrollOffset();
+
+    // Find and add scroll event listeners to all scrollable elements
+    const scrollableElements = document.querySelectorAll('.overflow-y-auto');
+
+    scrollableElements.forEach((element) => {
+      element.addEventListener('scroll', updateScrollOffset);
+    });
+
+    // Also listen to window scroll as fallback
+    window.addEventListener('scroll', updateScrollOffset);
+  });
+</script>
+
+<!-- Add the inline script for the login button -->
+{{ macros.login_button_script() }}
+
+{% endblock %}

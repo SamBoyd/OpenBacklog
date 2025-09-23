@@ -1,0 +1,155 @@
+{% import "components/dropdown_macro.html" as macros %}
+
+<div class="grid max-w-7xl grid-cols-1 gap-x-8 gap-y-10 px-4 py-16 sm:px-6 md:grid-cols-2 lg:px-8">
+    <div>
+        <h2 class="text-base/7 font-semibold text-gray-800">Display preferences</h2>
+        <p class="mt-1 text-sm/6 text-gray-800">Personalise how information gets displayed</p>
+    </div>
+    <div class="mt-6 border-t border-white/10">
+        <dl class="divide-y divide-white/10 flex flex-col gap-5">
+
+            <div class="col-span-full">
+                <label for="dateformat-dropdown"
+                    class="block text-sm/6 font-medium text-gray-800">Date Format</label>
+                <div id="dateformat-dropdown" class="mt-1 text-sm/6 text-gray-700 sm:col-span-2 sm:mt-0">
+                    {{ macros.dropdown_menu(
+                    selected_value="YYYY-MM-DD",
+                    dropdown_menu_id="dateFormatDropdown",
+                    menu_items=[
+                    {'label': 'MM/DD/YYYY'},
+                    {'label': 'DD/MM/YYYY'},
+                    {'label': 'YYYY-MM-DD'}
+                    ],
+                    ) }}
+                </div>
+            </div>
+
+
+            <div class="col-span-full">
+                <label for="timezone-dropdown"
+                    class="block text-sm/6 font-medium text-gray-800">Timezone</label>
+                <div id="timezone-dropdown" class="mt-1 text-sm/6 text-gray-700 sm:col-span-2 sm:mt-0">
+                    {{ macros.dropdown_menu(
+                    selected_value="UTC",
+                    dropdown_menu_id="timezoneDropdown",
+                    menu_items=[
+                    {'label': 'UTC'},
+                    {'label': 'GMT'},
+                    {'label': 'EST'},
+                    {'label': 'PST'},
+                    ],
+                    ) }}
+                </div>
+            </div>
+
+
+            <div class="col-span-full">
+                <label for="language-dropdown"
+                    class="block text-sm/6 font-medium text-gray-800">Language</label>
+                <div id="language-dropdown" class="mt-1 text-sm/6 text-gray-700 sm:col-span-2 sm:mt-0">
+                    {{ macros.dropdown_menu(
+                    selected_value="English",
+                    dropdown_menu_id="languageDropdown",
+                    menu_items=[
+                    {'label': 'English'},
+                    {'label': 'Spanish'},
+                    {'label': 'French'},
+                    {'label': 'German'},
+                    ],
+                    ) }}
+                </div>
+            </div>
+
+            <div class="col-span-full">
+                <label for="theme-dropdown"
+                    class="block text-sm/6 font-medium text-gray-800">Theme</label>
+                <div id="theme-dropdown" class="mt-1 text-sm/6 text-gray-700 sm:col-span-2 sm:mt-0">
+                    {{ macros.dropdown_menu(
+                    selected_value="Light",
+                    dropdown_menu_id="themeDropdown",
+                    menu_items=[
+                    {'label': 'Light'},
+                    {'label': 'Dark'},
+                    ],
+                    ) }}
+
+                </div>
+            </div>
+
+        </dl>
+    </div>
+</div>
+
+
+<script>
+    // Wrap your script block code in an immediately-invoked function expression (IIFE)
+    // so that each macro usage's variables remain local.
+    (function () {
+        // Display preferences change handling
+        var displayPrefError = document.getElementById('displayPrefError');
+        var dropdownIds = ['dateFormatDropdown', 'timezoneDropdown', 'languageDropdown', 'themeDropdown'];
+
+        dropdownIds.forEach(function (id) {
+            var dropdown = document.getElementById(id);
+            dropdown.addEventListener('change', function () {
+                displayPrefError.style.display = 'none';
+                var data = {
+                    field: id.replace('Dropdown', ''),
+                    value: dropdown.value
+                };
+
+                fetch('/api/user/display-pref', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data),
+                    credentials: 'same-origin'
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            return response.json().then(function (error) {
+                                throw new Error(error.message || 'Error updating preference.');
+                            });
+                        }
+                    })
+                    .catch(function (err) {
+                        displayPrefError.textContent = err.message;
+                        displayPrefError.style.display = 'block';
+                    });
+            });
+        });
+
+        // Listen for custom "dropdownChanged" events on each dropdown's button
+        dropdownIds.forEach(function (id) {
+            var button = document.getElementById(id + '-menu-button');
+            if (button) {
+                button.addEventListener('dropdownChanged', function (e) {
+                    var data = {
+                        field: id.replace('Dropdown', ''),
+                        value: e.detail.newValue
+                    };
+                    fetch('/api/user/display-pref', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data),
+                        credentials: 'same-origin'
+                    })
+                        .then(function (response) {
+                            if (!response.ok) {
+                                return response.json().then(function (error) {
+                                    throw new Error(error.message || 'Error updating preference.');
+                                });
+                            }
+                        })
+                        .catch(function (err) {
+                            displayPrefError.textContent = err.message;
+                            displayPrefError.style.display = 'block';
+                        });
+                });
+            }
+        });
+    })();
+</script>

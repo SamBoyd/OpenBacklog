@@ -1,0 +1,44 @@
+name: TypeScript Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [22.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: static/react-components/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./static/react-components
+        run: npm ci
+      
+      - name: Build css
+        working-directory: ./static/react-components
+        run: |
+          npm run tailwind
+          npm run scss
+      
+      - name: Run TypeScript compilation
+        working-directory: ./static/react-components
+        run: npm run compile
+      
+      - name: Run tests
+        working-directory: ./static/react-components
+        run: npm run test -- --run

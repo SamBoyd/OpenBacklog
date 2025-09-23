@@ -1,0 +1,43 @@
+{% import 'macros.html' as macros %}
+
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/ob_v2_64x64.png">
+    <title>OpenBacklog</title>
+
+    {% include 'tailwindui_head.html' %}
+    {# Use the variable passed from the server context #}
+    {% if hashed_css_path %}
+    <link rel="stylesheet" type="text/css"  href="{{ hashed_css_path }}">
+    {% else %}
+    <!-- Optional: Fallback or error message if path isn't found -->
+    <link rel="stylesheet" type="text/css"  href="/static/css/dist/styles.css">
+    {% endif %}
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="h-full bg-background text-foreground min-h-screen flex flex-col dark overflow-x-hidden">
+    {% block body required%} {% endblock %}
+
+    <script>
+        lucide.createIcons();
+        
+        // Theme handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const theme = localStorage.getItem('theme');
+            const body = document.body;
+            
+            if (theme === 'dark' || !theme) {
+                body.classList.add('dark');
+            }
+        });
+    </script>
+</body>
+
+</html>

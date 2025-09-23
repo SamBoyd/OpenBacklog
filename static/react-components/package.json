@@ -1,0 +1,249 @@
+{
+  "name": "react-components",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "NODE_ENV=test vitest",
+    "test:ui": "vitest --ui",
+    "build": "NODE_ENV=prod webpack",
+    "build:preprod": "NODE_ENV=preprod webpack",
+    "build:dev": "webpack",
+    "build:watch": "webpack --watch",
+    "lint": "",
+    "clean": "",
+    "compile": "tsc",
+    "fix": "",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run lint",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "tailwind": "tailwindcss -i ./styles/index.scss -o ./styles/tailwind.scss",
+    "tailwind:watch": "tailwindcss -i ./styles/index.scss -o ./styles/tailwind.scss --watch",
+    "scss": "sass ./styles/tailwind.scss:./styles/output.css",
+    "scss:watch": "sass --watch ./styles/tailwind.scss:./styles/output.css"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@auth0/auth0-spa-js": "^2.1.3",
+    "@hello-pangea/dnd": "^18.0.1",
+    "@openmeter/sdk": "^1.0.0-beta.213",
+    "@openmeter/web": "^1.0.0-beta.186",
+    "@sentry/browser": "^9.16.1",
+    "@sentry/bundler-plugin-core": "^3.4.0",
+    "@sentry/react": "^9.44.2",
+    "@sentry/webpack-plugin": "^3.3.1",
+    "@stripe/react-stripe-js": "^3.9.2",
+    "@stripe/stripe-js": "^7.9.0",
+    "@supabase/postgrest-js": "^1.17.7",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
+    "@tanstack/react-query": "^5.71.1",
+    "@uiw/react-md-editor": "^4.0.5",
+    "dayjs": "^1.11.13",
+    "diff": "^7.0.0",
+    "eslint-plugin-react": "^7.37.4",
+    "jwt-decode": "^4.0.0",
+    "lexorank": "^1.0.5",
+    "lucide-react": "^0.487.0",
+    "mixpanel-browser": "^2.67.0",
+    "prop-types": "^15.8.1",
+    "react": "^18.3.1",
+    "react-diff-view": "^3.3.1",
+    "react-dom": "^18.3.1",
+    "react-error-boundary": "^5.0.0",
+    "react-icons": "^5.4.0",
+    "react-resizable-panels": "^2.1.7",
+    "react-router": "^7.4.1",
+    "react-tagsinput": "^3.20.3",
+    "react-tooltip": "^5.28.1",
+    "tailwind-scrollbar-hide": "^2.0.0",
+    "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@alexgorbatchev/storybook-addon-localstorage": "^2.0.3",
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/preset-react": "^7.25.9",
+    "@chromatic-com/storybook": "^3.2.6",
+    "@headlessui/react": "^2.2.0",
+    "@heroicons/react": "^2.2.0",
+    "@storybook/addon-essentials": "^8.4.7",
+    "@storybook/addon-interactions": "^8.4.7",
+    "@storybook/addon-styling-webpack": "^1.0.1",
+    "@storybook/addon-themes": "^8.6.12",
+    "@storybook/addon-webpack5-compiler-swc": "^1.0.5",
+    "@storybook/blocks": "^8.4.7",
+    "@storybook/react": "^8.4.7",
+    "@storybook/react-webpack5": "^8.4.7",
+    "@storybook/test": "^8.4.7",
+    "@storybook/test-runner": "^0.23.0",
+    "@stryker-mutator/core": "^8.7.1",
+    "@stryker-mutator/jest-runner": "^8.7.1",
+    "@stryker-mutator/typescript-checker": "^8.7.1",
+    "@stryker-mutator/vitest-runner": "^8.7.1",
+    "@tanstack/eslint-plugin-query": "^5.68.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/diff": "^7.0.1",
+    "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^22.7.5",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/react-tagsinput": "^3.20.6",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/ui": "^3.1.1",
+    "assets-webpack-plugin": "^7.1.1",
+    "autoprefixer": "^10.4.21",
+    "babel-jest": "^29.5.0",
+    "babel-loader": "^9.2.1",
+    "concurrently": "^9.2.0",
+    "copy-webpack-plugin": "^13.0.0",
+    "css-loader": "^7.1.2",
+    "dotenv-webpack": "^8.1.0",
+    "eslint-plugin-storybook": "^0.11.1",
+    "gts": "^6.0.2",
+    "http-server": "^14.1.1",
+    "jsdom": "^26.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwt-builder": "^1.1.0",
+    "less": "^4.3.0",
+    "less-loader": "^12.3.0",
+    "lorem-ipsum": "^2.0.8",
+    "msw": "^2.8.4",
+    "msw-storybook-addon": "^2.0.4",
+    "postcss": "^8.5.3",
+    "sass": "^1.72.0",
+    "sass-loader": "^14.2.1",
+    "storybook": "^8.6.12",
+    "storybook-addon-remix-react-router": "^4.0.1",
+    "style-loader": "^4.0.0",
+    "tailwindcss": "^3.4.17",
+    "terser-webpack-plugin": "^5.3.14",
+    "ts-jest": "^29.1.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.6.3",
+    "vitest": "^3.0.4",
+    "webpack": "^5.96.1",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.1.0"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  },
+  "imports": {
+    "#types": {
+      "storybook": "./types.ts",
+      "default": "./types.ts"
+    },
+    "#api/api": {
+      "storybook": "./api/api.mock.ts",
+      "default": "./api/api.ts"
+    },
+    "#api/ai": {
+      "storybook": "./api/ai.mock.ts",
+      "default": "./api/ai.ts"
+    },
+    "#hooks/useWorkspaces": {
+      "storybook": "./hooks/useWorkspaces.mock.tsx",
+      "default": "./hooks/useWorkspaces.tsx"
+    },
+    "#contexts/AiImprovementsContext": {
+      "storybook": "./contexts/AiImprovementsContext.mock.tsx",
+      "default": "./contexts/AiImprovementsContext.tsx"
+    },
+    "#hooks/useChatMessages": {
+      "storybook": "./hooks/useChatMessages.mock.tsx",
+      "default": "./hooks/useChatMessages.tsx"
+    },
+    "#hooks/useContextDocument": {
+      "storybook": "./hooks/useContextDocument.mock.tsx",
+      "default": "./hooks/useContextDocument.tsx"
+    },
+    "#hooks/useFieldDefinitions": {
+      "storybook": "./hooks/useFieldDefinitions.mock.tsx",
+      "default": "./hooks/useFieldDefinitions.tsx"
+    },
+    "#hooks/useInitiativeGroups": {
+      "storybook": "./hooks/useInitiativeGroups.mock.tsx",
+      "default": "./hooks/useInitiativeGroups.tsx"
+    },
+    "#hooks/useParams": {
+      "storybook": "./hooks/useParams.mock.ts",
+      "default": "./hooks/useParams.ts"
+    },
+    "#hooks/useActiveEntity": {
+      "storybook": "./hooks/useActiveEntity.mock.tsx",
+      "default": "./hooks/useActiveEntity.tsx"
+    },
+    "#contexts/InitiativesContext": {
+      "storybook": "./contexts/InitiativesContext.mock.tsx",
+      "default": "./contexts/InitiativesContext.tsx"
+    },
+    "#contexts/SuggestionsToBeResolvedContext": {
+      "storybook": "./contexts/SuggestionsToBeResolvedContext.mock.tsx",
+      "default": "./contexts/SuggestionsToBeResolvedContext.tsx"
+    },
+    "#contexts/TasksContext": {
+      "storybook": "./contexts/TasksContext.mock.tsx",
+      "default": "./contexts/TasksContext.tsx"
+    },
+    "#hooks/useEntityFromUrl": {
+      "storybook": "./hooks/useEntityFromUrl.mock.tsx",
+      "default": "./hooks/useEntityFromUrl.tsx"
+    },
+    "#hooks/useUserPreferences": {
+      "storybook": "./hooks/useUserPreferences.mock.tsx",
+      "default": "./hooks/useUserPreferences.tsx"
+    },
+    "#hooks/useBillingUsage": {
+      "storybook": "./hooks/useBillingUsage.mock.tsx",
+      "default": "./hooks/useBillingUsage.tsx"
+    },
+    "#hooks/useInitiativeDiff": {
+      "storybook": "./hooks/useInitiativeDiff.mock.tsx",
+      "default": "./hooks/useInitiativeDiff.tsx"
+    },
+    "#hooks/useAiChat": {
+      "storybook": "./hooks/useAiChat.mock.tsx",
+      "default": "./hooks/useAiChat.tsx"
+    },
+    "#hooks/initiatives": {
+      "storybook": "./hooks/initiatives/index.ts",
+      "default": "./hooks/initiatives/index.ts"
+    },
+    "#components/billing": {
+      "storybook": "./components/billing/index.ts",
+      "default": "./components/billing/index.ts"
+    },
+    "#services/workspaceApi": {
+      "storybook": "./services/workspaceApi.mock.ts",
+      "default": "./services/workspaceApi.ts"
+    },
+    "#hooks/billing/useSubscriptionPayment": {
+      "storybook": "./hooks/billing/useSubscriptionPayment.mock.ts",
+      "default": "./hooks/billing/useSubscriptionPayment.ts"
+    },
+    "#hooks/useGithubRepos": {
+      "storybook": "./hooks/useGithubRepos.mock.tsx",
+      "default": "./hooks/useGithubRepos.tsx"
+    },
+    "#styles": {
+      "default": "./styles"
+    },
+    "#*": [
+      "./*",
+      "./*.ts",
+      "./*.tsx"
+    ]
+  }
+}

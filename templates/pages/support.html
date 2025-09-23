@@ -1,0 +1,220 @@
+{% extends 'layouts/header_layout.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-20 max-w-4xl">
+  <div class="text-center my-20">
+    <h1 class="text-4xl font-bold text-foreground mb-4">Need Help with OpenBacklog?</h1>
+    <p class="text-xl text-muted-foreground">Get support for the open-source AI-assisted project management platform</p>
+    <div class="w-24 h-1 bg-primary mx-auto mt-4"></div>
+  </div>
+
+  <!-- Contact & Community Support -->
+  <div class="bg-card rounded-lg shadow-lg p-8 mb-8">
+    <h2 class="text-2xl font-semibold text-foreground mb-6">Contact & Community Support</h2>
+
+    <div class="grid gap-6 md:grid-cols-2">
+      <!-- Email Support -->
+      <div class="space-y-3">
+        <h3 class="text-lg font-medium text-foreground flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+            stroke="currentColor" class="w-5 h-5 mr-2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+          </svg>
+          Email Support
+        </h3>
+        <p class="text-muted-foreground">
+          <a href="mailto:{{ support_email }}" class="text-primary hover:underline font-medium">{{ support_email }}</a>
+        </p>
+        <p class="text-sm text-muted-foreground">We aim to respond within 24-48 hours on business days.</p>
+      </div>
+
+      <!-- Discord Community -->
+      <div class="space-y-3">
+        <h3 class="text-lg font-medium text-foreground flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+            stroke="currentColor" class="w-5 h-5 mr-2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.05-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
+          </svg>
+          Discord Community
+        </h3>
+        <p class="text-muted-foreground">
+          <a href="{{ discord_invite_link }}" class="text-primary hover:underline font-medium" target="_blank"
+            rel="noopener noreferrer">
+            Join our Discord server
+          </a>
+        </p>
+        <p class="text-sm text-muted-foreground">Real-time help, discussions, and community support.</p>
+      </div>
+    </div>
+
+    {% if reddit_launch_thread_url %}
+    <!-- Reddit Launch Thread -->
+    <div class="mt-6 pt-6 border-t border-border/20">
+      <h3 class="text-lg font-medium text-foreground flex items-center mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+          class="w-5 h-5 mr-2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
+        </svg>
+        Reddit Launch Discussion
+      </h3>
+      <p class="text-muted-foreground">
+        <a href="{{ reddit_launch_thread_url }}" class="text-primary hover:underline font-medium" target="_blank"
+          rel="noopener noreferrer">
+          Join the conversation on Reddit
+        </a>
+      </p>
+      <p class="text-sm text-muted-foreground">Community discussions about features, feedback, and the roadmap.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Open Source Contribution -->
+  <div class="bg-card rounded-lg shadow-lg p-8 mb-8">
+    <h2 class="text-2xl font-semibold text-foreground mb-6">Open Source Contribution</h2>
+
+    <div class="space-y-6">
+      <div class="flex items-start space-x-3">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+          class="w-6 h-6 text-primary mt-1 flex-shrink-0">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+        </svg>
+        <div>
+          <h3 class="text-lg font-medium text-foreground mb-2">GitHub Repository</h3>
+          <p class="text-muted-foreground mb-3">
+            OpenBacklog is open source! Explore the code, report issues, and contribute to the project.
+          </p>
+          <a href="{{ github_repo_url }}" class="inline-flex items-center text-primary hover:underline font-medium"
+            target="_blank" rel="noopener noreferrer">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+            </svg>
+            View on GitHub
+          </a>
+        </div>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <div class="p-4 bg-background/50 rounded-lg">
+          <h4 class="font-medium text-foreground mb-2">Report Issues</h4>
+          <p class="text-sm text-muted-foreground">Found a bug? Create an issue on GitHub with details and steps to
+            reproduce.</p>
+        </div>
+        <div class="p-4 bg-background/50 rounded-lg">
+          <h4 class="font-medium text-foreground mb-2">Feature Requests</h4>
+          <p class="text-sm text-muted-foreground">Have an idea? Submit feature requests via GitHub issues.</p>
+        </div>
+        <div class="p-4 bg-background/50 rounded-lg">
+          <h4 class="font-medium text-foreground mb-2">Pull Requests</h4>
+          <p class="text-sm text-muted-foreground">Contributions welcome! Submit PRs to help improve OpenBacklog.</p>
+        </div>
+        <div class="p-4 bg-background/50 rounded-lg">
+          <h4 class="font-medium text-foreground mb-2">Documentation</h4>
+          <p class="text-sm text-muted-foreground">Help improve docs, guides, and examples for other developers.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Getting Started & Resources -->
+  <div class="bg-card rounded-lg shadow-lg p-8 mb-8">
+    <h2 class="text-2xl font-semibold text-foreground mb-6">Getting Started & Resources</h2>
+
+    <div class="space-y-6">
+      <div class="grid gap-4 md:grid-cols-2">
+        <div class="space-y-2">
+          <h3 class="text-lg font-medium text-foreground">Account Management</h3>
+          <p class="text-muted-foreground">Manage your workspace, API keys, and billing settings.</p>
+          <a href="/account" class="inline-flex items-center text-primary hover:underline font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+              stroke="currentColor" class="w-4 h-4 mr-1">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Go to Account Settings
+          </a>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-lg font-medium text-foreground">Roadmap</h3>
+          <p class="text-muted-foreground">See what features are planned and in development.</p>
+          <a href="{{ static_site_url }}/roadmap" class="inline-flex items-center text-primary hover:underline font-medium">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+              stroke="currentColor" class="w-4 h-4 mr-1">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            View Roadmap
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Developer FAQ -->
+  <div class="bg-card rounded-lg shadow-lg p-8">
+    <h2 class="text-2xl font-semibold text-foreground mb-6">Frequently Asked Questions</h2>
+
+    <div class="space-y-6">
+      <div class="border-l-4 border-primary/30 pl-4">
+        <h3 class="font-medium text-foreground mb-2">What's the basic workflow in OpenBacklog?</h3>
+        <p class="text-muted-foreground text-sm">
+          Create <strong>Initiatives</strong> (larger goals) → Break them into <strong>Tasks</strong> → Use AI
+          assistance to refine and manage your work. The platform helps organize your development workflow with
+          AI-powered insights.
+        </p>
+      </div>
+
+      <div class="border-l-4 border-primary/30 pl-4">
+        <h3 class="font-medium text-foreground mb-2">How do I set up my OpenAI API key?</h3>
+        <p class="text-muted-foreground text-sm">
+          Go to your <a href="/account" class="text-primary hover:underline">Account Settings</a>, navigate to the
+          "OpenBacklog Token Management" section, and add your OpenAI API key. This enables AI-assisted features
+          throughout the platform.
+        </p>
+      </div>
+
+      <div class="border-l-4 border-primary/30 pl-4">
+        <h3 class="font-medium text-foreground mb-2">How do I connect GitHub integration?</h3>
+        <p class="text-muted-foreground text-sm">
+          GitHub initegration is currently in developement and hopefully will be released soon. It'll allow you to
+          reference files in the ticket descriptions and link issues, PRs etc.
+        </p>
+      </div>
+
+
+
+      <div class="border-l-4 border-primary/30 pl-4">
+        <h3 class="font-medium text-foreground mb-2">How do workspaces work?</h3>
+        <p class="text-muted-foreground text-sm">
+          Workspaces help organize different projects or contexts. Currently user's are restricted to a single workspace,
+          though I aim to change this as soon as possible.
+        </p>
+      </div>
+
+      <div class="border-l-4 border-primary/30 pl-4">
+        <h3 class="font-medium text-foreground mb-2">Is OpenBacklog free to use?</h3>
+        <p class="text-muted-foreground text-sm">
+          OpenBacklog is open source and free to self-host. Our hosted version has usage-based pricing for AI features.
+          Check your usage and billing in <a href="/account" class="text-primary hover:underline">Account Settings</a>.
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-8 p-4 bg-background/50 rounded-lg">
+      <p class="text-muted-foreground text-sm">
+        <strong>Still need help?</strong> Don't hesitate to reach out via email at
+        <a href="mailto:{{ support_email }}" class="text-primary hover:underline">{{ support_email }}</a>
+        or join our <a href="{{ discord_invite_link }}" class="text-primary hover:underline" target="_blank"
+          rel="noopener noreferrer">Discord community</a>
+        for real-time support.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
