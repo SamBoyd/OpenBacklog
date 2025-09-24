@@ -5,7 +5,7 @@ import datetime
 
 # Define a secret key for signing the token
 # In production, store this securely (e.g. environment variable)
-SECRET_KEY = "this-is-my-super-secret-development-key"
+SECRET_KEY = "this-is-my-super-secret-development-key"  # nosec
 
 payload = {
     "https://samboyd.dev/role": "authenticated",

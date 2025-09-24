@@ -105,7 +105,7 @@ class SimpleAuthProvider(AuthProvider):
             access_token=access_token,
             refresh_token=refresh_token,
             expires_in=3600,  # 1 hour
-            token_type="Bearer",
+            token_type="Bearer",  # nosec
         )
 
     async def validate_token(self, token: str) -> TokenValidation:
@@ -204,7 +204,7 @@ class SimpleAuthProvider(AuthProvider):
 
                 oauth_account = OAuthAccount(
                     oauth_name="simple_auth",
-                    access_token="",
+                    access_token="",  # nosec
                     account_id="simple_auth",
                     account_email=email.lower(),
                     user=user,

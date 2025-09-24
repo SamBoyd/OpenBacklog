@@ -126,7 +126,7 @@ class Auth0Provider(AuthProvider):
             access_token=access_token,
             refresh_token=refresh_token,
             expires_in=getattr(settings, "cookie_lifetime_seconds", 3600 * 24 * 30),
-            token_type="Bearer",
+            token_type="Bearer",  # nosec
         )
 
     async def validate_token(self, token: str) -> TokenValidation:

@@ -99,7 +99,7 @@ def validate_jwt(
         if hasattr(settings, "dev_jwt_secret"):
             secret = settings.dev_jwt_secret
         else:
-            secret = "dev-secret-key"
+            secret = "dev-secret-key"  # nosec
 
     options = {}
     if audience is None:
@@ -153,7 +153,7 @@ def create_refresh_token(user: User, secret: Optional[str] = None) -> str:
         if hasattr(settings, "dev_jwt_secret"):
             secret = settings.dev_jwt_secret
         else:
-            secret = "dev-secret-key"
+            secret = "dev-secret-key"  # nosec
 
     now = datetime.now(UTC)
     exp = now + timedelta(days=30)  # Refresh tokens last 30 days

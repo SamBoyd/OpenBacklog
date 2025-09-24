@@ -1,21 +1,3 @@
-// JWT payload example:
-// {
-//     "https://samboyd.dev/role": "authenticated",
-//     "role": "authenticated",
-//     "type": "accessToken",
-//     "https://samboyd.dev/type": "accessToken",
-//     "iss": "https://task-management-184892.us.auth0.com/",
-//     "sub": "google-oauth2|100049631933995708445",
-//     "aud": [
-//       "https://samboyd.dev",
-//       "https://task-management-184892.us.auth0.com/userinfo"
-//     ],
-//     "iat": 1746617283,
-//     "exp": 1746703683,
-//     "scope": "openid profile email offline_access",
-//     "azp": "Y75IJDBUoZDf057RZM3C2t8BZUm1pjdX"
-//   }
-
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 
 export const createJWTPayload = (): Record<string, any> => {

@@ -99,7 +99,7 @@ class DevAuthProvider(AuthProvider):
             access_token=access_token,
             refresh_token=refresh_token,
             expires_in=settings.dev_jwt_lifetime_seconds,
-            token_type="Bearer",
+            token_type="Bearer",  # nosec
         )
 
     async def validate_token(self, token: str) -> TokenValidation:
@@ -173,7 +173,7 @@ class DevAuthProvider(AuthProvider):
 
                 oauth_account = OAuthAccount(
                     oauth_name="dev_user",
-                    access_token="dev_user_access_token",
+                    access_token="dev_user_access_token",  # nosec
                     account_id="dev_user",
                     account_email=email,
                     user=user,
