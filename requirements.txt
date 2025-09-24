@@ -83,7 +83,7 @@ openai==1.70.0
 openmeter==1.0.0b188
 orjson==3.11.1
 ormsgpack==1.10.0
-packaging==24.2
+packaging==25.0
 parso==0.8.4
 pathspec==0.12.1
 pbr==6.1.1
