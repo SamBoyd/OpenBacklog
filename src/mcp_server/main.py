@@ -23,6 +23,6 @@ if __name__ == "__main__":
     # Run with HTTP transport for hosted MCP server
     mcp.run(
         transport="http",
-        host="0.0.0.0",  # Accept external connections in Docker
+        host="0.0.0.0",  # nosec
         port=9000,
     )
