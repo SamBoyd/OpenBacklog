@@ -15,13 +15,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           types: |
-            feat, fix, docs, style, refactor, test, chore
+            feat
+            fix
+            docs
+            style
+            refactor
+            test
+            chore
       - name: Require basic checklist ticks
         uses: actions-ecosystem/action-regex-match@v2
         id: body
         with:
           text: ${{ github.event.pull_request.body }}
-          regex: '(?s)- \[x\] PR title follows .*?- \[x\] .*conventions .*?- \[x\] .*Tests added.*'
+          regex: '[\s\S]*- \[x\] PR title follows[\s\S]*- \[x\] [\s\S]*conventions[\s\S]*- \[x\] [\s\S]*Tests added/updated[\s\S]*'
       - name: Fail if checklist not satisfied
         if: steps.body.outputs.match == ''
         run: |
