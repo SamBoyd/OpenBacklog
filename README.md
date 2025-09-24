@@ -88,82 +88,13 @@ OpenBacklog is a **paid SaaS service** that I've open-sourced for complete trans
 
 ### For Contributors: Development Setup
 
-Want to contribute or run tests? Here's how to get set up:
+Want to contribute or run tests? See our comprehensive [CONTRIBUTING.md](./CONTRIBUTING.md) guide for detailed instructions on:
 
-#### Prerequisites
-
-- **Python 3.12** (recommended, 3.8+ supported) with pip
-- **Node.js 18+** with npm
-- **PostgreSQL 16+** (for running tests with database)
-- **Git** for version control
-
-> **Note**: The GitHub Actions workflows test against Python 3.12 and Node.js 22, so using these versions is recommended for the most consistent experience.
-
-#### 1. Clone and Install Dependencies
-
-```bash
-git clone https://github.com/samboyd/OpenBacklog.git
-cd OpenBacklog
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Install root npm dependencies
-npm install
-
-# Install React app dependencies
-cd static/react-components
-npm install
-cd ../..
-```
-
-#### 2. Build Static Assets
-
-```bash
-# Build all static assets using the provided script
-chmod +x scripts/build_static_files.sh
-./scripts/build_static_files.sh
-```
-
-#### 3. Set Up Test Environment
-
-```bash
-# Install development dependencies (includes testing tools)
-pip install -r requirements-dev.txt
-
-# Set up test database (requires PostgreSQL)
-./scripts/bootstrap_blank_test_database.sh
-```
-
-#### 4. Run Tests
-
-```bash
-# Run Python backend tests with coverage
-ENVIRONMENT=test pytest --cov=src --cov-report=term-missing
-
-# Run code formatting checks
-black --check --diff src/ tests/
-isort --check-only --diff src/ tests/
-
-# Run React frontend tests
-cd static/react-components
-npm run test
-
-# Run TypeScript compilation check
-npm run compile
-```
-
-#### 5. Development Workflow
-
-```bash
-# Format Python code
-black src/ tests/
-isort src/ tests/
-
-# Build and watch React components during development
-cd static/react-components
-npm run build:watch
-```
+- 🚀 **Getting Started** - Complete setup instructions and prerequisites
+- 🛠️ **Development Workflow** - Backend and frontend development processes
+- 📋 **Code Standards** - Python/TypeScript conventions and testing requirements
+- 🔄 **Pull Request Process** - Branch strategy, commit messages, and quality gates
+- 🐛 **Issue Reporting** - Bug reports and feature request guidelines
 
 ## 🏗️ Architecture Overview
 
