@@ -64,7 +64,7 @@ langchain-mcp-adapters==0.1.0
 langchain-openai==0.3.17
 langchain-tavily==0.2.10
 langchain-text-splitters==0.3.8
-langgraph==0.4.5
+langgraph==0.6.7
 langgraph-checkpoint==2.0.26
 langgraph-checkpoint-postgres==2.0.21
 langgraph-prebuilt==0.1.8
