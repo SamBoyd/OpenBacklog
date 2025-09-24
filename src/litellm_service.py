@@ -36,6 +36,7 @@ def regenerate_litellm_master_key():
             f"{LITELLM_API_URL}/key/regenerate",
             headers={"Authorization": f"Bearer {settings.litellm_master_key}"},
             json={"key": settings.litellm_master_key, "new_master_key": new_key},
+            timeout=15,
         )
         logger.info("LiteLLM master key regenerated successfully")
     except Exception as e:
@@ -75,6 +76,7 @@ def get_litellm_user_info(user: User, master_key: str) -> dict:
             "Authorization": f"Bearer {master_key}",
             "Content-Type": "application/json",
         },
+        timeout=30,
     )
 
     if response.status_code != 200:
@@ -96,6 +98,7 @@ def create_litellm_user(user: User, master_key: str) -> str:
         f"{LITELLM_API_URL}/user/new",
         headers={"Authorization": f"Bearer {master_key}"},
         json={"user_id": str(user.id)},
+        timeout=30,
     )
 
     if response.status_code != 200:

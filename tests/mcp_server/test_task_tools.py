@@ -117,6 +117,7 @@ class TestGetInitiativeTasks:
                     "Authorization": "Bearer valid_token",
                     "Content-Type": "application/json",
                 },
+                timeout=30,
             )
 
             # Verify successful result
@@ -631,6 +632,7 @@ class TestSearchTasks:
                     "Authorization": "Bearer valid_token",
                     "Content-Type": "application/json",
                 },
+                timeout=30,
             )
 
             # Verify successful result
@@ -782,6 +784,7 @@ class TestUpdateTaskDescription:
                     "Authorization": "Bearer valid_token",
                     "Content-Type": "application/json",
                 },
+                timeout=30,
             )
 
             # Verify successful result
@@ -1135,6 +1138,7 @@ class TestUpdateTaskStatusInProgress:
                     "Authorization": "Bearer valid_token",
                     "Content-Type": "application/json",
                 },
+                timeout=30,
             )
 
             # Verify successful result
@@ -1264,6 +1268,7 @@ class TestUpdateTaskStatusDone:
                     "Authorization": "Bearer valid_token",
                     "Content-Type": "application/json",
                 },
+                timeout=30,
             )
 
             # Verify successful result

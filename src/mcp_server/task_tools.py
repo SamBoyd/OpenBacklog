@@ -159,6 +159,7 @@ async def get_initiative_tasks(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         if response.status_code != 200:
@@ -237,6 +238,7 @@ async def get_task_details(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         if task_response.status_code != 200:
@@ -268,6 +270,7 @@ async def get_task_details(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         checklist_items = []
@@ -290,6 +293,7 @@ async def get_task_details(
                         "Authorization": authorization_header,
                         "Content-Type": "application/json",
                     },
+                    timeout=30,
                 )
 
                 if initiative_response.status_code == 200:
@@ -322,6 +326,7 @@ async def get_task_details(
                         "Authorization": authorization_header,
                         "Content-Type": "application/json",
                     },
+                    timeout=30,
                 )
 
                 if related_tasks_response.status_code == 200:
@@ -408,6 +413,7 @@ async def search_tasks(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         if response.status_code != 200:
@@ -487,6 +493,7 @@ async def update_task_description(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         if response.status_code not in [200, 204]:
@@ -562,6 +569,7 @@ async def validate_context(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         if task_response.status_code != 200:
@@ -593,6 +601,7 @@ async def validate_context(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         checklist_items = []
@@ -682,6 +691,7 @@ async def update_task_status_inprogress(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         if response.status_code not in [200, 204]:
@@ -756,6 +766,7 @@ async def update_task_status_done(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         if response.status_code not in [200, 204]:

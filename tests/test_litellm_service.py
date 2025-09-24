@@ -133,6 +133,7 @@ class TestGetLiteLLMUserInfo:
                 "Authorization": "Bearer test-master-key",
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
         assert result == expected_response
 
@@ -167,6 +168,7 @@ class TestCreateLiteLLMUser:
         mock_post.assert_called_once_with(
             f"{settings.litellm_url}/user/new",
             headers={"Authorization": "Bearer test-master-key"},
+            timeout=30,
             json={"user_id": str(user.id)},
         )
         assert result == expected_key

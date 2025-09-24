@@ -140,6 +140,7 @@ class TestHealthCheck:
                     "Authorization": "Bearer valid_token",
                     "Content-Type": "application/json",
                 },
+                timeout=10,
             )
 
             # Verify logging
@@ -291,6 +292,7 @@ class TestHealthCheck:
                     "Authorization": "Bearer valid_token",
                     "Content-Type": "application/json",
                 },
+                timeout=10,
             )
 
     @pytest.mark.asyncio
@@ -323,4 +325,5 @@ class TestHealthCheck:
                     "Authorization": "Bearer custom-token-xyz",
                     "Content-Type": "application/json",
                 },
+                timeout=10,
             )

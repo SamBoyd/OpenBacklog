@@ -110,6 +110,7 @@ class TestUpdateChecklist:
                     "Authorization": "Bearer valid_token",
                     "Content-Type": "application/json",
                 },
+                timeout=30,
             )
 
             # Verify post was called for each item
@@ -396,6 +397,7 @@ class TestUpdateChecklistItem:
                     "Content-Type": "application/json",
                     "Prefer": "return=representation",
                 },
+                timeout=30,
             )
 
             # Verify successful result

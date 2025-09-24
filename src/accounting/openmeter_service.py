@@ -363,6 +363,7 @@ class OpenMeterService:
                     "output_tokens_total",
                 ],
             },
+            timeout=30,
         )
 
         logger.info(f"OpenMeter token response: {response.json()}")

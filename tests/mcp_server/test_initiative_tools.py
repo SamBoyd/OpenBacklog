@@ -112,6 +112,7 @@ class TestGetActiveInitiatives:
                     "Authorization": "Bearer valid_token",
                     "Content-Type": "application/json",
                 },
+                timeout=30,
             )
 
             # Verify successful result
@@ -379,6 +380,7 @@ class TestSearchInitiatives:
                     "Authorization": "Bearer valid_token",
                     "Content-Type": "application/json",
                 },
+                timeout=30,
             )
 
             # Verify successful result

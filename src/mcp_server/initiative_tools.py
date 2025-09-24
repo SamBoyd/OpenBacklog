@@ -53,6 +53,7 @@ async def get_active_initiatives() -> Dict[str, Any]:
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         if response.status_code != 200:
@@ -128,6 +129,7 @@ async def search_initiatives(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         if response.status_code != 200:

@@ -69,6 +69,7 @@ async def update_checklist(
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=30,
         )
 
         if delete_response.status_code not in [200, 204]:
@@ -95,6 +96,7 @@ async def update_checklist(
                     "Content-Type": "application/json",
                     "Prefer": "return=representation",
                 },
+                timeout=30,
             )
 
             if create_response.status_code in [200, 201]:
@@ -174,6 +176,7 @@ async def update_checklist_item(
                 "Content-Type": "application/json",
                 "Prefer": "return=representation",
             },
+            timeout=30,
         )
 
         if response.status_code not in [200, 204]:

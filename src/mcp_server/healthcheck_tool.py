@@ -60,6 +60,7 @@ async def health_check() -> Dict[str, Any]:
                 "Authorization": authorization_header,
                 "Content-Type": "application/json",
             },
+            timeout=10,
         )
 
         if response.status_code == 200:
