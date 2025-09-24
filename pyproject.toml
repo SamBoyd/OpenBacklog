@@ -78,7 +78,8 @@ implicit_reexport = false
 local_partial_types = true
 plugins = ["sqlalchemy.ext.mypy.plugin"]
 
-
+[tool.bandit]
+exclude_dirs = ["tests", "src/auth/providers/dev.py"]
 
 [build-system]
 requires = ["setuptools", "wheel"]
@@ -87,6 +88,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "taskmanagement"
 version = "0.1.0"
+
 description = "A development task manager and product management tool for solo and hobbyist developers."
 authors = [{ name = "Sam Boyd", email = "samboyd10@gmail.com" }]
 dependencies = [
