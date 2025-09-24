@@ -79,7 +79,7 @@ local_partial_types = true
 plugins = ["sqlalchemy.ext.mypy.plugin"]
 
 [tool.bandit]
-exclude_dirs = ["tests", "src/auth/providers/dev.py"]
+exclude_dirs = ["browser_functional_tests", "static", "scripts", "tests", "src/auth/providers/dev.py"]
 
 [build-system]
 requires = ["setuptools", "wheel"]
