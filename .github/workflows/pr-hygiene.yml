@@ -1,0 +1,27 @@
+name: PR Hygiene
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title (Conventional Commits)
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat, fix, docs, style, refactor, test, chore
+      - name: Require basic checklist ticks
+        uses: actions-ecosystem/action-regex-match@v2
+        id: body
+        with:
+          text: ${{ github.event.pull_request.body }}
+          regex: '(?s)- \[x\] PR title follows .*?- \[x\] .*conventions .*?- \[x\] .*Tests added.*'
+      - name: Fail if checklist not satisfied
+        if: steps.body.outputs.match == ''
+        run: |
+          echo "::error::Please complete the required checklist items in the PR body."
+          exit 1
