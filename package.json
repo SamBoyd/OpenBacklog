@@ -20,11 +20,7 @@
     "webpack-manifest-plugin": "^5.0.0"
   },
   "dependencies": {
-    "@openmeter/web": "^1.0.0-beta.186",
-    "@types/jsonwebtoken": "^9.0.9",
-    "jsonwebtoken": "^9.0.2",
     "lucide": "^0.487.0",
-    "react-router": "^7.4.1",
     "tailwindcss-animate": "^1.0.7",
     "tailwindcss-animated": "^2.0.0"
   }
