@@ -12,7 +12,7 @@ async def get_mcp_tools(user_auth_token: str, workspace_id: str):
     client = MultiServerMCPClient(
         {
             "initiatives": {
-                "url": f"{settings.mcp_server_domain}/mcp",
+                "url": f"{settings.mcp_server_domain}/mcp/",
                 "transport": "streamable_http",
                 "headers": {
                     "Authorization": f"Bearer {user_auth_token}",
