@@ -43,7 +43,7 @@ const highlightSearchQuery = (suggestion: string, query: string): React.ReactNod
     const parts = suggestion.split(new RegExp(`(${query})`, 'gi'));
     return parts.map((part, index) =>
         part.toLowerCase() === query.toLowerCase() ? (
-            <span key={index} className="bg-primary/30 text-primary-foreground rounded-sm px-0.5">
+            <span key={index} className="bg-primary/30 text-primary-foreground rounded-sm">
                 {part}
             </span>
         ) : (

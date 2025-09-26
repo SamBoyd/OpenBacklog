@@ -121,6 +121,7 @@ const FileSuggestionTextInput: React.FC<FileSuggestionTextInputProps> = ({
     const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
     const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
     const [cursorPosition, setCursorPosition] = useState<number>(0);
+    const [isTyping, setIsTyping] = useState<boolean>(false);
 
     // Get filepath suggestions when in suggestion mode
     const { suggestions, isLoading: suggestionsLoading, error } = useFilepathSuggestionFetching({
@@ -163,6 +164,7 @@ const FileSuggestionTextInput: React.FC<FileSuggestionTextInputProps> = ({
     const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.currentTarget.value;
         onChange(newValue);
+        setIsTyping(true);
 
         // Auto-resize
         autoResize(e.currentTarget);
@@ -173,7 +175,7 @@ const FileSuggestionTextInput: React.FC<FileSuggestionTextInputProps> = ({
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         // Handle dropdown navigation when in filepath suggestion mode
-        if (filepathContext && suggestions.length > 0) {
+        if (filepathContext && isTyping && suggestions.length > 0) {
             switch (e.key) {
                 case 'ArrowDown':
                     e.preventDefault();
@@ -201,8 +203,14 @@ const FileSuggestionTextInput: React.FC<FileSuggestionTextInputProps> = ({
                     e.preventDefault();
                     setHighlightedIndex(0);
                     setFilepathContext(null);
+                    setIsTyping(false);
                     return;
             }
+        }
+
+        // Handle cursor movement keys when not in active dropdown mode
+        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+            setIsTyping(false);
         }
 
         // Handle original keydown logic
@@ -221,15 +229,17 @@ const FileSuggestionTextInput: React.FC<FileSuggestionTextInputProps> = ({
         // Replace the @searchQuery with the selected suggestion
         const beforeAt = value.substring(0, filepathContext.startPosition);
         const afterCursor = value.substring(filepathContext.endPosition);
-        const newValue = beforeAt + suggestion + afterCursor;
+        const newValue = beforeAt + '@' + suggestion + afterCursor;
 
         onChange(newValue);
         setFilepathContext(null);
+        setIsTyping(false);
+        setHighlightedIndex(0);
 
         // Position cursor after the inserted suggestion
         setTimeout(() => {
             if (activeTextAreaRef.current) {
-                const newCursorPos = beforeAt.length + suggestion.length;
+                const newCursorPos = beforeAt.length + suggestion.length + 1; // +1 for the @ symbol
                 activeTextAreaRef.current.setSelectionRange(newCursorPos, newCursorPos);
                 activeTextAreaRef.current.focus();
             }
@@ -240,6 +250,7 @@ const FileSuggestionTextInput: React.FC<FileSuggestionTextInputProps> = ({
         // Close dropdown on blur with slight delay to allow clicks
         setTimeout(() => {
             setFilepathContext(null);
+            setIsTyping(false);
         }, 150);
 
         if (onBlur) {
@@ -267,7 +278,10 @@ const FileSuggestionTextInput: React.FC<FileSuggestionTextInputProps> = ({
                 disabled={disabled}
                 onKeyDown={handleKeyDown}
                 onKeyUp={updateCursorContext}
-                onClick={updateCursorContext}
+                onClick={() => {
+                    setIsTyping(false);
+                    updateCursorContext();
+                }}
                 onFocus={updateCursorContext}
                 onBlur={handleBlur}
             />
@@ -276,10 +290,13 @@ const FileSuggestionTextInput: React.FC<FileSuggestionTextInputProps> = ({
                 suggestions={suggestions}
                 isLoading={suggestionsLoading}
                 error={error}
-                isVisible={!!filepathContext && (suggestions.length > 0 || suggestionsLoading)}
+                isVisible={!!filepathContext && isTyping && (suggestions.length > 0 || suggestionsLoading)}
                 highlightedIndex={highlightedIndex}
                 onSelect={handleSuggestionSelect}
-                onClose={() => setFilepathContext(null)}
+                onClose={() => {
+                    setFilepathContext(null);
+                    setIsTyping(false);
+                }}
                 onHighlightChange={setHighlightedIndex}
                 position={dropdownPosition}
                 searchQuery={filepathContext?.searchQuery || ''}
