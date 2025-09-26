@@ -1188,13 +1188,13 @@ class TestGetAllFileSearchStringsForUser:
         """Test function when user has no GitHub installation."""
         from src.github_app.controller import get_all_file_search_strings_for_user
 
-        with pytest.raises(HTTPException) as exc_info:
-            get_all_file_search_strings_for_user(user, session)
+        # Should return empty data instead of raising 403 error
+        result = get_all_file_search_strings_for_user(user, session)
 
-        assert_that(exc_info.value.status_code, equal_to(403))
-        assert_that(
-            exc_info.value.detail, equal_to("No GitHub installation found for user")
-        )
+        # Verify empty response
+        assert_that(result.total_repositories, equal_to(0))
+        assert_that(result.success, equal_to(True))
+        assert_that(len(result.repositories), equal_to(0))
 
     def test_get_all_file_search_strings_different_user_installation(
         self, session: Session, user: User, other_user: User
@@ -1222,14 +1222,13 @@ class TestGetAllFileSearchStringsForUser:
         session.add(repo_index)
         session.commit()
 
-        # User should not see other user's repositories
-        with pytest.raises(HTTPException) as exc_info:
-            get_all_file_search_strings_for_user(user, session)
+        # User should not see other user's repositories (returns empty data when no installation)
+        result = get_all_file_search_strings_for_user(user, session)
 
-        assert_that(exc_info.value.status_code, equal_to(403))
-        assert_that(
-            exc_info.value.detail, equal_to("No GitHub installation found for user")
-        )
+        # Verify empty response since user has no GitHub installation
+        assert_that(result.total_repositories, equal_to(0))
+        assert_that(result.success, equal_to(True))
+        assert_that(len(result.repositories), equal_to(0))
 
     def test_get_all_file_search_strings_mixed_installations(
         self, session: Session, user: User, other_user: User
@@ -1393,13 +1392,14 @@ class TestGetRepositoryNamesForUser:
         """Test function when user has no GitHub installation."""
         from src.github_app.controller import get_repository_names_for_user
 
-        with pytest.raises(HTTPException) as exc_info:
-            get_repository_names_for_user(user, session)
+        # Should return empty data instead of raising 403 error
+        result = get_repository_names_for_user(user, session)
 
-        assert_that(exc_info.value.status_code, equal_to(403))
-        assert_that(
-            exc_info.value.detail, equal_to("No GitHub installation found for user")
-        )
+        # Verify empty response but success=True
+        assert_that(result.total_repositories, equal_to(0))
+        assert_that(result.success, equal_to(True))
+        assert_that(len(result.repository_names), equal_to(0))
+        assert_that(len(result.repository_timestamps), equal_to(0))
 
     def test_get_repository_names_different_user_installation(
         self, session: Session, user: User, other_user: User
@@ -1427,14 +1427,14 @@ class TestGetRepositoryNamesForUser:
         session.add(repo_index)
         session.commit()
 
-        # User should not see other user's repositories
-        with pytest.raises(HTTPException) as exc_info:
-            get_repository_names_for_user(user, session)
+        # User should not see other user's repositories (returns empty data when no installation)
+        result = get_repository_names_for_user(user, session)
 
-        assert_that(exc_info.value.status_code, equal_to(403))
-        assert_that(
-            exc_info.value.detail, equal_to("No GitHub installation found for user")
-        )
+        # Verify empty response since user has no GitHub installation
+        assert_that(result.total_repositories, equal_to(0))
+        assert_that(result.success, equal_to(True))
+        assert_that(len(result.repository_names), equal_to(0))
+        assert_that(len(result.repository_timestamps), equal_to(0))
 
     def test_get_repository_names_mixed_installations(
         self, session: Session, user: User, other_user: User

@@ -323,8 +323,11 @@ def get_all_file_search_strings_for_user(user: User, db: Session):
     )
 
     if not github_installation:
-        raise HTTPException(
-            status_code=403, detail="No GitHub installation found for user"
+        # Return empty data instead of 403 when no GitHub installation
+        return AllFileSearchStringsResponse(
+            repositories=[],
+            total_repositories=0,
+            success=True,
         )
 
     # Get all repository file indexes for this installation
@@ -380,8 +383,12 @@ def get_repository_names_for_user(user: User, db: Session):
     )
 
     if not github_installation:
-        raise HTTPException(
-            status_code=403, detail="No GitHub installation found for user"
+        # Return empty data instead of 403 when no GitHub installation
+        return RepositoryNamesResponse(
+            repository_names=[],
+            repository_timestamps={},
+            total_repositories=0,
+            success=True,
         )
 
     # Get repository names and timestamps (minimal query for cache validation)
