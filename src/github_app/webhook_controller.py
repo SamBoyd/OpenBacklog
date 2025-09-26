@@ -40,6 +40,8 @@ def handle_github_webhook(
             return handle_repository_event(payload, db)
         elif event_type == "push":
             return handle_push_event(payload, db)
+        elif event_type == "installation_target":
+            return handle_installation_target_event(payload, db)
         else:
             # Log unknown events but don't fail
             sentry_sdk.capture_message(
@@ -635,6 +637,131 @@ def _update_repository_file_index(
     return Response(
         content=f"File index updated successfully: {repo_full_name}", status_code=200
     )
+
+
+def handle_installation_target_event(payload: Dict[str, Any], db: Session) -> Response:
+    """
+    Handle GitHub App installation target events.
+
+    Supports: renamed
+    """
+    action = payload.get("action")
+    installation = payload.get("installation", {})
+    installation_id = installation.get("id")
+
+    if not installation_id:
+        logger.warning("Installation target event missing installation ID")
+        return Response(
+            content="Installation target event missing installation ID", status_code=400
+        )
+
+    logger.info(
+        f"Processing installation_target {action} for installation {installation_id}"
+    )
+
+    if action == "renamed":
+        return _handle_installation_target_renamed(payload, db)
+    else:
+        logger.info(f"Installation target action '{action}' not handled")
+        return Response(
+            content=f"Installation target action '{action}' received", status_code=200
+        )
+
+
+def _handle_installation_target_renamed(
+    payload: Dict[str, Any], db: Session
+) -> Response:
+    """
+    Handle GitHub App installation target rename events.
+
+    Updates all repository full names when the account (user/org) is renamed.
+    """
+    try:
+        # Extract rename information from payload
+        changes = payload.get("changes", {}).get("login", {})
+        old_account_name = changes.get("from")
+        account = payload.get("account", {})
+        new_account_name = account.get("login")
+        installation = payload.get("installation", {})
+        installation_id = installation.get("id")
+
+        # Validate required fields
+        if not old_account_name or not new_account_name or not installation_id:
+            sentry_sdk.capture_message(
+                f"Installation target rename missing required fields: "
+                f"old_name={old_account_name}, new_name={new_account_name}, "
+                f"installation_id={installation_id}"
+            )
+            logger.warning(
+                f"Installation target rename missing required fields: "
+                f"old_name={old_account_name}, new_name={new_account_name}, "
+                f"installation_id={installation_id}"
+            )
+            return Response(
+                content="Installation target rename missing required fields",
+                status_code=400,
+            )
+
+        logger.info(
+            f"Processing account rename from '{old_account_name}' to '{new_account_name}' "
+            f"for installation {installation_id}"
+        )
+
+        # Find the GitHub installation record
+        github_installation = (
+            db.query(GitHubInstallation)
+            .filter(GitHubInstallation.installation_id == str(installation_id))
+            .first()
+        )
+
+        if not github_installation:
+            logger.info(f"Installation {installation_id} not found in database")
+            return Response(content="Installation not found", status_code=200)
+
+        # Find all repository file indexes that need updating
+        repo_file_indexes = (
+            db.query(RepositoryFileIndex)
+            .filter(
+                RepositoryFileIndex.github_installation_id == github_installation.id
+            )
+            .filter(
+                RepositoryFileIndex.repository_full_name.like(f"{old_account_name}/%")
+            )
+            .all()
+        )
+
+        # Update each repository's full name
+        updated_count = 0
+        for repo_file_index in repo_file_indexes:
+            old_name = repo_file_index.repository_full_name
+            new_name = old_name.replace(
+                f"{old_account_name}/", f"{new_account_name}/", 1
+            )
+
+            logger.info(f"Updating repository name from '{old_name}' to '{new_name}'")
+            repo_file_index.repository_full_name = new_name
+            db.add(repo_file_index)
+            updated_count += 1
+
+        db.commit()
+
+        logger.info(
+            f"Successfully updated {updated_count} repository names for account rename "
+            f"from '{old_account_name}' to '{new_account_name}'"
+        )
+        return Response(
+            content=f"Account rename processed: updated {updated_count} repositories "
+            f"from '{old_account_name}' to '{new_account_name}'",
+            status_code=200,
+        )
+
+    except Exception as e:
+        logger.error(f"Error processing installation target rename: {str(e)}")
+        sentry_sdk.capture_exception(e)
+        return Response(
+            content=f"Error processing installation target rename: {str(e)}",
+            status_code=500,
+        )
 
 
 def _get_repository_count_for_installation(installation_id: str, db: Session) -> int:

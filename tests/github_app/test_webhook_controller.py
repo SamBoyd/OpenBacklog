@@ -7,10 +7,12 @@ from sqlalchemy.orm import Session
 from src.github_app.models import RepositoryFileIndex
 from src.github_app.webhook_controller import (
     _handle_installation_suspended,
+    _handle_installation_target_renamed,
     _handle_installation_unsuspended,
     handle_github_webhook,
     handle_installation_event,
     handle_installation_repositories_event,
+    handle_installation_target_event,
     handle_push_event,
     handle_repository_event,
 )
@@ -82,6 +84,25 @@ class TestHandleGithubWebhook:
             mock_handler.return_value = Response(content="test", status_code=200)
 
             response = handle_github_webhook(payload, "push", session)
+
+            mock_handler.assert_called_once_with(payload, session)
+            assert response.status_code == 200
+
+    def test_dispatch_installation_target_event(self, session: Session):
+        """Test that installation_target events are dispatched correctly."""
+        payload = {
+            "action": "renamed",
+            "installation": {"id": 12345},
+            "changes": {"login": {"from": "oldname"}},
+            "account": {"login": "newname"},
+        }
+
+        with patch(
+            "src.github_app.webhook_controller.handle_installation_target_event"
+        ) as mock_handler:
+            mock_handler.return_value = Response(content="test", status_code=200)
+
+            response = handle_github_webhook(payload, "installation_target", session)
 
             mock_handler.assert_called_once_with(payload, session)
             assert response.status_code == 200
@@ -1261,3 +1282,223 @@ class TestEnhancedWebhookHandlers:
         # Should return 200 with info message
         assert response.status_code == 200
         assert "No file index found" in response.body.decode()
+
+
+class TestHandleInstallationTargetEvent:
+    """Test installation target event handling."""
+
+    def test_handle_installation_target_renamed_action(self, session: Session):
+        """Test that installation_target renamed actions are handled correctly."""
+        payload = {
+            "action": "renamed",
+            "installation": {"id": 12345},
+            "changes": {"login": {"from": "oldname"}},
+            "account": {"login": "newname"},
+        }
+
+        with patch(
+            "src.github_app.webhook_controller._handle_installation_target_renamed"
+        ) as mock_handler:
+            mock_handler.return_value = Response(content="test", status_code=200)
+
+            response = handle_installation_target_event(payload, session)
+
+            mock_handler.assert_called_once_with(payload, session)
+            assert response.status_code == 200
+
+    def test_handle_installation_target_unknown_action(self, session: Session):
+        """Test handling of unknown installation_target actions."""
+        payload = {
+            "action": "unknown_action",
+            "installation": {"id": 12345},
+        }
+
+        response = handle_installation_target_event(payload, session)
+
+        assert response.status_code == 200
+        assert "received" in response.body.decode()
+
+    def test_handle_installation_target_missing_installation_id(self, session: Session):
+        """Test handling of installation_target event missing installation ID."""
+        payload = {
+            "action": "renamed",
+            "changes": {"login": {"from": "oldname"}},
+            "account": {"login": "newname"},
+        }
+
+        response = handle_installation_target_event(payload, session)
+
+        assert response.status_code == 400
+        assert "missing installation ID" in response.body.decode()
+
+
+class TestHandleInstallationTargetRenamed:
+    """Test installation target rename handling."""
+
+    def test_successful_account_rename(self, session: Session, user: User):
+        """Test successful account rename updates repository names."""
+        # Create GitHub installation
+        github_installation = GitHubInstallation(
+            installation_id="12345",
+            user_id=user.id,
+        )
+        session.add(github_installation)
+        session.commit()
+
+        # Create repository file indexes with old account name
+        repo1 = RepositoryFileIndex(
+            github_installation_id=github_installation.id,
+            repository_full_name="oldname/repo1",
+            file_search_string="@repo1/src/main.py\n@repo1/README.md",
+            last_indexed_commit_sha="abc123",
+        )
+        repo2 = RepositoryFileIndex(
+            github_installation_id=github_installation.id,
+            repository_full_name="oldname/repo2",
+            file_search_string="@repo2/src/app.py",
+            last_indexed_commit_sha="def456",
+        )
+        # Add a repository from different account (should not be updated)
+        other_repo = RepositoryFileIndex(
+            github_installation_id=github_installation.id,
+            repository_full_name="othername/repo3",
+            file_search_string="@repo3/src/util.py",
+            last_indexed_commit_sha="ghi789",
+        )
+        session.add_all([repo1, repo2, other_repo])
+        session.commit()
+
+        # Create webhook payload
+        payload = {
+            "action": "renamed",
+            "installation": {"id": 12345},
+            "changes": {"login": {"from": "oldname"}},
+            "account": {"login": "newname"},
+        }
+
+        response = _handle_installation_target_renamed(payload, session)
+
+        # Verify response
+        assert response.status_code == 200
+        assert "updated 2 repositories" in response.body.decode()
+        assert "oldname" in response.body.decode()
+        assert "newname" in response.body.decode()
+
+        # Verify repository names were updated
+        session.refresh(repo1)
+        session.refresh(repo2)
+        session.refresh(other_repo)
+
+        assert repo1.repository_full_name == "newname/repo1"
+        assert repo2.repository_full_name == "newname/repo2"
+        assert other_repo.repository_full_name == "othername/repo3"  # Unchanged
+
+        # Verify file search strings are preserved
+        assert repo1.file_search_string == "@repo1/src/main.py\n@repo1/README.md"
+        assert repo2.file_search_string == "@repo2/src/app.py"
+        assert other_repo.file_search_string == "@repo3/src/util.py"
+
+    def test_missing_required_fields(self, session: Session):
+        """Test handling of payload missing required fields."""
+        # Missing old account name
+        payload1 = {
+            "action": "renamed",
+            "installation": {"id": 12345},
+            "account": {"login": "newname"},
+        }
+
+        response1 = _handle_installation_target_renamed(payload1, session)
+        assert response1.status_code == 400
+        assert "missing required fields" in response1.body.decode()
+
+        # Missing new account name
+        payload2 = {
+            "action": "renamed",
+            "installation": {"id": 12345},
+            "changes": {"login": {"from": "oldname"}},
+        }
+
+        response2 = _handle_installation_target_renamed(payload2, session)
+        assert response2.status_code == 400
+        assert "missing required fields" in response2.body.decode()
+
+        # Missing installation ID
+        payload3 = {
+            "action": "renamed",
+            "changes": {"login": {"from": "oldname"}},
+            "account": {"login": "newname"},
+        }
+
+        response3 = _handle_installation_target_renamed(payload3, session)
+        assert response3.status_code == 400
+        assert "missing required fields" in response3.body.decode()
+
+    def test_installation_not_found(self, session: Session):
+        """Test handling when GitHub installation is not found in database."""
+        payload = {
+            "action": "renamed",
+            "installation": {"id": 99999},  # Non-existent installation
+            "changes": {"login": {"from": "oldname"}},
+            "account": {"login": "newname"},
+        }
+
+        response = _handle_installation_target_renamed(payload, session)
+
+        assert response.status_code == 200
+        assert "Installation not found" in response.body.decode()
+
+    def test_no_repositories_to_update(self, session: Session, user: User):
+        """Test handling when no repositories match the old account name."""
+        # Create GitHub installation
+        github_installation = GitHubInstallation(
+            installation_id="12345",
+            user_id=user.id,
+        )
+        session.add(github_installation)
+        session.commit()
+
+        # Create repository with different account name
+        repo = RepositoryFileIndex(
+            github_installation_id=github_installation.id,
+            repository_full_name="differentname/repo1",
+            file_search_string="@repo1/src/main.py",
+            last_indexed_commit_sha="abc123",
+        )
+        session.add(repo)
+        session.commit()
+
+        # Create webhook payload for different account
+        payload = {
+            "action": "renamed",
+            "installation": {"id": 12345},
+            "changes": {"login": {"from": "oldname"}},
+            "account": {"login": "newname"},
+        }
+
+        response = _handle_installation_target_renamed(payload, session)
+
+        # Should still return success with 0 repositories updated
+        assert response.status_code == 200
+        assert "updated 0 repositories" in response.body.decode()
+
+        # Verify repository name was not changed
+        session.refresh(repo)
+        assert repo.repository_full_name == "differentname/repo1"
+
+    def test_exception_handling(self, session: Session):
+        """Test that exceptions are handled gracefully."""
+        payload = {
+            "action": "renamed",
+            "installation": {"id": 12345},
+            "changes": {"login": {"from": "oldname"}},
+            "account": {"login": "newname"},
+        }
+
+        # Force an exception by mocking db.query to raise
+        with patch.object(session, "query", side_effect=Exception("Database error")):
+            response = _handle_installation_target_renamed(payload, session)
+
+            assert response.status_code == 500
+            assert (
+                "Error processing installation target rename" in response.body.decode()
+            )
