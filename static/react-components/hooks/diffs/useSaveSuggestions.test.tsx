@@ -27,7 +27,7 @@ describe('useSaveSuggestions', () => {
   const mockCreateTask = vi.fn();
   const mockUpdateTask = vi.fn();
   const mockDeleteTask = vi.fn();
-  const mockDeleteJob = vi.fn();
+  const mockMarkJobAsResolved = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -68,7 +68,7 @@ describe('useSaveSuggestions', () => {
 
     // Setup ai improvements context mock
     mockUseAiImprovementsContext.mockReturnValue({
-      deleteJob: mockDeleteJob,
+      markJobAsResolved: mockMarkJobAsResolved,
       setThreadId: vi.fn(),
       jobResult: null,
       initiativeImprovements: {},
@@ -860,7 +860,7 @@ describe('useSaveSuggestions', () => {
   describe('should delete job when all suggestions are resolved', () => {
     it('should delete job when all suggestions are resolved', async () => {
       mockUseAiImprovementsContext.mockReturnValue({
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         setThreadId: vi.fn(),
         jobResult: { id: 'job-id'} as AiImprovementJobResult,
         initiativeImprovements: {},
@@ -909,7 +909,7 @@ describe('useSaveSuggestions', () => {
 
       await result.current.saveSuggestions();
 
-      expect(mockDeleteJob).toHaveBeenCalledWith('job-id');
+      expect(mockMarkJobAsResolved).toHaveBeenCalledWith('job-id');
     });
   });
 

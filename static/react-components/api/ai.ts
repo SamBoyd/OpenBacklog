@@ -65,6 +65,7 @@ export const getAiImprovements = async (lens: LENS, taskId?: string, initiativeI
             const response = await getPostgrestClient()
                 .from('ai_improvement_job')
                 .select('*')
+                .neq('status', 'RESOLVED')
 
             if (response.error) {
                 console.error('Error fetching AI improvements', response.error);
@@ -111,6 +112,7 @@ export const getAiImprovementsByThreadId = async (threadId: string): Promise<AiI
                 .from('ai_improvement_job')
                 .select('*')
                 .eq('thread_id', threadId)
+                .neq('status', 'RESOLVED')
 
             if (response.error) {
                 console.error('Error fetching AI improvements', response.error);
@@ -184,14 +186,14 @@ export const requestAiImprovement = async (
 };
 
 /**
- * Deletes an AI improvement job by its ID
- * 
- * @param {string} jobId - The ID of the job to delete
- * @returns {Promise<void>} A promise that resolves when the job is deleted
+ * Marks an AI improvement job as resolved by its ID
+ *
+ * @param {string} jobId - The ID of the job to mark as resolved
+ * @returns {Promise<void>} A promise that resolves when the job is marked as resolved
  * @throws {AiApiError} On API errors
  * @throws {Error} On other errors
  */
-export const deleteAiImprovementJob = async (jobId: string): Promise<void> => {
+export const markAiImprovementJobAsResolved = async (jobId: string): Promise<void> => {
     if (!jobId) {
         throw new Error('Job ID is required');
     }
@@ -200,15 +202,14 @@ export const deleteAiImprovementJob = async (jobId: string): Promise<void> => {
         try {
             await getPostgrestClient()
                 .from('ai_improvement_job')
-                .delete()
+                .update({ status: 'RESOLVED' })
                 .eq('id', jobId)
                 .then(
                     response => {
                         if (response.error) {
-                            console.error('Error deleting AI improvement job', response.error);
+                            console.error('Error marking AI improvement job as resolved', response.error);
                             throw new AiApiError(response.error.message, response.status);
                         }
-
                     }
                 )
         } catch (error) {
@@ -218,7 +219,7 @@ export const deleteAiImprovementJob = async (jobId: string): Promise<void> => {
             }
 
             // Handle other errors
-            throw new Error(`Error deleting AI improvement job: ${(error as Error).message}`);
+            throw new Error(`Error marking AI improvement job as resolved: ${(error as Error).message}`);
         }
     })
 };

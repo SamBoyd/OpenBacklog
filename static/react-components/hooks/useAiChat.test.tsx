@@ -17,7 +17,7 @@ vi.mock('./useBillingUsage');
 
 // Default mock implementations
 const mockRequestImprovement = vi.fn();
-const mockDeleteJob = vi.fn();
+const mockMarkJobAsResolved = vi.fn();
 const mockUseAiImprovements = useAiImprovementsContext as Mock;
 const mockUseTasksContext = useTasksContext as Mock;
 const mockUseInitiatives = useInitiativesContext as Mock;
@@ -72,7 +72,7 @@ describe('useAiChat', () => {
     beforeEach(() => {
         // Reset mocks before each test
         mockRequestImprovement.mockClear();
-        mockDeleteJob.mockClear();
+        mockMarkJobAsResolved.mockClear();
         mockError = null;
         mockFilterTasksToInitiative = 'init1'; // Default to having a filter
         
@@ -111,7 +111,7 @@ describe('useAiChat', () => {
             jobResult: mockJobResult,
             error: mockError,
             requestImprovement: mockRequestImprovement,
-            deleteJob: mockDeleteJob,
+            markJobAsResolved: mockMarkJobAsResolved,
         });
         mockUseTasksContext.mockReturnValue({ tasks: mockTasks });
         mockUseInitiatives.mockReturnValue({ initiativesData: mockInitiatives });
@@ -134,7 +134,7 @@ describe('useAiChat', () => {
             jobResult: mockJobResult,
             error: mockError,
             requestImprovement: mockRequestImprovement,
-            deleteJob: mockDeleteJob,
+            markJobAsResolved: mockMarkJobAsResolved,
         });
         mockUseUserPreferences.mockReturnValue({
             preferences: { filterTasksToInitiative: mockFilterTasksToInitiative },
@@ -384,7 +384,7 @@ describe('useAiChat', () => {
                 user_id: 'user1'
             };
             renderTestHook({ lens: LENS.TASK, currentEntity: mockTask });
-            expect(mockDeleteJob).toHaveBeenCalledWith('job1');
+            expect(mockMarkJobAsResolved).toHaveBeenCalledWith('job1');
         });
 
         it('should call deleteJob when the job status is CANCELED', () => {
@@ -403,7 +403,7 @@ describe('useAiChat', () => {
                 user_id: 'user1'
             };
             renderTestHook({ lens: LENS.TASK, currentEntity: mockTask });
-            expect(mockDeleteJob).toHaveBeenCalledWith('job1');
+            expect(mockMarkJobAsResolved).toHaveBeenCalledWith('job1');
         });
 
         it('should clear the error message when a message is sent', () => {
@@ -561,7 +561,7 @@ describe('useAiChat', () => {
             act(() => {
                 result.current.clearChat();
             });
-            expect(mockDeleteJob).toHaveBeenCalledWith('job123');
+            expect(mockMarkJobAsResolved).toHaveBeenCalledWith('job123');
         });
 
         it('should not call deleteJob if there is no current jobResult id', () => {
@@ -570,7 +570,7 @@ describe('useAiChat', () => {
             act(() => {
                 result.current.clearChat();
             });
-            expect(mockDeleteJob).not.toHaveBeenCalled();
+            expect(mockMarkJobAsResolved).not.toHaveBeenCalled();
         });
     });
 });

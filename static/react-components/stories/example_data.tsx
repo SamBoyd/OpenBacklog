@@ -2223,7 +2223,7 @@ export const mockSetThreadId = (threadId: string): void => {
     console.log('Mock set thread id called', threadId)
 }
 
-export const mockDeleteJob = (jobId: string): void => {
+export const mockMarkJobAsResolved = (jobId: string): void => {
     console.log('Mock delete job called', jobId)
 }
 
@@ -2674,7 +2674,7 @@ export const mockAiImprovementsContextReturn: useAiImprovementsContextReturn = {
     loading: false,
     error: null,
     isEntityLocked: false,
-    deleteJob: mockDeleteJob,
+    markJobAsResolved: mockMarkJobAsResolved,
     requestImprovement: mockRequestImprovement,
     updateImprovement: mockUpdateImprovement,
     resetError: mockResetError,

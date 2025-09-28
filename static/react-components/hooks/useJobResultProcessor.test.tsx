@@ -17,7 +17,7 @@ vi.useFakeTimers();
 vi.setSystemTime(new Date(mockDateNow));
 
 describe('useJobResultProcessor', () => {
-    let mockDeleteJob = vi.fn();
+    let mockMarkJobAsResolved = vi.fn();
     let mockOnMessageReady = vi.fn();
 
     const mockTask: TaskDto = {
@@ -33,9 +33,9 @@ describe('useJobResultProcessor', () => {
     };
 
     beforeEach(() => {
-        mockDeleteJob = vi.fn();
+        mockMarkJobAsResolved = vi.fn();
         mockOnMessageReady = vi.fn();
-        (useAiImprovementsContext as Mock).mockReturnValue({ deleteJob: mockDeleteJob });
+        (useAiImprovementsContext as Mock).mockReturnValue({ markJobAsResolved: mockMarkJobAsResolved });
         vi.setSystemTime(new Date(mockDateNow));
     });
 
@@ -124,7 +124,7 @@ describe('useJobResultProcessor', () => {
             onMessageReady: mockOnMessageReady
         }));
 
-        expect(mockDeleteJob).toHaveBeenCalledWith('job-no-changes');
+        expect(mockMarkJobAsResolved).toHaveBeenCalledWith('job-no-changes');
         expect(mockOnMessageReady).toHaveBeenCalled(); // Message should still be created
     });
 
@@ -146,7 +146,7 @@ describe('useJobResultProcessor', () => {
             onMessageReady: mockOnMessageReady
         }));
 
-        expect(mockDeleteJob).toHaveBeenCalledWith('job-no-changes-init');
+        expect(mockMarkJobAsResolved).toHaveBeenCalledWith('job-no-changes-init');
         expect(mockOnMessageReady).toHaveBeenCalled(); // Message should still be created
     });
 
@@ -197,7 +197,7 @@ describe('useJobResultProcessor', () => {
         }));
 
         expect(mockOnMessageReady).not.toHaveBeenCalled();
-        expect(mockDeleteJob).not.toHaveBeenCalled();
+        expect(mockMarkJobAsResolved).not.toHaveBeenCalled();
     });
 
     it('should handle empty message with fallback text', () => {

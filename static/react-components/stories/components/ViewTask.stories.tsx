@@ -11,7 +11,7 @@ import { AgentMode, AiImprovementJobStatus, LENS, ManagedEntityAction, TaskDto, 
 import { useFieldDefinitions } from '#hooks/useFieldDefinitions.mock';
 
 import {
-    mockDeleteJob,
+    mockMarkJobAsResolved,
     mockRequestImprovement,
     mockResetError,
     mockUseTasksContext,
@@ -117,7 +117,7 @@ export const WithChecklist: Story = {
         deleteTask: mockDeleteTask,
 
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -144,7 +144,7 @@ export const PendingJob: Story = {
         reloadTask: mockReloadTask,
         deleteTask: mockDeleteTask,
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -180,7 +180,7 @@ export const Loading: Story = {
         deleteTask: mockDeleteTask,
 
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -209,7 +209,7 @@ export const NotFound404: Story = {
         reloadTask: mockReloadTask,
         deleteTask: mockDeleteTask,
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -237,7 +237,7 @@ export const WithDiff: Story = {
         deleteTask: mockDeleteTask,
 
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -338,7 +338,7 @@ export const WithCreateNewTaskDiff: Story = {
         deleteTask: mockDeleteTask,
 
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -416,7 +416,7 @@ export const WithNoChangesTaskDiff: Story = {
         deleteTask: mockDeleteTask,
 
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -489,7 +489,7 @@ export const WithDiffError: Story = {
         deleteTask: mockDeleteTask,
 
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -533,7 +533,7 @@ export const WithDeleteTaskDiff: Story = {
         deleteTask: mockDeleteTask,
 
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {

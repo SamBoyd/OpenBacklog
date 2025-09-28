@@ -16,7 +16,7 @@ export const useSaveSuggestions = (): useSaveSuggestionsReturn => {
   const { isFullyResolved, getAcceptedChanges } = useSuggestionsToBeResolvedContext();
   const { createInitiative, updateInitiative, deleteInitiative, initiativesData } = useInitiativesContext();
   const { createTask, updateTask, deleteTask, tasks } = useTasksContext();
-  const { jobResult, deleteJob } = useAiImprovementsContext();
+  const { jobResult, markJobAsResolved } = useAiImprovementsContext();
 
   const saveSuggestions = useCallback(async () => {
     if (!isFullyResolved()) {
@@ -156,11 +156,11 @@ export const useSaveSuggestions = (): useSaveSuggestionsReturn => {
     }
 
     if (jobResult?.id) {
-      console.log('[useSaveSuggestions] Job deleted', jobResult.id);
-      deleteJob(jobResult.id);
+      console.log('[useSaveSuggestions] Job marked as resolved', jobResult.id);
+      markJobAsResolved(jobResult.id);
     }
 
-  }, [getAcceptedChanges, isFullyResolved, createInitiative, updateInitiative, deleteInitiative, createTask, updateTask, deleteTask, jobResult, deleteJob, initiativesData, tasks]);
+  }, [getAcceptedChanges, isFullyResolved, createInitiative, updateInitiative, deleteInitiative, createTask, updateTask, deleteTask, jobResult, markJobAsResolved, initiativesData, tasks]);
 
   return {
     saveSuggestions

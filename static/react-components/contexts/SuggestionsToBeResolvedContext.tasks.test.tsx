@@ -21,7 +21,7 @@ vi.mock('#contexts/InitiativesContext', () => ({
 vi.mock('#contexts/AiImprovementsContext', () => ({
   useAiImprovementsContext: vi.fn().mockReturnValue({
     jobResult: {},
-    deleteJob: vi.fn(),
+    markJobAsResolved: vi.fn(),
   })
 }));
 

@@ -26,7 +26,7 @@ export const useJobResultProcessor = ({
     currentEntity,
     onMessageReady
 }: UseJobResultProcessorProps) => {
-    const { deleteJob } = useAiImprovementsContext();
+    const { markJobAsResolved } = useAiImprovementsContext();
 
     // Process job result when it completes
     useEffect(() => {
@@ -57,7 +57,7 @@ export const useJobResultProcessor = ({
 
             onMessageReady(assistantMessage);
 
-            // If the job is completed and there are no changes, delete the job
+            // If the job is completed and there are no changes, mark the job as resolved
             if (
                 jobResult.status === 'COMPLETED' &&
                 jobResult.error_message === null &&
@@ -66,10 +66,10 @@ export const useJobResultProcessor = ({
                     (jobResult.lens === LENS.TASK && (jobResult.result_data as TaskLLMResponse)?.managed_tasks?.length === 0)
                 )
             ) {
-                deleteJob(jobResult.id);
+                markJobAsResolved(jobResult.id);
             }
         }
-    }, [jobResult, currentEntity, onMessageReady, deleteJob]);
+    }, [jobResult, currentEntity, onMessageReady, markJobAsResolved]);
 
     /**
      * Helper function to get entity info for a message

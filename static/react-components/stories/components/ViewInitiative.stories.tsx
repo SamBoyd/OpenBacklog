@@ -13,7 +13,7 @@ import { mockUseGithubReposReturn, useGithubRepos } from '#hooks/useGithubRepos.
 
 
 import {
-    mockDeleteJob,
+    mockMarkJobAsResolved,
     mockRequestImprovement,
     mockResetError,
     mockUpdateTask,
@@ -393,7 +393,7 @@ export const WithDiff: Story = {
         reloadTask: mockReloadTask,
         deleteTask: mockDeleteTask,
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -439,7 +439,7 @@ export const WithDiffLoading: Story = {
         reloadTask: mockReloadTask,
         deleteTask: mockDeleteTask,
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -486,7 +486,7 @@ export const WithTaskDiff: Story = {
         reloadTask: mockReloadTask,
         deleteTask: mockDeleteTask,
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -564,7 +564,7 @@ export const WithCreateInitiativeDiff: Story = {
         deleteTask: mockDeleteTask,
 
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -622,7 +622,7 @@ export const WithDiffError: Story = {
         reloadTask: mockReloadTask,
         deleteTask: mockDeleteTask,
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {
@@ -668,7 +668,7 @@ export const WithDeleteInitiativeDiff: Story = {
         deleteTask: mockDeleteTask,
 
         requestImprovement: mockRequestImprovement,
-        deleteJob: mockDeleteJob,
+        markJobAsResolved: mockMarkJobAsResolved,
         resetError: mockResetError
     },
     beforeEach: () => {

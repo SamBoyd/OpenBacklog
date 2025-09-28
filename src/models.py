@@ -86,6 +86,7 @@ class JobStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     CANCELED = "CANCELED"
+    RESOLVED = "RESOLVED"
 
 
 class EntityType(str, enum.Enum):

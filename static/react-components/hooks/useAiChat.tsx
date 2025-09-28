@@ -63,7 +63,7 @@ export const useAiChat = ({ lens, currentEntity }: useAiChatProps): useAiChatRet
         jobResult,
         error,
         requestImprovement,
-        deleteJob
+        markJobAsResolved
     } = useAiImprovementsContext();
 
     const [chatDisabled, setChatDisabled] = useState(false);
@@ -118,15 +118,15 @@ export const useAiChat = ({ lens, currentEntity }: useAiChatProps): useAiChatRet
             setChatDisabled(false);
         } else if (jobResult.status === AiImprovementJobStatus.FAILED) {
             setErrorMessage(jobResult.error_message || 'There\'s been an error. Please try again.');
-            deleteJob(jobResult.id);
+            markJobAsResolved(jobResult.id);
             setChatDisabled(false);
         } else if (jobResult.status === AiImprovementJobStatus.CANCELED) {
             setChatDisabled(false);
-            deleteJob(jobResult.id);
+            markJobAsResolved(jobResult.id);
         } else {
             setChatDisabled(false);
         }
-    }, [lens, preferences.filterTasksToInitiative, jobResult, deleteJob]);
+    }, [lens, preferences.filterTasksToInitiative, jobResult, markJobAsResolved]);
 
     /**
      * Send messages to the AI improvement service
@@ -137,7 +137,7 @@ export const useAiChat = ({ lens, currentEntity }: useAiChatProps): useAiChatRet
         setErrorMessage(null);
 
         if (jobResult?.id) {
-            deleteJob(jobResult.id);
+            markJobAsResolved(jobResult.id);
         }
 
         requestImprovement(effectiveContext, lens, threadId, mode, messages);
@@ -150,7 +150,7 @@ export const useAiChat = ({ lens, currentEntity }: useAiChatProps): useAiChatRet
         setErrorMessage(null);
         setChatDisabled(false);
         if (jobResult?.id) {
-            deleteJob(jobResult.id);
+            markJobAsResolved(jobResult.id);
         }
     };
 

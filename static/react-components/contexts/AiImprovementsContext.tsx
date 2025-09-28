@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, ReactNode, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { deleteAiImprovementJob, getAiImprovements, getAiImprovementsByThreadId, requestAiImprovement, updateAiImprovement } from '#api/ai';
+import { markAiImprovementJobAsResolved, getAiImprovements, getAiImprovementsByThreadId, requestAiImprovement, updateAiImprovement } from '#api/ai';
 import { useActiveEntity } from '#hooks/useActiveEntity';
 
 import { AiImprovementJobResult, AiImprovementJobStatus, InitiativeDto, LENS, TaskDto, AiJobChatMessage, ManagedInitiativeModel, ManagedTaskModel, TaskLLMResponse, InitiativeLLMResponse, ManagedEntityAction, CreateInitiativeModel, UpdateInitiativeModel, AgentMode } from '#types';
@@ -13,7 +13,7 @@ interface AiImprovementsContextType {
   threadId: string | null;
   setThreadId: (threadId: string) => void;
   isRequestingImprovement: boolean;
-  isDeletingJob: boolean;
+  isMarkingJobAsResolved: boolean;
   isUpdatingJob: boolean;
   jobResult: AiImprovementJobResult | null;
   initiativeImprovements: Record<string, ManagedInitiativeModel>;
@@ -21,7 +21,7 @@ interface AiImprovementsContextType {
   loading: boolean;
   error: string | null;
   isEntityLocked: boolean;
-  deleteJob: (jobId: string) => void;
+  markJobAsResolved: (jobId: string) => void;
   requestImprovement: (inputData: (InitiativeDto | TaskDto)[], lens: LENS, threadId: string, mode: AgentMode, messages?: AiJobChatMessage[]) => void;
   updateImprovement: (job: AiImprovementJobResult) => void;
   resetError: () => void;
@@ -73,13 +73,13 @@ export const AiImprovementsContextProvider: React.FC<AiImprovementsContextProvid
     }
   });
 
-  // Mutation for deleting a job
+  // Mutation for marking a job as resolved
   const {
-    mutate: deleteJobMutate,
-    isPending: isDeletingJob,
-    error: deleteError
+    mutate: markJobAsResolvedMutate,
+    isPending: isMarkingJobAsResolved,
+    error: markJobAsResolvedError
   } = useMutation({
-    mutationFn: deleteAiImprovementJob,
+    mutationFn: markAiImprovementJobAsResolved,
     onSuccess: (_, jobId) => {
       queryClient.setQueryData(queryKey, (oldData: AiImprovementJobResult[] | undefined) => {
         if (!oldData) return [];
@@ -92,7 +92,7 @@ export const AiImprovementsContextProvider: React.FC<AiImprovementsContextProvid
       }, 500);
     },
     onError: (error) => {
-      console.error('Error deleting AI improvement job:', error);
+      console.error('Error marking AI improvement job as resolved:', error);
     }
   });
 
@@ -144,14 +144,14 @@ export const AiImprovementsContextProvider: React.FC<AiImprovementsContextProvid
   useEffect(() => {
     if (jobResult && jobResult.length > 1) {
       console.error('Multiple jobs found for thread', threadId);
-      jobResult.slice(1).forEach((job) => deleteJobMutate(job.id));
+      jobResult.slice(1).forEach((job) => markJobAsResolvedMutate(job.id));
     }
-  }, [jobResult, threadId, deleteJobMutate]);
+  }, [jobResult, threadId, markJobAsResolvedMutate]);
 
   const jobIsPendingOrProcessing = latestJob && (latestJob.status === AiImprovementJobStatus.PENDING || latestJob.status === AiImprovementJobStatus.PROCESSING);
 
-  const error = queryError?.message || requestError?.message || deleteError?.message || updateError?.message ? String(queryError?.message || requestError?.message || deleteError?.message || updateError?.message) : null;
-  const loading = isFetchingJob || isPendingJob || isRequestingImprovement || isDeletingJob || isUpdatingJob;
+  const error = queryError?.message || requestError?.message || markJobAsResolvedError?.message || updateError?.message ? String(queryError?.message || requestError?.message || markJobAsResolvedError?.message || updateError?.message) : null;
+  const loading = isFetchingJob || isPendingJob || isRequestingImprovement || isMarkingJobAsResolved || isUpdatingJob;
   const isEntityLocked = jobIsPendingOrProcessing ?? false;
 
   // Wrap mutation functions to match the expected interfaces
@@ -159,9 +159,9 @@ export const AiImprovementsContextProvider: React.FC<AiImprovementsContextProvid
     requestImprovementMutate({ inputData, lens, threadId, mode, messages });
   }, [requestImprovementMutate]);
 
-  const deleteJob = useCallback((jobId: string) => {
-    deleteJobMutate(jobId);
-  }, [deleteJobMutate]);
+  const markJobAsResolved = useCallback((jobId: string) => {
+    markJobAsResolvedMutate(jobId);
+  }, [markJobAsResolvedMutate]);
 
   const updateImprovement = useCallback((job: AiImprovementJobResult) => {
     updateJobMutate(job);
@@ -247,7 +247,7 @@ export const AiImprovementsContextProvider: React.FC<AiImprovementsContextProvid
     threadId,
     setThreadId,
     isRequestingImprovement,
-    isDeletingJob,
+    isMarkingJobAsResolved,
     isUpdatingJob,
     jobResult: latestJob,
     initiativeImprovements,
@@ -255,7 +255,7 @@ export const AiImprovementsContextProvider: React.FC<AiImprovementsContextProvid
     loading,
     error,
     isEntityLocked,
-    deleteJob,
+    markJobAsResolved,
     requestImprovement,
     updateImprovement,
     resetError,
@@ -263,7 +263,7 @@ export const AiImprovementsContextProvider: React.FC<AiImprovementsContextProvid
     threadId,
     setThreadId,
     isRequestingImprovement,
-    isDeletingJob,
+    isMarkingJobAsResolved,
     isUpdatingJob,
     latestJob,
     initiativeImprovements,
@@ -271,7 +271,7 @@ export const AiImprovementsContextProvider: React.FC<AiImprovementsContextProvid
     loading,
     error,
     isEntityLocked,
-    deleteJob,
+    markJobAsResolved,
     requestImprovement,
     updateImprovement,
     resetError,
@@ -297,7 +297,7 @@ export interface useAiImprovementsContextReturn {
   loading: boolean;
   error: string | null;
   isEntityLocked: boolean;
-  deleteJob: (jobId: string) => void;
+  markJobAsResolved: (jobId: string) => void;
   requestImprovement: (inputData: (InitiativeDto | TaskDto)[], lens: LENS, threadId: string, mode: AgentMode, messages?: AiJobChatMessage[]) => void;
   updateImprovement: (job: AiImprovementJobResult) => void;
   resetError: () => void;
