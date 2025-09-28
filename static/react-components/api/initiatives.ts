@@ -38,7 +38,7 @@ export function initiativeToPayloadJSON(data: Partial<InitiativeDto>): any {
         identifier: data.identifier,
         user_id: data.user_id,
         title: data.title,
-        description: data.description,
+        description: data.description || '',
         created_at: data.created_at,
         updated_at: data.updated_at,
         status: data.status,
