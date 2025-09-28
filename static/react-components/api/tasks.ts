@@ -33,7 +33,7 @@ export function taskToPayloadJSON(data: Partial<TaskDto>): any {
         user_id: data.user_id,
         initiative_id: data.initiative_id,
         title: data.title,
-        description: data.description,
+        description: data.description || '',
         created_at: data.created_at,
         updated_at: data.updated_at,
         status: data.status,
