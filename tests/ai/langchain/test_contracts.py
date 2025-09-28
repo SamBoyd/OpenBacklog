@@ -7,6 +7,7 @@ Fast execution (< 5s total) for CI integration.
 
 import json
 import time
+import uuid
 from typing import Dict, List
 from unittest.mock import MagicMock, patch
 
@@ -453,13 +454,15 @@ class TestTracingCallbackContracts:
         callback = TracingCallback()
 
         # Test that callback can accept tool_start calls without errors
+        run_id = uuid.uuid4()
         callback.on_tool_start(
             serialized={"name": "internal_search_initiatives"},
             input_str='{"query": "test"}',
+            run_id=run_id,
         )
 
         # Test that callback can accept tool_end calls without errors
-        callback.on_tool_end(output="Search completed")
+        callback.on_tool_end(output="Search completed", run_id=run_id)
 
         # Validate that trace events are captured
         assert_that(callback.trace_events, has_length(2))
@@ -481,12 +484,14 @@ class TestTracingCallbackContracts:
         callback = TracingCallback()
 
         # Test memory tool interface
+        run_id = uuid.uuid4()
         callback.on_tool_start(
             serialized={"name": "memory_store"},
             input_str='{"namespace": "initiatives", "key": "current", "value": "INIT-001"}',
+            run_id=run_id,
         )
 
-        callback.on_tool_end(output="Memory stored successfully")
+        callback.on_tool_end(output="Memory stored successfully", run_id=run_id)
 
         # Validate that events are tracked
         assert_that(callback.trace_events, has_length(2))
@@ -553,11 +558,13 @@ class TestTracingCallbackContracts:
             "internal_create_initiative",
         ]
         for tool_name in tools:
+            run_id = uuid.uuid4()
             callback.on_tool_start(
                 serialized={"name": tool_name},
                 input_str=f'{{"operation": "{tool_name}"}}',
+                run_id=run_id,
             )
-            callback.on_tool_end(output=f"{tool_name} completed")
+            callback.on_tool_end(output=f"{tool_name} completed", run_id=run_id)
 
         # 5. LLM completes
         callback.on_llm_end(

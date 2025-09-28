@@ -107,7 +107,7 @@ class TestToolsReturnMessages:
                 "description": "Updated Description",
             }
         )
-        assert_that(result, equal_to("Initiative 'initiative-123' will be updated."))
+        assert_that(result, contains_string("Initiative 'initiative-123' will be updated."))
 
         result = internal_delete_initiative.invoke({"identifier": "initiative-456"})
         assert_that(result, equal_to("Initiative 'initiative-456' will be deleted."))

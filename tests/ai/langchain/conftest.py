@@ -281,6 +281,11 @@ def setup_agent_environment(
         test_initiative: Test initiative
         test_task: Test task
     """
+    # Skip setup if any required objects are None (for unit tests that override fixtures)
+    if not all([session, user, workspace, test_initiative, test_task]):
+        yield
+        return
+
     # Ensure all objects are properly committed and refreshed
     session.commit()
     session.refresh(user)
