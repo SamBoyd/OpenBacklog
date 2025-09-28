@@ -20,6 +20,9 @@ from src.management.commands.usage_tracker import execute as usage_tracker_execu
 from src.management.commands.monthly_credits_reset import (
     execute as monthly_credits_reset_execute,
 )
+from src.management.commands.subscription_cancellation import (
+    execute as subscription_cancellation_execute,
+)
 from src.litellm_service import (
     regenerate_litellm_master_key as regenerate_litellm_master_key_command,
     retrieve_litellm_key_for_user,
@@ -519,77 +522,6 @@ async def reset_test_user():
     logger.info(f"Test user successfully reset. Email: {user.email}")
 
 
-async def _run_subscription_cancellations_continuously(
-    interval: int = 1800, component_logger: Optional[logging.Logger] = None
-):
-    """
-    Continuously process overdue subscription cancellations at specified interval.
-
-    Args:
-        interval: Time in seconds between runs (default 30 minutes)
-        component_logger: Logger instance to use (defaults to module logger)
-    """
-    from src.accounting.accounting_controller import (
-        get_overdue_subscription_cancellations,
-        process_overdue_subscription_cancellation,
-    )
-
-    worker_logger = component_logger or logger
-    worker_logger.info(
-        f"Starting subscription cancellations worker (interval: {interval}s)"
-    )
-
-    while True:
-        try:
-            session = next(get_db())
-            try:
-                # Get users with overdue cancellations
-                overdue_users = get_overdue_subscription_cancellations(session)
-
-                if overdue_users:
-                    worker_logger.info(
-                        f"Processing overdue subscription cancellations for {len(overdue_users)} users"
-                    )
-                    processed_count = 0
-                    failed_count = 0
-
-                    for user in overdue_users:
-                        try:
-                            result = process_overdue_subscription_cancellation(
-                                user, session
-                            )
-                            if result.success:
-                                processed_count += 1
-                                worker_logger.info(
-                                    f"✓ Cancelled subscription for {user.email}: refunded ${result.total_refunded_cents / 100:.2f}"
-                                )
-                            else:
-                                failed_count += 1
-                                worker_logger.error(
-                                    f"✗ Failed to cancel subscription for {user.email}: {result.error}"
-                                )
-                        except Exception as e:
-                            failed_count += 1
-                            worker_logger.error(
-                                f"✗ Unexpected error processing {user.email}: {e}"
-                            )
-
-                    worker_logger.info(
-                        f"Subscription cancellations complete: {processed_count} successful, {failed_count} failed"
-                    )
-                else:
-                    worker_logger.debug("No overdue subscription cancellations found")
-
-            finally:
-                session.close()
-
-        except Exception as e:
-            worker_logger.error(f"Error in subscription cancellations worker: {e}")
-
-        # Wait for next interval
-        await asyncio.sleep(interval)
-
-
 @cli.command()
 async def run_unified_background_worker():
     """Run usage tracker, monthly credits reset, and subscription cancellations in a unified background worker."""
@@ -619,7 +551,7 @@ async def run_unified_background_worker():
             monthly_credits_reset_execute(
                 interval=3600, component_logger=credits_logger
             ),
-            _run_subscription_cancellations_continuously(
+            subscription_cancellation_execute(
                 interval=1800, component_logger=cancellations_logger
             ),
         )
