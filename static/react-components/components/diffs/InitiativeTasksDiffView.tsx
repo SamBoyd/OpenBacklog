@@ -40,7 +40,7 @@ const InitiativeTasksDiffView: React.FC<InitiativeTasksDiffViewProps> = ({
             .filter(s => s.action === ManagedEntityAction.CREATE)
             .filter(s => getResolutionState(s.path).isAccepted)
             .map(s => s.suggestedValue);
-        const updatedTasks = initiative.tasks.map(task => {
+        const updatedTasks = (initiative.tasks || []).map(task => {
 
             const updateSuggestion = taskSuggestions.find(s => s.path === `initiative.${initiative.identifier}.tasks.${task.identifier}`);
 
@@ -72,7 +72,7 @@ const InitiativeTasksDiffView: React.FC<InitiativeTasksDiffViewProps> = ({
 
 
     // 2. Render Diff Items
-    const updatedTasks = initiative.tasks.map(task => {
+    const updatedTasks = (initiative.tasks || []).map(task => {
         if (!task.identifier) return;
 
         const suggestion = taskSuggestions.find(s => s.path === `initiative.${initiative.identifier}.tasks.${task.identifier}`);
@@ -110,15 +110,15 @@ const InitiativeTasksDiffView: React.FC<InitiativeTasksDiffViewProps> = ({
             acceptAll={() => acceptAll(`initiative.${initiative.identifier}.tasks`)}
             rollbackAll={() => rollbackAll(`initiative.${initiative.identifier}.tasks`)}
         >
-            {!hasChanges && initiative.tasks.length > 0 ? (
+            {!hasChanges && (initiative.tasks || []).length > 0 ? (
                 <div className="flex flex-col space-y-2">
                     {/* If no changes, show all original tasks as unchanged */}
-                    {initiative.tasks.map(task => task.identifier ? // Check if task and task.identifier exist
+                    {(initiative.tasks || []).map(task => task.identifier ? // Check if task and task.identifier exist
                         <UnchangedTask key={`unchanged-${task.identifier}`} task={task} />
                         : null // Optionally handle tasks without identifiers if necessary
                     )}
                 </div>
-            ) : !hasChanges && initiative.tasks.length === 0 ? (
+            ) : !hasChanges && (initiative.tasks || []).length === 0 ? (
                 <p className="text-foreground italic">No original tasks and no changes proposed.</p>
             ) : (
                 <div className="flex flex-col space-y-2">
