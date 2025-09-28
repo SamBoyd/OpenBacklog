@@ -17,6 +17,12 @@ from src.accounting.openmeter_service import OpenMeterService
 from src.accounting.usage_tracker import UsageTracker
 from src.config import settings
 from src.db import SessionLocal
+from src.monitoring.sentry_helpers import (
+    add_breadcrumb,
+    capture_ai_exception,
+    set_operation_context,
+    track_ai_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +66,36 @@ async def execute(
     interval: int = int(args.get("interval", 60))
     single_run: bool = bool(args.get("single_run", False))
 
+    # Start monitoring this usage tracker command execution
+    add_breadcrumb(
+        "Starting usage tracker command",
+        category="usage_tracker.command",
+        data={
+            "interval": interval,
+            "single_run": single_run,
+        },
+    )
+
+    # Set operation context for this command execution
+    set_operation_context(
+        "usage_tracker_command",
+        details={
+            "interval": interval,
+            "single_run": single_run,
+            "command_type": "single_run" if single_run else "continuous",
+        },
+    )
+
+    # Track command startup metrics
+    track_ai_metrics(
+        "usage_tracker.command.started",
+        1,
+        tags={
+            "mode": "single_run" if single_run else "continuous",
+            "interval": str(interval),
+        },
+    )
+
     logger.info(
         "Starting usage tracker – interval=%s, single_run=%s", interval, single_run
     )
@@ -67,21 +103,75 @@ async def execute(
     # Register signal handler for graceful shutdown (Ctrl-C)
     signal.signal(signal.SIGINT, _handle_sigint)
 
-    tracker = _build_usage_tracker()
-
     try:
+        tracker = _build_usage_tracker()
+        add_breadcrumb(
+            "Usage tracker constructed successfully", category="usage_tracker.command"
+        )
+
         if single_run:
+            add_breadcrumb(
+                "Executing single usage sync", category="usage_tracker.command"
+            )
             tracker.sync_usage_once()
+            track_ai_metrics("usage_tracker.command.single_run.completed", 1)
         else:
+            add_breadcrumb(
+                "Starting continuous usage tracking", category="usage_tracker.command"
+            )
             # ``run_continuous`` is an *async* coroutine so we need an event loop.
             await tracker.run_continuous(interval_seconds=interval)
 
     except KeyboardInterrupt:
         logger.info("Usage tracker stopped by user")
+        add_breadcrumb(
+            "Usage tracker stopped by user interrupt",
+            category="usage_tracker.command",
+            level="info",
+        )
+        track_ai_metrics("usage_tracker.command.stopped_by_user", 1)
+        set_operation_context(
+            "usage_tracker_command", success=True
+        )  # Graceful shutdown is success
     except Exception as exc:
         logger.exception("Unexpected error in usage tracker: %s", exc)
+        add_breadcrumb(
+            "Usage tracker command failed with unexpected error",
+            category="usage_tracker.command",
+            level="error",
+            data={"error": str(exc), "error_type": type(exc).__name__},
+        )
+
+        # Capture the exception with operation context
+        capture_ai_exception(
+            exc,
+            operation_type="usage_tracker_command",
+            extra_context={
+                "interval": interval,
+                "single_run": single_run,
+                "command_type": "single_run" if single_run else "continuous",
+            },
+        )
+
+        track_ai_metrics(
+            "usage_tracker.command.failed",
+            1,
+            tags={
+                "error_type": type(exc).__name__,
+                "mode": "single_run" if single_run else "continuous",
+            },
+        )
+
+        set_operation_context("usage_tracker_command", success=False)
         return 1
 
+    # Command completed successfully
+    add_breadcrumb(
+        "Usage tracker command completed successfully",
+        category="usage_tracker.command",
+    )
+    track_ai_metrics("usage_tracker.command.completed", 1)
+    set_operation_context("usage_tracker_command", success=True)
     return 0
 
 
