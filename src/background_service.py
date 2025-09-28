@@ -7,12 +7,17 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 
-import sentry_sdk
-from requests import session
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload  # Added selectinload
 
 from src.accounting.billing_service import BillingService
+from src.monitoring.sentry_helpers import (
+    add_breadcrumb,
+    capture_ai_exception,
+    set_job_context,
+    set_user_context,
+    track_ai_metrics,
+)
 from src.accounting.models import UserAccountDetails, UserAccountStatus
 from src.ai.ai_service import (
     AIImprovementError,
@@ -31,7 +36,6 @@ from src.models import (
     JobStatus,
     Lens,
     Task,
-    TaskLLMResponse,
     User,
 )
 
@@ -204,16 +208,39 @@ async def process_job(job: AIImprovementJob, db: Session) -> AIImprovementJob:
     Returns:
         AIImprovementJob: The updated job.
     """
+    # Set up Sentry context for this job
+    set_job_context(job)
+
+    # Track job processing metrics
+    track_ai_metrics(
+        "ai_job.started",
+        1,
+        tags={
+            "job_lens": job.lens.value if job.lens else "unknown",
+            "job_mode": job.mode.value if job.mode else "unknown",
+        },
+    )
 
     # 1. Determine input Entity ids
     entity_ids = [entity["id"] for entity in job.input_data]
 
+    add_breadcrumb(
+        f"Processing job {job.id} with {len(entity_ids)} entities",
+        category="ai.job",
+        data={
+            "entity_count": len(entity_ids),
+            "lens": job.lens.value if job.lens else None,
+        },
+    )
+
     try:
         # 2. Mark Entity as Processing
+        add_breadcrumb("Marking entities as processing", category="ai.job")
         _update_entity_processing_status(db, job.lens, entity_ids, True)
         db.commit()  # Commit entity status update
 
         # 3. Mark Job as Processing
+        add_breadcrumb("Updating job status to PROCESSING", category="ai.job")
         job.status = JobStatus.PROCESSING
         job.updated_at = datetime.now()
         db.commit()  # Commit job status update
@@ -222,9 +249,16 @@ async def process_job(job: AIImprovementJob, db: Session) -> AIImprovementJob:
         # 4. Get the messages from the job
         messages = job.messages
         logger.info(f"Job {job.id} messages: {messages or 'None'}")
+        add_breadcrumb(
+            f"Job has {len(messages) if messages else 0} messages",
+            category="ai.job",
+            data={"message_count": len(messages) if messages else 0},
+        )
 
         # 5. Check the user is loaded
         logger.info(f"Calling AI service for job {job.id}...")
+        add_breadcrumb("Validating user context", category="ai.job")
+
         # Ensure user is loaded (should be loaded by get_next_pending_job)
         if not job.user:
             # Handle case where user is not loaded - this shouldn't happen
@@ -233,25 +267,44 @@ async def process_job(job: AIImprovementJob, db: Session) -> AIImprovementJob:
             logger.exception(
                 f"User object not loaded for job {job.id}. Fetching user {job.user_id}..."
             )
+            add_breadcrumb(
+                "User not loaded, fetching explicitly",
+                category="ai.job",
+                level="warning",
+            )
+
             from src.models import User  # Local import if needed
 
             user = db.get(User, job.user_id)
             if not user:
-                raise ValueError(
-                    f"User with ID {job.user_id} not found for job {job.id}"
+                error_msg = f"User with ID {job.user_id} not found for job {job.id}"
+                add_breadcrumb(
+                    "User not found in database", category="ai.job", level="error"
                 )
+                raise ValueError(error_msg)
             job.user = user  # Assign the loaded user back if necessary
 
+        # Set user context now that we have the user
+        set_user_context(job.user)
+
         # 6. Check for a free user usage
+        add_breadcrumb("Checking user account details", category="ai.job")
         account_details: UserAccountDetails = (
             db.query(UserAccountDetails)
             .filter(UserAccountDetails.user_id == job.user.id)
             .first()
         )
         if not account_details:
-            raise Exception(f"No account details found for user: {job.user.id} ")
+            error_msg = f"No account details found for user: {job.user.id}"
+            add_breadcrumb(
+                "Account details not found", category="ai.job", level="error"
+            )
+            raise Exception(error_msg)
 
         # Call returns a single result object now
+        add_breadcrumb("Calling AI service", category="ai.job")
+        ai_service_start_time = datetime.now()
+
         result_object = await _call_ai_service(
             thread_id=job.thread_id,
             user=job.user,  # Pass the loaded user object
@@ -260,13 +313,50 @@ async def process_job(job: AIImprovementJob, db: Session) -> AIImprovementJob:
             messages=messages,
             mode=job.mode,
         )
+
+        ai_service_duration = (
+            datetime.now() - ai_service_start_time
+        ).total_seconds() * 1000
+        track_ai_metrics(
+            "ai_service.duration_ms",
+            ai_service_duration,
+            tags={
+                "job_lens": job.lens.value if job.lens else "unknown",
+                "success": "unknown",  # Will be updated below
+            },
+        )
+
         logger.info(f"AI service call completed for job {job.id}")
+        add_breadcrumb(
+            f"AI service completed in {ai_service_duration:.2f}ms",
+            category="ai.job",
+            data={"duration_ms": ai_service_duration},
+        )
 
         # 7. Handle AI Service Result (Check type of the single result)
         if isinstance(result_object, AIImprovementError):
             logger.warning(
                 f"Job {job.id} failed in AI service: {result_object.error_message}"
             )
+            add_breadcrumb(
+                "AI service returned error",
+                category="ai.job",
+                level="warning",
+                data={
+                    "error_type": result_object.error_type,
+                    "error_message": result_object.error_message,
+                },
+            )
+
+            track_ai_metrics(
+                "ai_job.failed",
+                1,
+                tags={
+                    "job_lens": job.lens.value if job.lens else "unknown",
+                    "error_type": result_object.error_type or "unknown",
+                },
+            )
+
             # Pass the error object directly
             _update_job_on_failure(job, result_object)
         elif isinstance(
@@ -274,12 +364,20 @@ async def process_job(job: AIImprovementJob, db: Session) -> AIImprovementJob:
             (InitiativeLLMResponse, TaskLLMResponse, DiscussResponseModel),
         ):
             logger.info(f"Job {job.id} completed successfully by AI service.")
+            add_breadcrumb("AI service completed successfully", category="ai.job")
+
+            track_ai_metrics(
+                "ai_job.completed",
+                1,
+                tags={"job_lens": job.lens.value if job.lens else "unknown"},
+            )
 
             # Record free prompt usage for free tier users
             billing_service = BillingService(db)
             if account_details.status == UserAccountStatus.NEW:
                 # Record free prompt usage
                 # Note: For paid users, usage tracking is handled by the existing usage_tracker.py service
+                add_breadcrumb("Recording free prompt usage", category="ai.job")
                 billing_service.record_free_prompt_usage(job.user)
                 logger.info(f"Recorded free prompt usage for user {job.user.id}")
 
@@ -289,6 +387,22 @@ async def process_job(job: AIImprovementJob, db: Session) -> AIImprovementJob:
             # Should not happen if _call_ai_service is correct
             err_msg = f"Internal error: Unexpected result type {type(result_object)} from _call_ai_service"
             logger.exception(f"Job {job.id}: {err_msg}")
+            add_breadcrumb(
+                "Unexpected result type from AI service",
+                category="ai.job",
+                level="error",
+                data={"result_type": str(type(result_object))},
+            )
+
+            track_ai_metrics(
+                "ai_job.internal_error",
+                1,
+                tags={
+                    "job_lens": job.lens.value if job.lens else "unknown",
+                    "error_type": "unexpected_result_type",
+                },
+            )
+
             # Create an ad-hoc error object or handle differently
             error_obj = AIImprovementError(
                 type=(
@@ -303,6 +417,22 @@ async def process_job(job: AIImprovementJob, db: Session) -> AIImprovementJob:
 
     except VaultError as ve:
         logger.info(f"Vault error processing job {job.id}: {ve}")
+        add_breadcrumb(
+            "Vault error during job processing",
+            category="ai.job",
+            level="error",
+            data={"vault_error": str(ve)},
+        )
+
+        track_ai_metrics(
+            "ai_job.vault_error",
+            1,
+            tags={"job_lens": job.lens.value if job.lens else "unknown"},
+        )
+
+        # Capture with enhanced context
+        capture_ai_exception(ve, user=job.user, job=job, operation_type="vault_lookup")
+
         # Create an ad-hoc error object
         error_obj = AIImprovementError(
             type=(
@@ -317,7 +447,31 @@ async def process_job(job: AIImprovementJob, db: Session) -> AIImprovementJob:
 
     except Exception as e:
         logger.exception(f"Critical error processing job {job.id}: {str(e)}")
-        sentry_sdk.capture_exception(e)
+        add_breadcrumb(
+            "Critical error during job processing",
+            category="ai.job",
+            level="error",
+            data={"error": str(e), "error_type": type(e).__name__},
+        )
+
+        track_ai_metrics(
+            "ai_job.critical_error",
+            1,
+            tags={
+                "job_lens": job.lens.value if job.lens else "unknown",
+                "error_type": type(e).__name__,
+            },
+        )
+
+        # Enhanced exception capture
+        capture_ai_exception(
+            e,
+            user=job.user,
+            job=job,
+            operation_type="job_processing",
+            extra_context={"entity_ids": [str(eid) for eid in entity_ids]},
+        )
+
         # Create an ad-hoc error object
         error_obj = AIImprovementError(
             type=(
@@ -331,18 +485,57 @@ async def process_job(job: AIImprovementJob, db: Session) -> AIImprovementJob:
         _update_job_on_failure(job, error_obj)
     finally:
         # 8. Clear Entity Processing Status (if entity was identified)
+        add_breadcrumb("Clearing entity processing status", category="ai.job")
         _update_entity_processing_status(db, job.lens, entity_ids, False)
 
         # 9. Commit Final Job Status and Entity Status
         try:
             db.commit()
             logger.info(f"Final status for job {job.id}: {job.status.value}")
+            add_breadcrumb(
+                f"Job completed with status: {job.status.value}",
+                category="ai.job",
+                data={"final_status": job.status.value},
+            )
+
+            # Track final job metrics
+            if job.status == JobStatus.COMPLETED:
+                track_ai_metrics(
+                    "ai_job.success",
+                    1,
+                    tags={"job_lens": job.lens.value if job.lens else "unknown"},
+                )
+            elif job.status == JobStatus.FAILED:
+                track_ai_metrics(
+                    "ai_job.failure",
+                    1,
+                    tags={"job_lens": job.lens.value if job.lens else "unknown"},
+                )
+
         except Exception as commit_error:
             logger.exception(
                 f"Failed to commit final state for job {job.id}: {commit_error}"
             )
+            add_breadcrumb(
+                "Failed to commit final job state",
+                category="ai.job",
+                level="error",
+                data={"commit_error": str(commit_error)},
+            )
+
+            track_ai_metrics(
+                "ai_job.commit_error",
+                1,
+                tags={"job_lens": job.lens.value if job.lens else "unknown"},
+            )
+
             db.rollback()  # Rollback if final commit fails
-            sentry_sdk.capture_exception(commit_error)
+
+            # Enhanced commit error capture
+            capture_ai_exception(
+                commit_error, user=job.user, job=job, operation_type="database_commit"
+            )
+
     return job
 
 

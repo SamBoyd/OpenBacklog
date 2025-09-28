@@ -1,6 +1,14 @@
 import logging
 import os
+from datetime import datetime
 from typing import Generic, List, Optional, Type, TypedDict, TypeVar
+
+from src.monitoring.sentry_helpers import (
+    add_breadcrumb,
+    capture_ai_exception,
+    sentry_operation_tracking,
+    track_ai_metrics,
+)
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -77,13 +85,68 @@ async def call_llm_api(
     validation_context: Optional[dict] = None,
     callbacks: Optional[List] = None,
 ) -> T:
+    # Start monitoring this LangChain operation
+    add_breadcrumb(
+        f"Starting LangChain LLM API call for user {user_id}",
+        category="ai.langchain",
+        data={
+            "thread_id": thread_id,
+            "workspace_id": workspace_id,
+            "message_count": len(messages),
+            "response_model": response_model.__name__ if response_model else None,
+            "easy_response_model": (
+                easy_response_model.__name__ if easy_response_model else None
+            ),
+        },
+    )
+
+    # Track metrics
+    track_ai_metrics(
+        "ai.langchain.llm_call.started",
+        1,
+        tags={
+            "workspace_id": workspace_id,
+            "response_model": response_model.__name__ if response_model else "unknown",
+        },
+    )
+
+    operation_start_time = datetime.now()
+
     if not api_key or api_key == "":
+        add_breadcrumb(
+            "LLM API call failed: missing API key",
+            category="ai.langchain",
+            level="error",
+        )
+        track_ai_metrics(
+            "ai.langchain.llm_call.validation_error",
+            1,
+            tags={"error": "missing_api_key"},
+        )
         raise ValueError("API key must be provided to call the LLM API")
 
     if len(messages) == 0:
+        add_breadcrumb(
+            "LLM API call failed: no messages provided",
+            category="ai.langchain",
+            level="error",
+        )
+        track_ai_metrics(
+            "ai.langchain.llm_call.validation_error", 1, tags={"error": "no_messages"}
+        )
         raise ValueError("Messages must be provided to call the LLM API")
 
     if not response_model:
+        add_breadcrumb(
+            "LLM API call failed: no response model",
+            category="ai.langchain",
+            level="error",
+        )
+        track_ai_metrics(
+            "ai.langchain.llm_call.validation_error",
+            1,
+            tags={"error": "no_response_model"},
+        )
         raise ValueError("Response model must be provided to call the LLM API")
 
     # Convert OpenAI message format to LangChain message format
@@ -123,41 +186,87 @@ async def call_llm_api(
     # mcp_tools = await get_mcp_tools(user_auth_token, workspace_id)
     memory_tools = get_memory_tools(workspace_id)
 
-    with PostgresStore.from_conn_string(settings.memory_database_url) as store:
-        store.setup()
-        initialize_project_profile(store, workspace_id, chatbot)
+    add_breadcrumb("Connecting to PostgreSQL memory store", category="ai.langchain")
 
-        # Log current contents of the workspace memory namespace before any LLM calls
-        try:
-            ns = ("memories", workspace_id, "semantic")
-            stored_items = store.search(ns, limit=50)
-            logger.debug(
-                "[call_llm_api] Workspace %s memory items BEFORE llm invoke: %s",
-                workspace_id,
-                [(item.key, item.value) for item in stored_items],
-            )
-        except Exception as e:
-            logger.warning(
-                "[call_llm_api] Failed to log memory items before llm invoke for workspace %s: %s",
-                workspace_id,
-                e,
+    try:
+        with PostgresStore.from_conn_string(settings.memory_database_url) as store:
+            add_breadcrumb(
+                "PostgreSQL store connection established", category="ai.langchain"
             )
 
-        # Get internal CRUD tools
-        internal_tools = get_all_internal_tools()
+            try:
+                store.setup()
+                add_breadcrumb(
+                    "PostgreSQL store setup completed", category="ai.langchain"
+                )
+            except Exception as e:
+                add_breadcrumb(
+                    "PostgreSQL store setup failed",
+                    category="ai.langchain",
+                    level="error",
+                    data={"error": str(e)},
+                )
+                track_ai_metrics(
+                    "ai.langchain.memory_store.setup_error",
+                    1,
+                    tags={"workspace_id": workspace_id},
+                )
+                raise
 
-        # Create callback handler for tracking tool operations
-        tool_callback_handler = ToolCallbackHandler()
+            try:
+                initialize_project_profile(store, workspace_id, chatbot)
+                add_breadcrumb("Project profile initialized", category="ai.langchain")
+            except Exception as e:
+                add_breadcrumb(
+                    "Project profile initialization failed",
+                    category="ai.langchain",
+                    level="warning",
+                    data={"error": str(e)},
+                )
+                track_ai_metrics(
+                    "ai.langchain.project_profile.init_error",
+                    1,
+                    tags={"workspace_id": workspace_id},
+                )
+                # Continue execution as this is not critical
 
-        # Initialize the LLM with simple response format and internal tools
-        llm = create_react_agent(
-            model=chatbot,
-            tools=[search_tool] + memory_tools + internal_tools,
-            response_format=SimpleLLMResponse,
-            store=store,
-            checkpointer=checkpointer,
-            pre_model_hook=get_summarization_node(chatbot),
-        )
+            # Log current contents of the workspace memory namespace before any LLM calls
+            try:
+                ns = ("memories", workspace_id, "semantic")
+                stored_items = store.search(ns, limit=50)
+                add_breadcrumb(
+                    f"Found {len(stored_items)} memory items in workspace",
+                    category="ai.langchain",
+                    data={"memory_count": len(stored_items)},
+                )
+                track_ai_metrics(
+                    "ai.langchain.memory_items.count",
+                    len(stored_items),
+                    tags={"workspace_id": workspace_id},
+                )
+
+                logger.debug(
+                    "[call_llm_api] Workspace %s memory items BEFORE llm invoke: %s",
+                    workspace_id,
+                    [(item.key, item.value) for item in stored_items],
+                )
+            except Exception as e:
+                logger.warning(
+                    "[call_llm_api] Failed to log memory items before llm invoke for workspace %s: %s",
+                    workspace_id,
+                    e,
+                )
+                add_breadcrumb(
+                    "Failed to retrieve memory items",
+                    category="ai.langchain",
+                    level="warning",
+                    data={"error": str(e)},
+                )
+                track_ai_metrics(
+                    "ai.langchain.memory_items.retrieval_error",
+                    1,
+                    tags={"workspace_id": workspace_id},
+                )
 
         # Initial state with messages
         initial_state = create_initial_state(
@@ -294,3 +403,31 @@ async def call_llm_api(
         )
 
         return structured_response.to_managed_model()
+
+    except Exception as e:
+        add_breadcrumb(
+            "PostgreSQL store connection failed",
+            category="ai.langchain",
+            level="error",
+            data={"error": str(e)},
+        )
+        track_ai_metrics(
+            "ai.langchain.memory_store.connection_error",
+            1,
+            tags={"workspace_id": workspace_id},
+        )
+
+        # Capture this as a critical error
+        capture_ai_exception(
+            e,
+            operation_type="langchain_memory_store_connection",
+            extra_context={
+                "workspace_id": workspace_id,
+                "user_id": user_id,
+                "database_url": (
+                    settings.memory_database_url[:50] + "..."
+                    if len(settings.memory_database_url) > 50
+                    else settings.memory_database_url
+                ),
+            },
+        )

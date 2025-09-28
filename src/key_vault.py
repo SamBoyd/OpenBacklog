@@ -11,6 +11,12 @@ from hvac.exceptions import InvalidRequest, VaultError
 from sqlalchemy import False_
 
 from src.config import settings
+from src.monitoring.sentry_helpers import (
+    add_breadcrumb,
+    capture_ai_exception,
+    track_ai_metrics,
+    set_operation_context,
+)
 
 # For now, using hardcoded key (will be replaced with proper key management later)
 # This is a valid Fernet key generated with Fernet.generate_key() and decoded to string
@@ -309,19 +315,86 @@ def retrieve_api_key_from_vault(vault_path: str) -> Optional[str]:
 
     except VaultError as ve:
         logger.error(f"Vault operation failed: {str(ve)}")
-        sentry_sdk.capture_exception(ve)
+        add_breadcrumb(
+            "Vault operation failed",
+            category="vault.api_key",
+            level="error",
+            data={"vault_path": vault_path, "error": str(ve)},
+        )
+
+        set_operation_context(
+            "vault_retrieve_api_key", {"vault_path": vault_path}, success=False
+        )
+        track_ai_metrics(
+            "vault.api_key_retrieval.vault_error",
+            1,
+            tags={"vault_path": vault_path[:20]},
+        )
+
+        capture_ai_exception(
+            ve,
+            operation_type="vault_api_key_retrieval",
+            extra_context={"vault_path": vault_path, "error_type": "vault_error"},
+        )
+
         raise VaultError(
             "Could not retrieve your OpenAI API key. Please update your API key in the settings."
         ) from ve
     except KeyError as ke:
         logger.error(f"API key not found: {str(ke)}")
-        sentry_sdk.capture_exception(ke)
+        add_breadcrumb(
+            "API key not found in vault",
+            category="vault.api_key",
+            level="error",
+            data={"vault_path": vault_path, "key_error": str(ke)},
+        )
+
+        set_operation_context(
+            "vault_retrieve_api_key", {"vault_path": vault_path}, success=False
+        )
+        track_ai_metrics(
+            "vault.api_key_retrieval.key_not_found",
+            1,
+            tags={"vault_path": vault_path[:20]},
+        )
+
+        capture_ai_exception(
+            ke,
+            operation_type="vault_api_key_retrieval",
+            extra_context={"vault_path": vault_path, "error_type": "key_not_found"},
+        )
+
         raise VaultError(
             "Could not retrieve your OpenAI API key. Please update your API key in the settings."
         ) from ke
     except Exception as e:
         logger.error(f"Unexpected error retrieving API key from Vault: {str(e)}")
-        sentry_sdk.capture_exception(e)
+        add_breadcrumb(
+            "Unexpected vault error",
+            category="vault.api_key",
+            level="error",
+            data={
+                "vault_path": vault_path,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+        )
+
+        set_operation_context(
+            "vault_retrieve_api_key", {"vault_path": vault_path}, success=False
+        )
+        track_ai_metrics(
+            "vault.api_key_retrieval.unexpected_error",
+            1,
+            tags={"vault_path": vault_path[:20], "error_type": type(e).__name__},
+        )
+
+        capture_ai_exception(
+            e,
+            operation_type="vault_api_key_retrieval",
+            extra_context={"vault_path": vault_path, "error_type": "unexpected_error"},
+        )
+
         raise VaultError(
             "Could not retrieve your OpenAI API key. Please update your API key in the settings."
         ) from e

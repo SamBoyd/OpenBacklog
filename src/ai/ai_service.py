@@ -5,6 +5,14 @@ from typing import Any, Dict, List, Optional, Union
 
 import sentry_sdk
 from openai import AuthenticationError
+
+from src.monitoring.sentry_helpers import (
+    add_breadcrumb,
+    capture_ai_exception,
+    sentry_operation_tracking,
+    set_user_context,
+    track_ai_metrics,
+)
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import and_, select
 
@@ -222,13 +230,55 @@ async def process_initiative_improvement(
     mode: ChatMode,
     messages: Optional[List[ChatMessageInput]] = None,
 ) -> InitiativeImprovementResult:
+    # Set user context for monitoring
+    set_user_context(user)
+
+    # Add operation breadcrumb
+    add_breadcrumb(
+        f"Starting initiative improvement processing for user {user.id}",
+        category="ai.initiative",
+        data={
+            "thread_id": thread_id,
+            "mode": mode.value if mode else None,
+            "input_count": len(input_data),
+            "has_messages": bool(messages),
+        },
+    )
+
+    # Track metrics
+    track_ai_metrics(
+        "ai.initiative_processing.started",
+        1,
+        tags={"mode": mode.value if mode else "unknown"},
+    )
+
     db = next(get_db())
     initiatives: List[PydanticInitiative] = []
+    processing_start_time = datetime.now()
+
     try:
         try:
+            add_breadcrumb("Parsing initiative data", category="ai.initiative")
             initiatives = [PydanticInitiative(**data) for data in input_data]
+            add_breadcrumb(
+                f"Successfully parsed {len(initiatives)} initiatives",
+                category="ai.initiative",
+            )
         except ValidationError as e:
             logger.exception(f"Pydantic validation error parsing initiative data: {e}")
+            add_breadcrumb(
+                "Initiative data validation failed",
+                category="ai.initiative",
+                level="error",
+                data={"validation_error": str(e)},
+            )
+
+            track_ai_metrics(
+                "ai.initiative_processing.validation_error",
+                1,
+                tags={"mode": mode.value if mode else "unknown"},
+            )
+
             raise ValueError(f"Invalid initiative data provided: {e}") from e
 
         user_id = user.id
@@ -307,7 +357,12 @@ async def process_initiative_improvement(
         return llm_response
 
     except Exception as e:
+        processing_duration = (
+            datetime.now() - processing_start_time
+        ).total_seconds() * 1000
+
         logger.exception(f"Error processing initiative improvement: {str(e)}")
+
         error_type = None
         if isinstance(e, LLMAPIError):
             error_type = "llm_api_error"
@@ -320,7 +375,45 @@ async def process_initiative_improvement(
         elif isinstance(e, FileNotFoundError):
             error_type = "template_not_found"
 
-        sentry_sdk.capture_exception(e)
+        add_breadcrumb(
+            f"Initiative processing failed: {error_type or 'unknown'}",
+            category="ai.initiative",
+            level="error",
+            data={
+                "error_type": error_type,
+                "error_message": str(e),
+                "duration_ms": processing_duration,
+            },
+        )
+
+        # Track error metrics
+        track_ai_metrics(
+            "ai.initiative_processing.error",
+            1,
+            tags={
+                "mode": mode.value if mode else "unknown",
+                "error_type": error_type or type(e).__name__,
+            },
+        )
+
+        track_ai_metrics(
+            "ai.initiative_processing.duration_ms",
+            processing_duration,
+            tags={"mode": mode.value if mode else "unknown", "success": "false"},
+        )
+
+        # Enhanced exception capture
+        capture_ai_exception(
+            e,
+            user=user,
+            operation_type="initiative_processing",
+            extra_context={
+                "thread_id": thread_id,
+                "mode": mode.value if mode else None,
+                "initiative_count": len(initiatives),
+                "error_type": error_type,
+            },
+        )
 
         return AIImprovementError(
             type="initiative",
@@ -339,13 +432,61 @@ async def process_task_improvement(
     mode: ChatMode,
     messages: Optional[List[ChatMessageInput]] = None,
 ) -> TaskImprovementResult:
+    # Set user context for monitoring
+    set_user_context(user)
+
+    # Add operation breadcrumb
+    add_breadcrumb(
+        f"Starting task improvement processing for user {user.id}",
+        category="ai.task",
+        data={
+            "thread_id": thread_id,
+            "lens": lens.value if lens else None,
+            "mode": mode.value if mode else None,
+            "input_count": len(input_data),
+            "has_messages": bool(messages),
+        },
+    )
+
+    # Track metrics
+    track_ai_metrics(
+        "ai.task_processing.started",
+        1,
+        tags={
+            "lens": lens.value if lens else "unknown",
+            "mode": mode.value if mode else "unknown",
+        },
+    )
+
     db = next(get_db())
     tasks: List[PydanticTask] = []
+    processing_start_time = datetime.now()
+
     try:
         try:
+            add_breadcrumb("Parsing task data", category="ai.task")
             tasks = [PydanticTask(**data) for data in input_data]
+            add_breadcrumb(
+                f"Successfully parsed {len(tasks)} tasks", category="ai.task"
+            )
         except ValidationError as e:
             logger.exception(f"Pydantic validation error parsing task data: {e}")
+            add_breadcrumb(
+                "Task data validation failed",
+                category="ai.task",
+                level="error",
+                data={"validation_error": str(e)},
+            )
+
+            track_ai_metrics(
+                "ai.task_processing.validation_error",
+                1,
+                tags={
+                    "lens": lens.value if lens else "unknown",
+                    "mode": mode.value if mode else "unknown",
+                },
+            )
+
             raise ValueError(f"Invalid task data provided: {e}") from e
 
         if not tasks:
@@ -451,6 +592,10 @@ async def process_task_improvement(
         return result
 
     except Exception as e:
+        processing_duration = (
+            datetime.now() - processing_start_time
+        ).total_seconds() * 1000
+
         task_ids_repr = [data.get("id", "UNKNOWN") for data in input_data]
         logger.exception(
             f"Error processing task request for IDs {task_ids_repr}: {str(e)}"
@@ -471,7 +616,53 @@ async def process_task_improvement(
         elif isinstance(e, FileNotFoundError):
             error_type = "template_not_found"
 
-        sentry_sdk.capture_exception(e)
+        add_breadcrumb(
+            f"Task processing failed: {error_type}",
+            category="ai.task",
+            level="error",
+            data={
+                "error_type": error_type,
+                "error_message": str(e),
+                "task_ids": task_ids_repr,
+                "duration_ms": processing_duration,
+            },
+        )
+
+        # Track error metrics
+        track_ai_metrics(
+            "ai.task_processing.error",
+            1,
+            tags={
+                "lens": lens.value if lens else "unknown",
+                "mode": mode.value if mode else "unknown",
+                "error_type": error_type,
+            },
+        )
+
+        track_ai_metrics(
+            "ai.task_processing.duration_ms",
+            processing_duration,
+            tags={
+                "lens": lens.value if lens else "unknown",
+                "mode": mode.value if mode else "unknown",
+                "success": "false",
+            },
+        )
+
+        # Enhanced exception capture
+        capture_ai_exception(
+            e,
+            user=user,
+            operation_type="task_processing",
+            extra_context={
+                "thread_id": thread_id,
+                "lens": lens.value if lens else None,
+                "mode": mode.value if mode else None,
+                "task_count": len(tasks),
+                "task_ids": task_ids_repr,
+                "error_type": error_type,
+            },
+        )
 
         return AIImprovementError(
             type="task",
