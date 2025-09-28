@@ -5,6 +5,7 @@ Similar to Django's manage.py or Flask's CLI.
 """
 
 import logging
+from typing import Optional
 import asyncclick
 from sqlalchemy import text
 import stripe
@@ -16,6 +17,9 @@ from src.accounting.openmeter_service import OpenMeterService
 from src.db import get_async_db, get_db
 from src.management.commands.process_jobs import execute as background_jobs_execute
 from src.management.commands.usage_tracker import execute as usage_tracker_execute
+from src.management.commands.monthly_credits_reset import (
+    execute as monthly_credits_reset_execute,
+)
 from src.litellm_service import (
     regenerate_litellm_master_key as regenerate_litellm_master_key_command,
     retrieve_litellm_key_for_user,
@@ -336,9 +340,7 @@ async def create_test_user():
     default=False,
     help="List users due for credit reset without processing (default).",
 )
-@asyncclick.option(
-    "--limit", type=int, help="Maximum number of users to process."
-)
+@asyncclick.option("--limit", type=int, help="Maximum number of users to process.")
 @asyncclick.option("--user-id", help="Process specific user ID only.")
 async def reset_monthly_credits(dry_run, limit, user_id):
     """Reset monthly credits for users whose billing cycle has expired."""
@@ -352,7 +354,7 @@ async def reset_monthly_credits(dry_run, limit, user_id):
         logger.info("Running in dry run mode (use --no-dry-run to execute)")
 
     session = next(get_db())
-    
+
     try:
         # Get users due for credit reset using controller function
         user_uuid = None
@@ -363,11 +365,15 @@ async def reset_monthly_credits(dry_run, limit, user_id):
                 logger.error(f"Invalid user ID format: {user_id}")
                 return
 
-        eligible_users = get_users_due_for_credit_reset(session, limit=limit, user_id=user_uuid)
+        eligible_users = get_users_due_for_credit_reset(
+            session, limit=limit, user_id=user_uuid
+        )
 
         if not eligible_users:
             if user_id:
-                logger.info(f"User {user_id} is not due for monthly credit reset or not found")
+                logger.info(
+                    f"User {user_id} is not due for monthly credit reset or not found"
+                )
             else:
                 logger.info("No users found due for monthly credit reset")
             return
@@ -388,7 +394,11 @@ async def reset_monthly_credits(dry_run, limit, user_id):
 
         for user in eligible_users:
             account_details = user.account_details
-            next_cycle_str = account_details.next_billing_cycle_starts.strftime("%Y-%m-%d %H:%M") if account_details.next_billing_cycle_starts else "N/A"
+            next_cycle_str = (
+                account_details.next_billing_cycle_starts.strftime("%Y-%m-%d %H:%M")
+                if account_details.next_billing_cycle_starts
+                else "N/A"
+            )
             credits_used_str = f"{account_details.monthly_credits_used}/{account_details.monthly_credits_total}"
 
             logger.info(
@@ -415,13 +425,15 @@ async def reset_monthly_credits(dry_run, limit, user_id):
             logger.info(f"Processing user {user.id} ({user.email})...")
 
             result = process_billing_cycle_reset(user, session)
-            
+
             if result.success:
                 processed_count += 1
                 logger.info(f"✓ Successfully reset monthly credits for {user.email}")
             else:
                 failed_count += 1
-                logger.error(f"✗ Failed to reset credits for {user.email}: {result.error}")
+                logger.error(
+                    f"✗ Failed to reset credits for {user.email}: {result.error}"
+                )
 
         logger.info("")
         logger.info(
@@ -507,65 +519,12 @@ async def reset_test_user():
     logger.info(f"Test user successfully reset. Email: {user.email}")
 
 
-async def _run_monthly_credits_reset_continuously(interval: int = 3600, component_logger = None):
-    """
-    Continuously run monthly credits reset at specified interval.
-    
-    Args:
-        interval: Time in seconds between runs (default 1 hour)
-        component_logger: Logger instance to use (defaults to module logger)
-    """
-    from src.accounting.accounting_controller import (
-        get_users_due_for_credit_reset,
-        process_billing_cycle_reset,
-    )
-    
-    worker_logger = component_logger or logger
-    worker_logger.info(f"Starting monthly credits reset worker (interval: {interval}s)")
-    
-    while True:
-        try:
-            session = next(get_db())
-            try:
-                # Get users due for credit reset
-                eligible_users = get_users_due_for_credit_reset(session)
-                
-                if eligible_users:
-                    worker_logger.info(f"Processing monthly credit reset for {len(eligible_users)} users")
-                    processed_count = 0
-                    failed_count = 0
-                    
-                    for user in eligible_users:
-                        try:
-                            result = process_billing_cycle_reset(user, session)
-                            if result.success:
-                                processed_count += 1
-                                worker_logger.info(f"✓ Reset monthly credits for {user.email}")
-                            else:
-                                failed_count += 1
-                                worker_logger.error(f"✗ Failed to reset credits for {user.email}: {result.error}")
-                        except Exception as e:
-                            failed_count += 1
-                            worker_logger.error(f"✗ Unexpected error processing {user.email}: {e}")
-                    
-                    worker_logger.info(f"Monthly credits reset complete: {processed_count} successful, {failed_count} failed")
-                else:
-                    worker_logger.debug("No users found due for monthly credit reset")
-                    
-            finally:
-                session.close()
-                
-        except Exception as e:
-            worker_logger.error(f"Error in monthly credits reset worker: {e}")
-        
-        # Wait for next interval
-        await asyncio.sleep(interval)
-
-
-async def _run_subscription_cancellations_continuously(interval: int = 1800, component_logger = None):
+async def _run_subscription_cancellations_continuously(
+    interval: int = 1800, component_logger: Optional[logging.Logger] = None
+):
     """
     Continuously process overdue subscription cancellations at specified interval.
-    
+
     Args:
         interval: Time in seconds between runs (default 30 minutes)
         component_logger: Logger instance to use (defaults to module logger)
@@ -574,45 +533,59 @@ async def _run_subscription_cancellations_continuously(interval: int = 1800, com
         get_overdue_subscription_cancellations,
         process_overdue_subscription_cancellation,
     )
-    
+
     worker_logger = component_logger or logger
-    worker_logger.info(f"Starting subscription cancellations worker (interval: {interval}s)")
-    
+    worker_logger.info(
+        f"Starting subscription cancellations worker (interval: {interval}s)"
+    )
+
     while True:
         try:
             session = next(get_db())
             try:
                 # Get users with overdue cancellations
                 overdue_users = get_overdue_subscription_cancellations(session)
-                
+
                 if overdue_users:
-                    worker_logger.info(f"Processing overdue subscription cancellations for {len(overdue_users)} users")
+                    worker_logger.info(
+                        f"Processing overdue subscription cancellations for {len(overdue_users)} users"
+                    )
                     processed_count = 0
                     failed_count = 0
-                    
+
                     for user in overdue_users:
                         try:
-                            result = process_overdue_subscription_cancellation(user, session)
+                            result = process_overdue_subscription_cancellation(
+                                user, session
+                            )
                             if result.success:
                                 processed_count += 1
-                                worker_logger.info(f"✓ Cancelled subscription for {user.email}: refunded ${result.total_refunded_cents / 100:.2f}")
+                                worker_logger.info(
+                                    f"✓ Cancelled subscription for {user.email}: refunded ${result.total_refunded_cents / 100:.2f}"
+                                )
                             else:
                                 failed_count += 1
-                                worker_logger.error(f"✗ Failed to cancel subscription for {user.email}: {result.error}")
+                                worker_logger.error(
+                                    f"✗ Failed to cancel subscription for {user.email}: {result.error}"
+                                )
                         except Exception as e:
                             failed_count += 1
-                            worker_logger.error(f"✗ Unexpected error processing {user.email}: {e}")
-                    
-                    worker_logger.info(f"Subscription cancellations complete: {processed_count} successful, {failed_count} failed")
+                            worker_logger.error(
+                                f"✗ Unexpected error processing {user.email}: {e}"
+                            )
+
+                    worker_logger.info(
+                        f"Subscription cancellations complete: {processed_count} successful, {failed_count} failed"
+                    )
                 else:
                     worker_logger.debug("No overdue subscription cancellations found")
-                    
+
             finally:
                 session.close()
-                
+
         except Exception as e:
             worker_logger.error(f"Error in subscription cancellations worker: {e}")
-        
+
         # Wait for next interval
         await asyncio.sleep(interval)
 
@@ -620,15 +593,17 @@ async def _run_subscription_cancellations_continuously(interval: int = 1800, com
 @cli.command()
 async def run_unified_background_worker():
     """Run usage tracker, monthly credits reset, and subscription cancellations in a unified background worker."""
-    
+
     # Create component-specific loggers for clear identification
     main_logger = logging.getLogger("manage.unified_worker")
     usage_logger = logging.getLogger("manage.usage_tracker")
     credits_logger = logging.getLogger("manage.monthly_credits")
     cancellations_logger = logging.getLogger("manage.subscription_cancellations")
-    
+
     main_logger.info("Starting unified background worker...")
-    main_logger.info("Components: usage tracker (60s), monthly credits reset (3600s), subscription cancellations (1800s)")
+    main_logger.info(
+        "Components: usage tracker (60s), monthly credits reset (3600s), subscription cancellations (1800s)"
+    )
 
     # Signal handler for graceful shutdown
     def handle_sigint(sig, frame):
@@ -641,8 +616,12 @@ async def run_unified_background_worker():
         # Run all three services concurrently with appropriate intervals and component-specific loggers
         await asyncio.gather(
             usage_tracker_execute(dict(interval=60, single_run=False)),
-            _run_monthly_credits_reset_continuously(interval=3600, component_logger=credits_logger),
-            _run_subscription_cancellations_continuously(interval=1800, component_logger=cancellations_logger),
+            monthly_credits_reset_execute(
+                interval=3600, component_logger=credits_logger
+            ),
+            _run_subscription_cancellations_continuously(
+                interval=1800, component_logger=cancellations_logger
+            ),
         )
     except KeyboardInterrupt:
         main_logger.info("Unified background worker stopped by user")
