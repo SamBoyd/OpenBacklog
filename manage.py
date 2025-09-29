@@ -5,8 +5,8 @@ Similar to Django's manage.py or Flask's CLI.
 """
 
 import logging
-from typing import Optional
 import asyncclick
+import sentry_sdk
 from sqlalchemy import text
 import stripe
 import asyncio
@@ -39,6 +39,14 @@ logging.basicConfig(level=logging.INFO)
 logger.info("Starting TaskManagement CLI...")
 
 
+def initialize_sentry():
+    if settings.sentry_url != "":
+        logging.info("Sentry URL is provided, initializing Sentry SDK")
+        sentry_sdk.init(
+            dsn=settings.sentry_url,
+            send_default_pii=True,
+        )
+
 @asyncclick.group()
 def cli():
     """TaskManagement CLI commands."""
@@ -54,6 +62,7 @@ def cli():
 )
 async def process_jobs(interval, single_run):
     """Run the background service."""
+    initialize_sentry()
     await background_jobs_execute(interval, single_run)
 
 
@@ -525,6 +534,7 @@ async def reset_test_user():
 @cli.command()
 async def run_unified_background_worker():
     """Run usage tracker, monthly credits reset, and subscription cancellations in a unified background worker."""
+    initialize_sentry()
 
     # Create component-specific loggers for clear identification
     main_logger = logging.getLogger("manage.unified_worker")
