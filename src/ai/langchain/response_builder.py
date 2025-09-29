@@ -28,6 +28,11 @@ from src.ai.models import (
     EasyUpdateTaskModel,
 )
 from src.models import BalanceWarning
+from src.monitoring.sentry_helpers import (
+    add_breadcrumb,
+    capture_ai_exception,
+    track_ai_metrics,
+)
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
@@ -88,6 +93,30 @@ class ResponseBuilder:
                     deleted_tasks.append(task_model)
 
             except Exception as e:
+                add_breadcrumb(
+                    f"Failed to build task model from operation {op_type}",
+                    category="ai.response_builder",
+                    level="error",
+                    data={"operation_type": op_type, "error": str(e)},
+                )
+                track_ai_metrics(
+                    "langchain.response_builder.task_operation_error",
+                    1,
+                    tags={"operation_type": op_type, "error_type": type(e).__name__},
+                )
+                capture_ai_exception(
+                    e,
+                    operation_type="response_building",
+                    extra_context={
+                        "operation_type": op_type,
+                        "task_data": (
+                            task_data.__dict__
+                            if hasattr(task_data, "__dict__")
+                            else str(task_data)
+                        ),
+                        "builder_stage": "task_model_creation",
+                    },
+                )
                 logger.exception(
                     f"Error building task model from operation {op_type}: {e}"
                 )
@@ -151,6 +180,29 @@ class ResponseBuilder:
                     tasks_by_initiative[initiative_identifier].append(task_model)
 
             except Exception as e:
+                add_breadcrumb(
+                    f"Failed to process task operation",
+                    category="ai.response_builder",
+                    level="error",
+                    data={"error": str(e)},
+                )
+                track_ai_metrics(
+                    "langchain.response_builder.task_processing_error",
+                    1,
+                    tags={"error_type": type(e).__name__},
+                )
+                capture_ai_exception(
+                    e,
+                    operation_type="response_building",
+                    extra_context={
+                        "operation_data": (
+                            operation.__dict__
+                            if hasattr(operation, "__dict__")
+                            else str(operation)
+                        ),
+                        "builder_stage": "task_operation_processing",
+                    },
+                )
                 logger.exception(f"Error processing task operation: {e}")
                 logger.exception(f"Operation data: {operation}")
                 continue
@@ -240,6 +292,30 @@ class ResponseBuilder:
                     processed_initiative_ids.add(initiative_data.identifier)
 
             except Exception as e:
+                add_breadcrumb(
+                    f"Failed to build initiative model from operation {op_type}",
+                    category="ai.response_builder",
+                    level="error",
+                    data={"operation_type": op_type, "error": str(e)},
+                )
+                track_ai_metrics(
+                    "langchain.response_builder.initiative_operation_error",
+                    1,
+                    tags={"operation_type": op_type, "error_type": type(e).__name__},
+                )
+                capture_ai_exception(
+                    e,
+                    operation_type="response_building",
+                    extra_context={
+                        "operation_type": op_type,
+                        "initiative_data": (
+                            initiative_data.__dict__
+                            if hasattr(initiative_data, "__dict__")
+                            else str(initiative_data)
+                        ),
+                        "builder_stage": "initiative_model_creation",
+                    },
+                )
                 logger.exception(
                     f"Error building initiative model from operation {op_type}: {e}"
                 )
@@ -271,6 +347,25 @@ class ResponseBuilder:
                     )
                     updated_initiatives.append(orphaned_initiative_model)
                 except Exception as e:
+                    add_breadcrumb(
+                        f"Failed to create orphaned initiative model for {initiative_id}",
+                        category="ai.response_builder",
+                        level="error",
+                        data={"initiative_id": initiative_id, "error": str(e)},
+                    )
+                    track_ai_metrics(
+                        "langchain.response_builder.orphaned_initiative_error",
+                        1,
+                        tags={"error_type": type(e).__name__},
+                    )
+                    capture_ai_exception(
+                        e,
+                        operation_type="response_building",
+                        extra_context={
+                            "initiative_id": initiative_id,
+                            "builder_stage": "orphaned_initiative_creation",
+                        },
+                    )
                     logger.exception(
                         f"Error creating orphaned initiative model for {initiative_id}: {e}"
                     )

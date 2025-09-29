@@ -19,6 +19,11 @@ from src.ai.langchain.internal_tools import (
     TaskOperation,
     TaskUpdateData,
 )
+from src.monitoring.sentry_helpers import (
+    add_breadcrumb,
+    capture_ai_exception,
+    track_ai_metrics,
+)
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
@@ -113,6 +118,26 @@ class ToolCallbackHandler(BaseCallbackHandler):
                 self.initiative_operations.append(operation)
 
         except Exception as e:
+            add_breadcrumb(
+                f"Failed to track tool {tool_name}",
+                category="ai.tool_callback",
+                level="error",
+                data={"tool_name": tool_name, "error": str(e)},
+            )
+            track_ai_metrics(
+                "langchain.tool_callback.tracking_error",
+                1,
+                tags={"tool_name": tool_name, "error_type": type(e).__name__},
+            )
+            capture_ai_exception(
+                e,
+                operation_type="tool_callback_tracking",
+                extra_context={
+                    "tool_name": tool_name,
+                    "inputs": inputs,
+                    "callback_stage": "tool_end_tracking",
+                },
+            )
             logger.exception(f"Error tracking tool {tool_name}: {e}")
 
     def get_task_operations(self) -> List[TaskOperation]:
