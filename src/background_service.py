@@ -67,6 +67,10 @@ def _update_entity_processing_status(
             .values(has_pending_job=status)
         )
 
+class AiJobFailureError(Exception):
+    """Exception raised when a job fails."""
+    pass
+
 
 async def _call_ai_service(
     thread_id: str,
@@ -510,6 +514,12 @@ async def process_job(job: AIImprovementJob, db: Session) -> AIImprovementJob:
                     "ai_job.failure",
                     1,
                     tags={"job_lens": job.lens.value if job.lens else "unknown"},
+                )
+                capture_ai_exception(
+                    AiJobFailureError(job.error_message),
+                    user=job.user,
+                    job=job,
+                    operation_type="job_processing",
                 )
 
         except Exception as commit_error:
