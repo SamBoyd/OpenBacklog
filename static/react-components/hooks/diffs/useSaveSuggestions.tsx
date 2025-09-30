@@ -136,9 +136,9 @@ export const useSaveSuggestions = (): useSaveSuggestionsReturn => {
             await updateInitiative(cleanedData);
           }
 
-          // Process task operations separately for UPDATE initiatives
+          // Process task operations in parallel for UPDATE initiatives
           if (managedTasks) {
-            for (const task of managedTasks) {
+            const taskOperations = managedTasks.map(async (task) => {
               if (task.action === ManagedEntityAction.CREATE) {
                 logTaskCreateStarted(task, managedInitiative);
 
@@ -158,7 +158,7 @@ export const useSaveSuggestions = (): useSaveSuggestionsReturn => {
                 );
 
                 console.log('[useSaveSuggestions] createTask', finalTaskData);
-                await createTask(finalTaskData);
+                return createTask(finalTaskData);
               } else if (task.action === ManagedEntityAction.UPDATE) {
                 logTaskUpdateStarted(task, managedInitiative);
 
@@ -173,7 +173,7 @@ export const useSaveSuggestions = (): useSaveSuggestionsReturn => {
                 );
 
                 console.log('[useSaveSuggestions] updateTask', task.identifier);
-                await updateTask(cleanedTaskData);
+                return updateTask(cleanedTaskData);
               } else if (task.action === ManagedEntityAction.DELETE) {
                 logTaskDeleteStarted(task, managedInitiative);
 
@@ -181,8 +181,18 @@ export const useSaveSuggestions = (): useSaveSuggestionsReturn => {
                 const taskId = resolveEntityId(task.identifier, taskIdentifierToId, 'task');
 
                 console.log('[useSaveSuggestions] deleteTask', task.identifier);
-                await deleteTask(taskId);
+                return deleteTask(taskId);
               }
+            });
+
+            // Execute all task operations in parallel
+            const results = await Promise.allSettled(taskOperations);
+
+            // Fail entire save if any task operation failed (maintains current behavior)
+            const failures = results.filter(r => r.status === 'rejected');
+            if (failures.length > 0) {
+              const reasons = failures.map(f => f.reason).join('; ');
+              throw new Error(`Task operations failed: ${reasons}`);
             }
           }
         } else if (managedInitiative.action === ManagedEntityAction.DELETE) {

@@ -1195,7 +1195,209 @@ describe('useSaveSuggestions', () => {
         description: undefined,
         workspace_identifier: 'workspace-1'
       });
-      
+
+    });
+  })
+
+  describe('parallel task execution', () => {
+    it('should execute multiple task operations in parallel', async () => {
+      // Setup mock to track call order/timing
+      const callOrder: string[] = [];
+
+      mockCreateTask.mockImplementation(async (data) => {
+        callOrder.push(`createTask-${data.title}`);
+        await new Promise(resolve => setTimeout(resolve, 50));
+        return { id: 'new-task-id' };
+      });
+
+      mockUpdateTask.mockImplementation(async (data) => {
+        callOrder.push(`updateTask-${data.identifier}`);
+        await new Promise(resolve => setTimeout(resolve, 50));
+        return { id: data.id };
+      });
+
+      mockDeleteTask.mockImplementation(async (id) => {
+        callOrder.push(`deleteTask-${id}`);
+        await new Promise(resolve => setTimeout(resolve, 50));
+        return;
+      });
+
+      const mockAcceptedChanges: ManagedInitiativeModel[] = [
+        {
+          action: ManagedEntityAction.UPDATE,
+          identifier: 'INIT-123',
+          title: 'Initiative with multiple tasks',
+          tasks: [
+            {
+              action: ManagedEntityAction.CREATE,
+              title: 'New Task 1',
+              description: 'Task 1 description',
+              checklist: []
+            },
+            {
+              action: ManagedEntityAction.UPDATE,
+              identifier: 'TASK-456',
+              title: 'Updated Task',
+              description: 'Updated description',
+              checklist: []
+            },
+            {
+              action: ManagedEntityAction.DELETE,
+              identifier: 'TASK-789'
+            }
+          ]
+        }
+      ];
+
+      mockUseSuggestionsToBeResolvedContext.mockReturnValue({
+        isFullyResolved: vi.fn().mockReturnValue(true),
+        getAcceptedChanges: vi.fn().mockReturnValue(mockAcceptedChanges),
+        suggestions: {},
+        resolutions: {},
+        allResolved: true,
+        resolve: vi.fn(),
+        rollback: vi.fn(),
+        acceptAll: vi.fn(),
+        rejectAll: vi.fn(),
+        rollbackAll: vi.fn(),
+        getResolutionState: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useSaveSuggestions());
+
+      const startTime = Date.now();
+      await result.current.saveSuggestions();
+      const duration = Date.now() - startTime;
+
+      // Verify all operations were called
+      expect(mockCreateTask).toHaveBeenCalledTimes(1);
+      expect(mockUpdateTask).toHaveBeenCalledTimes(1);
+      expect(mockDeleteTask).toHaveBeenCalledTimes(1);
+
+      // Verify all calls started before any completed (parallel execution)
+      // All 3 tasks should start immediately, not wait for each other
+      expect(callOrder).toHaveLength(3);
+
+      // With parallel execution, total time should be ~50ms (one operation)
+      // With sequential execution, it would be ~150ms (three operations)
+      // Add some buffer for test execution overhead
+      expect(duration).toBeLessThan(120); // Less than 2.5x single operation time
+    });
+
+    it('should handle partial task operation failures', async () => {
+      mockCreateTask.mockResolvedValue({ id: 'new-task-id' });
+      mockUpdateTask.mockRejectedValue(new Error('Update failed'));
+      mockDeleteTask.mockResolvedValue(undefined);
+
+      const mockAcceptedChanges: ManagedInitiativeModel[] = [
+        {
+          action: ManagedEntityAction.UPDATE,
+          identifier: 'INIT-123',
+          title: 'Initiative Title',
+          tasks: [
+            {
+              action: ManagedEntityAction.CREATE,
+              title: 'New Task',
+              description: 'Description',
+              checklist: []
+            },
+            {
+              action: ManagedEntityAction.UPDATE,
+              identifier: 'TASK-456',
+              title: 'Task to fail',
+              description: 'Description',
+              checklist: []
+            },
+            {
+              action: ManagedEntityAction.DELETE,
+              identifier: 'TASK-789'
+            }
+          ]
+        }
+      ];
+
+      mockUseSuggestionsToBeResolvedContext.mockReturnValue({
+        isFullyResolved: vi.fn().mockReturnValue(true),
+        getAcceptedChanges: vi.fn().mockReturnValue(mockAcceptedChanges),
+        suggestions: {},
+        resolutions: {},
+        allResolved: true,
+        resolve: vi.fn(),
+        rollback: vi.fn(),
+        acceptAll: vi.fn(),
+        rejectAll: vi.fn(),
+        rollbackAll: vi.fn(),
+        getResolutionState: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useSaveSuggestions());
+
+      // Should throw error with failure details
+      await expect(result.current.saveSuggestions()).rejects.toThrow('Task operations failed');
+
+      // Verify all operations were attempted despite the failure
+      expect(mockCreateTask).toHaveBeenCalled();
+      expect(mockUpdateTask).toHaveBeenCalled();
+      expect(mockDeleteTask).toHaveBeenCalled();
+    });
+
+    it('should include all failure reasons in error message', async () => {
+      mockCreateTask.mockRejectedValue(new Error('Create failed'));
+      mockUpdateTask.mockRejectedValue(new Error('Update failed'));
+      mockDeleteTask.mockResolvedValue(undefined);
+
+      const mockAcceptedChanges: ManagedInitiativeModel[] = [
+        {
+          action: ManagedEntityAction.UPDATE,
+          identifier: 'INIT-123',
+          title: 'Initiative',
+          tasks: [
+            {
+              action: ManagedEntityAction.CREATE,
+              title: 'New Task',
+              description: 'Description',
+              checklist: []
+            },
+            {
+              action: ManagedEntityAction.UPDATE,
+              identifier: 'TASK-456',
+              title: 'Updated Task',
+              description: 'Updated description',
+              checklist: []
+            },
+            {
+              action: ManagedEntityAction.DELETE,
+              identifier: 'TASK-789'
+            }
+          ]
+        }
+      ];
+
+      mockUseSuggestionsToBeResolvedContext.mockReturnValue({
+        isFullyResolved: vi.fn().mockReturnValue(true),
+        getAcceptedChanges: vi.fn().mockReturnValue(mockAcceptedChanges),
+        suggestions: {},
+        resolutions: {},
+        allResolved: true,
+        resolve: vi.fn(),
+        rollback: vi.fn(),
+        acceptAll: vi.fn(),
+        rejectAll: vi.fn(),
+        rollbackAll: vi.fn(),
+        getResolutionState: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useSaveSuggestions());
+
+      try {
+        await result.current.saveSuggestions();
+        expect.fail('Should have thrown error');
+      } catch (error: any) {
+        // Verify error message contains both failure reasons
+        expect(error.message).toContain('Task operations failed');
+        expect(error.message).toContain('Create failed');
+        expect(error.message).toContain('Update failed');
+      }
     });
   })
 });
