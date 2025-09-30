@@ -28,7 +28,7 @@ const InitiativeTasksDiffView: React.FC<InitiativeTasksDiffViewProps> = ({
         acceptAll,
         rejectAll,
         rollbackAll,
-        getResolutionState
+        getResolutionState,
     } = useSuggestionsToBeResolved();
 
     const taskSuggestions: UnifiedSuggestion[] = entitySuggestions.filter(s => s.path.startsWith(`initiative.${initiative.identifier}.tasks`));

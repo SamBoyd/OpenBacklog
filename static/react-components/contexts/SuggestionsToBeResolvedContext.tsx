@@ -148,6 +148,8 @@ export interface UseSuggestionsToBeResolvedReturn {
   getAcceptedChanges: () => ManagedInitiativeModel[];
   /** Save suggestions */
   saveSuggestions: () => Promise<void>;
+  /** Whether suggestions are currently being saved */
+  isSaving: boolean;
 }
 
 /**
@@ -167,7 +169,7 @@ export function useSuggestionsToBeResolved(): UseSuggestionsToBeResolvedReturn {
     allSuggestions.filter(s => s.type === 'entity'), [allSuggestions]
   );
 
-  const { saveSuggestions } = useSaveSuggestions();
+  const { saveSuggestions, isSaving } = useSaveSuggestions();
 
   return {
     suggestions: allSuggestions,
@@ -183,6 +185,7 @@ export function useSuggestionsToBeResolved(): UseSuggestionsToBeResolvedReturn {
     getResolutionState: context.getResolutionState,
     isFullyResolved: context.isFullyResolved,
     getAcceptedChanges: context.getAcceptedChanges,
-    saveSuggestions
+    saveSuggestions,
+    isSaving
   };
 }

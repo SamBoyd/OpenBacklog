@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 
 import { useSuggestionsToBeResolvedContext } from '#contexts/SuggestionsToBeResolvedContext';
 import { ManagedInitiativeModel, ManagedEntityAction } from '#types';
@@ -24,6 +24,7 @@ import {
 
 export interface useSaveSuggestionsReturn {
   saveSuggestions: () => Promise<void>;
+  isSaving: boolean;
 }
 
 
@@ -32,8 +33,10 @@ export const useSaveSuggestions = (): useSaveSuggestionsReturn => {
   const { createInitiative, updateInitiative, deleteInitiative, initiativesData } = useInitiativesContext();
   const { createTask, updateTask, deleteTask, tasks } = useTasksContext();
   const { jobResult, markJobAsResolved } = useAiImprovementsContext();
+  const [isSaving, setIsSaving] = useState(false);
 
   const saveSuggestions = useCallback(async () => {
+    setIsSaving(true);
     // Declare variables outside try block for error context access
     let acceptedChanges: ManagedInitiativeModel[] = [];
     let initiativeIdentifierToId = new Map<string, string>();
@@ -210,11 +213,14 @@ export const useSaveSuggestions = (): useSaveSuggestionsReturn => {
 
       // Re-throw the error to maintain the hook's error handling behavior
       throw error;
+    } finally {
+      setIsSaving(false);
     }
 
   }, [getAcceptedChanges, isFullyResolved, createInitiative, updateInitiative, deleteInitiative, createTask, updateTask, deleteTask, jobResult, markJobAsResolved, initiativesData, tasks]);
 
   return {
-    saveSuggestions
+    saveSuggestions,
+    isSaving
   }
 };

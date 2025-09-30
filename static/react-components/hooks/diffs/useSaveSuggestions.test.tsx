@@ -913,6 +913,127 @@ describe('useSaveSuggestions', () => {
     });
   });
 
+  describe('isSaving loading state', () => {
+    it('should start with isSaving as false', () => {
+      const mockAcceptedChanges: ManagedInitiativeModel[] = [];
+
+      mockUseSuggestionsToBeResolvedContext.mockReturnValue({
+        isFullyResolved: vi.fn().mockReturnValue(true),
+        getAcceptedChanges: vi.fn().mockReturnValue(mockAcceptedChanges),
+        suggestions: {},
+        resolutions: {},
+        allResolved: true,
+        resolve: vi.fn(),
+        rollback: vi.fn(),
+        acceptAll: vi.fn(),
+        rejectAll: vi.fn(),
+        rollbackAll: vi.fn(),
+        getResolutionState: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useSaveSuggestions());
+
+      expect(result.current.isSaving).toBe(false);
+    });
+
+    it('should return isSaving to false after successful save', async () => {
+      const mockAcceptedChanges: ManagedInitiativeModel[] = [
+        {
+          action: ManagedEntityAction.UPDATE,
+          identifier: 'INIT-123',
+          title: 'Updated Initiative Title',
+        }
+      ];
+
+      mockUseSuggestionsToBeResolvedContext.mockReturnValue({
+        isFullyResolved: vi.fn().mockReturnValue(true),
+        getAcceptedChanges: vi.fn().mockReturnValue(mockAcceptedChanges),
+        suggestions: {},
+        resolutions: {},
+        allResolved: true,
+        resolve: vi.fn(),
+        rollback: vi.fn(),
+        acceptAll: vi.fn(),
+        rejectAll: vi.fn(),
+        rollbackAll: vi.fn(),
+        getResolutionState: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useSaveSuggestions());
+
+      expect(result.current.isSaving).toBe(false);
+
+      // Wait for the operation to complete
+      await result.current.saveSuggestions();
+
+      // isSaving should be false after completion
+      expect(result.current.isSaving).toBe(false);
+    });
+
+    it('should return isSaving to false after validation error', async () => {
+      mockUseSuggestionsToBeResolvedContext.mockReturnValue({
+        isFullyResolved: vi.fn().mockReturnValue(false),
+        getAcceptedChanges: vi.fn(),
+        suggestions: {},
+        resolutions: {},
+        allResolved: false,
+        resolve: vi.fn(),
+        rollback: vi.fn(),
+        acceptAll: vi.fn(),
+        rejectAll: vi.fn(),
+        rollbackAll: vi.fn(),
+        getResolutionState: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useSaveSuggestions());
+
+      expect(result.current.isSaving).toBe(false);
+
+      // Wait for the operation to fail
+      await expect(result.current.saveSuggestions()).rejects.toThrow('Suggestions are not fully resolved');
+
+      // isSaving should be false after error
+      expect(result.current.isSaving).toBe(false);
+    });
+
+    it('should return isSaving to false after API error', async () => {
+      const mockAcceptedChanges: ManagedInitiativeModel[] = [
+        {
+          action: ManagedEntityAction.UPDATE,
+          identifier: 'INIT-123',
+          title: 'Updated Initiative Title',
+        }
+      ];
+
+      mockUseSuggestionsToBeResolvedContext.mockReturnValue({
+        isFullyResolved: vi.fn().mockReturnValue(true),
+        getAcceptedChanges: vi.fn().mockReturnValue(mockAcceptedChanges),
+        suggestions: {},
+        resolutions: {},
+        allResolved: true,
+        resolve: vi.fn(),
+        rollback: vi.fn(),
+        acceptAll: vi.fn(),
+        rejectAll: vi.fn(),
+        rollbackAll: vi.fn(),
+        getResolutionState: vi.fn(),
+      });
+
+      // Make updateInitiative fail
+      mockUpdateInitiative.mockRejectedValue(new Error('API Error'));
+
+      const { result } = renderHook(() => useSaveSuggestions());
+
+      expect(result.current.isSaving).toBe(false);
+
+      // Wait for the operation to fail
+      await expect(result.current.saveSuggestions()).rejects.toThrow('API Error');
+
+      // isSaving should be false after error
+      expect(result.current.isSaving).toBe(false);
+    });
+  });
+
   describe('single initiative operations - with missing fields', () => {
     it('should handle single initiative update with missing title', async () => {
       const mockAcceptedChanges: ManagedInitiativeModel[] = [

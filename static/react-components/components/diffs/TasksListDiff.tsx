@@ -18,7 +18,8 @@ export default function TasksListDiff({ selectedInitiativeId }: { selectedInitia
         rollbackAll,
         allResolved,
         getResolutionState,
-        saveSuggestions
+        saveSuggestions,
+        isSaving,
     } = useSuggestionsToBeResolved();
 
     const initiative = useMemo(
@@ -46,6 +47,7 @@ export default function TasksListDiff({ selectedInitiativeId }: { selectedInitia
             rollbackAll={() => rollbackAll(basePath)}
             getResolutionState={getResolutionState}
             saveSuggestions={saveSuggestions}
+            isSaving={isSaving}
             error={null}
         />
     );

@@ -3668,4 +3668,5 @@ export const mockSuggestionsToBeResolvedContextReturn: UseSuggestionsToBeResolve
     isFullyResolved: () => false,
     getAcceptedChanges: () => [],
     saveSuggestions: () => Promise.resolve(),
+    isSaving: false,
 }

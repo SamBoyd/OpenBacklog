@@ -37,6 +37,7 @@ interface UpdateInitiativeDiffViewProps {
     hasTasksDiff: boolean;
 
     allResolved: boolean;
+    loading: boolean;
 
     // Field handlers
     onAcceptField: (field: string) => void;
@@ -72,6 +73,7 @@ const UpdateInitiativeDiffView: React.FC<UpdateInitiativeDiffViewProps> = ({
 
     // State props
     allResolved,
+    loading,
 
     // Field handlers
     onAcceptField,
@@ -98,7 +100,7 @@ const UpdateInitiativeDiffView: React.FC<UpdateInitiativeDiffViewProps> = ({
         <DiffItemView
             identifier={initiative?.identifier}
             status={initiative?.status ? InitiativeStatus[initiative.status as unknown as keyof typeof InitiativeStatus] : ''}
-            loading={false}
+            loading={loading}
             hasChanged={true}
             error={null}
             createdAt={initiative?.created_at}

@@ -35,6 +35,7 @@ const ViewTaskDiff: React.FC<ViewTaskDiffProps> = ({ task }) => {
         getResolutionState,
         isFullyResolved,
         saveSuggestions,
+        isSaving
     } = useSuggestionsToBeResolved();
 
     const initiative = useMemo(() => (initiativesData || []).find(i => i.id === task.initiative_id) || null, [initiativesData, task]);
@@ -53,7 +54,7 @@ const ViewTaskDiff: React.FC<ViewTaskDiffProps> = ({ task }) => {
             <DiffItemView
                 identifier={task?.identifier}
                 status={task?.status ? TaskStatus[task.status as unknown as keyof typeof TaskStatus] : ''}
-                loading={false}
+                loading={isSaving}
                 hasChanged={true} // Combine manual change and resolution status
                 error={null}
                 createdAt={task?.created_at}

@@ -29,7 +29,8 @@ const ViewInitiativeDiff: React.FC<ViewInitiativeDiffProps> = ({ initiativeId })
 		rollbackAll,
 		getResolutionState,
 		isFullyResolved,
-		saveSuggestions
+		saveSuggestions,
+		isSaving
 	} = useSuggestionsToBeResolved();
 	
 
@@ -59,7 +60,7 @@ const ViewInitiativeDiff: React.FC<ViewInitiativeDiffProps> = ({ initiativeId })
 			<DiffItemView
 				identifier={initiative?.identifier}
 				status={initiative?.status ? InitiativeStatus[initiative.status as unknown as keyof typeof InitiativeStatus] : ''}
-				loading={false}
+				loading={isSaving}
 				hasChanged={true}
 				error={null}
 				createdAt={initiative?.created_at}
@@ -137,6 +138,7 @@ const ViewInitiativeDiff: React.FC<ViewInitiativeDiffProps> = ({ initiativeId })
 			hasTasksDiff={entitySuggestions.some(s => s.path.startsWith(`${basePath}.tasks`))}
 
 			allResolved={isUpdateFullyResolved}
+			loading={isSaving}
 
 			onAcceptField={(field) => resolve(`${basePath}.${field}`, true)}
 			onRejectField={(field) => resolve(`${basePath}.${field}`, false)}

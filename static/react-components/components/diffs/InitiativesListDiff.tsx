@@ -17,7 +17,8 @@ export default function InitiativesListDiff() {
         rollbackAll,
         allResolved,
         getResolutionState,
-        saveSuggestions
+        saveSuggestions,
+        isSaving
     } = useSuggestionsToBeResolved();
     
 
@@ -36,6 +37,7 @@ export default function InitiativesListDiff() {
             getResolutionState={getResolutionState}
             allResolved={allResolved}
             saveSuggestions={saveSuggestions}
+            isSaving={isSaving}
             // Legacy props
             entityType="initiative"
             error={null} 

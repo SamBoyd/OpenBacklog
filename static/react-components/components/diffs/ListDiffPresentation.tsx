@@ -9,6 +9,9 @@ export interface ListDiffPresentationProps {
     entityType: 'initiative' | 'task';
     error: string | null;
 
+    /** Whether suggestions are currently being saved */
+    isSaving: boolean;
+
     /** All suggestions as array */
     suggestions: UnifiedSuggestion[];
     /** Resolution state map */
@@ -40,6 +43,7 @@ const ListDiffPresentation = ({
     rollbackAll,
     getResolutionState,
     saveSuggestions,
+    isSaving,
     // Legacy props
     error,
 }: ListDiffPresentationProps) => {
@@ -63,7 +67,7 @@ const ListDiffPresentation = ({
                     <h2 className="font-semibold text-foreground text-base">{entityTypeCapitalized} Suggestions</h2>
                     <div className="flex flex-wrap space-x-2 gap-y-2">
                         <ResolveAllButtons
-                            loading={false}
+                            loading={isSaving}
                             hasAnyResolution={hasAnyResolution}
                             allSuggestionsResolved={allResolved}
                             acceptAllSuggestions={acceptAll}
