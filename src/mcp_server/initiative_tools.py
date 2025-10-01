@@ -121,7 +121,7 @@ async def search_initiatives(
 
         # postgrest query url
         url_encoded_query = urllib.parse.quote(query)
-        url = f"{settings.postgrest_domain}/initiative?or(title.fts({url_encoded_query}),description.fts({url_encoded_query}),identifier.fts({url_encoded_query}))&workspace_id=eq.{workspace_id}"
+        url = f"{settings.postgrest_domain}/initiative?or(title.plfts({url_encoded_query}),description.plfts({url_encoded_query}),identifier.plfts({url_encoded_query}))&workspace_id=eq.{workspace_id}"
 
         response = requests.get(
             url,
