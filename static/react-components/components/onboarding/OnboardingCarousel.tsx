@@ -4,10 +4,9 @@ import { useBillingUsage } from '#hooks/useBillingUsage';
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { PrimaryButton, SecondaryButton } from '#components/reusable/Button';
 import StepIndicator from './StepIndicator';
-import ProjectPlanningStep from './steps/ProjectPlanningStep';
-import AiAssistantStep from './steps/AiAssistantStep';
-import ContextAwareDevelopmentStep from './steps/ContextAwareDevelopmentStep';
 import ProjectNameStep from './steps/ProjectNameStep';
+import GitHubInstallStep from './steps/GitHubInstallStep';
+import ClaudeCodeSetupStep from './steps/ClaudeCodeSetupStep';
 import PricingStep from './steps/PricingStep';
 
 /**
@@ -24,7 +23,7 @@ const OnboardingCarousel = () => {
   
   const { workspaces, addWorkspace } = useWorkspaces();
 
-  const totalSteps = 5;
+  const totalSteps = 4;
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -76,8 +75,8 @@ const OnboardingCarousel = () => {
   };
 
   const handleNext = async () => {
-    // If we're on the project name step (step 3, index 3), create workspace first
-    if (currentStep === 3) {
+    // If we're on the project name step (step 0, index 0), create workspace first
+    if (currentStep === 0) {
       await handleCreateWorkspace();
     } else if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
@@ -120,26 +119,11 @@ const OnboardingCarousel = () => {
           className="flex transition-transform duration-300 ease-in-out h-full"
           style={{ transform: `translateX(-${currentStep * 100}%)` }}
         >
-          {/* Step 1: Product Planning */}
-          <div className="w-full flex-shrink-0 flex items-center justify-center" style={{ minWidth: '100%' }}>
-            <ProjectPlanningStep />
-          </div>
-
-          {/* Step 2: AI Assistant Integration */}
-          <div className="w-full flex-shrink-0 flex items-center justify-center" style={{ minWidth: '100%' }}>
-            <AiAssistantStep />
-          </div>
-
-          {/* Step 3: Coding with Context */}
-          <div className="w-full flex-shrink-0 flex items-center justify-center" style={{ minWidth: '100%' }}>
-            <ContextAwareDevelopmentStep />
-          </div>
-
-          {/* Step 4: Project Name */}
+          {/* Step 1: Create Workspace */}
           <div className="w-full flex-shrink-0 flex items-center justify-center" style={{ minWidth: '100%' }}>
             <ProjectNameStep
               currentStep={currentStep}
-              stepIndex={3}
+              stepIndex={0}
               projectName={projectName}
               onProjectNameChange={setProjectName}
               isCreatingWorkspace={isCreatingWorkspace}
@@ -147,7 +131,17 @@ const OnboardingCarousel = () => {
             />
           </div>
 
-          {/* Step 5: Pricing */}
+          {/* Step 2: Connect GitHub */}
+          <div className="w-full flex-shrink-0 flex items-center justify-center" style={{ minWidth: '100%' }}>
+            <GitHubInstallStep />
+          </div>
+
+          {/* Step 3: Claude Code MCP Setup */}
+          <div className="w-full flex-shrink-0 flex items-center justify-center" style={{ minWidth: '100%' }}>
+            <ClaudeCodeSetupStep />
+          </div>
+
+          {/* Step 4: Set up Subscription */}
           <div className="w-full flex-shrink-0 flex items-center justify-center" style={{ minWidth: '100%' }}>
             <PricingStep
               onSetupSubscription={handleSetupSubscription}
@@ -179,9 +173,9 @@ const OnboardingCarousel = () => {
         
         <div className="w-16 sm:w-24 flex justify-end">
           {!isLastStep && (
-            <PrimaryButton 
+            <PrimaryButton
               onClick={handleNext}
-              disabled={currentStep === 3 && (!projectName.trim() || isCreatingWorkspace)}
+              disabled={currentStep === 0 && (!projectName.trim() || isCreatingWorkspace)}
               className="text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
             >
               <span className="hidden sm:inline">Next</span>

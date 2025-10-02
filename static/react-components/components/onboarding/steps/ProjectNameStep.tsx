@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import OnboardingStep from '../OnboardingStep';
 
 interface ProjectNameStepProps {
@@ -10,13 +10,34 @@ interface ProjectNameStepProps {
   workspaceCreated?: boolean;
 }
 
+const PLACEHOLDER_OPTIONS = [
+  "Yet Another Todo App",
+  "Hacker News Clone",
+  "Twitter But Better",
+  "Not Another Blog Engine",
+  "Definitely Not Slack",
+  "My SaaS Idea",
+  "Weekend URL Shortener",
+  "Totally Original Chat App",
+  "The Next Facebook",
+  "Pokemon Go Clone",
+  "Markdown Editor Supreme",
+  "Revolutionary CMS",
+  "Billion Dollar Idea"
+];
+
 /**
  * Step component for collecting the user's project name during onboarding
  * @param {object} props - The component props
- * @param {string} [props.initialProjectName] - Initial project name value
+ * @param {number} [props.currentStep] - Current active step index
+ * @param {number} [props.stepIndex] - This step's index
+ * @param {string} [props.projectName] - Current project name value
+ * @param {function} props.onProjectNameChange - Callback when project name changes
+ * @param {boolean} [props.isCreatingWorkspace] - Whether workspace is being created
+ * @param {boolean} [props.workspaceCreated] - Whether workspace has been created
  * @returns {React.ReactElement} The project name input step component
  */
-const ProjectNameStep: React.FC<ProjectNameStepProps> = ({ 
+const ProjectNameStep: React.FC<ProjectNameStepProps> = ({
   currentStep,
   stepIndex,
   projectName,
@@ -25,6 +46,10 @@ const ProjectNameStep: React.FC<ProjectNameStepProps> = ({
   workspaceCreated = false
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [placeholder] = useState(() => {
+    // Choose random placeholder on component mount
+    return PLACEHOLDER_OPTIONS[Math.floor(Math.random() * PLACEHOLDER_OPTIONS.length)];
+  });
 
   // Auto-focus when this step becomes active
   useEffect(() => {
@@ -33,7 +58,7 @@ const ProjectNameStep: React.FC<ProjectNameStepProps> = ({
       const timeoutId = setTimeout(() => {
         inputRef.current?.focus();
       }, 350); // Slightly longer than the transition duration (300ms)
-      
+
       return () => clearTimeout(timeoutId);
     }
     return () => null
@@ -41,8 +66,8 @@ const ProjectNameStep: React.FC<ProjectNameStepProps> = ({
 
   return (
     <OnboardingStep
-      title="What's your project name?"
-      description="We'll create a workspace for your project to help you organize your tasks and collaborate with your team."
+      title="Create your workspace"
+      description="Give your project a name. You can always change this later."
       icon="🚀"
       content={
         <div className="max-w-xs sm:max-w-md mx-auto">
@@ -60,7 +85,7 @@ const ProjectNameStep: React.FC<ProjectNameStepProps> = ({
                 type="text"
                 value={projectName}
                 onChange={(e) => onProjectNameChange(e.target.value)}
-                placeholder="My Awesome Project"
+                placeholder={placeholder}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-foreground bg-background text-sm sm:text-base"
                 disabled={isCreatingWorkspace || workspaceCreated}
               />
@@ -90,7 +115,7 @@ const ProjectNameStep: React.FC<ProjectNameStepProps> = ({
           </div>
 
           <div className="mt-4 sm:mt-6 text-xs sm:text-sm text-muted-foreground">
-            <p>You can always change this later in your workspace settings.</p>
+            <p>You can change this later in workspace settings.</p>
           </div>
         </div>
       }

@@ -19,8 +19,8 @@ const PricingStep: React.FC<PricingStepProps> = ({
 }) => {
   return (
     <OnboardingStep
-      title="Hybrid Pricing Model"
-      description="A low monthly fee for platform access, plus fair pay-as-you-go pricing for AI features."
+      title="Simple, usage-based pricing"
+      description="Low monthly fee for platform access, plus pay-as-you-go for AI features."
       icon="💳"
       content={
         <div className="space-y-4 sm:space-y-6">
@@ -45,15 +45,15 @@ const PricingStep: React.FC<PricingStepProps> = ({
             <ul className="space-y-2 text-muted-foreground mb-3 sm:mb-4 text-sm sm:text-base">
               <li className="flex items-start gap-2">
                 <span className="text-primary">•</span>
-                Low monthly fee covers platform access + included AI credits
+                Monthly fee covers platform access + included AI credits
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary">•</span>
-                Additional AI usage billed transparently per token
+                Additional AI usage billed per token
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary">•</span>
-                No cross-subsidies - pay for what you actually use
+                No subsidies—pay for what you use
               </li>
             </ul>
 
@@ -63,7 +63,7 @@ const PricingStep: React.FC<PricingStepProps> = ({
                 <span className="font-semibold text-foreground text-sm sm:text-base">Developer-Friendly Pricing</span>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Fair, sustainable pricing designed for solo developers - not bloated enterprise plans
+                Fair, sustainable pricing designed for solo developers—not bloated enterprise plans.
               </p>
             </div>
 
@@ -73,8 +73,8 @@ const PricingStep: React.FC<PricingStepProps> = ({
                 disabled={isCompletingOnboarding}
                 className="w-full sm:w-auto text-xs sm:text-sm px-4 sm:px-6 py-2 sm:py-3"
               >
-                <span className="hidden sm:inline">Setup Monthly Subscription</span>
-                <span className="sm:hidden">Setup Subscription</span>
+                <span className="hidden sm:inline">Set up subscription</span>
+                <span className="sm:hidden">Set up subscription</span>
               </PrimaryButton>
             </div>
 

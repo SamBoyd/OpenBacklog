@@ -83,7 +83,6 @@ const meta = {
         }),
     },
     decorators: [
-        withRouter,
         (Story) => {
             // Mock the hooks
             useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
