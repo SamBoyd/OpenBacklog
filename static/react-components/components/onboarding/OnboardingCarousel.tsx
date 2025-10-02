@@ -153,10 +153,10 @@ const OnboardingCarousel = () => {
       </div>
 
       {/* Navigation Controls */}
-      <div className="fixed w-screen left-0 bottom-0 flex justify-between items-center mt-4 sm:mt-8">
+      <div className="flex justify-between items-center mt-4 sm:mt-8 pt-4 sm:pt-6">
         <div className="w-16 sm:w-24">
           {!isFirstStep && (
-            <SecondaryButton 
+            <SecondaryButton
               onClick={handlePrevious}
               disabled={isCompletingOnboarding || isCreatingWorkspace}
               className="text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
@@ -166,11 +166,11 @@ const OnboardingCarousel = () => {
             </SecondaryButton>
           )}
         </div>
-        
+
         <div className="text-xs sm:text-sm text-muted-foreground">
           {currentStep + 1} of {totalSteps}
         </div>
-        
+
         <div className="w-16 sm:w-24 flex justify-end">
           {!isLastStep && (
             <PrimaryButton
