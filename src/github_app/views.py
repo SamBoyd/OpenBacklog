@@ -196,3 +196,20 @@ async def get_user_repository_names(
     except Exception as e:
         logger.error(f"Unexpected error in get_user_repository_names: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/api/github/installation-status", response_class=JSONResponse)
+async def get_github_installation_status(
+    user=Depends(dependency_to_override),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    """Return GitHub installation status for the user"""
+    try:
+        result = github_app_controller.get_installation_status(user, db)
+        return JSONResponse(content=result)
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in get_github_installation_status: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")

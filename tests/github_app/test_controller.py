@@ -146,15 +146,20 @@ class TestInstallGithubAppRedirect:
 class TestHandleInstallationCallback:
     @patch("src.github_app.controller.populate_initial_file_index")
     @patch("src.github_app.github_service.GitHubService.get_installation_token")
-    def test_handle_installation_callback(
+    def test_handle_installation_callback_onboarding_completed(
         self,
         mock_get_token: MagicMock,
         mock_populate_index: MagicMock,
         session: Session,
         user: User,
     ):
+        """Test redirect to /account when user has completed onboarding."""
         # Mock successful token retrieval
         mock_get_token.return_value = {"token": "ghs_valid_token"}
+
+        # Set onboarding as completed
+        user.account_details.onboarding_completed = True
+        session.commit()
 
         response = handle_installation_callback(
             callback_payload=GithubAppInstallationCallback(
@@ -164,13 +169,55 @@ class TestHandleInstallationCallback:
             session=session,
         )
         assert_that(response.status_code, equal_to(302))
-        # Verify the redirect location is the repositories route
+        # Verify the redirect location is the account route
         assert_that(response.headers.get("location"), equal_to("/account"))
 
         loaded_installation = session.query(GitHubInstallation).first()
         assert_that(loaded_installation.installation_id, equal_to("12345"))
         assert_that(loaded_installation.user, equal_to(user))
 
+    @patch("src.github_app.controller.populate_initial_file_index")
+    @patch("src.github_app.github_service.GitHubService.get_installation_token")
+    def test_handle_installation_callback_onboarding_incomplete(
+        self,
+        mock_get_token: MagicMock,
+        mock_populate_index: MagicMock,
+        session: Session,
+        user: User,
+    ):
+        """Test redirect to /workspace/onboarding when user has not completed onboarding."""
+        # Mock successful token retrieval
+        mock_get_token.return_value = {"token": "ghs_valid_token"}
+
+        # Set onboarding as not completed (should be default, but explicitly set)
+        user.account_details.onboarding_completed = False
+        session.commit()
+
+        response = handle_installation_callback(
+            callback_payload=GithubAppInstallationCallback(
+                installation_id="12345", code="abc", setup_action="install"
+            ),
+            user=user,
+            session=session,
+        )
+        assert_that(response.status_code, equal_to(302))
+        # Verify the redirect location is the onboarding route
+        assert_that(response.headers.get("location"), equal_to("/workspace/onboarding"))
+
+        loaded_installation = session.query(GitHubInstallation).first()
+        assert_that(loaded_installation.installation_id, equal_to("12345"))
+        assert_that(loaded_installation.user, equal_to(user))
+
+    @patch("src.github_app.controller.populate_initial_file_index")
+    @patch("src.github_app.github_service.GitHubService.get_installation_token")
+    def test_handle_installation_callback_validation_error(
+        self,
+        mock_get_token: MagicMock,
+        mock_populate_index: MagicMock,
+        session: Session,
+        user: User,
+    ):
+        """Test validation error when installation_id is missing."""
         with pytest.raises(ValidationError):
             handle_installation_callback(
                 callback_payload=GithubAppInstallationCallback(
@@ -1525,3 +1572,106 @@ class TestGetRepositoryNamesForUser:
 
         # Verify the timestamp string is properly formatted ISO
         assert_that(expected_iso, equal_to("2023-07-04T15:30:45.123456"))
+
+
+class TestGetInstallationStatus:
+    """Test the get_installation_status controller function."""
+
+    def test_get_installation_status_with_installation_and_repos(
+        self, session: Session, user: User, github_installation: GitHubInstallation
+    ):
+        """Test installation status when user has installation with repositories."""
+        from datetime import datetime
+
+        from src.github_app.controller import get_installation_status
+
+        # Create repository file indexes for the installation
+        repo_index_1 = RepositoryFileIndex(
+            github_installation_id=github_installation.id,
+            repository_full_name="owner/repo1",
+            file_search_string="@repo1/src/main.py",
+            last_indexed_commit_sha="abc123",
+            updated_at=datetime.now(),
+        )
+        repo_index_2 = RepositoryFileIndex(
+            github_installation_id=github_installation.id,
+            repository_full_name="owner/repo2",
+            file_search_string="@repo2/lib/utils.py",
+            last_indexed_commit_sha="def456",
+            updated_at=datetime.now(),
+        )
+        repo_index_3 = RepositoryFileIndex(
+            github_installation_id=github_installation.id,
+            repository_full_name="owner/repo3",
+            file_search_string="@repo3/README.md",
+            last_indexed_commit_sha="ghi789",
+            updated_at=datetime.now(),
+        )
+        session.add_all([repo_index_1, repo_index_2, repo_index_3])
+        session.commit()
+
+        # Call the function
+        result = get_installation_status(user, session)
+
+        # Verify response
+        assert_that(result["has_installation"], equal_to(True))
+        assert_that(result["repository_count"], equal_to(3))
+
+    def test_get_installation_status_with_installation_no_repos(
+        self, session: Session, user: User, github_installation: GitHubInstallation
+    ):
+        """Test installation status when user has installation but no repositories."""
+        from src.github_app.controller import get_installation_status
+
+        # Call the function (no repositories added)
+        result = get_installation_status(user, session)
+
+        # Verify response
+        assert_that(result["has_installation"], equal_to(True))
+        assert_that(result["repository_count"], equal_to(0))
+
+    def test_get_installation_status_no_installation(
+        self, session: Session, user: User
+    ):
+        """Test installation status when user has no GitHub installation."""
+        from src.github_app.controller import get_installation_status
+
+        # Call the function (no installation created)
+        result = get_installation_status(user, session)
+
+        # Verify response
+        assert_that(result["has_installation"], equal_to(False))
+        assert_that(result["repository_count"], equal_to(0))
+
+    def test_get_installation_status_different_user_installation(
+        self, session: Session, user: User, other_user: User
+    ):
+        """Test installation status when other user has installation."""
+        from datetime import datetime
+
+        from src.github_app.controller import get_installation_status
+
+        # Create installation for other user
+        other_installation = GitHubInstallation(
+            user=other_user, installation_id="other-installation"
+        )
+        session.add(other_installation)
+        session.commit()
+
+        # Create repository indexes for other user's installation
+        repo_index = RepositoryFileIndex(
+            github_installation_id=other_installation.id,
+            repository_full_name="other/repo",
+            file_search_string="@repo/file.py",
+            last_indexed_commit_sha="xyz123",
+            updated_at=datetime.now(),
+        )
+        session.add(repo_index)
+        session.commit()
+
+        # Call the function for the main user (who has no installation)
+        result = get_installation_status(user, session)
+
+        # Verify response - should not see other user's installation
+        assert_that(result["has_installation"], equal_to(False))
+        assert_that(result["repository_count"], equal_to(0))

@@ -157,8 +157,13 @@ def handle_installation_callback(
     populate_initial_file_index(github_installation, session)
     session.commit()  # Commit file index changes
 
-    # Redirect to the repositories view after processing
-    return RedirectResponse(url="/account", status_code=302)
+    # Redirect based on onboarding status
+    # If user hasn't completed onboarding, return them to the onboarding flow
+    # Otherwise, redirect to account settings
+    if not user.account_details.onboarding_completed:
+        return RedirectResponse(url="/workspace/onboarding", status_code=302)
+    else:
+        return RedirectResponse(url="/account", status_code=302)
 
 
 def uninstall_github_app(user: User, db: Session) -> RedirectResponse | HTTPException:
@@ -353,6 +358,43 @@ def get_all_file_search_strings_for_user(user: User, db: Session):
         total_repositories=len(repositories),
         success=True,
     )
+
+
+def get_installation_status(user: User, db: Session):
+    """
+    Get GitHub installation status for the user.
+
+    Args:
+        user: The authenticated user
+        db: Database session
+
+    Returns:
+        dict: Installation status with has_installation and repository_count
+    """
+    # Find user's GitHub installation
+    github_installation = (
+        db.query(GitHubInstallation)
+        .filter(GitHubInstallation.user_id == user.id)
+        .first()
+    )
+
+    if not github_installation:
+        return {
+            "has_installation": False,
+            "repository_count": 0,
+        }
+
+    # Count repositories for this installation
+    repository_count = (
+        db.query(RepositoryFileIndex)
+        .filter(RepositoryFileIndex.github_installation_id == github_installation.id)
+        .count()
+    )
+
+    return {
+        "has_installation": True,
+        "repository_count": repository_count,
+    }
 
 
 def get_repository_names_for_user(user: User, db: Session):

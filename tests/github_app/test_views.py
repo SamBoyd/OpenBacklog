@@ -406,3 +406,61 @@ def test_get_user_repository_names_success(mock_controller_func, test_client):
         ),
     )
     mock_controller_func.assert_called_once()
+
+
+# Tests for GitHub installation status API endpoint
+@patch("src.github_app.controller.get_installation_status")
+def test_get_github_installation_status_success(mock_controller_func, test_client):
+    """Test successful retrieval of GitHub installation status"""
+    # Mock successful response with installation and repositories
+    mock_response = {
+        "has_installation": True,
+        "repository_count": 3,
+    }
+    mock_controller_func.return_value = mock_response
+
+    # Make request
+    response = test_client.get("/api/github/installation-status")
+
+    # Assertions
+    assert_that(response.status_code, equal_to(200))
+    data = response.json()
+    assert_that(data["has_installation"], equal_to(True))
+    assert_that(data["repository_count"], equal_to(3))
+    mock_controller_func.assert_called_once()
+
+
+@patch("src.github_app.controller.get_installation_status")
+def test_get_github_installation_status_no_installation(mock_controller_func, test_client):
+    """Test API endpoint when user has no GitHub installation"""
+    # Mock response with no installation
+    mock_response = {
+        "has_installation": False,
+        "repository_count": 0,
+    }
+    mock_controller_func.return_value = mock_response
+
+    # Make request
+    response = test_client.get("/api/github/installation-status")
+
+    # Assertions
+    assert_that(response.status_code, equal_to(200))
+    data = response.json()
+    assert_that(data["has_installation"], equal_to(False))
+    assert_that(data["repository_count"], equal_to(0))
+    mock_controller_func.assert_called_once()
+
+
+@patch("src.github_app.controller.get_installation_status")
+def test_get_github_installation_status_internal_error(mock_controller_func, test_client):
+    """Test API endpoint handling unexpected exceptions"""
+    # Mock unexpected exception
+    mock_controller_func.side_effect = ValueError("Unexpected database error")
+
+    # Make request
+    response = test_client.get("/api/github/installation-status")
+
+    # Assertions
+    assert_that(response.status_code, equal_to(500))
+    assert_that(response.json()["detail"], equal_to("Internal server error"))
+    mock_controller_func.assert_called_once()
