@@ -237,6 +237,10 @@
       "storybook": "./hooks/useGithubRepos.mock.tsx",
       "default": "./hooks/useGithubRepos.tsx"
     },
+    "#hooks/useOpenbacklogToken": {
+      "storybook": "./hooks/useOpenbacklogToken.mock.tsx",
+      "default": "./hooks/useOpenbacklogToken.tsx"
+    },
     "#styles": {
       "default": "./styles"
     },

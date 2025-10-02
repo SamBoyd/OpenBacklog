@@ -63,3 +63,5 @@ tests/github_app/test_github_service.py:github-app-token:69
 tests/github_app/test_github_service.py:github-app-token:91
 tests/github_app/test_github_service.py:github-app-token:117
 tests/github_app/test_github_service.py:github-app-token:129
+static/react-components/hooks/useOpenbacklogToken.mock.tsx:jwt:35
+static/react-components/stories/components/onboarding/steps/ClaudeCodeSetupStep.stories.tsx:jwt:130

@@ -11,6 +11,7 @@ import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 import { UserAccountStatus } from '#constants/userAccountStatus';
 import { mockWorkspace, mockWorkspacesReturn } from '#stories/example_data';
 import { WorkspaceDto } from '#types';
+import { useOpenbacklogToken, mockUseOpenbacklogTokenGeneratedReturn } from '#hooks/useOpenbacklogToken.mock';
 
 const mockOnboardCustomer = async () => {
     await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -92,6 +93,7 @@ const meta = {
                 currentWorkspace: null,
                 addWorkspace: mockAddWorkspace,
             })
+            useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
             return <Story />;
         }
     ],
@@ -119,6 +121,7 @@ export const ExistingWorkspace: Story = {
         (Story) => {
             useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue(mockWorkspacesReturn)
+            useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
             return <Story />;
         }
     ],
