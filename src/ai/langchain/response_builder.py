@@ -237,6 +237,9 @@ class ResponseBuilder:
         # Create mapping from temporary identifiers to created initiatives
         temp_id_to_create_op = {}
 
+        # Track create operations by temporary identifier for deduplication
+        temp_id_to_create_index = {}
+
         for operation in operations:
             logger.debug(f"LLM called operation: {operation}")
 
@@ -246,24 +249,41 @@ class ResponseBuilder:
             try:
                 if op_type == "create":
                     initiative_data: InitiativeCreateData = initiative_data
+                    temp_id = initiative_data.temporary_identifier
 
                     # Get tasks associated with this temporary identifier
-                    temp_tasks = tasks_by_initiative.get(
-                        initiative_data.temporary_identifier, []
-                    )
+                    temp_tasks = tasks_by_initiative.get(temp_id, [])
 
                     initiative_model = EasyCreateInitiativeModel(
                         title=initiative_data.title,
                         description=initiative_data.description,
                         tasks=temp_tasks,
                     )
-                    created_initiatives.append(initiative_model)
+
+                    # Deduplication: If we've seen this temp_id before, REPLACE the previous one
+                    if temp_id in temp_id_to_create_index:
+                        # Replace existing initiative at the tracked index
+                        idx = temp_id_to_create_index[temp_id]
+                        previous_task_count = len(created_initiatives[idx].tasks)
+                        created_initiatives[idx] = initiative_model
+
+                        add_breadcrumb(
+                            f"Replacing duplicate initiative create operation for {temp_id}",
+                            category="ai.response_builder",
+                            data={
+                                "temporary_identifier": temp_id,
+                                "previous_task_count": previous_task_count,
+                                "new_task_count": len(temp_tasks),
+                            },
+                        )
+                    else:
+                        # First time seeing this temp_id, append normally
+                        created_initiatives.append(initiative_model)
+                        temp_id_to_create_index[temp_id] = len(created_initiatives) - 1
 
                     # Track this temporary ID as processed
-                    temp_id_to_create_op[initiative_data.temporary_identifier] = (
-                        operation
-                    )
-                    processed_initiative_ids.add(initiative_data.temporary_identifier)
+                    temp_id_to_create_op[temp_id] = operation
+                    processed_initiative_ids.add(temp_id)
 
                 elif op_type == "update":
                     initiative_data: InitiativeUpdateData = initiative_data

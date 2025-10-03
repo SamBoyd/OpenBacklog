@@ -427,6 +427,58 @@ class TestInitiativeResponseBuilding:
         # Logger should have been called for the exception
         mock_logger.exception.assert_called()
 
+    def test_build_initiative_response_duplicate_temp_ids(self):
+        """Test that duplicate create operations with same temp_id are deduplicated."""
+        # Simulate agent making multiple create calls with same temp_id (self-correction)
+        # First call: 0 tasks
+        create_data_1 = InitiativeCreateData(
+            title="Web Calculator",
+            description="First attempt",
+            temporary_identifier="TEMP-INIT-1",
+            tasks=[],
+        )
+        operation_1 = InitiativeOperation(
+            operation_type="create", initiative_data=create_data_1
+        )
+
+        # Second call: 1 task (agent self-correcting)
+        create_data_2 = InitiativeCreateData(
+            title="Web Calculator",
+            description="Corrected attempt",
+            temporary_identifier="TEMP-INIT-1",
+            tasks=[],
+        )
+        operation_2 = InitiativeOperation(
+            operation_type="create", initiative_data=create_data_2
+        )
+
+        # Task operation for the second initiative
+        task_data = TaskCreateData(
+            initiative_identifier="TEMP-INIT-1",
+            title="Build UI",
+            description="Build the calculator UI",
+        )
+        task_operation = TaskOperation(operation_type="create", task_data=task_data)
+
+        operations = [operation_1, operation_2]
+        task_operations = [task_operation]
+
+        response = self.builder.build_initiative_response(
+            "Initiative created", operations, task_operations
+        )
+
+        # Should only have 1 initiative (the last one)
+        assert_that(response.created_initiatives, has_length(1))
+        assert_that(response.updated_initiatives, has_length(0))
+        assert_that(response.deleted_initiatives, has_length(0))
+
+        # Verify it's the LAST operation (with tasks)
+        created_initiative = response.created_initiatives[0]
+        assert_that(created_initiative.title, equal_to("Web Calculator"))
+        assert_that(created_initiative.description, equal_to("Corrected attempt"))
+        assert_that(created_initiative.tasks, has_length(1))
+        assert_that(created_initiative.tasks[0].title, equal_to("Build UI"))
+
 
 class TestInitiativeTaskIntegration:
     """Test initiative response building with associated task operations."""
