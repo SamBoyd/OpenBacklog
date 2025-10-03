@@ -40,7 +40,7 @@ export const Loading: Story = {
       repositoryCount: 0,
       isLoading: true,
       error: null,
-      refresh: () => {},
+      refresh: () => { },
     }));
   },
 };
@@ -62,7 +62,7 @@ export const NotConnected: Story = {
       repositoryCount: 0,
       isLoading: false,
       error: null,
-      refresh: () => {},
+      refresh: () => { },
     }));
   },
 };
@@ -84,7 +84,7 @@ export const ConnectedNoRepos: Story = {
       repositoryCount: 0,
       isLoading: false,
       error: null,
-      refresh: () => {},
+      refresh: () => { },
     }));
   },
 };
@@ -106,7 +106,7 @@ export const ConnectedOneRepo: Story = {
       repositoryCount: 1,
       isLoading: false,
       error: null,
-      refresh: () => {},
+      refresh: () => { },
     }));
   },
 };
@@ -128,7 +128,7 @@ export const ConnectedThreeRepos: Story = {
       repositoryCount: 3,
       isLoading: false,
       error: null,
-      refresh: () => {},
+      refresh: () => { },
     }));
   },
 };
@@ -150,7 +150,7 @@ export const ConnectedTenRepos: Story = {
       repositoryCount: 10,
       isLoading: false,
       error: null,
-      refresh: () => {},
+      refresh: () => { },
     }));
   },
 };
@@ -171,8 +171,11 @@ export const Error: Story = {
       hasInstallation: false,
       repositoryCount: 0,
       isLoading: false,
-      error: new Error('Failed to fetch installation status'),
-      refresh: () => {},
+      error: {
+        name: 'Failed to fetch installation status',
+        message: 'Failed to fetch installation status'
+      },
+      refresh: () => { },
     }));
   },
 };

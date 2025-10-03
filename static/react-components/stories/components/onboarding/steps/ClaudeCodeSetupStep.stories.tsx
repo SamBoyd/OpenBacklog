@@ -180,7 +180,10 @@ export const Error: Story = {
       token: null,
       tokenMetadata: null,
       isGenerating: false,
-      error: new Error('Failed to generate token. Please try again.'),
+      error: {
+        name: 'Failed to generate token. Please try again.',
+        message: 'Failed to generate token. Please try again.'
+      },
       generateToken: () => {},
       clearToken: () => {},
     }));
