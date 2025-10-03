@@ -26,7 +26,7 @@ COPY requirements-dev.txt requirements-dev.txt
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
 # Set Python path to include the src directory from the mounted volume
-ENV PYTHONPATH="/home/jovyan/work/src:${PYTHONPATH}"
+ENV PYTHONPATH="/home/jovyan/work/:${PYTHONPATH}"
 
 # Expose Jupyter port
 EXPOSE 8888

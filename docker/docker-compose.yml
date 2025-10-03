@@ -463,6 +463,7 @@ services:
       - "8888:8888"
     volumes:
       - ../:/home/jovyan/work/
+      - ../../OpenBacklogNotebooks:/home/jovyan/notebooks
 
 volumes:
   postgres_data:
