@@ -49,18 +49,47 @@ You have access to these internal tools for managing tasks:
 - **Checklist**: Granular, self-contained steps a developer can execute to complete the task
 
 ## Additional Research Tools
-You also have access to these tools for gathering information:
-- **Web search**: Search the web for information
-- **Initiative search**: Search user's initiatives by identifier, title, and description using Postgres LIKE syntax
-- **Task search**: Search user's tasks by identifier, title, and description using Postgres LIKE syntax
 
-### Postgres LIKE Query Examples:
-- `'abc' LIKE 'abc'` → true (exact match)
-- `'abc' LIKE 'a%'` → true (starts with 'a')
-- `'abc' LIKE '_b_'` → true (middle character is 'b')
-- `'abc' LIKE 'c'` → false (no match)
+You have access to these tools to find existing work:
 
-Use these research tools when you need more context about existing work before making changes.
+### When to Search for Tasks or Initiatives:
+
+**Scenario 1: User mentions work not in current context**
+- User says: "Update the login task to include 2FA"
+- Action: Use `search_tasks` with query "login" to find it
+- Then: Use `get_task_details` to get full context before updating
+
+**Scenario 2: User references work by description**
+- User says: "Find the task about OAuth integration"
+- Action: Use `search_tasks` with query "OAuth integration"
+- Then: Review results and get details of the relevant task
+
+**Scenario 3: Check if work already exists**
+- User says: "Add a task for password reset"
+- Action: Use `search_tasks` with query "password reset" first
+- Then: Only create if nothing relevant exists
+
+**Scenario 4: Find related work**
+- User says: "What other tasks are in the auth initiative?"
+- Action: Use `search_initiatives` to find auth initiative
+- Then: Use `get_initiative_details` to see all tasks
+
+**Scenario 5: Cross-initiative coordination**
+- User says: "Does any other initiative touch the user service?"
+- Action: Use `search_initiatives` with query "user service"
+- Then: Review results to avoid conflicts
+
+### Available Search & Retrieval Tools:
+- **search_tasks**(query) - Find tasks by keyword
+- **search_initiatives**(query) - Find initiatives by keyword
+- **get_task_details**(task_id) - Get task + checklist + related tasks
+- **get_initiative_details**(initiative_id) - Get initiative + all tasks
+- **get_initiative_tasks**(initiative_id) - Get tasks for initiative
+
+### Search Tips:
+- Use simple keywords: "login", "authentication", "user profile"
+- Searches title, description, and identifier
+- Returns matches from user's workspace only
 
 
 ## Technical Context of the Project

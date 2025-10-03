@@ -160,3 +160,118 @@ async def search_initiatives(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+
+
+@mcp.tool()
+async def get_initiative_details(
+    initiative_id: str,
+) -> Dict[str, Any]:
+    """
+    Pull complete initiative context including all tasks.
+
+    Used in the workflow after user selects or searches for an initiative to get
+    full context needed for planning and operations.
+
+    Args:
+        - initiative_id: The UUID of the initiative to get details for
+
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
+    Returns:
+        - Complete initiative details with all associated tasks
+    """
+    logger.info(f"Fetching details for initiative {initiative_id}")
+    try:
+        request: Request = get_http_request()
+
+        # Access request data
+        authorization_header = request.headers.get("Authorization")
+        logger.info(f"Authorization header: {authorization_header}")
+        if not authorization_header:
+            return {
+                "status": "error",
+                "type": "initiative_details",
+                "error_message": "No authorization header found",
+            }
+
+        workspace_id = request.headers.get("X-Workspace-Id")
+        logger.info(f"Workspace ID: {workspace_id}")
+
+        # Query for initiative details
+        initiative_url = f"{settings.postgrest_domain}/initiative?id=eq.{initiative_id}&workspace_id=eq.{workspace_id}&select=*"
+
+        initiative_response = requests.get(
+            initiative_url,
+            headers={
+                "Authorization": authorization_header,
+                "Content-Type": "application/json",
+            },
+            timeout=30,
+        )
+
+        if initiative_response.status_code != 200:
+            logger.exception(
+                f"Error fetching initiative details: {initiative_response.status_code} - {initiative_response.json()}"
+            )
+            return {
+                "status": "error",
+                "type": "initiative_details",
+                "error_message": f"Server error fetching initiative: {initiative_response.status_code}",
+            }
+
+        initiative_data = initiative_response.json()
+        if not initiative_data or len(initiative_data) == 0:
+            return {
+                "status": "error",
+                "type": "initiative_details",
+                "error_message": f"Initiative {initiative_id} not found",
+            }
+
+        initiative = initiative_data[0]
+
+        # Query for all tasks belonging to this initiative
+        tasks = []
+        tasks_url = f"{settings.postgrest_domain}/task?initiative_id=eq.{initiative_id}&workspace_id=eq.{workspace_id}&select=*&order=status,identifier"
+
+        try:
+            tasks_response = requests.get(
+                tasks_url,
+                headers={
+                    "Authorization": authorization_header,
+                    "Content-Type": "application/json",
+                },
+                timeout=30,
+            )
+
+            if tasks_response.status_code == 200:
+                tasks = tasks_response.json()
+                logger.info(f"Found {len(tasks)} tasks for initiative {initiative_id}")
+            else:
+                logger.warning(
+                    f"Could not fetch tasks for initiative: {tasks_response.status_code}"
+                )
+        except Exception as e:
+            logger.warning(
+                f"Error fetching tasks for initiative {initiative_id}: {str(e)}"
+            )
+
+        logger.info(
+            f"Found initiative details for {initiative_id} with {len(tasks)} tasks"
+        )
+
+        return {
+            "status": "success",
+            "type": "initiative_details",
+            "message": f"Retrieved comprehensive initiative context for {initiative['title']}",
+            "initiative": initiative,
+            "tasks": tasks,
+        }
+
+    except Exception as e:
+        logger.exception(f"Error in get_initiative_details MCP tool: {str(e)}")
+        return {
+            "status": "error",
+            "type": "initiative_details",
+            "error_message": f"Server error: {str(e)}",
+            "error_type": "server_error",
+        }

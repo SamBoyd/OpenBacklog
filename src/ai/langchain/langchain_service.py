@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from typing import Generic, List, Optional, Type, TypedDict, TypeVar
+from typing import Any, Generic, List, Optional, Type, TypedDict, TypeVar
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -55,6 +55,43 @@ os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
 T = TypeVar("T", bound=BaseModel)
 
 checkpointer = InMemorySaver()
+
+
+# MCP tool filtering configuration
+# Tools that are safe to expose to the agent for search/lookup operations
+ALLOWED_MCP_TOOLS = {
+    "search_tasks",
+    "search_initiatives",
+    "get_task_details",
+    "get_initiative_tasks",
+    "get_initiative_details",
+}
+
+
+def filter_mcp_tools(mcp_tools: List[Any]) -> List[Any]:
+    """
+    Filter MCP tools to only expose search/lookup tools.
+
+    This prevents conflicts with internal CRUD tools and ensures
+    the agent uses MCP tools only for searching entities not in context.
+
+    Args:
+        mcp_tools: List of all MCP tools from the server
+
+    Returns:
+        Filtered list containing only allowed search/lookup tools
+    """
+    filtered = []
+    for tool in mcp_tools:
+        tool_name = getattr(tool, "name", None)
+        if tool_name in ALLOWED_MCP_TOOLS:
+            filtered.append(tool)
+            logger.debug(f"Including MCP tool: {tool_name}")
+        else:
+            logger.debug(f"Filtering out MCP tool: {tool_name}")
+
+    logger.info(f"Filtered {len(filtered)} MCP tools from {len(mcp_tools)} total")
+    return filtered
 
 
 class State(Generic[T], TypedDict):
@@ -224,7 +261,35 @@ async def call_llm_api(
     try:
         os.environ["TAVILY_API_KEY"] = settings.tavily_api_key
         search_tool = TavilySearch(max_results=2)
-        # mcp_tools = await get_mcp_tools(user_auth_token, workspace_id)
+
+        # Get and filter MCP tools for search/lookup operations
+        # If MCP tools fail to load, continue without them (graceful degradation)
+        mcp_search_tools = []
+        try:
+            add_breadcrumb("Fetching MCP tools", category="ai.langchain")
+            all_mcp_tools = await get_mcp_tools(user_auth_token, workspace_id)
+            mcp_search_tools = filter_mcp_tools(all_mcp_tools)
+            add_breadcrumb(
+                f"Successfully loaded {len(mcp_search_tools)} MCP search tools",
+                category="ai.langchain",
+            )
+        except Exception as mcp_error:
+            logger.warning(
+                f"Failed to load MCP tools for workspace {workspace_id}, continuing without them: {mcp_error}"
+            )
+            add_breadcrumb(
+                "MCP tools failed to load, continuing without search tools",
+                category="ai.langchain",
+                level="warning",
+                data={"error": str(mcp_error)},
+            )
+            track_ai_metrics(
+                "langchain.api_call.mcp_tools_error",
+                1,
+                tags={"workspace_id": workspace_id},
+            )
+            # Don't raise - allow operation to continue without MCP tools
+
         memory_tools = get_memory_tools(workspace_id)
 
         add_breadcrumb(
@@ -232,6 +297,7 @@ async def call_llm_api(
             category="ai.langchain",
             data={
                 "search_tool": "TavilySearch",
+                "mcp_tools_count": len(mcp_search_tools),
                 "memory_tools_count": len(memory_tools),
             },
         )
@@ -315,12 +381,30 @@ async def call_llm_api(
         add_breadcrumb("Creating tool callback handler", category="ai.langchain")
         tool_callback_handler = ToolCallbackHandler()
 
-        # Initialize the LLM with simple response format and internal tools
+        # Combine all tools for the agent
+        # MCP search tools are available in both EDIT and DISCUSS modes
+        # Internal CRUD tools are only available in EDIT mode
+        all_agent_tools = (
+            [search_tool] + memory_tools + mcp_search_tools + internal_tools
+        )
+
+        add_breadcrumb(
+            "Assembled agent tools",
+            category="ai.langchain",
+            data={
+                "total_tools": len(all_agent_tools),
+                "mcp_tools": len(mcp_search_tools),
+                "internal_tools": len(internal_tools),
+                "memory_tools": len(memory_tools),
+            },
+        )
+
+        # Initialize the LLM with simple response format and all tools
         add_breadcrumb("Creating react agent", category="ai.langchain")
         try:
             llm = create_react_agent(
                 model=chatbot,
-                tools=[search_tool] + memory_tools + internal_tools,
+                tools=all_agent_tools,
                 response_format=SimpleLLMResponse,
                 store=store,
                 checkpointer=checkpointer,

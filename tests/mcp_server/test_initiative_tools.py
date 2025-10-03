@@ -8,7 +8,11 @@ import pytest
 from hamcrest import assert_that, equal_to, has_entries, has_key, is_
 from starlette.requests import Request
 
-from src.mcp_server.initiative_tools import get_active_initiatives, search_initiatives
+from src.mcp_server.initiative_tools import (
+    get_active_initiatives,
+    get_initiative_details,
+    search_initiatives,
+)
 
 
 class TestGetActiveInitiatives:
@@ -603,3 +607,329 @@ class TestSearchInitiatives:
             # Should URL encode the query
             mock_quote.assert_called_once_with(query)
             assert_that(result["status"], equal_to("success"))
+
+
+class TestGetInitiativeDetails:
+    """Test suite for get_initiative_details MCP tool."""
+
+    @pytest.fixture
+    def mock_request_with_auth(self):
+        """Create a mock request with valid authorization header."""
+        request = Mock(spec=Request)
+        request.headers = {
+            "Authorization": "Bearer valid_token",
+            "X-Workspace-Id": "workspace-123",
+        }
+        return request
+
+    @pytest.fixture
+    def mock_request_no_auth(self):
+        """Create a mock request without authorization header."""
+        request = Mock(spec=Request)
+        request.headers = {"X-Workspace-Id": "workspace-123"}
+        return request
+
+    @pytest.fixture
+    def mock_settings(self):
+        """Mock settings for testing."""
+        with patch("src.mcp_server.initiative_tools.settings") as mock_settings:
+            mock_settings.postgrest_domain = "https://api.test.com"
+            yield mock_settings
+
+    @pytest.fixture
+    def sample_initiative_data(self):
+        """Sample initiative data for testing."""
+        return {
+            "id": "initiative-123",
+            "title": "User Authentication System",
+            "description": "Implement comprehensive user authentication",
+            "status": "IN_PROGRESS",
+            "identifier": "AUTH-001",
+            "workspace_id": "workspace-123",
+        }
+
+    @pytest.fixture
+    def sample_tasks_for_initiative(self):
+        """Sample tasks data for testing."""
+        return [
+            {
+                "id": "task-1",
+                "title": "Implement OAuth login",
+                "description": "Add OAuth 2.0 authentication",
+                "status": "IN_PROGRESS",
+                "identifier": "AUTH-001-T1",
+                "initiative_id": "initiative-123",
+            },
+            {
+                "id": "task-2",
+                "title": "Add session management",
+                "description": "Implement secure session handling",
+                "status": "TO_DO",
+                "identifier": "AUTH-001-T2",
+                "initiative_id": "initiative-123",
+            },
+        ]
+
+    @pytest.mark.asyncio
+    async def test_get_initiative_details_missing_authorization(
+        self, mock_request_no_auth, mock_settings
+    ):
+        """Test get_initiative_details with missing authorization header."""
+        with patch(
+            "src.mcp_server.initiative_tools.get_http_request"
+        ) as mock_get_request:
+            mock_get_request.return_value = mock_request_no_auth
+
+            result = await get_initiative_details.fn("initiative-123")
+
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "error",
+                        "type": "initiative_details",
+                        "error_message": "No authorization header found",
+                    }
+                ),
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_initiative_details_successful_retrieval(
+        self,
+        mock_request_with_auth,
+        sample_initiative_data,
+        sample_tasks_for_initiative,
+        mock_settings,
+    ):
+        """Test successful retrieval of initiative details with tasks."""
+        # Mock initiative response
+        mock_initiative_response = Mock()
+        mock_initiative_response.status_code = 200
+        mock_initiative_response.json.return_value = [sample_initiative_data]
+
+        # Mock tasks response
+        mock_tasks_response = Mock()
+        mock_tasks_response.status_code = 200
+        mock_tasks_response.json.return_value = sample_tasks_for_initiative
+
+        with (
+            patch(
+                "src.mcp_server.initiative_tools.get_http_request"
+            ) as mock_get_request,
+            patch("src.mcp_server.initiative_tools.requests.get") as mock_get,
+        ):
+
+            mock_get_request.return_value = mock_request_with_auth
+            # First call returns initiative, second call returns tasks
+            mock_get.side_effect = [mock_initiative_response, mock_tasks_response]
+
+            result = await get_initiative_details.fn("initiative-123")
+
+            # Verify initiative URL was called correctly
+            assert mock_get.call_args_list[0][0][0] == (
+                "https://api.test.com/initiative?id=eq.initiative-123&workspace_id=eq.workspace-123&select=*"
+            )
+
+            # Verify tasks URL was called correctly
+            assert mock_get.call_args_list[1][0][0] == (
+                "https://api.test.com/task?initiative_id=eq.initiative-123&workspace_id=eq.workspace-123&select=*&order=status,identifier"
+            )
+
+            # Verify successful result structure
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "success",
+                        "type": "initiative_details",
+                        "message": "Retrieved comprehensive initiative context for User Authentication System",
+                        "initiative": sample_initiative_data,
+                        "tasks": sample_tasks_for_initiative,
+                    }
+                ),
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_initiative_details_initiative_not_found(
+        self, mock_request_with_auth, mock_settings
+    ):
+        """Test handling when initiative is not found."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+
+        with (
+            patch(
+                "src.mcp_server.initiative_tools.get_http_request"
+            ) as mock_get_request,
+            patch("src.mcp_server.initiative_tools.requests.get") as mock_get,
+        ):
+
+            mock_get_request.return_value = mock_request_with_auth
+            mock_get.return_value = mock_response
+
+            result = await get_initiative_details.fn("nonexistent-id")
+
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "error",
+                        "type": "initiative_details",
+                        "error_message": "Initiative nonexistent-id not found",
+                    }
+                ),
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_initiative_details_tasks_fetch_fails(
+        self, mock_request_with_auth, sample_initiative_data, mock_settings
+    ):
+        """Test when initiative is found but tasks fetch fails gracefully."""
+        # Mock initiative response (success)
+        mock_initiative_response = Mock()
+        mock_initiative_response.status_code = 200
+        mock_initiative_response.json.return_value = [sample_initiative_data]
+
+        # Mock tasks response (failure)
+        mock_tasks_response = Mock()
+        mock_tasks_response.status_code = 500
+
+        with (
+            patch(
+                "src.mcp_server.initiative_tools.get_http_request"
+            ) as mock_get_request,
+            patch("src.mcp_server.initiative_tools.requests.get") as mock_get,
+            patch("src.mcp_server.initiative_tools.logger") as mock_logger,
+        ):
+
+            mock_get_request.return_value = mock_request_with_auth
+            mock_get.side_effect = [mock_initiative_response, mock_tasks_response]
+
+            result = await get_initiative_details.fn("initiative-123")
+
+            # Should still return initiative even if tasks fetch fails
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "success",
+                        "type": "initiative_details",
+                        "initiative": sample_initiative_data,
+                        "tasks": [],  # Empty tasks list on failure
+                    }
+                ),
+            )
+
+            # Should log warning
+            mock_logger.warning.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_get_initiative_details_server_error(
+        self, mock_request_with_auth, mock_settings
+    ):
+        """Test handling of server error during initiative fetch."""
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.json.return_value = {"error": "Internal server error"}
+
+        with (
+            patch(
+                "src.mcp_server.initiative_tools.get_http_request"
+            ) as mock_get_request,
+            patch("src.mcp_server.initiative_tools.requests.get") as mock_get,
+            patch("src.mcp_server.initiative_tools.logger") as mock_logger,
+        ):
+
+            mock_get_request.return_value = mock_request_with_auth
+            mock_get.return_value = mock_response
+
+            result = await get_initiative_details.fn("initiative-123")
+
+            # Should log the error
+            mock_logger.exception.assert_called_once()
+
+            # Should return error response
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "error",
+                        "type": "initiative_details",
+                        "error_message": "Server error fetching initiative: 500",
+                    }
+                ),
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_initiative_details_network_exception(
+        self, mock_request_with_auth, mock_settings
+    ):
+        """Test exception handling during HTTP request."""
+        with (
+            patch(
+                "src.mcp_server.initiative_tools.get_http_request"
+            ) as mock_get_request,
+            patch("src.mcp_server.initiative_tools.requests.get") as mock_get,
+            patch("src.mcp_server.initiative_tools.logger") as mock_logger,
+        ):
+
+            mock_get_request.return_value = mock_request_with_auth
+            mock_get.side_effect = Exception("Connection timeout")
+
+            result = await get_initiative_details.fn("initiative-123")
+
+            # Should log the exception
+            mock_logger.exception.assert_called_once()
+
+            # Should return error response
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "error",
+                        "type": "initiative_details",
+                        "error_message": "Server error: Connection timeout",
+                        "error_type": "server_error",
+                    }
+                ),
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_initiative_details_empty_tasks(
+        self, mock_request_with_auth, sample_initiative_data, mock_settings
+    ):
+        """Test handling of initiative with no tasks."""
+        # Mock initiative response
+        mock_initiative_response = Mock()
+        mock_initiative_response.status_code = 200
+        mock_initiative_response.json.return_value = [sample_initiative_data]
+
+        # Mock empty tasks response
+        mock_tasks_response = Mock()
+        mock_tasks_response.status_code = 200
+        mock_tasks_response.json.return_value = []
+
+        with (
+            patch(
+                "src.mcp_server.initiative_tools.get_http_request"
+            ) as mock_get_request,
+            patch("src.mcp_server.initiative_tools.requests.get") as mock_get,
+        ):
+
+            mock_get_request.return_value = mock_request_with_auth
+            mock_get.side_effect = [mock_initiative_response, mock_tasks_response]
+
+            result = await get_initiative_details.fn("initiative-123")
+
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "success",
+                        "type": "initiative_details",
+                        "initiative": sample_initiative_data,
+                        "tasks": [],
+                    }
+                ),
+            )
