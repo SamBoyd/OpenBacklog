@@ -87,15 +87,75 @@ class ToolCallbackHandler(BaseCallbackHandler):
                 self.task_operations.append(operation)
 
             elif tool_name == "internal_create_initiative":
+                # Extract initiative data (including tasks)
                 initiative_data = InitiativeCreateData(
                     title=inputs.get("title"),
                     description=inputs.get("description"),
                     temporary_identifier=inputs.get("temporary_identifier"),
+                    tasks=inputs.get("tasks", []),
                 )
-                operation = InitiativeOperation(
+
+                # Create initiative operation
+                initiative_operation = InitiativeOperation(
                     operation_type="create", initiative_data=initiative_data
                 )
-                self.initiative_operations.append(operation)
+                self.initiative_operations.append(initiative_operation)
+
+                # Create task operations for each task in the list
+                temporary_identifier = inputs.get("temporary_identifier")
+                tasks_list = inputs.get("tasks") or []
+
+                try:
+                    for task_dict in tasks_list:
+                        # Skip tasks without required title field
+                        if not task_dict.get("title"):
+                            logger.warning(
+                                f"Skipping task without title in initiative {temporary_identifier}"
+                            )
+                            continue
+
+                        task_data = TaskCreateData(
+                            initiative_identifier=temporary_identifier,
+                            title=task_dict.get("title", ""),
+                            description=task_dict.get("description", ""),
+                        )
+                        task_operation = TaskOperation(
+                            operation_type="create", task_data=task_data
+                        )
+                        self.task_operations.append(task_operation)
+
+                    # Log for debugging
+                    add_breadcrumb(
+                        f"Captured initiative creation with {len(tasks_list)} tasks",
+                        category="ai.tool_callback",
+                        data={
+                            "initiative_title": inputs.get("title"),
+                            "temporary_identifier": temporary_identifier,
+                            "task_count": len(tasks_list),
+                        },
+                    )
+                except Exception as task_error:
+                    # Log error but continue with initiative creation
+                    logger.error(
+                        f"Error creating task operations for initiative {temporary_identifier}: {task_error}"
+                    )
+                    track_ai_metrics(
+                        "langchain.tool_callback.task_creation_error",
+                        1,
+                        tags={
+                            "initiative_identifier": temporary_identifier,
+                            "error_type": type(task_error).__name__,
+                        },
+                    )
+                    capture_ai_exception(
+                        task_error,
+                        operation_type="tool_callback_task_creation",
+                        extra_context={
+                            "tool_name": tool_name,
+                            "initiative_identifier": temporary_identifier,
+                            "tasks_list": tasks_list,
+                        },
+                    )
 
             elif tool_name == "internal_update_initiative":
                 initiative_data = InitiativeUpdateData(

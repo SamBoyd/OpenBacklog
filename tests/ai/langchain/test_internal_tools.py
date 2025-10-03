@@ -90,6 +90,7 @@ class TestToolsReturnMessages:
                 "title": "Test Initiative",
                 "description": "Test Description",
                 "temporary_identifier": "TEMP-INIT-test123",
+                "tasks": [],
             }
         )
         assert_that(
@@ -98,7 +99,7 @@ class TestToolsReturnMessages:
                 "Initiative 'Test Initiative' will be created with temporary identifier 'TEMP-INIT-test123'"
             ),
         )
-        assert_that(result, contains_string("Use this identifier when creating tasks"))
+        assert_that(result, contains_string("0 task(s)"))
 
         result = internal_update_initiative.invoke(
             {

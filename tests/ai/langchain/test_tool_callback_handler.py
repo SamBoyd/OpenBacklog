@@ -109,6 +109,7 @@ class TestToolCallbackHandler:
             "temporary_identifier": "TEMP-INIT-123",
             "title": "Test Initiative",
             "description": "Test Description",
+            "tasks": [],
         }
 
         self.handler.on_tool_start(
@@ -124,6 +125,48 @@ class TestToolCallbackHandler:
         assert operation.initiative_data.temporary_identifier == "TEMP-INIT-123"
         assert operation.initiative_data.title == "Test Initiative"
         assert operation.initiative_data.description == "Test Description"
+
+    def test_track_create_initiative_with_tasks(self):
+        """Test tracking internal_create_initiative with tasks creates both initiative and task operations."""
+        serialized = {"name": "internal_create_initiative"}
+        inputs = {
+            "temporary_identifier": "TEMP-INIT-456",
+            "title": "Initiative with Tasks",
+            "description": "Initiative Description",
+            "tasks": [
+                {"title": "Task 1", "description": "Task 1 Description"},
+                {"title": "Task 2", "description": "Task 2 Description"},
+                {"title": "Task 3", "description": "Task 3 Description"},
+            ],
+        }
+
+        self.handler.on_tool_start(
+            serialized=serialized, input_str="", run_id=uuid4(), inputs=inputs
+        )
+
+        # Check initiative operation
+        initiative_ops = self.handler.get_initiative_operations()
+        assert len(initiative_ops) == 1
+        assert initiative_ops[0].operation_type == "create"
+        assert initiative_ops[0].initiative_data.temporary_identifier == "TEMP-INIT-456"
+
+        # Check task operations were created
+        task_ops = self.handler.get_task_operations()
+        assert len(task_ops) == 3
+
+        # Verify all tasks have correct initiative_identifier
+        for task_op in task_ops:
+            assert task_op.operation_type == "create"
+            assert isinstance(task_op.task_data, TaskCreateData)
+            assert task_op.task_data.initiative_identifier == "TEMP-INIT-456"
+
+        # Verify task details
+        assert task_ops[0].task_data.title == "Task 1"
+        assert task_ops[0].task_data.description == "Task 1 Description"
+        assert task_ops[1].task_data.title == "Task 2"
+        assert task_ops[1].task_data.description == "Task 2 Description"
+        assert task_ops[2].task_data.title == "Task 3"
+        assert task_ops[2].task_data.description == "Task 3 Description"
 
     def test_track_update_initiative(self):
         """Test tracking internal_update_initiative tool invocation."""
@@ -201,6 +244,7 @@ class TestToolCallbackHandler:
                 "temporary_identifier": "TEMP-INIT-123",
                 "title": "Initiative 1",
                 "description": "Description 1",
+                "tasks": [],
             },
         )
 
@@ -249,6 +293,7 @@ class TestToolCallbackHandler:
                 "temporary_identifier": "TEMP-INIT-123",
                 "title": "Initiative",
                 "description": "Description",
+                "tasks": [],
             },
         )
 
