@@ -625,7 +625,7 @@ class TestSearchTasks:
             mock_quote.assert_called_once_with("authentication")
 
             # Verify correct API call
-            expected_url = "https://api.test.com/task?or(title.fts(authentication),description.fts(authentication),identifier.fts(authentication))&workspace_id=eq.workspace-123"
+            expected_url = "https://api.test.com/task?or(title.plfts(authentication),description.plfts(authentication),identifier.plfts(authentication))&workspace_id=eq.workspace-123"
             mock_get.assert_called_once_with(
                 expected_url,
                 headers={
@@ -668,7 +668,7 @@ class TestSearchTasks:
             mock_quote.assert_called_once_with("oauth 2.0")
 
             # Verify encoded query was used in URL
-            expected_url = "https://api.test.com/task?or(title.fts(oauth%202.0),description.fts(oauth%202.0),identifier.fts(oauth%202.0))&workspace_id=eq.workspace-123"
+            expected_url = "https://api.test.com/task?or(title.plfts(oauth%202.0),description.plfts(oauth%202.0),identifier.plfts(oauth%202.0))&workspace_id=eq.workspace-123"
             assert mock_get.call_args[0][0] == expected_url
 
     @pytest.mark.asyncio
