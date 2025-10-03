@@ -367,7 +367,7 @@ class DiscussTaskPrompt(TaskPrompt):
 
     mode: ChatMode = ChatMode.DISCUSS
     response_model = DiscussResponseModel
-    easy_response_model = DiscussResponseModel
+    easy_response_model = EasyDiscussResponseModel
 
 
 def get_template_full_path(path: str) -> str:

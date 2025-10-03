@@ -302,9 +302,14 @@ async def call_llm_api(
                 e,
             )
 
-        # Get internal CRUD tools
+        # Get internal CRUD tools (only for Edit mode, not Discuss mode)
         add_breadcrumb("Getting internal CRUD tools", category="ai.langchain")
-        internal_tools = get_all_internal_tools()
+        # In Discuss mode, exclude CRUD tools - agent should only provide commentary
+        internal_tools = (
+            []
+            if easy_response_model == EasyDiscussResponseModel
+            else get_all_internal_tools()
+        )
 
         # Create callback handler for tracking tool operations
         add_breadcrumb("Creating tool callback handler", category="ai.langchain")
@@ -526,7 +531,7 @@ async def call_llm_api(
                     **operation_details,
                 },
             )
-        
+
         # Invoke memory manager with timing
         add_breadcrumb("Starting memory manager invoke", category="ai.langchain")
         memory_manager_start = time.time()
