@@ -229,7 +229,7 @@ const FileSuggestionTextInput: React.FC<FileSuggestionTextInputProps> = ({
         // Replace the @searchQuery with the selected suggestion
         const beforeAt = value.substring(0, filepathContext.startPosition);
         const afterCursor = value.substring(filepathContext.endPosition);
-        const newValue = beforeAt + '@' + suggestion + afterCursor;
+        const newValue = beforeAt + suggestion + afterCursor;
 
         onChange(newValue);
         setFilepathContext(null);
@@ -239,7 +239,7 @@ const FileSuggestionTextInput: React.FC<FileSuggestionTextInputProps> = ({
         // Position cursor after the inserted suggestion
         setTimeout(() => {
             if (activeTextAreaRef.current) {
-                const newCursorPos = beforeAt.length + suggestion.length + 1; // +1 for the @ symbol
+                const newCursorPos = beforeAt.length + suggestion.length;
                 activeTextAreaRef.current.setSelectionRange(newCursorPos, newCursorPos);
                 activeTextAreaRef.current.focus();
             }
