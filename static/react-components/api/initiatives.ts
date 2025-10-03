@@ -120,7 +120,8 @@ export async function createInitiative(initiative: Partial<InitiativeDto>): Prom
 
     const requestPayload = {
         title: initiative.title,
-        status: initiative.status || 'BACKLOG',
+        description: initiative.description || '',
+        status: initiative.status || 'TO_DO',
         type: initiative.type || null,
         workspace_id: currentWorkspace.id,
     };
@@ -152,6 +153,7 @@ export async function createInitiative(initiative: Partial<InitiativeDto>): Prom
         });
 
         if (tasksWithInitiativeId && tasksWithInitiativeId.length > 0) {
+            // TODO - creating tasks in parallel will create them out of order
             const receivedTasks = await Promise.all(tasksWithInitiativeId.map(task => createTask(task)));
             return {
                 ...createdInitiative,

@@ -601,6 +601,7 @@ describe('createInitiative', () => {
                 const sentJson = await request.json();
                 expect(sentJson).toMatchObject({
                     title: 'New Initiative',
+                    description: 'this is a test description',
                     status: 'BACKLOG',
                     type: 'FEATURE',
                     workspace_id: 'workspace-123'
@@ -612,7 +613,8 @@ describe('createInitiative', () => {
         const result = await createInitiative({
             title: 'New Initiative',
             status: 'BACKLOG',
-            type: 'FEATURE'
+            type: 'FEATURE',
+            description: 'this is a test description'
         });
 
         expect(result).toMatchObject({
@@ -620,6 +622,41 @@ describe('createInitiative', () => {
             title: 'New Initiative',
             status: 'BACKLOG',
             type: 'FEATURE'
+        });
+    });
+
+    test('creates an initiative with defaults', async () => {
+        const mockResponse = {
+            id: 'new-initiative-123',
+            identifier: 'I-123',
+            title: 'New Initiative',
+            status: 'TO_DO',
+            user_id: 'user-123',
+            workspace_id: 'workspace-123'
+        };
+
+        server.use(
+            http.post('/api/initiatives', async ({ request }) => {
+                const sentJson = await request.json();
+                expect(sentJson).toMatchObject({
+                    title: 'New Initiative',
+                    description: '',
+                    status: 'TO_DO',
+                    type: null,
+                    workspace_id: 'workspace-123'
+                });
+                return HttpResponse.json(mockResponse, { status: 200 });
+            }),
+        );
+
+        const result = await createInitiative({
+            title: 'New Initiative',
+        });
+
+        expect(result).toMatchObject({
+            id: 'new-initiative-123',
+            title: 'New Initiative',
+            status: 'TO_DO',
         });
     });
 });
