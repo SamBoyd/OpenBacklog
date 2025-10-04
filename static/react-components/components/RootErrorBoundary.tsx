@@ -3,6 +3,7 @@ import { AppBackground } from "./AppBackground";
 import NavBar from "./reusable/NavBar";
 import { useNavigate } from "react-router";
 import { ReactNode } from "react";
+import * as Sentry from '@sentry/react';
 
 
 export const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }): ReactNode => {
@@ -57,6 +58,16 @@ const RootErrorBoundary = ({ children }: { children: React.ReactNode }) => {
   return (
     <ErrorBoundary
       FallbackComponent={ErrorFallback}
+      onError={(error, errorInfo) => {
+        // Log error to Sentry
+        Sentry.captureException(error, {
+          contexts: {
+            react: {
+              componentStack: errorInfo.componentStack,
+            },
+          },
+        });
+      }}
       onReset={(details) => {
         // Reset the state of your app so the error doesn't happen again
       }}
