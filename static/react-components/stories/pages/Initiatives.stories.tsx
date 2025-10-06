@@ -3,7 +3,7 @@ import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 // Use require for the addon
 // @ts-ignore
-const { withRouter, reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
+const { reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
 
 import Initiatives from '#pages/Initiatives';
 import NavBar from '#components/reusable/NavBar';
@@ -64,7 +64,7 @@ Object.defineProperty(window, 'localStorage', {
 
 const meta: Meta<typeof Initiatives> = {
     component: Initiatives,
-    decorators: [withRouter],
+    decorators: [],
     parameters: {
         localStorage: localStorageForStorybook({
             'chatDialog_currentContext': [],

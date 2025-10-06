@@ -3,7 +3,7 @@ import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 // Use require for the addon
 // @ts-ignore
-const { withRouter, reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
+const { reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
 
 import Tasks from '#pages/Tasks';
 import NavBar from '#components/reusable/NavBar';
@@ -35,7 +35,7 @@ import {
 
 const meta: Meta<typeof Tasks> = {
     component: Tasks,
-    decorators: [withRouter],
+    decorators: [],
     async beforeEach() {
         useLocation.mockReturnValue(mockLocationReturn);
         useWorkspaces.mockReturnValue(mockWorkspacesReturn);

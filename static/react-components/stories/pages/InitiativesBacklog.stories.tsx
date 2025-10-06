@@ -3,7 +3,7 @@ import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 // Use require for the addon
 // @ts-ignore
-const { withRouter, reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
+const { reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
 
 import { MainContent } from '#pages/Main';
 import InitiativesBacklog from '#pages/InitiativesBacklog';
@@ -42,7 +42,7 @@ import { ResponsiveLayout } from '#components/layout/ResponsiveLayout';
 
 const meta: Meta<typeof InitiativesBacklog> = {
     component: InitiativesBacklog,
-    decorators: [withRouter],
+    decorators: [],
     async beforeEach() {
         useLocation.mockReturnValue(mockLocationReturn);
         useWorkspaces.mockReturnValue(mockWorkspacesReturn);

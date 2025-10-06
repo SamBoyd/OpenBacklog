@@ -5,7 +5,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 
 // Use require for the addon
 // @ts-ignore
-const { withRouter, reactRouterParameters } = require('storybook-addon-remix-react-router');
+const { reactRouterParameters } = require('storybook-addon-remix-react-router');
 
 import { UserAccountStatus } from '#constants/userAccountStatus';
 
@@ -63,7 +63,6 @@ const meta: Meta<typeof BillingUsage> = {
         }),
     },
     decorators: [
-        withRouter,
         (Story) => {
             // Mock the hooks
             useLocation.mockReturnValue(mockLocationReturn);

@@ -3,7 +3,6 @@ import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 // Use require for the addon
 // @ts-ignore
-const { withRouter, reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
 
 import { SuggestionsToBeResolvedContextProvider } from '#contexts/SuggestionsToBeResolvedContext';
 import Initiatives from '#pages/Initiatives';

@@ -1,8 +1,5 @@
 // eslint-disable-next-line n/no-unpublished-import
 import type { Meta, StoryObj } from '@storybook/react';
-// Use require for the addon
-// @ts-ignore
-const { withRouter } = require('storybook-addon-remix-react-router');
 
 import GroupInitiativesDisplay from '#components/GroupInitiativesDisplay';
 import { GroupDto, GroupType, InitiativeStatus } from '#types';
@@ -33,7 +30,6 @@ const initiativesWithGroups = mockInitiatives.map((initiative, index) => ({
 const meta: Meta<typeof GroupInitiativesDisplay> = {
     component: GroupInitiativesDisplay,
     decorators: [
-        withRouter,
         (Story) => (
             <div className="p-4 max-w-4xl mx-auto">
                 <Story />

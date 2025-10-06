@@ -3,7 +3,7 @@ import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 // Use require for the addon
 // @ts-ignore
-const { withRouter, reactRouterParameters } = require('storybook-addon-remix-react-router');
+const { reactRouterParameters } = require('storybook-addon-remix-react-router');
 
 import Onboarding from '#pages/Onboarding';
 import { useBillingUsage, BillingUsageData, UseBillingUsageReturn } from '#hooks/useBillingUsage.mock';
