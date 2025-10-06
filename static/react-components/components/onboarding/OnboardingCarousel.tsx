@@ -8,6 +8,19 @@ import ProjectNameStep from './steps/ProjectNameStep';
 import GitHubInstallStep from './steps/GitHubInstallStep';
 import ClaudeCodeSetupStep from './steps/ClaudeCodeSetupStep';
 import PricingStep from './steps/PricingStep';
+import {
+  trackOnboardingStart,
+  trackProjectNameStepViewed,
+  trackProjectNameStepCompleted,
+  trackGitHubInstallStepViewed,
+  trackGitHubInstallStepCompleted,
+  trackClaudeCodeSetupStepViewed,
+  trackClaudeCodeSetupStepCompleted,
+  trackPricingStepViewed,
+  trackPricingStepCompleted,
+  trackWorkspaceCreated,
+  trackOnboardingComplete,
+} from '#services/tracking/onboarding';
 
 /**
  * A simple carousel component for onboarding flow with step indicators and navigation
@@ -24,6 +37,22 @@ const OnboardingCarousel = () => {
   const { workspaces, addWorkspace } = useWorkspaces();
 
   const totalSteps = 4;
+
+  // Track onboarding start on mount
+  useEffect(() => {
+    trackOnboardingStart();
+  }, []);
+
+  // Track step views when currentStep changes
+  useEffect(() => {
+    const stepViewTrackers = [
+      trackProjectNameStepViewed,
+      trackGitHubInstallStepViewed,
+      trackClaudeCodeSetupStepViewed,
+      trackPricingStepViewed,
+    ];
+    stepViewTrackers[currentStep]();
+  }, [currentStep]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -62,7 +91,10 @@ const OnboardingCarousel = () => {
     try {
       await addWorkspace({ name: projectName.trim(), description: null, icon: null });
       setWorkspaceCreated(true);
-      
+
+      // Track workspace creation
+      trackWorkspaceCreated(projectName.trim());
+
       // Wait a bit to show the success state
       setTimeout(() => {
         setCurrentStep(currentStep + 1);
@@ -75,10 +107,21 @@ const OnboardingCarousel = () => {
   };
 
   const handleNext = async () => {
+    const stepCompletionTrackers = [
+      trackProjectNameStepCompleted,
+      trackGitHubInstallStepCompleted,
+      trackClaudeCodeSetupStepCompleted,
+      trackPricingStepCompleted,
+    ];
+
     // If we're on the project name step (step 0, index 0), create workspace first
     if (currentStep === 0) {
       await handleCreateWorkspace();
+      // Track step completion (workspace creation is tracked separately)
+      stepCompletionTrackers[currentStep]();
     } else if (currentStep < totalSteps - 1) {
+      // Track step completion before moving to next
+      stepCompletionTrackers[currentStep]();
       setCurrentStep(currentStep + 1);
     }
   };
@@ -91,6 +134,10 @@ const OnboardingCarousel = () => {
 
   const handleSetupSubscription = async () => {
     setIsCompletingOnboarding(true);
+
+    // Track onboarding funnel completion
+    trackOnboardingComplete();
+
     navigate('/workspace/billing/subscription/checkout')
   };
 
