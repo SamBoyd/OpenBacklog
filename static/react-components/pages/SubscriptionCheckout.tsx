@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CheckoutProvider } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useNavigate } from 'react-router';
 import SubscriptionCheckout from '#components/billing/SubscriptionCheckout';
 import AppBackground from '#components/AppBackground';
+import {
+  trackSubscriptionCheckoutViewed,
+  trackSubscriptionCheckoutCancelled,
+} from '#services/tracking/onboarding';
 
 // Initialize Stripe with the publishable key
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || '');
@@ -15,6 +19,11 @@ const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY ||
  */
 const SubscriptionCheckoutPage: React.FC = () => {
   const navigate = useNavigate();
+
+  // Track checkout page view on mount
+  useEffect(() => {
+    trackSubscriptionCheckoutViewed();
+  }, []);
 
   /**
    * Handle successful subscription completion
@@ -28,6 +37,9 @@ const SubscriptionCheckoutPage: React.FC = () => {
    * Handle checkout cancellation
    */
   const handleCancel = () => {
+    // Track cancellation
+    trackSubscriptionCheckoutCancelled();
+
     // Navigate back to billing page
     navigate('/workspace/billing');
   };

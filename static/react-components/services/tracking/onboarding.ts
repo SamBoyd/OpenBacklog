@@ -5,13 +5,6 @@
 
 import { trackEvent, setUserProperties } from '#services/analytics';
 
-// Step name constants for consistency
-export const ONBOARDING_STEPS = {
-  PROJECT_NAME: 'Project Name',
-  GITHUB_INSTALL: 'GitHub Install',
-  CLAUDE_CODE_SETUP: 'Claude Code Setup',
-  PRICING: 'Pricing',
-} as const;
 
 /**
  * Track when user enters the onboarding funnel
@@ -158,5 +151,84 @@ export const trackOnboardingComplete = (): void => {
   setUserProperties({
     onboarding_completed_at: new Date().toISOString(),
     onboarding_current_step: 4, // Final step
+  });
+};
+
+/**
+ * Track when user views the subscription checkout page
+ */
+export const trackSubscriptionCheckoutViewed = (): void => {
+  trackEvent('Subscription Checkout Viewed', {
+    timestamp: new Date().toISOString(),
+  });
+
+  setUserProperties({
+    subscription_checkout_viewed_at: new Date().toISOString(),
+  });
+};
+
+/**
+ * Track when user selects a payment method (express vs manual)
+ */
+export const trackSubscriptionPaymentMethodSelected = (method: 'express' | 'manual'): void => {
+  trackEvent('Subscription Checkout Payment Method Selected', {
+    payment_method: method,
+    timestamp: new Date().toISOString(),
+  });
+
+  setUserProperties({
+    subscription_payment_method: method,
+  });
+};
+
+/**
+ * Track when user submits the checkout form
+ */
+export const trackSubscriptionCheckoutFormSubmitted = (method: 'express' | 'manual'): void => {
+  trackEvent('Subscription Checkout Form Submitted', {
+    payment_method: method,
+    timestamp: new Date().toISOString(),
+  });
+
+  setUserProperties({
+    subscription_form_submitted_at: new Date().toISOString(),
+  });
+};
+
+/**
+ * Track when user cancels the checkout process
+ */
+export const trackSubscriptionCheckoutCancelled = (): void => {
+  trackEvent('Subscription Checkout Cancelled', {
+    timestamp: new Date().toISOString(),
+  });
+};
+
+/**
+ * Track successful subscription setup
+ */
+export const trackSubscriptionSetupSuccess = (): void => {
+  trackEvent('Subscription Setup Success', {
+    timestamp: new Date().toISOString(),
+  });
+
+  setUserProperties({
+    subscription_completed_at: new Date().toISOString(),
+    subscription_status: 'active',
+  });
+};
+
+/**
+ * Track failed subscription setup
+ */
+export const trackSubscriptionSetupFailed = (errorMessage?: string): void => {
+  trackEvent('Subscription Setup Failed', {
+    error_message: errorMessage,
+    timestamp: new Date().toISOString(),
+  });
+
+  setUserProperties({
+    subscription_status: 'failed',
+    subscription_last_error: errorMessage,
   });
 };

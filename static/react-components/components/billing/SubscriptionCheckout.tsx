@@ -3,6 +3,10 @@ import { AddressElement, ExpressCheckoutElement, PaymentElement } from '@stripe/
 import { PrimaryButton, SecondaryButton } from '#components/reusable/Button';
 import { useSubscriptionPayment } from '#hooks/billing/useSubscriptionPayment';
 import { usePaymentForm } from '#hooks/billing/usePaymentForm';
+import {
+  trackSubscriptionPaymentMethodSelected,
+  trackSubscriptionCheckoutFormSubmitted,
+} from '#services/tracking/onboarding';
 
 /**
  * Props for the SubscriptionCheckout component
@@ -70,6 +74,9 @@ const SubscriptionCheckout: React.FC<SubscriptionCheckoutProps> = ({
       return;
     }
 
+    // Track form submission with express payment method
+    trackSubscriptionCheckoutFormSubmitted('express');
+
     try {
       // Process express payment using the payment hook
       await handleExpressCheckout(event);
@@ -84,6 +91,19 @@ const SubscriptionCheckout: React.FC<SubscriptionCheckoutProps> = ({
    */
   const handleShowManualForm = () => {
     setShowManualForm(true);
+    // Track payment method selection when user chooses manual form
+    trackSubscriptionPaymentMethodSelected('manual');
+  };
+
+  /**
+   * Handle manual form submission
+   */
+  const handleManualFormSubmit = async (event: any) => {
+    // Track form submission with manual payment method
+    trackSubscriptionCheckoutFormSubmitted('manual');
+
+    // Call the original submit handler
+    await handleSubmit(event);
   };
 
   // Form validity is handled by the usePaymentForm hook
@@ -218,7 +238,7 @@ const SubscriptionCheckout: React.FC<SubscriptionCheckoutProps> = ({
           </div>
 
           {/* Payment Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleManualFormSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Card Information
@@ -260,7 +280,7 @@ const SubscriptionCheckout: React.FC<SubscriptionCheckoutProps> = ({
             {/* Submit Button */}
             <div className="pt-4">
               <PrimaryButton
-                onClick={handleSubmit}
+                onClick={handleManualFormSubmit}
                 disabled={!isFormValid || isProcessing}
                 className="w-full"
               >

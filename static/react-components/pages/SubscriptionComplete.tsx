@@ -4,6 +4,10 @@ import { PrimaryButton, SecondaryButton } from '#components/reusable/Button';
 import AppBackground from '#components/AppBackground';
 import useSubscriptionComplete from '#hooks/useSubscriptionComplete';
 import { useBillingUsage } from '#hooks/useBillingUsage';
+import {
+  trackSubscriptionSetupSuccess,
+  trackSubscriptionSetupFailed,
+} from '#services/tracking/onboarding';
 
 /**
  * SubscriptionComplete page component
@@ -12,8 +16,19 @@ import { useBillingUsage } from '#hooks/useBillingUsage';
  */
 const SubscriptionCompletePage: React.FC = () => {
   const navigate = useNavigate();
-  const { invalidateUserAccountDetails } = useBillingUsage(); 
+  const { invalidateUserAccountDetails } = useBillingUsage();
   const { isLoading, hasError, errorMessage, onboardingComplete } = useSubscriptionComplete();
+
+  // Track success or failure when loading completes
+  useEffect(() => {
+    if (!isLoading) {
+      if (hasError) {
+        trackSubscriptionSetupFailed(errorMessage || undefined);
+      } else if (onboardingComplete) {
+        trackSubscriptionSetupSuccess();
+      }
+    }
+  }, [isLoading, hasError, errorMessage, onboardingComplete]);
 
   // Auto-redirect only on success
   useEffect(() => {
