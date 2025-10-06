@@ -24,7 +24,7 @@ import {
 
 const meta: Meta<typeof Dashboard> = {
     component: Dashboard,
-    decorators: [witRouter],
+    decorators: [],
     async beforeEach() {
         useLocation.mockReturnValue(mockLocationReturn);
         useWorkspaces.mockReturnValue(mockWorkspacesReturn);
