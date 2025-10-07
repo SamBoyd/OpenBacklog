@@ -1,9 +1,11 @@
 """
 Quick validation test to ensure prompt templates render correctly.
 """
+
 import os
+
 from src.ai.prompt import InitiativePrompt, TaskPrompt
-from src.models import PydanticInitiative, PydanticTask, Initiative
+from src.models import Initiative, PydanticInitiative, PydanticTask
 
 
 def test_initiative_edit_template_renders():
@@ -42,6 +44,7 @@ def test_task_edit_template_renders():
 
     # Create a mock initiative for context
     from unittest.mock import Mock
+
     initiative = Mock(spec=Initiative)
     initiative.identifier = "TEST-INIT"
     initiative.title = "Test Initiative"

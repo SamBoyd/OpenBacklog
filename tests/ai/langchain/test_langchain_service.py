@@ -2,9 +2,11 @@
 Unit tests for langchain_service MCP tool filtering functionality.
 """
 
-import pytest
 from unittest.mock import Mock
-from src.ai.langchain.langchain_service import filter_mcp_tools, ALLOWED_MCP_TOOLS
+
+import pytest
+
+from src.ai.langchain.langchain_service import ALLOWED_MCP_TOOLS, filter_mcp_tools
 
 
 class TestMCPToolFiltering:

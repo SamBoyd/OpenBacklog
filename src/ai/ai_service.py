@@ -5,14 +5,6 @@ from typing import Any, Dict, List, Optional, Union
 
 import sentry_sdk
 from openai import AuthenticationError
-
-from src.monitoring.sentry_helpers import (
-    add_breadcrumb,
-    capture_ai_exception,
-    sentry_operation_tracking,
-    set_user_context,
-    track_ai_metrics,
-)
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import and_, select
 
@@ -52,6 +44,13 @@ from src.models import (
     PydanticTask,
     User,
     UserKey,
+)
+from src.monitoring.sentry_helpers import (
+    add_breadcrumb,
+    capture_ai_exception,
+    sentry_operation_tracking,
+    set_user_context,
+    track_ai_metrics,
 )
 
 logger = logging.getLogger(__name__)

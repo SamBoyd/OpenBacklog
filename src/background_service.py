@@ -11,13 +11,6 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload  # Added selectinload
 
 from src.accounting.billing_service import BillingService
-from src.monitoring.sentry_helpers import (
-    add_breadcrumb,
-    capture_ai_exception,
-    set_job_context,
-    set_user_context,
-    track_ai_metrics,
-)
 from src.accounting.models import UserAccountDetails, UserAccountStatus
 from src.ai.ai_service import (
     AIImprovementError,
@@ -37,6 +30,13 @@ from src.models import (
     Lens,
     Task,
     User,
+)
+from src.monitoring.sentry_helpers import (
+    add_breadcrumb,
+    capture_ai_exception,
+    set_job_context,
+    set_user_context,
+    track_ai_metrics,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,8 +67,10 @@ def _update_entity_processing_status(
             .values(has_pending_job=status)
         )
 
+
 class AiJobFailureError(Exception):
     """Exception raised when a job fails."""
+
     pass
 
 

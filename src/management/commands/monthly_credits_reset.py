@@ -2,6 +2,8 @@ import asyncio
 import logging
 import time
 from typing import Optional
+
+from src.db import get_db
 from src.monitoring.sentry_helpers import (
     add_breadcrumb,
     capture_ai_exception,
@@ -9,7 +11,6 @@ from src.monitoring.sentry_helpers import (
     set_user_context,
     track_ai_metrics,
 )
-from src.db import get_db
 
 logger = logging.getLogger(__name__)
 worker_logger = logger

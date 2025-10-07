@@ -431,7 +431,9 @@ def test_get_github_installation_status_success(mock_controller_func, test_clien
 
 
 @patch("src.github_app.controller.get_installation_status")
-def test_get_github_installation_status_no_installation(mock_controller_func, test_client):
+def test_get_github_installation_status_no_installation(
+    mock_controller_func, test_client
+):
     """Test API endpoint when user has no GitHub installation"""
     # Mock response with no installation
     mock_response = {
@@ -452,7 +454,9 @@ def test_get_github_installation_status_no_installation(mock_controller_func, te
 
 
 @patch("src.github_app.controller.get_installation_status")
-def test_get_github_installation_status_internal_error(mock_controller_func, test_client):
+def test_get_github_installation_status_internal_error(
+    mock_controller_func, test_client
+):
     """Test API endpoint handling unexpected exceptions"""
     # Mock unexpected exception
     mock_controller_func.side_effect = ValueError("Unexpected database error")

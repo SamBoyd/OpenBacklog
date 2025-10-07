@@ -170,7 +170,9 @@ def add_breadcrumb(
         data: Additional data to include
     """
     try:
-        logger.info(f"Adding breadcrumb: {message} with category: {category} and level: {level} and data: {data}")
+        logger.info(
+            f"Adding breadcrumb: {message} with category: {category} and level: {level} and data: {data}"
+        )
 
         sentry_sdk.add_breadcrumb(
             message=message,

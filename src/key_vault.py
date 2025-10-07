@@ -14,8 +14,8 @@ from src.config import settings
 from src.monitoring.sentry_helpers import (
     add_breadcrumb,
     capture_ai_exception,
-    track_ai_metrics,
     set_operation_context,
+    track_ai_metrics,
 )
 
 # For now, using hardcoded key (will be replaced with proper key management later)
