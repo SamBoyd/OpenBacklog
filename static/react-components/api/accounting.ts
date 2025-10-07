@@ -194,14 +194,6 @@ const SubscriptionOnboardingResponseSchema = z.object({
     onboardingCompleted: z.boolean()
 });
 
-/**
- * Schema for immediate cancellation result
- */
-const ImmediateCancellationResultSchema = z.object({
-    success: z.boolean(),
-    message: z.string(),
-    refundAmountCents: z.number()
-});
 
 /**
  * Type definitions for transaction data
@@ -223,7 +215,6 @@ export type OpenMeterQueryDataPoint = z.infer<typeof OpenMeterQueryDataPointSche
 export type OpenMeterQueryResponse = z.infer<typeof OpenMeterQueryResponseSchema>;
 export type SessionStatusResponse = z.infer<typeof SessionStatusResponseSchema>;
 export type SubscriptionOnboardingResponse = z.infer<typeof SubscriptionOnboardingResponseSchema>;
-export type ImmediateCancellationResult = z.infer<typeof ImmediateCancellationResultSchema>;
 
 /**
  * Error class for accounting API related errors
@@ -714,54 +705,6 @@ export const checkSessionStatus = async (sessionId: string): Promise<SessionStat
                 throw error;
             }
             throw new Error(`Error checking session status: ${(error as Error).message}`);
-        }
-    });
-};
-
-
-/**
- * Cancel subscription immediately with full refund
- * 
- * @returns {Promise<ImmediateCancellationResult>} The cancellation result with refund information
- * @throws {AccountingApiError} On API errors
- * @throws {Error} On validation or other errors
- */
-export const cancelSubscriptionImmediately = async (): Promise<ImmediateCancellationResult> => {
-    return withApiCall(async () => {
-        try {
-            const response = await fetch('/api/accounting/cancel-subscription-immediately', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                let errorDetail;
-                try {
-                    const errorData = JSON.parse(errorText);
-                    errorDetail = errorData.detail || errorText;
-                } catch {
-                    errorDetail = errorText;
-                }
-                throw new AccountingApiError(
-                    errorDetail,
-                    response.status
-                );
-            }
-
-            const data = await response.json();
-            const validatedData = ImmediateCancellationResultSchema.parse(data);
-            return validatedData;
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                throw new Error(`Invalid cancellation response format: ${error.message}`);
-            }
-            if (error instanceof AccountingApiError) {
-                throw error;
-            }
-            throw new Error(`Error canceling subscription: ${(error as Error).message}`);
         }
     });
 };

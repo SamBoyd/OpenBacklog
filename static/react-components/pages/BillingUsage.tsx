@@ -4,6 +4,7 @@ import {
     NewUserBillingView,
     BalanceHeader,
     SubscriptionDetails,
+    CancelledSubscriptionDetails,
     TransactionHistory,
     PaymentErrorDialog,
     PaymentPendingDialog,
@@ -11,10 +12,8 @@ import {
     RefundSection
 } from '../components/billing';
 import SubscriptionRequiredView from '#components/billing/SubscriptionRequiredView';
-import PendingCancellationWarning from '#components/billing/PendingCancellationWarning';
 import { UserAccountStatus } from '#constants/userAccountStatus';
 import { useIsDeviceMobile } from '#hooks/isDeviceMobile';
-import { cancelSubscriptionImmediately } from '#api/accounting';
 import AppBackground from '#components/AppBackground';
 import NavBar from '#components/reusable/NavBar';
 
@@ -49,33 +48,6 @@ const BillingUsage: React.FC = () => {
     } = useBillingUsage();
 
     const isMobile = useIsDeviceMobile();
-    const [isCancellingImmediately, setIsCancellingImmediately] = useState(false);
-
-    /**
-     * Handle immediate subscription cancellation with refund
-     */
-    const handleCancelImmediately = async () => {
-        try {
-            setIsCancellingImmediately(true);
-
-            const result = await cancelSubscriptionImmediately();
-
-            if (result.success) {
-                // Show success message and reload billing data
-                console.log('Subscription canceled successfully:', result.message);
-                // Reload the page to get updated account details
-                window.location.reload();
-            } else {
-                console.error('Failed to cancel subscription:', result.message);
-                // Could show an error dialog here
-            }
-        } catch (error) {
-            console.error('Error canceling subscription:', error);
-            // Could show an error dialog here
-        } finally {
-            setIsCancellingImmediately(false);
-        }
-    };
 
 
     // Show loading state
@@ -165,23 +137,25 @@ const BillingUsage: React.FC = () => {
                 <div className="flex-1 flex items-start justify-center overflow-y-auto">
                     <div className="min-h-screen py-10 text-foreground max-w-4xl w-full px-6">
                         <div className="flex flex-col gap-6">
-                            {/* Pending Cancellation Warning - Show at top */}
-                            {userAccountDetails?.subscriptionCancelAt && (
-                                <PendingCancellationWarning
+                            {/* Subscription Details - Show cancelled version if subscription is scheduled for cancellation */}
+                            {userAccountDetails?.subscriptionCancelAt ? (
+                                <CancelledSubscriptionDetails
+                                    subscriptionStatus={subscriptionStatus}
+                                    monthlyCreditsTotal={monthlyCreditsTotal}
+                                    monthlyCreditsUsed={monthlyCreditsUsed}
                                     userAccountDetails={userAccountDetails}
-                                    onCancelImmediately={handleCancelImmediately}
-                                    isProcessing={isCancellingImmediately}
+                                    handleOpenCustomerPortal={handleOpenCustomerPortal}
+                                    formatCurrency={formatCurrency}
+                                />
+                            ) : (
+                                <SubscriptionDetails
+                                    subscriptionStatus={subscriptionStatus}
+                                    monthlyCreditsTotal={monthlyCreditsTotal}
+                                    monthlyCreditsUsed={monthlyCreditsUsed}
+                                    handleOpenCustomerPortal={handleOpenCustomerPortal}
+                                    formatCurrency={formatCurrency}
                                 />
                             )}
-
-                            {/* Subscription Details - Primary priority */}
-                            <SubscriptionDetails
-                                subscriptionStatus={subscriptionStatus}
-                                monthlyCreditsTotal={monthlyCreditsTotal}
-                                monthlyCreditsUsed={monthlyCreditsUsed}
-                                handleOpenCustomerPortal={handleOpenCustomerPortal}
-                                formatCurrency={formatCurrency}
-                            />
 
                             {/* Usage Balance - Show only when relevant */}
                             {shouldShowBalanceHeader && (
