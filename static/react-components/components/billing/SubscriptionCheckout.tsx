@@ -176,11 +176,11 @@ const SubscriptionCheckout: React.FC<SubscriptionCheckoutProps> = ({
           />
           <label htmlFor="express-terms" className="text-sm text-muted-foreground">
             I agree to the{' '}
-            <a href="www.openbacklog.ai/terms" target="_blank" className="text-primary hover:underline">
+            <a href="https://www.openbacklog.ai/terms" target="_blank" className="text-primary hover:underline">
               Terms of Service
             </a>{' '}
             and{' '}
-            <a href="www.openbacklog.ai/privacy" target="_blank" className="text-primary hover:underline">
+            <a href="https://www.openbacklog.ai/privacy" target="_blank" className="text-primary hover:underline">
               Privacy Policy
             </a>
           </label>
@@ -267,11 +267,11 @@ const SubscriptionCheckout: React.FC<SubscriptionCheckoutProps> = ({
               />
               <label htmlFor="terms" className="text-sm text-muted-foreground">
                 I agree to the{' '}
-                <a href="www.openbacklog.ai/terms" target="_blank" className="text-primary hover:underline">
+                <a href="https://www.openbacklog.ai/terms" target="_blank" className="text-primary hover:underline">
                   Terms of Service
                 </a>{' '}
                 and{' '}
-                <a href="www.openbacklog.ai/privacy" target="_blank" className="text-primary hover:underline">
+                <a href="https://www.openbacklog.ai/privacy" target="_blank" className="text-primary hover:underline">
                   Privacy Policy
                 </a>
               </label>
