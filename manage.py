@@ -23,6 +23,9 @@ from src.management.commands.monthly_credits_reset import (
 from src.management.commands.subscription_cancellation import (
     execute as subscription_cancellation_execute,
 )
+from src.management.commands.cancel_subscription_with_refund import (
+    execute as cancel_subscription_with_refund_execute,
+)
 from src.litellm_service import (
     regenerate_litellm_master_key as regenerate_litellm_master_key_command,
     retrieve_litellm_key_for_user,
@@ -46,6 +49,7 @@ def initialize_sentry():
             dsn=settings.sentry_url,
             send_default_pii=True,
         )
+
 
 @asyncclick.group()
 def cli():
@@ -456,6 +460,14 @@ async def reset_monthly_credits(dry_run, limit, user_id):
         logger.error(f"Error processing monthly credit resets: {e}")
     finally:
         session.close()
+
+
+@cli.command()
+@asyncclick.option("--user-id", help="User ID to cancel subscription for.")
+@asyncclick.option("--email", help="Email of the user to cancel subscription for.")
+async def cancel_subscription_with_refund(user_id: str = None, email: str = None):
+    """Cancel a user's subscription and refund their last invoice."""
+    await cancel_subscription_with_refund_execute(email=email, user_id=user_id)
 
 
 @cli.command()
