@@ -471,7 +471,9 @@ def handle_subscription_created_with_setup(event: Dict[str, Any], db: Session) -
             # Set up billing cycle - starts 1 month from now
             next_billing_cycle = datetime.now() + relativedelta(months=1)
             user_account_details.next_billing_cycle_starts = next_billing_cycle
-            user_account_details.monthly_credits_total = 500  # $5 worth of credits
+            user_account_details.monthly_credits_total = (
+                settings.monthly_subscription_cost_cents
+            )
             user_account_details.monthly_credits_used = 0
 
             db.add(user_account_details)

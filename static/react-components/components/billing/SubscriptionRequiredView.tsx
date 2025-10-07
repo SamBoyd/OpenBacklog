@@ -59,7 +59,7 @@ const SubscriptionRequiredView: React.FC<{
                         {getDescription()}
                     </p>
                     <div className="bg-muted rounded-lg p-4 mb-4">
-                        <span className="block text-lg font-semibold mb-1">Monthly Subscription - £5/month</span>
+                        <span className="block text-lg font-semibold mb-1">Monthly Subscription - $7/month</span>
                         <span className="text-sm text-muted-foreground">
                             Includes AI credits, full platform access, and premium features
                         </span>
@@ -84,7 +84,7 @@ const SubscriptionRequiredView: React.FC<{
                     <ul className="space-y-3">
                         <li className="flex items-center gap-3">
                             <MdCheckCircle className="text-success" />
-                            <span>£5 worth of AI credits included every month</span>
+                            <span>$7 worth of AI credits included every month</span>
                         </li>
                         <li className="flex items-center gap-3">
                             <MdCheckCircle className="text-success" />
@@ -107,7 +107,7 @@ const SubscriptionRequiredView: React.FC<{
                         <MdInfo className="text-blue-500" /> How It Works
                     </h3>
                     <ul className="list-disc pl-5 text-sm space-y-2">
-                        <li>£5/month subscription includes platform access and AI credits</li>
+                        <li>$7/month subscription includes platform access and AI credits</li>
                         <li>When monthly credits are used up, additional usage comes from your balance</li>
                         <li>Top up your balance anytime for extra AI usage</li>
                         <li>Cancel your subscription anytime - unused credits remain available</li>

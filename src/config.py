@@ -120,6 +120,7 @@ class Settings(BaseSettings):
     stripe_secret_key: str
     stripe_webhook_secret: str
     stripe_price_id: str
+    monthly_subscription_cost_cents: int = Field(default=700)
 
     # Support page settings
     support_email_address: str = Field(default="support@openbacklog.ai")

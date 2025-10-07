@@ -48,7 +48,7 @@ const SubscriptionDetails: React.FC<{
                                     Active Subscription
                                 </h3>
                                 <p className="text-sm text-muted-foreground">
-                                    £5/month - Includes AI credits + platform access
+                                    $7/month - Includes AI credits + platform access
                                 </p>
                             </div>
                         </div>

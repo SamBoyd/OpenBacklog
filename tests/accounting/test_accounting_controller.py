@@ -630,7 +630,7 @@ class TestHandleSubscriptionCreatedWithSetup:
         # Verify user account details were updated
         session.refresh(user.account_details)
         assert user.account_details.stripe_customer_id == "cus_test123"
-        assert user.account_details.monthly_credits_total == 500
+        assert user.account_details.monthly_credits_total == 700
         assert user.account_details.monthly_credits_used == 0
         assert user.account_details.next_billing_cycle_starts is not None
         assert (

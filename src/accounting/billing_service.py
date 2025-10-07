@@ -23,9 +23,6 @@ class BillingServiceException(Exception):
     pass
 
 
-MONTHLY_SUBSCRIPTION_COST = 500
-
-
 class BillingService:
     """
     Event-driven service for managing user billing accounts and financial transactions.

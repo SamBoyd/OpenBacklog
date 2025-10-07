@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Any, Dict, Type
 
 from src.accounting.models import UserAccountStatus
+from src.config import settings
 
 
 @dataclass(frozen=True)
@@ -236,7 +237,7 @@ class SubscriptionSignupEvent(BillingEvent):
     """
 
     external_id: str
-    monthly_credits_cents: float = 500  # Default $5 worth of credits
+    monthly_credits_cents: float = settings.monthly_subscription_cost_cents
 
     def event_type(self) -> str:
         return "SUBSCRIPTION_SIGNUP"

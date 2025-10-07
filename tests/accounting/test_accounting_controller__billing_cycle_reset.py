@@ -357,7 +357,7 @@ class TestProcessBillingCycleReset:
         # Setup user with known initial values
         initial_status = UserAccountStatus.ACTIVE_SUBSCRIPTION
         initial_credits_used = 100
-        initial_credits_total = 500
+        initial_credits_total = 700
         original_cycle_date = datetime.now() - timedelta(days=1)
 
         user.account_details.status = initial_status
@@ -433,7 +433,7 @@ class TestIntegrationBillingCycleReset:
 
         user_account_details: UserAccountDetails = user.account_details
         user_account_details.onboarding_completed = True
-        user_account_details.monthly_credits_total = 500
+        user_account_details.monthly_credits_total = 700
         user_account_details.monthly_credits_used = 0
         user_account_details.next_billing_cycle_starts = datetime.now() + timedelta(
             days=30
@@ -451,7 +451,7 @@ class TestIntegrationBillingCycleReset:
             user.account_details.status, equal_to(UserAccountStatus.ACTIVE_SUBSCRIPTION)
         )
         assert_that(user.account_details.next_billing_cycle_starts, is_not(None))
-        assert_that(user.account_details.monthly_credits_total, equal_to(500))
+        assert_that(user.account_details.monthly_credits_total, equal_to(700))
         assert_that(user.account_details.monthly_credits_used, equal_to(0))
 
         # No users due for credit reset
@@ -487,7 +487,7 @@ class TestIntegrationBillingCycleReset:
             greater_than(now + timedelta(days=30)),
         )
         assert_that(user.account_details.monthly_credits_used, equal_to(0))
-        assert_that(user.account_details.monthly_credits_total, equal_to(500))
+        assert_that(user.account_details.monthly_credits_total, equal_to(700))
         assert_that(
             user.account_details.status, equal_to(UserAccountStatus.ACTIVE_SUBSCRIPTION)
         )
@@ -512,7 +512,7 @@ class TestIntegrationBillingCycleReset:
 
         user_account_details: UserAccountDetails = user.account_details
         user_account_details.onboarding_completed = True
-        user_account_details.monthly_credits_total = 500
+        user_account_details.monthly_credits_total = 700
         user_account_details.monthly_credits_used = 0
         user_account_details.next_billing_cycle_starts = datetime.now() + timedelta(
             days=30
@@ -530,7 +530,7 @@ class TestIntegrationBillingCycleReset:
             user.account_details.status, equal_to(UserAccountStatus.ACTIVE_SUBSCRIPTION)
         )
         assert_that(user.account_details.next_billing_cycle_starts, is_not(None))
-        assert_that(user.account_details.monthly_credits_total, equal_to(500))
+        assert_that(user.account_details.monthly_credits_total, equal_to(700))
         assert_that(user.account_details.monthly_credits_used, equal_to(0))
 
         # No users due for credit reset
@@ -538,9 +538,9 @@ class TestIntegrationBillingCycleReset:
         assert_that(len(users_to_reset), equal_to(0))
 
         # Record usage
-        billing_service.record_usage(user, 500, "usage_id")
+        billing_service.record_usage(user, 700, "usage_id")
 
-        assert_that(user.account_details.monthly_credits_used, equal_to(500))
+        assert_that(user.account_details.monthly_credits_used, equal_to(700))
         assert_that(user.account_details.status, equal_to(UserAccountStatus.SUSPENDED))
 
         # Billing cycle starts
@@ -568,7 +568,7 @@ class TestIntegrationBillingCycleReset:
             greater_than(now + timedelta(days=30)),
         )
         assert_that(user.account_details.monthly_credits_used, equal_to(0))
-        assert_that(user.account_details.monthly_credits_total, equal_to(500))
+        assert_that(user.account_details.monthly_credits_total, equal_to(700))
         assert_that(
             user.account_details.status, equal_to(UserAccountStatus.ACTIVE_SUBSCRIPTION)
         )

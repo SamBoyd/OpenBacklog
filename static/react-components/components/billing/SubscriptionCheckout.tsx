@@ -119,7 +119,7 @@ const SubscriptionCheckout: React.FC<SubscriptionCheckoutProps> = ({
       <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
         <div className="flex justify-between items-center mb-3">
           <span className="font-semibold text-foreground">Monthly Plan</span>
-          <span className="text-2xl font-bold text-primary">£5/month</span>
+          <span className="text-2xl font-bold text-primary">$7/month</span>
         </div>
         <ul className="space-y-2 text-sm text-muted-foreground">
           <li className="flex items-center gap-2">
