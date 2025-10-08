@@ -8,6 +8,7 @@ extraction-error
 __pycache__/
 .coverage
 *.env*
+!.env.test
 !.env.example
 
 # FastAPI
