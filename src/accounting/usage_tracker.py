@@ -292,31 +292,31 @@ class UsageTracker:
             # required – the value returned from ``get_current_usage_cost`` *is* the
             # incremental cost we need to record.
 
-            incremental_cost_cents: float = current_total_cost
+            formatted_amount = self._round_cost_to_precision(current_total_cost)
 
-            if incremental_cost_cents <= 0:
+            if formatted_amount <= 0:
                 logger.debug(f"No new usage for user {user_id}")
                 add_breadcrumb(
                     f"No new usage for user {user_id}",
                     category="usage_tracker.user_processing",
                     data={
                         "user_id": user_id,
-                        "incremental_cost_cents": incremental_cost_cents,
+                        "incremental_cost_cents": formatted_amount,
                     },
                 )
                 track_ai_metrics("usage_tracker.user_processing.no_usage", 1)
                 return False
 
             logger.info(
-                f"Processing usage for user {user_id}: {incremental_cost_cents} cents"
+                f"Processing usage for user {user_id}: {formatted_amount} cents"
             )
 
             add_breadcrumb(
-                f"Processing {incremental_cost_cents} cents usage for user {user_id}",
+                f"Processing {formatted_amount} cents usage for user {user_id}",
                 category="usage_tracker.user_processing",
                 data={
                     "user_id": user_id,
-                    "incremental_cost_cents": incremental_cost_cents,
+                    "incremental_cost_cents": formatted_amount,
                 },
             )
 
@@ -340,7 +340,6 @@ class UsageTracker:
                 billing_service = BillingService(session)
                 # Use a composite external id to avoid collisions if we ever query
                 # additional meters in the future.
-                formatted_amount = self._round_cost_to_precision(incremental_cost_cents)
                 external_id = f"cost_total:{formatted_amount}"
 
                 add_breadcrumb(
@@ -348,7 +347,7 @@ class UsageTracker:
                     category="usage_tracker.billing",
                     data={
                         "user_id": user_id,
-                        "amount_cents": incremental_cost_cents,
+                        "amount_cents": formatted_amount,
                         "external_id": external_id,
                         "initial_status": (
                             initial_status.value if initial_status else "unknown"
@@ -359,7 +358,7 @@ class UsageTracker:
                 # Record usage through billing service (handles state transitions automatically)
                 updated_account: UserAccountDetails = billing_service.record_usage(
                     user=user,
-                    amount_cents=incremental_cost_cents,
+                    amount_cents=formatted_amount,
                     external_id=external_id,
                 )
 
@@ -367,7 +366,7 @@ class UsageTracker:
                 # have a running tally available for analytics/debugging purposes.
                 updated_account.last_total_cost = (
                     user_account_details.last_total_cost or 0
-                ) + incremental_cost_cents
+                ) + formatted_amount
                 updated_account.last_usage_query_time = query_end_time
 
                 session.merge(updated_account)
@@ -395,7 +394,7 @@ class UsageTracker:
                                 else "unknown"
                             ),
                             "balance_cents": updated_account.balance_cents,
-                            "incremental_cost_cents": incremental_cost_cents,
+                            "incremental_cost_cents": formatted_amount,
                         },
                     )
 
@@ -449,7 +448,7 @@ class UsageTracker:
                 )
                 track_ai_metrics(
                     "usage_tracker.user_processing.cost_processed_cents",
-                    incremental_cost_cents,
+                    formatted_amount,
                 )
 
                 return state_changed
@@ -466,7 +465,7 @@ class UsageTracker:
                         "user_id": user_id,
                         "error": str(e),
                         "error_type": type(e).__name__,
-                        "incremental_cost_cents": incremental_cost_cents,
+                        "incremental_cost_cents": formatted_amount,
                     },
                 )
 
@@ -475,7 +474,7 @@ class UsageTracker:
                     operation_type="usage_tracker_user_processing_db",
                     extra_context={
                         "user_id": user_id,
-                        "incremental_cost_cents": incremental_cost_cents,
+                        "incremental_cost_cents": formatted_amount,
                         "operation": "database_transaction",
                     },
                 )

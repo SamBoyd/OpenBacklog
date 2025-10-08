@@ -322,7 +322,7 @@ class TestUsageRecording:
         topup_events = fsm_active_subscription.topup_usage_balance(100, "test_topup")
         fsm_active_subscription.apply_events(topup_events)
 
-        events = fsm_active_subscription.record_usage(300, "test_usage")
+        events = fsm_active_subscription.record_usage(300.5, "test_usage")
 
         # State should remain ACTIVE_SUBSCRIPTION
         fsm_active_subscription.apply_events(events)
@@ -330,7 +330,7 @@ class TestUsageRecording:
             fsm_active_subscription.state,
             equal_to(UserAccountStatus.ACTIVE_SUBSCRIPTION),
         )
-        assert_that(fsm_active_subscription.monthly_credits_used, equal_to(300))
+        assert_that(fsm_active_subscription.monthly_credits_used, equal_to(300.5))
         assert_that(fsm_active_subscription.usage_balance, equal_to(100))  # Unchanged
 
     def test_record_usage_active_subscription_exceeds_monthly_credits(
@@ -341,16 +341,16 @@ class TestUsageRecording:
         topup_events = fsm_active_subscription.topup_usage_balance(700, "test_topup")
         fsm_active_subscription.apply_events(topup_events)
 
-        usage_events = fsm_active_subscription.record_usage(500, "test_usage")
+        usage_events = fsm_active_subscription.record_usage(500.25, "test_usage")
         fsm_active_subscription.apply_events(usage_events)
         assert_that(
             fsm_active_subscription.state,
             equal_to(UserAccountStatus.ACTIVE_SUBSCRIPTION),
         )
-        assert_that(fsm_active_subscription.monthly_credits_used, equal_to(500))
+        assert_that(fsm_active_subscription.monthly_credits_used, equal_to(500.25))
         assert_that(fsm_active_subscription.usage_balance, equal_to(700))
 
-        events = fsm_active_subscription.record_usage(400, "test_usage")
+        events = fsm_active_subscription.record_usage(400.5, "test_usage")
         fsm_active_subscription.apply_events(events)
 
         # Should transition to METERED_BILLING (has positive balance)
@@ -359,10 +359,10 @@ class TestUsageRecording:
         )
         assert_that(
             fsm_active_subscription.monthly_credits_used, equal_to(700)
-        )  # Used all credits
+        )  # Used all credits (500.25 + 199.75 from remaining credits)
         assert_that(
-            fsm_active_subscription.usage_balance, equal_to(500)
-        )  # 700 - 200 overflow
+            fsm_active_subscription.usage_balance, equal_to(499.25)
+        )  # 700 - 200.75 overflow
 
     def test_record_usage_active_subscription_no_remaining_credits(
         self, fsm_active_subscription: BillingStateMachine
@@ -428,25 +428,25 @@ class TestUsageRecording:
         self, fsm_metered_billing: BillingStateMachine
     ):
         """Test usage from METERED_BILLING stays in METERED_BILLING when balance remains positive."""
-        events = fsm_metered_billing.record_usage(200, "test_usage")
+        events = fsm_metered_billing.record_usage(200.75, "test_usage")
         fsm_metered_billing.apply_events(events)
 
         # Should stay in METERED_BILLING since balance > 0
         assert_that(
             fsm_metered_billing.state, equal_to(UserAccountStatus.METERED_BILLING)
         )
-        assert_that(fsm_metered_billing.usage_balance, equal_to(700))  # 900 - 200
+        assert_that(fsm_metered_billing.usage_balance, equal_to(699.25))  # 900 - 200.75
 
     def test_record_usage_metered_billing_insufficient_balance(
         self, fsm_metered_billing: BillingStateMachine
     ):
         """Test usage from METERED_BILLING transitions to SUSPENDED."""
-        events = fsm_metered_billing.record_usage(900, "test_usage")
+        events = fsm_metered_billing.record_usage(900.5, "test_usage")
         fsm_metered_billing.apply_events(events)
 
         # Should transition to SUSPENDED
         assert_that(fsm_metered_billing.state, equal_to(UserAccountStatus.SUSPENDED))
-        assert_that(fsm_metered_billing.usage_balance, equal_to(0))  # 900 - 900
+        assert_that(fsm_metered_billing.usage_balance, equal_to(-0.5))  # 900 - 900.5
 
     def test_record_usage_invalid_amount(self, fsm_new: BillingStateMachine):
         """Test record_usage raises ValueError for invalid amounts."""
@@ -463,11 +463,32 @@ class TestUsageRecording:
         self, fsm_active_subscription: BillingStateMachine
     ):
         """Test that record_usage returns proper UsageBreakdown structure."""
-        events = fsm_active_subscription.record_usage(300, "test_usage")
+        events = fsm_active_subscription.record_usage(300.33, "test_usage")
         fsm_active_subscription.apply_events(events)
 
         # Check that we have the expected state
-        assert_that(fsm_active_subscription.monthly_credits_used, equal_to(300))
+        assert_that(fsm_active_subscription.monthly_credits_used, equal_to(300.33))
+
+    def test_record_usage_float_precision(
+        self, fsm_active_subscription: BillingStateMachine
+    ):
+        """Test that float amounts are preserved without truncation."""
+        # Add balance
+        topup_events = fsm_active_subscription.topup_usage_balance(1000, "test_topup")
+        fsm_active_subscription.apply_events(topup_events)
+
+        # Use credits with fractional cents
+        events = fsm_active_subscription.record_usage(150.33, "test_usage_1")
+        fsm_active_subscription.apply_events(events)
+
+        assert_that(fsm_active_subscription.monthly_credits_used, equal_to(150.33))
+
+        # Use more credits with different fractional parts
+        events = fsm_active_subscription.record_usage(75.67, "test_usage_2")
+        fsm_active_subscription.apply_events(events)
+
+        # Verify precision is maintained
+        assert_that(fsm_active_subscription.monthly_credits_used, equal_to(226.0))
 
 
 class TestBalanceTopup:

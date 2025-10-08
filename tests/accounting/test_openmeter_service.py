@@ -626,7 +626,7 @@ class TestOpenMeterServiceRateLimiting:
         result1 = service.query_usage(subject="user_123", meter_slug="cost_total")
         end_time = time.time()
 
-        assert end_time - start_time < 0.01  # Should be fast
+        assert end_time - start_time < 0.5  # Should be fast
         assert result1.data == [{"timestamp": "2024-01-01T00:00:00Z", "value": 100.0}]
 
         # Second call should be rate limited

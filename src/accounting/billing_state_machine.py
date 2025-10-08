@@ -493,7 +493,7 @@ class BillingStateMachine:
                         event_id=uuid.uuid4(),
                         user_id=self.user_id,
                         created_at=datetime.now(),
-                        amount_cents=int(amount_cents),
+                        amount_cents=amount_cents,
                         external_id=external_id,
                     )
                 )
@@ -510,7 +510,7 @@ class BillingStateMachine:
                             event_id=uuid.uuid4(),
                             user_id=self.user_id,
                             created_at=datetime.now(),
-                            amount_cents=int(credits_used),
+                            amount_cents=credits_used,
                             external_id=f"{external_id}_credits",
                         )
                     )
