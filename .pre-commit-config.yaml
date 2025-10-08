@@ -3,3 +3,16 @@ repos:
     rev: v8.28.0
     hooks:
       - id: gitleaks
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3
+        files: ^(src|tests|browser_functional_tests|scripts|evals|alembic|manage\.py)/
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        files: ^(src|tests|browser_functional_tests|scripts|evals|alembic|manage\.py)/
