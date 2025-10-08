@@ -51,9 +51,7 @@ _performance_history = {}
 
 def load_gold_dataset() -> List[GoldTestCase]:
     """Load all test cases from gold dataset."""
-    return AgentEvaluator.load_gold_dataset(
-        "/Users/samboyd/projects/OpenBacklog/datasets/gold.jsonl"
-    )
+    return AgentEvaluator.load_gold_dataset("./datasets/gold.jsonl")
 
 
 def load_fast_test_cases() -> List[GoldTestCase]:
