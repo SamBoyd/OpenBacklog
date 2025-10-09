@@ -26,7 +26,7 @@ fi
 rm -f "$ENV_FILE"
 
 # Read each line from .env.example and create corresponding entries
-while IFS= read -r line; do
+while IFS= read -r line || [[ -n "$line" ]]; do
     # Skip empty lines and comments
     if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
         continue
