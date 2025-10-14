@@ -106,9 +106,9 @@ class TestCompleteOnboarding:
     def test_complete_onboarding_success(
         self, test_client: TestClient, user: User, session: Session
     ):
-        """Test successful onboarding completion."""
-        # Initially, onboarding should be completed (from fixture setup)
-        # Set it to False to test the endpoint
+        """Test successful onboarding completion transitions NEW to NO_SUBSCRIPTION."""
+        # Setup: User starts in NEW state with onboarding not completed
+        user.account_details.status = UserAccountStatus.NEW
         user.account_details.onboarding_completed = False
         session.add(user.account_details)
         session.commit()
@@ -125,6 +125,8 @@ class TestCompleteOnboarding:
         # Verify database was updated
         session.refresh(user.account_details)
         assert user.account_details.onboarding_completed == True
+        # Verify state transitioned from NEW to NO_SUBSCRIPTION
+        assert user.account_details.status == UserAccountStatus.NO_SUBSCRIPTION
 
     def test_complete_onboarding_already_completed(
         self, test_client: TestClient, user: User, session: Session

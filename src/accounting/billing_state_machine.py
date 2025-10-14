@@ -441,6 +441,49 @@ class BillingStateMachine:
 
         return events
 
+    def skip_subscription(
+        self, external_id: str = "onboarding"
+    ) -> Sequence[BillingEvent]:
+        """
+        Generate events for skipping subscription (free tier onboarding).
+
+        Transitions NEW → NO_SUBSCRIPTION for users who complete onboarding
+        without signing up for a paid subscription.
+
+        Args:
+            external_id: External reference (e.g., onboarding completion ID)
+
+        Returns:
+            List of events representing onboarding completion and state transition
+
+        Raises:
+            BillingFSMInvalidTransitionError: If transition is not valid
+        """
+        # Validate the transition if validator is available
+        if self.validator:
+            self.validator.validate_transition(
+                from_state=self.state,
+                trigger="do_skip_subscription",
+                usage_balance=self.usage_balance,
+            )
+
+        events: Sequence[BillingEvent] = []
+
+        # Generate state transition event to NO_SUBSCRIPTION
+        # We don't need a separate event type for this - just use StateTransitionEvent
+        events.append(
+            StateTransitionEvent(
+                event_id=uuid.uuid4(),
+                user_id=self.user_id,
+                created_at=datetime.now(),
+                from_state=self.state,
+                to_state=UserAccountStatus.NO_SUBSCRIPTION,
+                reason="SKIP_SUBSCRIPTION",
+            )
+        )
+
+        return events
+
     # Usage and billing methods
     def record_usage(
         self, amount_cents: float, external_id: str

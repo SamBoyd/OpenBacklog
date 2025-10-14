@@ -413,11 +413,11 @@ async def complete_onboarding_endpoint(
     try:
         # Merge the user into the current session to avoid session conflicts
         merged_user = db.merge(user)
-        user_account_details: UserAccountDetails = merged_user.account_details
 
         # Call the controller function to complete onboarding
+        # This will transition NEW → NO_SUBSCRIPTION and mark onboarding_completed=True
         updated_account_details = accounting_controller.complete_onboarding(
-            user_account_details, db
+            merged_user, db
         )
 
         logger.info(f"Completed onboarding for user {user.id}")

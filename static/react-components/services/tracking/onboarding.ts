@@ -150,7 +150,7 @@ export const trackOnboardingComplete = (): void => {
 
   setUserProperties({
     onboarding_completed_at: new Date().toISOString(),
-    onboarding_current_step: 3, // Final step (updated from 4 to 3)
+    onboarding_current_step: 3,
   });
 };
 
