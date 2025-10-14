@@ -100,6 +100,53 @@ class TestGetUserAccountDetails:
         app.dependency_overrides.pop(dependency_to_override, None)
 
 
+class TestCompleteOnboarding:
+    """Test cases for complete onboarding endpoint."""
+
+    def test_complete_onboarding_success(
+        self, test_client: TestClient, user: User, session: Session
+    ):
+        """Test successful onboarding completion."""
+        # Initially, onboarding should be completed (from fixture setup)
+        # Set it to False to test the endpoint
+        user.account_details.onboarding_completed = False
+        session.add(user.account_details)
+        session.commit()
+
+        # Make the request
+        response = test_client.post("/api/accounting/complete-onboarding")
+
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] == True
+        assert data["onboardingCompleted"] == True
+
+        # Verify database was updated
+        session.refresh(user.account_details)
+        assert user.account_details.onboarding_completed == True
+
+    def test_complete_onboarding_already_completed(
+        self, test_client: TestClient, user: User, session: Session
+    ):
+        """Test onboarding completion when already completed (idempotent)."""
+        # User already has onboarding completed from fixture
+        assert user.account_details.onboarding_completed == True
+
+        # Make the request
+        response = test_client.post("/api/accounting/complete-onboarding")
+
+        # Should still succeed
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] == True
+        assert data["onboardingCompleted"] == True
+
+        # Verify database state is still correct
+        session.refresh(user.account_details)
+        assert user.account_details.onboarding_completed == True
+
+
 class TestProcessRefund:
     """Test cases for process refund endpoint."""
 

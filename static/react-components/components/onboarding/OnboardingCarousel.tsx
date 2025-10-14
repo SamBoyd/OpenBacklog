@@ -7,7 +7,7 @@ import StepIndicator from './StepIndicator';
 import ProjectNameStep from './steps/ProjectNameStep';
 import GitHubInstallStep from './steps/GitHubInstallStep';
 import ClaudeCodeSetupStep from './steps/ClaudeCodeSetupStep';
-import PricingStep from './steps/PricingStep';
+import { completeOnboarding } from '#api/accounting';
 import {
   trackOnboardingStart,
   trackProjectNameStepViewed,
@@ -16,8 +16,6 @@ import {
   trackGitHubInstallStepCompleted,
   trackClaudeCodeSetupStepViewed,
   trackClaudeCodeSetupStepCompleted,
-  trackPricingStepViewed,
-  trackPricingStepCompleted,
   trackWorkspaceCreated,
   trackOnboardingComplete,
 } from '#services/tracking/onboarding';
@@ -33,10 +31,11 @@ const OnboardingCarousel = () => {
   const [workspaceCreated, setWorkspaceCreated] = useState(false);
 
   const navigate = useNavigate();
-  
-  const { workspaces, addWorkspace } = useWorkspaces();
 
-  const totalSteps = 4;
+  const { workspaces, addWorkspace } = useWorkspaces();
+  const { invalidateUserAccountDetails } = useBillingUsage();
+
+  const totalSteps = 3;
 
   // Track onboarding start on mount
   useEffect(() => {
@@ -49,7 +48,6 @@ const OnboardingCarousel = () => {
       trackProjectNameStepViewed,
       trackGitHubInstallStepViewed,
       trackClaudeCodeSetupStepViewed,
-      trackPricingStepViewed,
     ];
     stepViewTrackers[currentStep]();
   }, [currentStep]);
@@ -111,7 +109,6 @@ const OnboardingCarousel = () => {
       trackProjectNameStepCompleted,
       trackGitHubInstallStepCompleted,
       trackClaudeCodeSetupStepCompleted,
-      trackPricingStepCompleted,
     ];
 
     // If we're on the project name step (step 0, index 0), create workspace first
@@ -132,13 +129,25 @@ const OnboardingCarousel = () => {
     }
   };
 
-  const handleSetupSubscription = async () => {
+  const handleCompleteOnboarding = async () => {
     setIsCompletingOnboarding(true);
 
-    // Track onboarding funnel completion
-    trackOnboardingComplete();
+    try {
+      // Call the API to complete onboarding
+      await completeOnboarding();
+      await invalidateUserAccountDetails();
 
-    navigate('/workspace/billing/subscription/checkout')
+      // Track onboarding funnel completion
+      trackOnboardingComplete();
+
+      // Navigate to the main workspace
+      navigate('/workspace');
+    } catch (error) {
+      console.error('Failed to complete onboarding:', error);
+      setIsCompletingOnboarding(false);
+      // TODO: Show error message to user
+      alert('Failed to complete onboarding. Please try again.');
+    }
   };
 
 
@@ -187,15 +196,6 @@ const OnboardingCarousel = () => {
           <div className="w-full flex-shrink-0 flex items-center justify-center" style={{ minWidth: '100%' }}>
             <ClaudeCodeSetupStep />
           </div>
-
-          {/* Step 4: Set up Subscription */}
-          <div className="w-full flex-shrink-0 flex items-center justify-center" style={{ minWidth: '100%' }}>
-            <PricingStep
-              onSetupSubscription={handleSetupSubscription}
-              isCompletingOnboarding={isCompletingOnboarding}
-              projectName={projectName}
-            />
-          </div>
         </div>
       </div>
 
@@ -219,7 +219,22 @@ const OnboardingCarousel = () => {
         </div>
 
         <div className="w-16 sm:w-24 flex justify-end">
-          {!isLastStep && (
+          {isLastStep ? (
+            <PrimaryButton
+              onClick={handleCompleteOnboarding}
+              disabled={isCompletingOnboarding}
+              className="text-xs sm:text-sm px-2 sm:px-4 py-1 sm:py-2"
+            >
+              {isCompletingOnboarding ? (
+                <span>...</span>
+              ) : (
+                <>
+                  <span className="hidden sm:inline">Complete</span>
+                  <span className="sm:hidden">✓</span>
+                </>
+              )}
+            </PrimaryButton>
+          ) : (
             <PrimaryButton
               onClick={handleNext}
               disabled={currentStep === 0 && (!projectName.trim() || isCreatingWorkspace)}

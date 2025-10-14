@@ -374,3 +374,60 @@ async def get_pending_topup(
             else None
         ),
     )
+
+
+class CompleteOnboardingResponse(BaseModel):
+    """Response model for onboarding completion."""
+
+    success: bool = Field(description="Whether onboarding was successfully completed")
+    onboarding_completed: bool = Field(
+        alias="onboardingCompleted",
+        description="Whether onboarding is now marked as completed",
+    )
+
+
+@app.post(
+    "/api/accounting/complete-onboarding", response_model=CompleteOnboardingResponse
+)
+async def complete_onboarding_endpoint(
+    user: User = Depends(dependency_to_override),
+    db: Session = Depends(get_db),
+) -> CompleteOnboardingResponse:
+    """
+    Mark onboarding as completed for the current user without requiring a subscription.
+
+    This endpoint allows users to complete onboarding and access task management features
+    without setting up a Stripe subscription. It marks the onboarding_completed flag as True
+    on the user's account details.
+
+    Args:
+        user: Current authenticated user
+        db: Database session
+
+    Returns:
+        CompleteOnboardingResponse indicating success
+
+    Raises:
+        HTTPException: If the operation fails
+    """
+    try:
+        # Merge the user into the current session to avoid session conflicts
+        merged_user = db.merge(user)
+        user_account_details: UserAccountDetails = merged_user.account_details
+
+        # Call the controller function to complete onboarding
+        updated_account_details = accounting_controller.complete_onboarding(
+            user_account_details, db
+        )
+
+        logger.info(f"Completed onboarding for user {user.id}")
+
+        return CompleteOnboardingResponse(
+            success=True,
+            onboardingCompleted=updated_account_details.onboarding_completed,
+        )
+    except Exception as e:
+        logger.error(f"Failed to complete onboarding for user {user.id}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to complete onboarding: {str(e)}"
+        )
