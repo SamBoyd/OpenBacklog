@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from src.ai import ai_controller
 from src.ai.ai_service import get_user_api_key
 from src.ai.models import AIImprovementRequest
+from src.ai.subscription_middleware import require_active_subscription
 from src.config import settings
 from src.db import get_db
 from src.main import app
@@ -22,7 +23,7 @@ from src.views import dependency_to_override
 async def ai_improvement_create(
     request: AIImprovementRequest = Body(...),
     db: Session = Depends(get_db),
-    user=Depends(dependency_to_override),
+    user=Depends(require_active_subscription),
 ) -> JSONResponse:
     """
     Create a new AI improvement job.
@@ -72,7 +73,7 @@ async def ai_improvement_get(request: Request) -> JSONResponse:
 async def transcribe_audio(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    user=Depends(dependency_to_override),
+    user=Depends(require_active_subscription),
 ):
     user_litellm_api_key = get_user_api_key(user.id, db)
 
@@ -108,7 +109,7 @@ class RewriteRequest(BaseModel):
 async def text_completion(
     request: TextCompletionRequest = Body(...),
     db: Session = Depends(get_db),
-    user=Depends(dependency_to_override),
+    user=Depends(require_active_subscription),
 ):
     user_litellm_api_key = get_user_api_key(user.id, db)
 
@@ -169,7 +170,7 @@ async def text_completion(
 async def rewrite_text(
     request: RewriteRequest = Body(...),
     db: Session = Depends(get_db),
-    user=Depends(dependency_to_override),
+    user=Depends(require_active_subscription),
 ):
     user_litellm_api_key = get_user_api_key(user.id, db)
 
