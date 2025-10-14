@@ -67,6 +67,10 @@ export const initializeAnalytics = (): void => {
  * @param properties - Optional properties to include with the event
  */
 export const trackEvent = (eventName: string, properties?: Record<string, any>): void => {
+    if (process.env.MIXPANEL_TOKEN == '') {
+        return;
+    }
+
     try {
         mixpanel.track(eventName, {
             ...properties,
@@ -85,6 +89,10 @@ export const trackEvent = (eventName: string, properties?: Record<string, any>):
  * @param properties - Optional user properties
  */
 export const identifyUser = (userId: string, properties?: Record<string, any>): void => {
+    if (process.env.MIXPANEL_TOKEN == '') {
+        return;
+    }
+
     try {
         mixpanel.identify(userId);
         if (properties) {
@@ -100,6 +108,10 @@ export const identifyUser = (userId: string, properties?: Record<string, any>): 
  * Extracts user ID and email from the stored JWT and identifies the user in Mixpanel
  */
 export const identifyCurrentUser = (): void => {
+    if (process.env.MIXPANEL_TOKEN == '') {
+        return;
+    }
+
     try {
         const userInfo = getCurrentUserInfo();
         if (userInfo) {
@@ -117,6 +129,9 @@ export const identifyCurrentUser = (): void => {
  * @param properties - User properties to set
  */
 export const setUserProperties = (properties: Record<string, any>): void => {
+    if (process.env.MIXPANEL_TOKEN == '') {
+        return;
+    }
     try {
         mixpanel.people.set(properties);
     } catch (error) {
@@ -125,6 +140,9 @@ export const setUserProperties = (properties: Record<string, any>): void => {
 };
 
 export const trackAppLoad = (): void => {
+    if (process.env.MIXPANEL_TOKEN == '') {
+        return;
+    }
     trackEvent('App Load', {
         page_path: window.location.pathname,
         referrer: document.referrer
@@ -136,6 +154,10 @@ export const trackAppLoad = (): void => {
  * @param pageName - Optional name of the page
  */
 export const trackPageView = (pageName?: string): void => {
+    if (process.env.MIXPANEL_TOKEN == '') {
+        return;
+    }
+
     trackEvent('Page View', {
         page_name: pageName || document.title,
         page_path: window.location.pathname,
@@ -147,6 +169,10 @@ export const trackPageView = (pageName?: string): void => {
  * Reset user tracking (for logout)
  */
 export const resetUser = (): void => {
+    if (process.env.MIXPANEL_TOKEN == '') {
+        return;
+    }
+
     try {
         mixpanel.reset();
     } catch (error) {
