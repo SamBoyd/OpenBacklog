@@ -306,3 +306,34 @@ export const withCurrentEntity: Story = {
         },
     ],
 };
+
+export const withoutSubscription: Story = {
+    args: {},
+    decorators: [
+        (Story) => {
+            useBillingUsage.mockReturnValue({
+                ...mockUseBillingUsageReturn,
+                userIsOnboarded: true,
+                data: {
+                    currentBalance: 0,
+                    transactions: [],
+                    transactionsPagination: null,
+                    subscriptionStatus: UserAccountStatus.NO_SUBSCRIPTION,
+                    monthlyCreditsTotal: 500,
+                    monthlyCreditsUsed: 0
+                },
+                userAccountDetails: {
+                    balanceCents: 0,
+                    status: UserAccountStatus.NO_SUBSCRIPTION,
+                    onboardingCompleted: true,
+                    monthlyCreditsTotal: 500,
+                    monthlyCreditsUsed: 0
+                }
+            });
+
+            return <UserPreferencesProvider initialPreferences={mockUserPreferencesReturn.preferences}>
+                <Story />
+            </UserPreferencesProvider>
+        },
+    ],
+};

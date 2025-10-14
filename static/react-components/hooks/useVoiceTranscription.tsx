@@ -1,4 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
+import { useBillingUsage } from './useBillingUsage';
+import { hasActiveSubscription } from '#constants/userAccountStatus';
 
 export interface VoiceTranscriptionState {
     isListening: boolean;
@@ -36,6 +38,10 @@ export const useVoiceTranscription = (): UseVoiceTranscriptionReturn => {
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
+
+    // Check subscription status
+    const { userAccountDetails } = useBillingUsage();
+    const hasSubscription = userAccountDetails ? hasActiveSubscription(userAccountDetails.status) : false;
 
     /**
      * Handles errors by setting error state and resetting recording states.
@@ -115,6 +121,12 @@ export const useVoiceTranscription = (): UseVoiceTranscriptionReturn => {
      * Starts voice recording by requesting microphone access and initializing MediaRecorder.
      */
     const startRecording = useCallback(async () => {
+        // Check subscription before starting recording
+        if (!hasSubscription) {
+            handleError("Voice transcription requires a subscription.");
+            return;
+        }
+
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             handleError("Voice recording is not supported by your browser. Please use a modern browser like Chrome or Firefox.");
             return;
@@ -159,7 +171,7 @@ export const useVoiceTranscription = (): UseVoiceTranscriptionReturn => {
             }
             setIsListening(false);
         }
-    }, [handleError, processAudioAndTranscribe]);
+    }, [handleError, processAudioAndTranscribe, hasSubscription]);
 
     /**
      * Stops voice recording and processes the recorded audio.

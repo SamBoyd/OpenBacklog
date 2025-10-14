@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import { useAiImprovementsContext } from '#contexts/AiImprovementsContext';
 import useChatMessages from '#hooks/useChatMessages';
 import useJobResultProcessor from '#hooks/useJobResultProcessor';
 import { useEntityFromUrl } from '#hooks/useEntityFromUrl';
 import useAiChat from '#hooks/useAiChat';
+import { useBillingUsage } from '#hooks/useBillingUsage';
 
 import ContextSelection from '#components/ChatDialog/ContextSelection';
 import MessageHistory from '#components/reusable/MessageHistory';
@@ -14,6 +16,9 @@ import ChatHeader from '#components/ChatHeader';
 import { useIsDeviceMobile } from '#hooks/isDeviceMobile';
 
 import { LENS, AiJobChatMessage, ManagedInitiativeModel, ManagedTaskModel, AgentMode } from '#types';
+import { hasActiveSubscription } from '#constants/userAccountStatus';
+import VoiceChat from './VoiceChat';
+import { Send } from 'lucide-react';
 
 export interface Message {
     id: string;
@@ -38,8 +43,13 @@ interface ChatDialogProps { }
 
 const ChatDialog: React.FC<ChatDialogProps> = () => {
     const [isContextSelectionOpen, setIsContextSelectionOpen] = useState(false);
+    const navigate = useNavigate();
 
     const isMobile = useIsDeviceMobile();
+
+    // Check subscription status
+    const { userAccountDetails, isAccountDetailsLoading } = useBillingUsage();
+    const hasSubscription = userAccountDetails ? hasActiveSubscription(userAccountDetails.status) : false;
 
     // Get entity information from the URL
     const {
@@ -153,24 +163,72 @@ const ChatDialog: React.FC<ChatDialogProps> = () => {
 
             <ChatErrorView error={error || jobResult?.error_message || null} />
 
-            {/* Context selection and message input */}
-            <div className='border-t border-border bg-sidebar overflow-visible'>
-                <ContextSelection
-                    isOpen={isContextSelectionOpen}
-                    disabled={false}
-                    onOpenChange={setIsContextSelectionOpen}
-                    currentContext={currentContext}
-                    onContextChange={setCurrentContext}
-                />
+            {/* Subscription required message */}
+            {!isAccountDetailsLoading && !hasSubscription && (
+                <div className="relative flex-grow-0 mx-2 p-2 mb-2 rounded-sm bg-white/10">
+                    <div className="flex flex-col gap-2">
+                        {/* Message text in place of textarea */}
+                        <div className="w-full bg-transparent text-muted-foreground text-sm p-2">
+                            AI chat requires a subscription. Subscribe to unlock AI-powered features. 
+                            <span className="cursor-pointer underline ml-1" onClick={() => navigate('/workspace/billing')}>Subscribe here</span>
+                        </div>
 
-                <ChatMessageInput
-                    onMessageSend={handleSendMessage}
-                    disabled={chatDisabled}
-                    inputRef={inputRef}
-                    onContextSelectionToggle={() => setIsContextSelectionOpen(true)}
-                />
-            </div>
-        </div>
+                        {/* Bottom row with disabled controls and subscribe button */}
+                        <div className="flex flex-row gap-2 justify-between items-center">
+                            {/* Disabled mode selector placeholder */}
+                            <button
+                                disabled
+                                className="border-0 text-xs text-sidebar-foreground bg-sidebar-foreground/10 rounded px-3 py-1 opacity-50 cursor-not-allowed"
+                            >
+                                Mode
+                            </button>
+
+                            <div className="flex flex-row gap-2 items-center">
+                                <VoiceChat disabled={true} onVoiceInput={() => { }} />
+
+                                <button
+                                    onClick={() => { }}
+                                    className={`
+                                    rounded px-3 py-1 text-xs
+                                    text-sidebar-foreground bg-sidebar-foreground/10
+                                    transition-colors
+                                    hover:text-white hover:bg-primary/50
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                `}
+                                    disabled={true}
+                                    ref={null}
+                                    data-testid="chat-send"
+                                >
+                                    <Send size={14} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Context selection and message input */}
+            {
+                hasSubscription && (
+                    <div className='border-t border-border bg-sidebar overflow-visible'>
+                        <ContextSelection
+                            isOpen={isContextSelectionOpen}
+                            disabled={false}
+                            onOpenChange={setIsContextSelectionOpen}
+                            currentContext={currentContext}
+                            onContextChange={setCurrentContext}
+                        />
+
+                        <ChatMessageInput
+                            onMessageSend={handleSendMessage}
+                            disabled={chatDisabled}
+                            inputRef={inputRef}
+                            onContextSelectionToggle={() => setIsContextSelectionOpen(true)}
+                        />
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

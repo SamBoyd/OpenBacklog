@@ -15,6 +15,7 @@ interface VoiceChatProps {
     onVoiceInput: (input: string) => void;
     shouldDisplayRewriteDialog?: boolean;
     existingDescription?: string;
+    hasActiveSubscription?: boolean;
 }
 
 /**
@@ -25,7 +26,8 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
     disabled,
     onVoiceInput,
     shouldDisplayRewriteDialog = false,
-    existingDescription
+    existingDescription,
+    hasActiveSubscription = true
 }) => {
     const { state, actions } = useVoiceTranscription();
     const { isListening, isTranscribing, transcript, error: transcriptionError, elapsedSeconds } = state;
@@ -101,11 +103,11 @@ const VoiceChat: React.FC<VoiceChatProps> = ({
                 {!isTranscribing && !isListening && (
                     <button
                         onClick={startRecording}
-                        disabled={disabled || isTranscribing || isRewriting}
+                        disabled={disabled || isTranscribing || isRewriting || !hasActiveSubscription}
                         className={button_styles}
                         aria-label="Start voice recording"
                         data-tooltip-id="start-voice-recording-tooltip"
-                        data-tooltip-content="Start recording"
+                        data-tooltip-content={hasActiveSubscription ? "Start recording" : "Voice transcription requires a subscription"}
                         data-tooltip-place="bottom"
                         data-tooltip-delay-show={500}
                     >
