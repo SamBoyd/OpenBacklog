@@ -200,4 +200,31 @@ export const analytics = {
         trackEvent('Feature Used', { feature, action }),
     trackTaskCreated: (taskType: string) => trackEvent('Task Created', { type: taskType }),
     trackInitiativeCreated: () => trackEvent('Initiative Created'),
+
+    // Free tier conversion tracking (imported from onboarding module)
+    // These are re-exported here for convenience
+    trackFreeUserSubscriptionPromptViewed: (source: string, subscriptionStatus: string) =>
+        trackEvent('Free User Subscription Prompt Viewed', { source, subscription_status: subscriptionStatus }),
+    trackFreeUserSubscriptionCTAClicked: (source: string, action: string) =>
+        trackEvent('Free User Subscription CTA Clicked', { source, action }),
+    trackFreeToFaidConversion: (conversionTrigger?: string) =>
+        trackEvent('Free to Paid Conversion', { conversion_trigger: conversionTrigger }),
+    trackFirstTaskCreated: (signupTimestamp?: string) => {
+        const now = new Date();
+        let timeToValue: number | undefined;
+        if (signupTimestamp) {
+            const signupTime = new Date(signupTimestamp);
+            timeToValue = Math.floor((now.getTime() - signupTime.getTime()) / 1000);
+        }
+        trackEvent('First Task Created', { time_to_value_seconds: timeToValue });
+    },
+    trackFirstInitiativeCreated: (signupTimestamp?: string) => {
+        const now = new Date();
+        let timeToValue: number | undefined;
+        if (signupTimestamp) {
+            const signupTime = new Date(signupTimestamp);
+            timeToValue = Math.floor((now.getTime() - signupTime.getTime()) / 1000);
+        }
+        trackEvent('First Initiative Created', { time_to_value_seconds: timeToValue });
+    },
 };

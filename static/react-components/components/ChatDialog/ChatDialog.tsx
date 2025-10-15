@@ -19,6 +19,10 @@ import { LENS, AiJobChatMessage, ManagedInitiativeModel, ManagedTaskModel, Agent
 import { hasActiveSubscription } from '#constants/userAccountStatus';
 import VoiceChat from './VoiceChat';
 import { Send } from 'lucide-react';
+import {
+    trackFreeUserSubscriptionPromptViewed,
+    trackFreeUserSubscriptionCTAClicked,
+} from '#services/tracking/onboarding';
 
 export interface Message {
     id: string;
@@ -108,6 +112,13 @@ const ChatDialog: React.FC<ChatDialogProps> = () => {
         setThreadId(threadId);
     }, [threadId]);
 
+    // Track when subscription required prompt is shown
+    useEffect(() => {
+        if (!isAccountDetailsLoading && !hasSubscription && userAccountDetails) {
+            trackFreeUserSubscriptionPromptViewed('ai_chat', userAccountDetails.status);
+        }
+    }, [isAccountDetailsLoading, hasSubscription, userAccountDetails]);
+
     const handleSendMessage = (messageText: string, mode: AgentMode) => {
         if (!messageText.trim()) return;
 
@@ -169,8 +180,16 @@ const ChatDialog: React.FC<ChatDialogProps> = () => {
                     <div className="flex flex-col gap-2">
                         {/* Message text in place of textarea */}
                         <div className="w-full bg-transparent text-muted-foreground text-sm p-2">
-                            AI chat requires a subscription. Subscribe to unlock AI-powered features. 
-                            <span className="cursor-pointer underline ml-1" onClick={() => navigate('/workspace/billing')}>Subscribe here</span>
+                            AI chat requires a subscription. Subscribe to unlock AI-powered features.
+                            <span
+                                className="cursor-pointer underline ml-1"
+                                onClick={() => {
+                                    trackFreeUserSubscriptionCTAClicked('ai_chat', 'subscribe_here_link');
+                                    navigate('/workspace/billing');
+                                }}
+                            >
+                                Subscribe here
+                            </span>
                         </div>
 
                         {/* Bottom row with disabled controls and subscribe button */}

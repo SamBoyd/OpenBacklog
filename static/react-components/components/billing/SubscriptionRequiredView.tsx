@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MdCheckCircle, MdInfo, MdClose } from 'react-icons/md';
 import { useNavigate } from 'react-router';
 import { UserAccountStatus } from '#constants/userAccountStatus';
+import {
+    trackFreeUserSubscriptionPromptViewed,
+    trackFreeUserSubscriptionCTAClicked,
+} from '#services/tracking/onboarding';
 
 /**
  * Subscription required view for users who need to subscribe or reactivate
@@ -17,10 +21,17 @@ const SubscriptionRequiredView: React.FC<{
     const isClosedAccount = subscriptionStatus === UserAccountStatus.CLOSED;
     const isNoSubscription = subscriptionStatus === UserAccountStatus.NO_SUBSCRIPTION;
 
+    // Track when subscription prompt is viewed
+    useEffect(() => {
+        trackFreeUserSubscriptionPromptViewed('billing_page', subscriptionStatus);
+    }, [subscriptionStatus]);
+
     /**
      * Handle navigation to subscription checkout
      */
     const handleSubscribe = () => {
+        const action = isClosedAccount ? 'reactivate_subscription' : 'unlock_ai_features';
+        trackFreeUserSubscriptionCTAClicked('billing_page', action);
         navigate('/workspace/billing/subscription/checkout');
     };
 

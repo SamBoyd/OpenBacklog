@@ -20,6 +20,8 @@ import { useCallback, createContext, useContext, ReactNode, useState, useMemo, u
 import { useOrderings, OrderedEntity } from '#hooks/useOrderings';
 import { useAiChat } from '#hooks/useAiChat';
 import { LENS } from '#types';
+import { SafeStorage } from '#hooks/useUserPreferences';
+import { trackFirstTaskCreated } from '#services/tracking/onboarding';
 
 
 // --- Context Definition ---
@@ -162,6 +164,15 @@ export function TasksProvider({ children }: TasksProviderProps) {
         mutationFn: (task) => createTaskWithOrdering(task),
         onSuccess: async (data) => {
             queryClient.invalidateQueries({ queryKey: ['initiatives', { id: data.initiative_id }] });
+
+            // Track first task creation for time-to-value metric
+            const hasTrackedFirstTask = SafeStorage.safeGet('hasTrackedFirstTask', (val): val is boolean => typeof val === 'boolean', false);
+            if (!hasTrackedFirstTask) {
+                // Get signup timestamp from user account details cache
+                const onboardingCompletedAt = SafeStorage.safeGet('onboarding_completed_at', (val): val is string => typeof val === 'string', null);
+                trackFirstTaskCreated(onboardingCompletedAt || undefined);
+                SafeStorage.safeSet('hasTrackedFirstTask', true);
+            }
         }
     });
 
