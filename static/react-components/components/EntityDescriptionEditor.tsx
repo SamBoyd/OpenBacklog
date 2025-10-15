@@ -6,6 +6,8 @@ import { Tooltip } from 'react-tooltip';
 import ResizingTextInput from './reusable/ResizingTextInput';
 import VoiceChat from './ChatDialog/VoiceChat';
 import FileSuggestionTextInput from './reusable/FileSuggestionTextInput';
+import { useBillingUsage } from '#hooks/useBillingUsage';
+import { hasActiveSubscription } from '#constants/userAccountStatus';
 
 /**
  * EntityDescriptionEditor component for editing entity descriptions with AI suggestions
@@ -38,6 +40,10 @@ const EntityDescriptionEditor: React.FC<EntityDescriptionEditorProps> = ({
     filepathSuggestionsEnabled = false,
 }) => {
     const [localDescription, setLocalDescription] = useState(description);
+
+    // Check subscription status
+    const { userAccountDetails } = useBillingUsage();
+    const hasSubscription = userAccountDetails ? hasActiveSubscription(userAccountDetails.status) : false;
 
     useEffect(() => {
         3
@@ -106,6 +112,7 @@ const EntityDescriptionEditor: React.FC<EntityDescriptionEditorProps> = ({
                         onVoiceInput={handleVoiceInput}
                         shouldDisplayRewriteDialog={true}
                         existingDescription={localDescription}
+                        hasActiveSubscription={hasSubscription}
                         data-tooltip-id="description-voice-input"
                         data-tooltip-place="bottom"
                         data-tooltip-delay-show={500}

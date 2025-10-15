@@ -148,9 +148,12 @@ export const trackOnboardingComplete = (): void => {
     timestamp: new Date().toISOString(),
   });
 
+  const now = new Date();
   setUserProperties({
     onboarding_completed_at: new Date().toISOString(),
-    onboarding_current_step: 4, // Final step
+    onboarding_current_step: 3,
+    is_free_tier_user: true,
+    free_tier_started_at: now.toISOString(),
   });
 };
 
@@ -230,5 +233,118 @@ export const trackSubscriptionSetupFailed = (errorMessage?: string): void => {
   setUserProperties({
     subscription_status: 'failed',
     subscription_last_error: errorMessage,
+  });
+};
+
+// ============================================================================
+// FREE TIER CONVERSION TRACKING
+// ============================================================================
+
+/**
+ * Track when a free tier user is shown a subscription prompt
+ * @param source - Where the prompt was shown (billing_page, ai_chat, voice_chat, text_rewrite)
+ * @param subscriptionStatus - Current subscription status (NO_SUBSCRIPTION, CLOSED, etc.)
+ */
+export const trackFreeUserSubscriptionPromptViewed = (
+  source: string,
+  subscriptionStatus: string
+): void => {
+  trackEvent('Free User Subscription Prompt Viewed', {
+    source,
+    subscription_status: subscriptionStatus,
+    timestamp: new Date().toISOString(),
+  });
+
+  setUserProperties({
+    conversion_trigger: source,
+    last_subscription_prompt_viewed_at: new Date().toISOString(),
+  });
+};
+
+/**
+ * Track when a free tier user clicks a subscription CTA
+ * @param source - Where the CTA was clicked (billing_page, ai_chat, voice_chat, text_rewrite)
+ * @param action - The action taken (unlock_ai_features, reactivate_subscription, subscribe_now)
+ */
+export const trackFreeUserSubscriptionCTAClicked = (
+  source: string,
+  action: string
+): void => {
+  trackEvent('Free User Subscription CTA Clicked', {
+    source,
+    action,
+    timestamp: new Date().toISOString(),
+  });
+
+  setUserProperties({
+    last_subscription_cta_clicked_at: new Date().toISOString(),
+    last_subscription_cta_action: action,
+  });
+};
+
+/**
+ * Track successful free-to-paid conversion
+ * @param conversionTrigger - What prompted the user to subscribe (from conversion_trigger property)
+ */
+export const trackFreeToPaidConversion = (conversionTrigger?: string): void => {
+  trackEvent('Free to Paid Conversion', {
+    conversion_trigger: conversionTrigger,
+    timestamp: new Date().toISOString(),
+  });
+
+  setUserProperties({
+    is_free_tier_user: false,
+    converted_to_paid_at: new Date().toISOString(),
+    conversion_trigger: conversionTrigger,
+  });
+};
+
+/**
+ * Track when user creates their first task
+ * Calculates time to first value from signup/onboarding completion
+ * @param signupTimestamp - When the user signed up (ISO string)
+ */
+export const trackFirstTaskCreated = (signupTimestamp?: string): void => {
+  const now = new Date();
+  let timeToValue: number | undefined;
+
+  if (signupTimestamp) {
+    const signupTime = new Date(signupTimestamp);
+    timeToValue = Math.floor((now.getTime() - signupTime.getTime()) / 1000); // seconds
+  }
+
+  trackEvent('First Task Created', {
+    time_to_value_seconds: timeToValue,
+    timestamp: now.toISOString(),
+  });
+
+  setUserProperties({
+    first_task_created_at: now.toISOString(),
+    time_to_first_value_seconds: timeToValue,
+  });
+};
+
+/**
+ * Track when user creates their first initiative
+ * Calculates time to first value from signup/onboarding completion
+ * @param signupTimestamp - When the user signed up (ISO string)
+ */
+export const trackFirstInitiativeCreated = (signupTimestamp?: string): void => {
+  const now = new Date();
+  let timeToValue: number | undefined;
+
+  if (signupTimestamp) {
+    const signupTime = new Date(signupTimestamp);
+    timeToValue = Math.floor((now.getTime() - signupTime.getTime()) / 1000); // seconds
+  }
+
+  trackEvent('First Initiative Created', {
+    time_to_value_seconds: timeToValue,
+    timestamp: now.toISOString(),
+  });
+
+  setUserProperties({
+    first_initiative_created_at: now.toISOString(),
+    time_to_first_value_seconds: timeToValue,
   });
 };

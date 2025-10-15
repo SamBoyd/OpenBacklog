@@ -13,6 +13,11 @@ billing_fsm_transitions = [
         "dest": UserAccountStatus.ACTIVE_SUBSCRIPTION,
     },
     {
+        "trigger": "do_skip_subscription",
+        "source": UserAccountStatus.NEW,
+        "dest": UserAccountStatus.NO_SUBSCRIPTION,
+    },
+    {
         "trigger": "do_cancel_subscription",
         "source": UserAccountStatus.ACTIVE_SUBSCRIPTION,
         "dest": UserAccountStatus.NO_SUBSCRIPTION,

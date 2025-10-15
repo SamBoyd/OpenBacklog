@@ -31,6 +31,8 @@ const AppGuard: React.FC<AppGuardProps> = ({ children }) => {
 
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
 
+  console.log('userAccountDetails', userAccountDetails);
+
   // Stage 1: Check if billing/onboarding data is still loading
   // With caching, this should rarely show since we'll have cached data
   if (isAccountDetailsLoading) {
@@ -48,13 +50,7 @@ const AppGuard: React.FC<AppGuardProps> = ({ children }) => {
   if (!userIsOnboarded) {
     return <Navigate to="/workspace/onboarding" replace />;
   }
-
-  // Stage 2.5: Check if user needs subscription (after onboarding but before workspace access)
-  if (userAccountDetails?.status === UserAccountStatus.NO_SUBSCRIPTION || 
-      userAccountDetails?.status === UserAccountStatus.CLOSED) {
-    return <Navigate to="/workspace/billing/subscription/checkout" replace />;
-  }
-
+  
   // Stage 3: Check if workspace data is still loading
   if (workspaceLoading) {
     return (

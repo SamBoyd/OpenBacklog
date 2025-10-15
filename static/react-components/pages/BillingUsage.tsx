@@ -74,23 +74,6 @@ const BillingUsage: React.FC = () => {
         );
     }
 
-    // Show new user view if user is not onboarded
-    if (userAccountDetails?.status == UserAccountStatus.NEW) {
-        return (
-            <AppBackground>
-                <div className="inset-0 flex flex-col h-screen w-screen">
-                    {/* Navigation bar */}
-                    {!isMobile && <NavBar />}
-
-                    {/* Carousel onboarding flow */}
-                    <div className="flex-1 flex items-center justify-center">
-                        <NewUserBillingView onboardCustomer={onboardCustomer} />
-                    </div>
-                </div>
-            </AppBackground>
-        );
-    }
-
     // Show subscription required view for users without subscription or closed accounts
     if (userAccountDetails?.status === UserAccountStatus.NO_SUBSCRIPTION ||
         userAccountDetails?.status === UserAccountStatus.CLOSED) {
@@ -101,7 +84,7 @@ const BillingUsage: React.FC = () => {
                     {!isMobile && <NavBar />}
 
                     {/* Subscription required flow */}
-                    <div className="flex-1 flex items-center justify-center">
+                    <div className="overflow-y-auto">
                         <SubscriptionRequiredView subscriptionStatus={userAccountDetails.status} />
                     </div>
                 </div>

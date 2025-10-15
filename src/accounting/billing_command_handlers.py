@@ -207,6 +207,30 @@ class BillingCommandHandler:
             success_message=f"Successfully cancelled subscription for user {{user_id}}",
         )
 
+    def handle_skip_subscription(
+        self, user_id: uuid.UUID, external_id: str = "onboarding"
+    ) -> None:
+        """
+        Handle skipping subscription command (free tier onboarding).
+
+        Transitions NEW → NO_SUBSCRIPTION for users who complete onboarding
+        without signing up for a paid subscription.
+
+        Args:
+            user_id: User ID to skip subscription for
+            external_id: External reference (e.g., onboarding completion ID)
+
+        Raises:
+            BillingCommandError: If command processing fails
+            BillingFSMInvalidTransitionError: If skip is not valid
+        """
+        self._execute_command(
+            user_id=user_id,
+            fsm_operation=lambda fsm: fsm.skip_subscription(external_id),
+            operation_name="skipping subscription",
+            success_message=f"Successfully skipped subscription for user {{user_id}}",
+        )
+
     def handle_start_billing_cycle(self, user_id: uuid.UUID) -> None:
         """
         Handle billing cycle start command.

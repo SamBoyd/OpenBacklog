@@ -86,6 +86,23 @@ class BillingService:
         self.db.refresh(user.account_details)
         return user.account_details
 
+    def skip_subscription(self, user: User, external_id: str) -> UserAccountDetails:
+        """
+        Skip subscription during onboarding, transition NEW → NO_SUBSCRIPTION
+
+        This allows users to complete onboarding and access task management features
+        without signing up for a paid subscription (free tier).
+
+        Args:
+            user: The user skipping subscription
+            external_id: External reference ID (e.g., onboarding completion)
+        """
+        self.command_handler.handle_skip_subscription(user.id, external_id)
+
+        # Return updated account details
+        self.db.refresh(user.account_details)
+        return user.account_details
+
     def reactivate_subscription(
         self, user: User, external_id: str
     ) -> UserAccountDetails:

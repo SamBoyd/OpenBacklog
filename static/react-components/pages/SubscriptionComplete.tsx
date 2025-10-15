@@ -7,7 +7,9 @@ import { useBillingUsage } from '#hooks/useBillingUsage';
 import {
   trackSubscriptionSetupSuccess,
   trackSubscriptionSetupFailed,
+  trackFreeToPaidConversion,
 } from '#services/tracking/onboarding';
+import { SafeStorage } from '#hooks/useUserPreferences';
 
 /**
  * SubscriptionComplete page component
@@ -26,6 +28,15 @@ const SubscriptionCompletePage: React.FC = () => {
         trackSubscriptionSetupFailed(errorMessage || undefined);
       } else if (onboardingComplete) {
         trackSubscriptionSetupSuccess();
+
+        // Track free-to-paid conversion if user was previously free tier
+        const isFreeUser = SafeStorage.safeGet('is_free_tier_user', (val): val is boolean => typeof val === 'boolean', false);
+        if (isFreeUser) {
+          const conversionTrigger = SafeStorage.safeGet('conversion_trigger', (val): val is string => typeof val === 'string', undefined);
+          trackFreeToPaidConversion(conversionTrigger);
+          // Clear free tier flag after conversion
+          SafeStorage.safeSet('is_free_tier_user', false);
+        }
       }
     }
   }, [isLoading, hasError, errorMessage, onboardingComplete]);

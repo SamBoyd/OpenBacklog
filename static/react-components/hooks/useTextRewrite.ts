@@ -1,5 +1,7 @@
 import { useState, useCallback, Dispatch, SetStateAction } from 'react';
 import { useUserPreferences } from './useUserPreferences';
+import { useBillingUsage } from './useBillingUsage';
+import { hasActiveSubscription } from '#constants/userAccountStatus';
 
 interface UseTextRewriteProps {
     existingDescription?: string;
@@ -20,9 +22,20 @@ export const useTextRewrite = ({ existingDescription }: UseTextRewriteProps = {}
     const { preferences, updateIsRewriteEnabled } = useUserPreferences();
     const isRewriteEnabled = preferences.isRewriteEnabled;
 
+    // Check subscription status
+    const { userAccountDetails } = useBillingUsage();
+    const hasSubscription = userAccountDetails ? hasActiveSubscription(userAccountDetails.status) : false;
+
     const rewriteText = useCallback(async (text: string): Promise<string> => {
         if (!isRewriteEnabled) {
             return text;
+        }
+
+        // Check subscription before making API call
+        if (!hasSubscription) {
+            const errorMessage = 'Text rewriting requires a subscription. Subscribe to unlock AI features.';
+            setError(errorMessage);
+            throw new Error(errorMessage);
         }
 
         setIsRewriting(true);
@@ -62,7 +75,7 @@ export const useTextRewrite = ({ existingDescription }: UseTextRewriteProps = {}
         } finally {
             setIsRewriting(false);
         }
-    }, [isRewriteEnabled, existingDescription]);
+    }, [isRewriteEnabled, existingDescription, hasSubscription]);
 
     return {
         rewriteText,

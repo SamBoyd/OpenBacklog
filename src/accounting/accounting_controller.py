@@ -180,10 +180,33 @@ def process_refund(
         raise HTTPException(status_code=500, detail="Failed to process refund")
 
 
-def complete_onboarding(
-    account_details: UserAccountDetails, db: Session
-) -> UserAccountDetails:
-    """Mark onboarding as completed for a user."""
+def complete_onboarding(user: User, db: Session) -> UserAccountDetails:
+    """
+    Mark onboarding as completed and transition user from NEW to NO_SUBSCRIPTION state.
+
+    This allows users to complete onboarding and access task management features
+    without signing up for a paid subscription (free tier).
+
+    Args:
+        user: The user completing onboarding
+        db: Database session
+
+    Returns:
+        Updated UserAccountDetails with onboarding_completed=True and status=NO_SUBSCRIPTION
+    """
+    from src.accounting.models import UserAccountStatus
+
+    billing_service = BillingService(db)
+    account_details = user.account_details
+
+    # Only transition state if user is in NEW state
+    # If already in NO_SUBSCRIPTION or another state, this is idempotent
+    if account_details.status == UserAccountStatus.NEW:
+        # Transition NEW → NO_SUBSCRIPTION through billing service FSM
+        onboarding_id = f"onboarding_{user.id}"
+        billing_service.skip_subscription(user, onboarding_id)
+
+    # Mark onboarding as completed
     account_details.onboarding_completed = True
     db.add(account_details)
     db.commit()
@@ -487,7 +510,7 @@ def handle_subscription_created_with_setup(event: Dict[str, Any], db: Session) -
 
         # Step 7: Complete onboarding on User & UserAccountDetails models
         try:
-            complete_onboarding(user_account_details, db)
+            complete_onboarding(merged_user, db)
             logger.info(f"Completed onboarding for user {user.id}")
         except Exception as e:
             logger.error(f"Failed to complete onboarding for user {user.id}: {e}")

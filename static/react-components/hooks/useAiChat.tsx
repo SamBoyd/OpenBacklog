@@ -3,6 +3,7 @@ import { AiImprovementJobResult, AiImprovementJobStatus, InitiativeDto, LENS, Ta
 import { useAiImprovementsContext } from '#contexts/AiImprovementsContext';
 import { useUserPreferences } from '#hooks/useUserPreferences';
 import { useBillingUsage } from './useBillingUsage';
+import { hasActiveSubscription } from '#constants/userAccountStatus';
 
 const CONTEXT_STORAGE_KEY = 'chatDialog_currentContext';
 
@@ -72,6 +73,10 @@ export const useAiChat = ({ lens, currentEntity }: useAiChatProps): useAiChatRet
         loadContextFromStorage()
     );
 
+    // Check subscription status
+    const { userAccountDetails } = useBillingUsage();
+    const hasSubscription = userAccountDetails ? hasActiveSubscription(userAccountDetails.status) : false;
+
     // Save context to localStorage whenever stored context changes
     useEffect(() => {
         saveContextToStorage(storedContext);
@@ -134,6 +139,13 @@ export const useAiChat = ({ lens, currentEntity }: useAiChatProps): useAiChatRet
      * @param lens The current lens
      */
     const sendMessage = (threadId: string, messages: AiJobChatMessage[], lens: LENS, mode: AgentMode) => {
+        // Check subscription before sending message
+        if (!hasSubscription) {
+            setErrorMessage("AI chat requires a subscription. Subscribe to unlock AI features.");
+            setChatDisabled(true);
+            return;
+        }
+
         setErrorMessage(null);
 
         if (jobResult?.id) {

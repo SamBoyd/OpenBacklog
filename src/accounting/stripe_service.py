@@ -721,7 +721,7 @@ class StripeService:
             # Complete onboarding
             from src.accounting import accounting_controller
 
-            accounting_controller.complete_onboarding(user_account_details, self.db)
+            accounting_controller.complete_onboarding(user, self.db)
 
             logger.info(
                 f"Successfully completed subscription setup for user {user_id}. "
