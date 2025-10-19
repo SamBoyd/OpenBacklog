@@ -1,369 +1,116 @@
-# Feature Specification: [FEATURE_NAME]
+# Feature Specification: [FEATURE NAME]
 
-**Version:** 1.0.0
-**Created:** [DATE]
-**Last Updated:** [DATE]
-**Author:** [AUTHOR_NAME]
-**Status:** [Draft | Review | Approved | Implemented]
+**Feature Branch**: `[###-feature-name]`  
+**Created**: [DATE]  
+**Status**: Draft  
+**Input**: User description: "$ARGUMENTS"
 
----
+## User Scenarios & Testing *(mandatory)*
 
-## Executive Summary
+<!--
+  IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
+  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
+  you should still have a viable MVP (Minimum Viable Product) that delivers value.
+  
+  Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
+  Think of each story as a standalone slice of functionality that can be:
+  - Developed independently
+  - Tested independently
+  - Deployed independently
+  - Demonstrated to users independently
+-->
 
-[One paragraph describing what this feature is, why it matters, and what value it provides to users]
+### User Story 1 - [Brief Title] (Priority: P1)
 
----
+[Describe this user journey in plain language]
 
-## Problem Statement
+**Why this priority**: [Explain the value and why it has this priority level]
 
-### Current Situation
-[Describe the current state and what problem exists]
+**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
 
-### User Pain Points
-- [Pain point 1]
-- [Pain point 2]
-- [Pain point 3]
+**Acceptance Scenarios**:
 
-### Success Metrics
-| Metric | Current | Target | Measurement |
-|--------|---------|--------|-------------|
-| [Metric 1] | [Value] | [Value] | [How to measure] |
-| [Metric 2] | [Value] | [Value] | [How to measure] |
-
----
-
-## User Stories
-
-### Primary User Story
-**As a** [user type]
-**I want** [goal]
-**So that** [benefit]
-
-**Acceptance Criteria:**
-- [ ] [Criterion 1]
-- [ ] [Criterion 2]
-- [ ] [Criterion 3]
-
-### Secondary User Stories
-[List additional user stories if applicable]
+1. **Given** [initial state], **When** [action], **Then** [expected outcome]
+2. **Given** [initial state], **When** [action], **Then** [expected outcome]
 
 ---
 
-## Functional Requirements
+### User Story 2 - [Brief Title] (Priority: P2)
 
-### Must Have (P0)
-1. **[Requirement Name]**
-   - Description: [Detailed description]
-   - Acceptance: [How to verify this is complete]
-   - Constitution Alignment: [Which principle(s) this serves]
+[Describe this user journey in plain language]
 
-2. **[Requirement Name]**
-   - Description: [Detailed description]
-   - Acceptance: [How to verify this is complete]
-   - Constitution Alignment: [Which principle(s) this serves]
+**Why this priority**: [Explain the value and why it has this priority level]
 
-### Should Have (P1)
-[Requirements that are important but not critical for initial release]
+**Independent Test**: [Describe how this can be tested independently]
 
-### Could Have (P2)
-[Requirements that would be nice but can be deferred]
+**Acceptance Scenarios**:
 
-### Won't Have (This Release)
-[Explicitly document what is out of scope to prevent scope creep]
+1. **Given** [initial state], **When** [action], **Then** [expected outcome]
 
 ---
 
-## Non-Functional Requirements
+### User Story 3 - [Brief Title] (Priority: P3)
 
-### Performance
-- [ ] **Response Time:** [Target response time for key operations]
-- [ ] **Throughput:** [Expected load this feature must handle]
-- [ ] **Resource Usage:** [Memory, CPU, database query limits]
-- [ ] **Baseline Measurement:** [How performance will be measured]
+[Describe this user journey in plain language]
 
-*Reference: Constitution Principle 4 - Performance must be measurement-driven*
+**Why this priority**: [Explain the value and why it has this priority level]
 
-### Reliability & Testing
-- [ ] **Test Coverage:** [Minimum coverage percentage or critical paths]
-- [ ] **Test Isolation:** [Strategy for mocking dependencies]
-- [ ] **TDD Required:** [Yes/No - justify if complex business logic]
-- [ ] **Visual Testing:** [Storybook stories required]
+**Independent Test**: [Describe how this can be tested independently]
 
-*Reference: Constitution Principle 2 - Testing Standards*
+**Acceptance Scenarios**:
 
-### User Experience
-- [ ] **Design System:** [Tailwind theme components used]
-- [ ] **Accessibility:** [WCAG 2.1 AA compliance required]
-- [ ] **Responsive:** [Mobile, tablet, desktop breakpoints]
-- [ ] **Loading States:** [Async operation feedback]
-- [ ] **Error Handling:** [User-friendly error messages]
-
-*Reference: Constitution Principle 3 - UX Consistency*
-
-### Code Quality
-- [ ] **Simplicity:** [KISS - simplest solution chosen]
-- [ ] **YAGNI:** [No speculative features included]
-- [ ] **Modularity:** [Small, focused files and functions]
-- [ ] **Type Safety:** [Full type coverage in Python and TypeScript]
-- [ ] **Documentation:** [Docstrings/JSDoc for all public APIs]
-
-*Reference: Constitution Principle 1 - Code Quality & Maintainability*
+1. **Given** [initial state], **When** [action], **Then** [expected outcome]
 
 ---
 
-## Technical Scope
-
-### Backend Changes
-**New API Endpoints:**
-| Method | Path | Purpose | Auth Required |
-|--------|------|---------|---------------|
-| [GET/POST/etc] | [/api/path] | [Description] | [Yes/No] |
-
-**Database Schema Changes:**
-- [Table/Column changes]
-- [New indexes required]
-- [Migration strategy]
-
-**Services/Controllers:**
-- [New or modified business logic components]
-
-### Frontend Changes
-**New Components:**
-- `[ComponentName]` - [Purpose]
-- `[ComponentName]` - [Purpose]
-
-**Modified Components:**
-- `[ComponentName]` - [Changes]
-
-**New Hooks:**
-- `use[HookName]` - [Purpose and what it manages]
-
-**State Management:**
-- [How state will be managed - local, context, custom hook]
-
-### External Dependencies
-- [Library/Service 1] - [Version and purpose]
-- [Library/Service 2] - [Version and purpose]
-
----
-
-## User Interface
-
-### Mockups/Wireframes
-[Insert or link to UI mockups]
-
-### User Flow
-```
-[Describe step-by-step user flow through the feature]
-1. User navigates to [page]
-2. User clicks [button/link]
-3. System displays [component]
-4. etc.
-```
-
-### Design System Elements
-- **Colors:** [List Tailwind color tokens used]
-- **Typography:** [Font sizes and weights from theme]
-- **Spacing:** [Tailwind spacing utilities]
-- **Components:** [Reused components from design system]
-
-### Accessibility Considerations
-- [ ] Keyboard shortcuts: [List any shortcuts]
-- [ ] Screen reader: [Important labels and announcements]
-- [ ] Focus management: [How focus flows through the UI]
-- [ ] Color contrast: [Verify all text meets contrast ratios]
-
----
-
-## Data Model
-
-### New Models/Tables
-```python
-# Example SQLAlchemy model
-class ExampleModel(Base):
-    __tablename__ = "example"
-
-    id = Column(UUID, primary_key=True)
-    name = Column(String, nullable=False)
-    # ... other fields
-```
-
-### Modified Models
-[List any changes to existing models]
-
-### Relationships
-[Describe relationships between models]
-
----
-
-## API Contract
-
-### Request Schema
-```python
-# Pydantic request model
-class ExampleRequest(BaseModel):
-    field1: str
-    field2: int
-    # ... other fields
-```
+[Add more user stories as needed, each with an assigned priority]
 
-### Response Schema
-```python
-# Pydantic response model
-class ExampleResponse(BaseModel):
-    id: UUID
-    field1: str
-    created_at: datetime
-    # ... other fields
-```
+### Edge Cases
 
-### Error Responses
-| Status Code | Scenario | Response Body |
-|-------------|----------|---------------|
-| 400 | [Bad request scenario] | `{"detail": "..."}` |
-| 404 | [Not found scenario] | `{"detail": "..."}` |
-| 500 | [Server error scenario] | `{"detail": "..."}` |
+<!--
+  ACTION REQUIRED: The content in this section represents placeholders.
+  Fill them out with the right edge cases.
+-->
 
----
+- What happens when [boundary condition]?
+- How does system handle [error scenario]?
 
-## Security Considerations
+## Requirements *(mandatory)*
 
-### Authentication & Authorization
-- [ ] Auth0 required: [Yes/No]
-- [ ] Permission level: [User/Admin/etc]
-- [ ] Resource ownership: [How ownership is verified]
-
-### Input Validation
-- [ ] All inputs validated with Pydantic schemas
-- [ ] SQL injection protection (parameterized queries)
-- [ ] XSS protection (proper escaping)
-- [ ] CSRF protection (FastAPI built-in)
+<!--
+  ACTION REQUIRED: The content in this section represents placeholders.
+  Fill them out with the right functional requirements.
+-->
 
-### Data Privacy
-- [ ] PII handling: [What PII is involved and how it's protected]
-- [ ] Data retention: [How long data is kept]
-- [ ] GDPR compliance: [Right to deletion, data export]
+### Functional Requirements
 
----
+- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
+- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
+- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
+- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
+- **FR-005**: System MUST [behavior, e.g., "log all security events"]
 
-## Testing Requirements
+*Example of marking unclear requirements:*
 
-### Unit Tests (pytest + PyHamcrest)
-- [ ] **Backend:** [List test files and what they cover]
-  - `tests/[module]/test_[feature].py` - [Coverage description]
-- [ ] **Mocking Strategy:** [How dependencies will be mocked]
-- [ ] **Coverage Target:** [Percentage or specific critical paths]
+- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
+- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
-### Frontend Tests (vitest)
-- [ ] **Hooks:** [List hook test files]
-  - `[hook].test.tsx` - [What scenarios are tested]
-- [ ] **Services:** [List service test files]
+### Key Entities *(include if feature involves data)*
 
-### Visual Tests (Storybook)
-- [ ] **Component Stories:** [List components with stories]
-  - `[Component].stories.tsx` - [States/variants covered]
+- **[Entity 1]**: [What it represents, key attributes without implementation]
+- **[Entity 2]**: [What it represents, relationships to other entities]
 
-### Integration Tests
-- [ ] **End-to-End Flows:** [Critical user journeys to test]
-- [ ] **API Integration:** [Backend endpoint testing]
+## Success Criteria *(mandatory)*
 
-### Performance Tests
-- [ ] **Baseline Metrics:** [What to measure before implementation]
-- [ ] **Target Metrics:** [Performance goals]
-- [ ] **Hot Path Identification:** [Critical performance paths]
+<!--
+  ACTION REQUIRED: Define measurable success criteria.
+  These must be technology-agnostic and measurable.
+-->
 
----
+### Measurable Outcomes
 
-## Dependencies & Prerequisites
+- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
+- **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
+- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
+- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
 
-### Internal Dependencies
-- [Feature/Component 1]: [Why it's needed]
-- [Feature/Component 2]: [Why it's needed]
-
-### External Dependencies
-- [Service/Library 1]: [What it provides]
-- [Service/Library 2]: [What it provides]
-
-### Blockers
-- [ ] [Blocker 1] - [Status]
-- [ ] [Blocker 2] - [Status]
-
----
-
-## Risks & Mitigation
-
-| Risk | Probability | Impact | Mitigation Strategy |
-|------|-------------|--------|---------------------|
-| [Risk 1] | [High/Med/Low] | [High/Med/Low] | [How to mitigate] |
-| [Risk 2] | [High/Med/Low] | [High/Med/Low] | [How to mitigate] |
-
----
-
-## Implementation Phases
-
-### Phase 1: [Phase Name]
-- **Goal:** [What this achieves]
-- **Deliverables:** [What will be complete]
-- **Duration:** [Estimated time]
-
-### Phase 2: [Phase Name]
-- **Goal:** [What this achieves]
-- **Deliverables:** [What will be complete]
-- **Duration:** [Estimated time]
-
-[Add more phases as needed]
-
----
-
-## Success Criteria
-
-### Definition of Done
-- [ ] All P0 requirements implemented
-- [ ] All tests pass (unit, visual, integration)
-- [ ] Code quality checks pass (Black, ESLint, TypeScript)
-- [ ] Performance baselines met
-- [ ] Accessibility verified
-- [ ] Code reviewed and approved
-- [ ] Documentation updated
-- [ ] Deployed to production
-- [ ] Success metrics tracking enabled
-
-### Post-Launch Validation
-- [ ] [Metric 1] meets target within [timeframe]
-- [ ] [Metric 2] meets target within [timeframe]
-- [ ] No P0 bugs reported within [timeframe]
-
----
-
-## Open Questions
-
-1. [Question 1]?
-2. [Question 2]?
-3. [Question 3]?
-
----
-
-## References
-
-- [Constitution](.specify/memory/constitution.md) - Project principles
-- [Architecture Document](documentation/13_architecture_document.md)
-- [Authentication System](documentation/14_authentication_system_architecture.md)
-- [Content Design System](content-design-system/guidelines.md)
-- [Tailwind Config](static/react-components/tailwind.config.js)
-
----
-
-## Change Log
-
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0.0 | [DATE] | [AUTHOR] | Initial specification |
-
----
-
-**Constitution Compliance Verification:**
-
-✅ Principle 1 - Code Quality: [Brief justification]
-✅ Principle 2 - Testing: [Brief justification]
-✅ Principle 3 - UX Consistency: [Brief justification]
-✅ Principle 4 - Performance: [Brief justification]

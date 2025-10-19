@@ -1,498 +1,251 @@
-# Task Breakdown: [FEATURE_NAME]
+---
+description: "Task list template for feature implementation"
+---
 
-**Feature Spec:** [Link to spec.md]
-**Implementation Plan:** [Link to plan.md]
-**Created:** [DATE]
-**Last Updated:** [DATE]
+# Tasks: [FEATURE NAME]
+
+**Input**: Design documents from `/specs/[###-feature-name]/`
+**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
+
+**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+## Format: `[ID] [P?] [Story] Description`
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- Include exact file paths in descriptions
+
+## Path Conventions
+- **Single project**: `src/`, `tests/` at repository root
+- **Web app**: `backend/src/`, `frontend/src/`
+- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
+- Paths shown below assume single project - adjust based on plan.md structure
+
+<!-- 
+  ============================================================================
+  IMPORTANT: The tasks below are SAMPLE TASKS for illustration purposes only.
+  
+  The /speckit.tasks command MUST replace these with actual tasks based on:
+  - User stories from spec.md (with their priorities P1, P2, P3...)
+  - Feature requirements from plan.md
+  - Entities from data-model.md
+  - Endpoints from contracts/
+  
+  Tasks MUST be organized by user story so each story can be:
+  - Implemented independently
+  - Tested independently
+  - Delivered as an MVP increment
+  
+  DO NOT keep these sample tasks in the generated tasks.md file.
+  ============================================================================
+-->
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Project initialization and basic structure
+
+- [ ] T001 Create project structure per implementation plan
+- [ ] T002 Initialize [language] project with [framework] dependencies
+- [ ] T003 [P] Configure linting and formatting tools
 
 ---
 
-## Task Organization
+## Phase 2: Foundational (Blocking Prerequisites)
 
-Tasks are categorized by constitutional principle and dependency order. Complete tasks in the order listed to ensure proper flow.
+**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 
-**Legend:**
-- 🏗️ **Setup/Infrastructure** - Foundation work
-- 🧪 **Testing** - Test creation and validation
-- 💻 **Backend** - Python/FastAPI/Database
-- 🎨 **Frontend** - React/TypeScript/UI
-- 📊 **Performance** - Optimization and measurement
-- 📝 **Documentation** - Docs and comments
-- ✅ **Validation** - Quality checks
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
----
+Examples of foundational tasks (adjust based on your project):
 
-## Phase 1: Foundation & Setup
+- [ ] T004 Setup database schema and migrations framework
+- [ ] T005 [P] Implement authentication/authorization framework
+- [ ] T006 [P] Setup API routing and middleware structure
+- [ ] T007 Create base models/entities that all stories depend on
+- [ ] T008 Configure error handling and logging infrastructure
+- [ ] T009 Setup environment configuration management
 
-### Task 1.1: Database Schema Design
-**Category:** 🏗️ Setup
-**Principle:** Code Quality (Modularity), Performance (Indexes)
-**Estimated Time:** [Time estimate]
-
-**Description:**
-[Detailed description of the task]
-
-**Acceptance Criteria:**
-- [ ] SQLAlchemy models created with type hints
-- [ ] Alembic migration script generated
-- [ ] Indexes defined for performance
-- [ ] Relationships properly defined
-- [ ] Migration tested (up and down)
-
-**Dependencies:** None
-
-**Files to Create/Modify:**
-- `src/models/[model_name].py`
-- `alembic/versions/[revision]_[description].py`
-
-**Constitution Checklist:**
-- [ ] Models use declarative syntax (Principle 1)
-- [ ] Proper indexes for hot paths (Principle 4)
-- [ ] Migration is reversible
+**Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
 ---
 
-### Task 1.2: API Endpoint Stubs
-**Category:** 💻 Backend
-**Principle:** Code Quality (Explicit Design)
-**Estimated Time:** [Time estimate]
+## Phase 3: User Story 1 - [Title] (Priority: P1) 🎯 MVP
 
-**Description:**
-Create FastAPI endpoint stubs with Pydantic schemas but no implementation.
+**Goal**: [Brief description of what this story delivers]
 
-**Acceptance Criteria:**
-- [ ] Route handlers defined with type hints
-- [ ] Pydantic request/response models created
-- [ ] Dependency injection configured
-- [ ] OpenAPI docs auto-generated
-- [ ] Endpoints return placeholder responses
+**Independent Test**: [How to verify this story works on its own]
 
-**Dependencies:** Task 1.1 (Database Schema)
+### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
 
-**Files to Create/Modify:**
-- `src/[module]/views.py` - Route handlers
-- `src/[module]/schemas.py` - Pydantic models
-- `src/[module]/controller.py` - Business logic stub
+**NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-**Constitution Checklist:**
-- [ ] Uses FastAPI dependency injection (Principle 1)
-- [ ] Type annotations complete (Principle 1)
-- [ ] Google-style docstrings added (Principle 1)
+- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
+- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+
+### Implementation for User Story 1
+
+- [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
+- [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
+- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
+- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T016 [US1] Add validation and error handling
+- [ ] T017 [US1] Add logging for user story 1 operations
+
+**Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
 ---
 
-## Phase 2: Test-Driven Implementation
+## Phase 4: User Story 2 - [Title] (Priority: P2)
 
-### Task 2.1: Backend Unit Tests (Setup)
-**Category:** 🧪 Testing
-**Principle:** Testing Standards (TDD, Isolation)
-**Estimated Time:** [Time estimate]
+**Goal**: [Brief description of what this story delivers]
 
-**Description:**
-Write failing unit tests for backend business logic BEFORE implementation.
+**Independent Test**: [How to verify this story works on its own]
 
-**Acceptance Criteria:**
-- [ ] Test files created following `tests/[module]/test_[file].py` structure
-- [ ] Fixtures from `conftest.py` used (user, workspace, session)
-- [ ] All dependencies mocked except database session
-- [ ] PyHamcrest assertions used
-- [ ] Tests currently fail (red phase of TDD)
+### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
 
-**Dependencies:** Task 1.2 (API Endpoint Stubs)
+- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
+- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
 
-**Files to Create/Modify:**
-- `tests/[module]/test_controller.py`
-- `tests/[module]/test_[service].py`
+### Implementation for User Story 2
 
-**Testing Checklist:**
-- [ ] Unit tests mock ALL dependencies except DB (Principle 2)
-- [ ] Tests use `session` fixture, not mocked DB (Principle 2)
-- [ ] Run with `ENVIRONMENT=test pytest [file]` (Principle 2)
+- [ ] T020 [P] [US2] Create [Entity] model in src/models/[entity].py
+- [ ] T021 [US2] Implement [Service] in src/services/[service].py
+- [ ] T022 [US2] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T023 [US2] Integrate with User Story 1 components (if needed)
+
+**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
 ---
 
-### Task 2.2: Backend Implementation
-**Category:** 💻 Backend
-**Principle:** Code Quality (Simplicity, KISS, YAGNI)
-**Estimated Time:** [Time estimate]
+## Phase 5: User Story 3 - [Title] (Priority: P3)
 
-**Description:**
-Implement backend business logic to make tests pass.
+**Goal**: [Brief description of what this story delivers]
 
-**Acceptance Criteria:**
-- [ ] Controller methods implemented
-- [ ] Service layer methods implemented (if needed)
-- [ ] Database queries optimized (avoid N+1)
-- [ ] All unit tests now pass (green phase of TDD)
-- [ ] Code formatted with Black
-- [ ] Type hints complete
+**Independent Test**: [How to verify this story works on its own]
 
-**Dependencies:** Task 2.1 (Backend Unit Tests)
+### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
 
-**Files to Modify:**
-- `src/[module]/controller.py`
-- `src/[module]/service.py` (if needed)
+- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
+- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
 
-**Constitution Checklist:**
-- [ ] Simplest solution chosen (KISS) (Principle 1)
-- [ ] No speculative code (YAGNI) (Principle 1)
-- [ ] Functions small and focused (Principle 1)
-- [ ] Explicit naming used (Principle 1)
-- [ ] Tests pass: `ENVIRONMENT=test pytest tests/[module]/` (Principle 2)
+### Implementation for User Story 3
+
+- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
+- [ ] T027 [US3] Implement [Service] in src/services/[service].py
+- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
+
+**Checkpoint**: All user stories should now be independently functional
 
 ---
 
-### Task 2.3: Frontend Hook Tests (Setup)
-**Category:** 🧪 Testing
-**Principle:** Testing Standards (Isolation)
-**Estimated Time:** [Time estimate]
-
-**Description:**
-Write failing vitest tests for custom React hooks BEFORE implementation.
-
-**Acceptance Criteria:**
-- [ ] Test file created: `[hook].test.tsx`
-- [ ] All dependencies mocked with `vi.spyOn()`
-- [ ] API calls mocked with MSW
-- [ ] Tests currently fail (red phase of TDD)
-
-**Dependencies:** Task 1.2 (API Endpoint Stubs)
-
-**Files to Create:**
-- `static/react-components/hooks/[hook].test.tsx`
-
-**Testing Checklist:**
-- [ ] Unit tests mock ALL hook dependencies (Principle 2)
-- [ ] Uses `vi.spyOn()` for same-module mocking (Principle 2)
-- [ ] Never calls real implementations (Principle 2)
+[Add more user story phases as needed, following the same pattern]
 
 ---
 
-### Task 2.4: Frontend Hook Implementation
-**Category:** 🎨 Frontend
-**Principle:** Code Quality (Modularity, Type Safety)
-**Estimated Time:** [Time estimate]
+## Phase N: Polish & Cross-Cutting Concerns
 
-**Description:**
-Implement custom React hooks to make tests pass.
+**Purpose**: Improvements that affect multiple user stories
 
-**Acceptance Criteria:**
-- [ ] Hook implemented with TypeScript strict mode
-- [ ] JSDoc comments added
-- [ ] All tests now pass (green phase of TDD)
-- [ ] ESLint and Prettier pass
-- [ ] Hook handles loading and error states
-
-**Dependencies:** Task 2.3 (Frontend Hook Tests)
-
-**Files to Create/Modify:**
-- `static/react-components/hooks/[hook].tsx`
-
-**Constitution Checklist:**
-- [ ] Functional approach with hooks (Principle 1)
-- [ ] TypeScript strict mode (Principle 1)
-- [ ] JSDoc comments complete (Principle 1)
-- [ ] Tests pass: `npm run test -- [hook].test.tsx` (Principle 2)
+- [ ] TXXX [P] Documentation updates in docs/
+- [ ] TXXX Code cleanup and refactoring
+- [ ] TXXX Performance optimization across all stories
+- [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
+- [ ] TXXX Security hardening
+- [ ] TXXX Run quickstart.md validation
 
 ---
 
-## Phase 3: User Interface
+## Dependencies & Execution Order
 
-### Task 3.1: Component Storybook Stories
-**Category:** 🎨 Frontend
-**Principle:** UX Consistency (Design System)
-**Estimated Time:** [Time estimate]
+### Phase Dependencies
 
-**Description:**
-Create Storybook stories for new components BEFORE full implementation.
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
+- **User Stories (Phase 3+)**: All depend on Foundational phase completion
+  - User stories can then proceed in parallel (if staffed)
+  - Or sequentially in priority order (P1 → P2 → P3)
+- **Polish (Final Phase)**: Depends on all desired user stories being complete
 
-**Acceptance Criteria:**
-- [ ] Story file created: `[Component].stories.tsx`
-- [ ] All hooks and contexts mocked
-- [ ] Multiple states/variants shown (default, loading, error, etc.)
-- [ ] Uses example data from `stories/example_data.tsx`
-- [ ] Storybook renders without errors
+### User Story Dependencies
 
-**Dependencies:** Task 2.4 (Frontend Hook Implementation)
+- **User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
+- **User Story 2 (P2)**: Can start after Foundational (Phase 2) - May integrate with US1 but should be independently testable
+- **User Story 3 (P3)**: Can start after Foundational (Phase 2) - May integrate with US1/US2 but should be independently testable
 
-**Files to Create:**
-- `static/react-components/stories/[Component].stories.tsx`
-- `static/react-components/hooks/[hook].mock.tsx` (if needed)
+### Within Each User Story
 
-**UX Checklist:**
-- [ ] Uses Tailwind theme exclusively (Principle 3)
-- [ ] Reuses existing components where possible (Principle 3)
-- [ ] Shows all required states (loading, error, success) (Principle 3)
-- [ ] View in Storybook: `http://localhost:6006/` (Principle 3)
+- Tests (if included) MUST be written and FAIL before implementation
+- Models before services
+- Services before endpoints
+- Core implementation before integration
+- Story complete before moving to next priority
 
----
+### Parallel Opportunities
 
-### Task 3.2: Component Implementation
-**Category:** 🎨 Frontend
-**Principle:** UX Consistency (Accessibility, Design System)
-**Estimated Time:** [Time estimate]
-
-**Description:**
-Implement React components following Tailwind design system.
-
-**Acceptance Criteria:**
-- [ ] Component created as functional component with hooks
-- [ ] Uses Tailwind CSS exclusively (no custom CSS)
-- [ ] TypeScript interfaces defined for props
-- [ ] JSDoc comments added
-- [ ] Accessibility features implemented (keyboard nav, ARIA labels)
-- [ ] Responsive design (mobile, tablet, desktop)
-- [ ] Error boundaries implemented
-
-**Dependencies:** Task 3.1 (Component Storybook Stories)
-
-**Files to Create/Modify:**
-- `static/react-components/components/[Component].tsx`
-- `static/react-components/components/[Component].module.css` (ONLY if absolutely necessary)
-
-**UX Checklist:**
-- [ ] Tailwind theme used (colors, spacing, typography) (Principle 3)
-- [ ] Keyboard navigation works (Principle 3)
-- [ ] ARIA labels present (Principle 3)
-- [ ] Color contrast meets WCAG 2.1 AA (Principle 3)
-- [ ] Responsive breakpoints implemented (Principle 3)
-- [ ] Loading and error states shown (Principle 3)
+- All Setup tasks marked [P] can run in parallel
+- All Foundational tasks marked [P] can run in parallel (within Phase 2)
+- Once Foundational phase completes, all user stories can start in parallel (if team capacity allows)
+- All tests for a user story marked [P] can run in parallel
+- Models within a story marked [P] can run in parallel
+- Different user stories can be worked on in parallel by different team members
 
 ---
 
-### Task 3.3: Visual Validation in Storybook
-**Category:** ✅ Validation
-**Principle:** UX Consistency, Testing Standards
-**Estimated Time:** [Time estimate]
+## Parallel Example: User Story 1
 
-**Description:**
-Validate components visually in Storybook and make adjustments.
-
-**Acceptance Criteria:**
-- [ ] All component states render correctly
-- [ ] Design system consistency verified
-- [ ] Accessibility checked (keyboard nav, screen reader)
-- [ ] Responsive behavior verified at all breakpoints
-- [ ] No console errors or warnings
-
-**Dependencies:** Task 3.2 (Component Implementation)
-
-**Validation Steps:**
-1. Start Storybook: `npm run storybook`
-2. Navigate to `http://localhost:6006/`
-3. Test all stories for the new components
-4. Verify keyboard navigation
-5. Check color contrast with browser tools
-6. Test at mobile, tablet, desktop widths
-
-**Constitution Checklist:**
-- [ ] Storybook stories pass visual inspection (Principle 3)
-- [ ] Accessibility verified (Principle 3)
-- [ ] No custom CSS added (Principle 3)
-
----
-
-## Phase 4: Integration & Optimization
-
-### Task 4.1: Backend-Frontend Integration
-**Category:** 💻 Backend + 🎨 Frontend
-**Principle:** Code Quality (Explicit Design)
-**Estimated Time:** [Time estimate]
-
-**Description:**
-Connect frontend components to backend API endpoints.
-
-**Acceptance Criteria:**
-- [ ] API client functions created in `#api/` directory
-- [ ] Hooks properly call API functions
-- [ ] Loading states shown during API calls
-- [ ] Error handling implemented with user-friendly messages
-- [ ] Response data properly typed with TypeScript interfaces
-
-**Dependencies:** Task 2.2 (Backend Implementation), Task 2.4 (Frontend Hook Implementation)
-
-**Files to Modify:**
-- `static/react-components/api/[service].ts`
-- `static/react-components/hooks/[hook].tsx`
-
-**Constitution Checklist:**
-- [ ] Explicit data flow (Principle 1)
-- [ ] Type safety throughout (Principle 1)
-- [ ] Error states handled (Principle 3)
-
----
-
-### Task 4.2: Performance Baseline Measurement
-**Category:** 📊 Performance
-**Principle:** Performance (Measurement-Driven)
-**Estimated Time:** [Time estimate]
-
-**Description:**
-Measure performance baselines BEFORE any optimization.
-
-**Acceptance Criteria:**
-- [ ] Backend API response times measured
-- [ ] Frontend render times measured (React DevTools Profiler)
-- [ ] Database query performance profiled (EXPLAIN ANALYZE)
-- [ ] Baseline metrics documented
-- [ ] Hot paths identified
-
-**Dependencies:** Task 4.1 (Backend-Frontend Integration)
-
-**Measurement Tools:**
-- Backend: Python logging with timing
-- Frontend: React DevTools Profiler
-- Database: PostgreSQL EXPLAIN ANALYZE
-- Network: Browser DevTools Network tab
-
-**Constitution Requirement:**
-- [ ] MUST measure before optimizing (Principle 4)
-
----
-
-### Task 4.3: Performance Optimization (If Needed)
-**Category:** 📊 Performance
-**Principle:** Performance (Data-Driven)
-**Estimated Time:** [Time estimate]
-
-**Description:**
-Optimize ONLY if measurements show issues. Skip if baselines meet targets.
-
-**Acceptance Criteria:**
-- [ ] Specific bottlenecks identified from measurements
-- [ ] Optimization targets defined
-- [ ] Optimizations implemented (caching, indexes, memoization, etc.)
-- [ ] New measurements show improvement
-- [ ] No regressions in other areas
-
-**Dependencies:** Task 4.2 (Performance Baseline Measurement)
-
-**Potential Optimizations:**
-- Database: Add indexes, optimize queries, avoid N+1
-- Backend: Add caching (Redis), optimize algorithms
-- Frontend: React.memo(), lazy loading, code splitting
-
-**Constitution Checklist:**
-- [ ] Optimizations based on data, not guesses (Principle 4)
-- [ ] Before/after measurements documented (Principle 4)
-- [ ] Simplicity maintained (Principle 1)
-
----
-
-## Phase 5: Documentation & Validation
-
-### Task 5.1: Code Documentation
-**Category:** 📝 Documentation
-**Principle:** Code Quality (Explicit Design)
-**Estimated Time:** [Time estimate]
-
-**Description:**
-Ensure all code has proper documentation.
-
-**Acceptance Criteria:**
-- [ ] All Python functions have Google-style docstrings
-- [ ] All TypeScript exports have JSDoc comments
-- [ ] Complex algorithms have inline comments explaining logic
-- [ ] API endpoints documented in OpenAPI (auto-generated)
-
-**Dependencies:** All implementation tasks
-
-**Files to Review:**
-- All Python files in `src/[module]/`
-- All TypeScript files in `static/react-components/`
-
-**Constitution Checklist:**
-- [ ] Documentation supports explicit design (Principle 1)
-
----
-
-### Task 5.2: Final Validation Suite
-**Category:** ✅ Validation
-**Principle:** Testing Standards, Code Quality
-**Estimated Time:** [Time estimate]
-
-**Description:**
-Run complete validation suite before considering feature done.
-
-**Acceptance Criteria:**
-- [ ] All unit tests pass: `ENVIRONMENT=test pytest --cov=src`
-- [ ] Code coverage meets targets
-- [ ] Black formatter passes: `black --check src/ tests/`
-- [ ] TypeScript tests pass: `npm run test`
-- [ ] ESLint/Prettier pass: `npm run lint`
-- [ ] TypeScript compilation succeeds: `npm run compile`
-- [ ] Storybook stories validated: `http://localhost:6006/`
-- [ ] Integration tested in dev: `http://dev.openbacklog.ai/`
-- [ ] Performance targets met
-
-**Dependencies:** All previous tasks
-
-**Validation Commands:**
 ```bash
-# Backend validation
-ENVIRONMENT=test pytest --cov=src --cov-report=term-missing
-black --check src/ tests/
-isort --check-only src/ tests/
+# Launch all tests for User Story 1 together (if tests requested):
+Task: "Contract test for [endpoint] in tests/contract/test_[name].py"
+Task: "Integration test for [user journey] in tests/integration/test_[name].py"
 
-# Frontend validation
-cd static/react-components
-npm run test
-npm run lint
-npm run compile
-
-# Visual validation
-# Navigate to http://localhost:6006/ and verify all stories
-
-# Integration testing
-# Navigate to http://dev.openbacklog.ai/ and test feature end-to-end
+# Launch all models for User Story 1 together:
+Task: "Create [Entity1] model in src/models/[entity1].py"
+Task: "Create [Entity2] model in src/models/[entity2].py"
 ```
 
-**Constitution Checklist:**
-- [ ] Code quality validated (Principle 1)
-- [ ] Testing standards met (Principle 2)
-- [ ] UX consistency verified (Principle 3)
-- [ ] Performance targets achieved (Principle 4)
-
 ---
 
-## Task Summary
+## Implementation Strategy
 
-**Total Tasks:** [Count]
-**Estimated Total Time:** [Sum of estimates]
+### MVP First (User Story 1 Only)
 
-**By Category:**
-- 🏗️ Setup/Infrastructure: [Count]
-- 🧪 Testing: [Count]
-- 💻 Backend: [Count]
-- 🎨 Frontend: [Count]
-- 📊 Performance: [Count]
-- 📝 Documentation: [Count]
-- ✅ Validation: [Count]
+1. Complete Phase 1: Setup
+2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
+3. Complete Phase 3: User Story 1
+4. **STOP and VALIDATE**: Test User Story 1 independently
+5. Deploy/demo if ready
 
----
+### Incremental Delivery
 
-## Definition of Done
+1. Complete Setup + Foundational → Foundation ready
+2. Add User Story 1 → Test independently → Deploy/Demo (MVP!)
+3. Add User Story 2 → Test independently → Deploy/Demo
+4. Add User Story 3 → Test independently → Deploy/Demo
+5. Each story adds value without breaking previous stories
 
-Feature is considered complete when:
+### Parallel Team Strategy
 
-- [ ] All tasks above are completed
-- [ ] All acceptance criteria met
-- [ ] All constitution principles verified
-- [ ] Code reviewed and approved
-- [ ] Merged to main branch
-- [ ] Deployed to production
-- [ ] Post-deployment monitoring confirmed
+With multiple developers:
+
+1. Team completes Setup + Foundational together
+2. Once Foundational is done:
+   - Developer A: User Story 1
+   - Developer B: User Story 2
+   - Developer C: User Story 3
+3. Stories complete and integrate independently
 
 ---
 
 ## Notes
 
-[Any additional notes, context, or important considerations for implementers]
+- [P] tasks = different files, no dependencies
+- [Story] label maps task to specific user story for traceability
+- Each user story should be independently completable and testable
+- Verify tests fail before implementing
+- Commit after each task or logical group
+- Stop at any checkpoint to validate story independently
+- Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
 
----
 
-**Constitution Workflow Reminder:**
 
-🔍 **Research** → 📋 **Plan** → 💻 **Implement** → ✅ **Validate**
-
-Always follow TDD for complex logic and run the full validation suite!

@@ -1,229 +1,105 @@
-# Implementation Plan: [FEATURE_NAME]
+# Implementation Plan: [FEATURE]
 
-**Created:** [DATE]
-**Initiative/Task:** [INITIATIVE_ID] / [TASK_ID]
-**Status:** [Draft | Approved | In Progress | Completed]
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
----
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
-## Overview
+## Summary
 
-### Feature Description
-[Brief description of what this feature does and why it's needed]
+[Extract from feature spec: primary requirement + technical approach from research]
 
-### Success Criteria
-- [ ] [Criterion 1]
-- [ ] [Criterion 2]
-- [ ] [Criterion 3]
+## Technical Context
 
-### Constitution Alignment Check
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
 
-**Before proceeding, verify this plan complies with:**
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]  
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
-- [ ] **Principle 1 - Code Quality:** Is this the simplest solution? Are we avoiding speculative features (YAGNI)? Is the design explicit and modular?
-- [ ] **Principle 2 - Testing:** Have we identified where TDD is required? Are test isolation strategies clear?
-- [ ] **Principle 3 - UX Consistency:** Does this follow the Tailwind theme? Is the design system properly used?
-- [ ] **Principle 4 - Performance:** Have we identified hot paths? Are optimizations measurement-driven?
+## Constitution Check
 
----
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-## Technical Approach
+[Gates determined based on constitution file]
 
-### Architecture Overview
-[High-level description of how this feature fits into the existing architecture]
+## Project Structure
 
-### Component Changes
+### Documentation (this feature)
 
-**Backend (Python/FastAPI):**
-- [ ] API endpoints: [list new/modified endpoints]
-- [ ] Database models: [list new/modified SQLAlchemy models]
-- [ ] Business logic: [list new services/controllers]
-- [ ] Database migrations: [describe Alembic migrations needed]
-
-**Frontend (React/TypeScript):**
-- [ ] Components: [list new/modified React components]
-- [ ] Hooks: [list new/modified custom hooks]
-- [ ] API integration: [list API client changes]
-- [ ] State management: [describe state changes]
-
-### Database Changes
-[Describe any schema changes, new tables, altered columns, indexes]
-
-### API Contract
 ```
-[Define API request/response schemas using Pydantic/TypeScript interfaces]
+specs/[###-feature]/
+├── plan.md              # This file (/speckit.plan command output)
+├── research.md          # Phase 0 output (/speckit.plan command)
+├── data-model.md        # Phase 1 output (/speckit.plan command)
+├── quickstart.md        # Phase 1 output (/speckit.plan command)
+├── contracts/           # Phase 1 output (/speckit.plan command)
+└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
----
+### Source Code (repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 
-## Implementation Phases
+```
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+src/
+├── models/
+├── services/
+├── cli/
+└── lib/
 
-### Phase 1: [Phase Name]
-**Goal:** [What this phase achieves]
+tests/
+├── contract/
+├── integration/
+└── unit/
 
-**Tasks:**
-1. [Task description]
-2. [Task description]
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+backend/
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
 
-**Testing:** [What tests are needed for this phase]
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
 
-**Validation:** [How to verify this phase is complete]
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
 
-### Phase 2: [Phase Name]
-**Goal:** [What this phase achieves]
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
+```
 
-**Tasks:**
-1. [Task description]
-2. [Task description]
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
-**Testing:** [What tests are needed for this phase]
+## Complexity Tracking
 
-**Validation:** [How to verify this phase is complete]
+*Fill ONLY if Constitution Check has violations that must be justified*
 
-[Add more phases as needed]
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
 
----
-
-## Testing Strategy
-
-### Unit Tests
-**Backend (pytest with PyHamcrest):**
-- [ ] [Test file 1]: [What it tests]
-- [ ] [Test file 2]: [What it tests]
-
-**Frontend (vitest):**
-- [ ] [Test file 1]: [What it tests - hooks/services only]
-- [ ] [Test file 2]: [What it tests]
-
-### Visual Testing
-**Storybook Stories:**
-- [ ] [Component 1]: [What states/variants to test]
-- [ ] [Component 2]: [What states/variants to test]
-
-### Integration Testing
-- [ ] [Test scenario 1]
-- [ ] [Test scenario 2]
-
-### Performance Testing
-- [ ] Identify hot paths: [list critical performance paths]
-- [ ] Baseline measurements: [what to measure before optimization]
-- [ ] Performance targets: [acceptable thresholds]
-
----
-
-## Dependencies & Risks
-
-### External Dependencies
-- [Library/Service 1]: [Purpose and version]
-- [Library/Service 2]: [Purpose and version]
-
-### Internal Dependencies
-- [Feature/Component 1]: [Why it's needed]
-- [Feature/Component 2]: [Why it's needed]
-
-### Technical Risks
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| [Risk 1] | [High/Med/Low] | [How to address] |
-| [Risk 2] | [High/Med/Low] | [How to address] |
-
-### Performance Risks
-- [Performance concern 1]: [Mitigation strategy]
-- [Performance concern 2]: [Mitigation strategy]
-
----
-
-## Code Quality Checklist
-
-### Simplicity & Maintainability
-- [ ] Solution is the simplest that solves the problem (KISS)
-- [ ] No speculative features or abstractions (YAGNI)
-- [ ] All naming is explicit and verbose
-- [ ] Functions are small and single-purpose
-- [ ] Files are small and modular
-
-### Type Safety & Standards
-- [ ] Python: All functions have type hints and Google-style docstrings
-- [ ] TypeScript: Strict mode enabled, all exports have JSDoc comments
-- [ ] Following PEP 8 (Python) and ESLint/Prettier (TypeScript)
-- [ ] No magic numbers (all constants defined)
-
-### Architecture Alignment
-- [ ] Uses FastAPI dependency injection (not service locators)
-- [ ] SQLAlchemy ORM with Pydantic schemas
-- [ ] React functional components with hooks only
-- [ ] Follows container/presentational pattern where appropriate
-
----
-
-## UX Consistency Checklist
-
-### Design System Compliance
-- [ ] Uses Tailwind theme exclusively (no custom CSS)
-- [ ] Uses design tokens from `tailwind.config.js`
-- [ ] Reuses existing components before creating new ones
-- [ ] Follows content design system guidelines for copy
-
-### Accessibility
-- [ ] Keyboard navigation supported
-- [ ] ARIA labels where appropriate
-- [ ] Color contrast meets WCAG 2.1 AA standards
-- [ ] Screen reader compatible
-
-### User Feedback
-- [ ] Loading states for async operations
-- [ ] Error boundaries and error states
-- [ ] Responsive design (mobile, tablet, desktop)
-
----
-
-## Validation Plan
-
-### Pre-Implementation Validation
-- [ ] Plan reviewed and approved
-- [ ] Constitution compliance verified
-- [ ] Dependencies confirmed available
-- [ ] Risks assessed and mitigated
-
-### Implementation Validation (After Each Phase)
-- [ ] Unit tests pass: `ENVIRONMENT=test pytest --cov=src`
-- [ ] Code formatted: `black --check src/ tests/`
-- [ ] TypeScript tests pass: `npm run test`
-- [ ] Visual validation in Storybook: `http://localhost:6006/`
-- [ ] Integration test in dev: `http://dev.openbacklog.ai/`
-
-### Final Validation (Before Merge)
-- [ ] All tests pass
-- [ ] All formatters/linters pass
-- [ ] Performance baselines met or exceeded
-- [ ] Accessibility verified
-- [ ] Code review completed
-- [ ] Documentation updated
-
----
-
-## Rollout Plan
-
-### Deployment Steps
-1. [Step 1]
-2. [Step 2]
-3. [Step 3]
-
-### Rollback Plan
-[How to rollback if issues are discovered]
-
-### Monitoring
-- [Metric 1 to monitor]
-- [Metric 2 to monitor]
-
----
-
-## Notes & Questions
-
-[Any additional context, open questions, or important notes]
-
----
-
-**Core Workflow Reminder:** Research → Plan → Implement → Validate
-
-Always run formatters, linters, unit tests, and visual tests after implementation!
