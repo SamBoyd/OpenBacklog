@@ -6,12 +6,14 @@ Create Date: 2025-10-19 09:49:22.577005
 
 """
 
+from textwrap import dedent
 from typing import Sequence, Union
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 from alembic import op
+from src.config import settings
 
 # revision identifiers, used by Alembic.
 revision: str = "4f25dc97c12b"
@@ -31,6 +33,12 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("event_type", sa.String(length=100), nullable=False),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+            server_default=sa.text("private.get_user_id_from_jwt()"),
+        ),
         sa.Column("aggregate_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column(
             "occurred_at",
@@ -56,6 +64,20 @@ def upgrade() -> None:
         schema="dev",
         postgresql_using="btree",
         postgresql_ops={"occurred_at": "DESC"},
+    )
+
+    op.execute(
+        dedent(
+            f"""
+            ALTER TABLE dev.domain_events ENABLE ROW LEVEL SECURITY;
+            
+            CREATE POLICY domain_events_policy ON dev.domain_events
+                USING (user_id = private.get_user_id_from_jwt())
+                WITH CHECK (user_id = private.get_user_id_from_jwt()); 
+
+            GRANT SELECT, UPDATE, DELETE, INSERT ON TABLE dev.domain_events TO {settings.postgrest_authenticated_role};
+            """
+        )
     )
 
 

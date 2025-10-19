@@ -300,6 +300,27 @@ class Workspace(PublicBase, Base):
     field_definitions: Mapped[List["FieldDefinition"]] = relationship(
         back_populates="workspace", cascade="all, delete-orphan"
     )
+    vision: Mapped["ProductVision"] = relationship(
+        "ProductVision",
+        back_populates="workspace",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    strategic_pillars: Mapped[List["StrategicPillar"]] = relationship(
+        "StrategicPillar",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+    product_outcomes: Mapped[List["ProductOutcome"]] = relationship(
+        "ProductOutcome",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+    roadmap_themes: Mapped[List["RoadmapTheme"]] = relationship(
+        "RoadmapTheme",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
 
     def dict(self) -> Dict[str, Union[str, datetime]]:
         return {
@@ -465,6 +486,32 @@ class Initiative(DoableBase, PublicBase, Base):
 
     type: Mapped[str] = mapped_column(String, nullable=True)
 
+    theme_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        ForeignKey("dev.roadmap_themes.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    user_need: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    connection_to_vision: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    success_criteria: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
+    out_of_scope: Mapped[Optional[str]] = mapped_column(
+        String,
+        nullable=True,
+    )
+
     tasks: Mapped[List[Task]] = relationship(
         back_populates="initiative", cascade="all, delete-orphan"
     )
@@ -472,6 +519,11 @@ class Initiative(DoableBase, PublicBase, Base):
 
     field_definitions: Mapped[List["FieldDefinition"]] = relationship(
         back_populates="initiative", cascade="all, delete-orphan"
+    )
+
+    roadmap_theme: Mapped[Optional["RoadmapTheme"]] = relationship(
+        "RoadmapTheme",
+        back_populates="initiatives",
     )
 
     properties: Mapped[Dict[str, Any]] = mapped_column(

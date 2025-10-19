@@ -27,6 +27,7 @@ class TestEventPublisher:
     def sample_event(self):
         """Sample DomainEvent for testing."""
         return DomainEvent(
+            user_id=uuid.uuid4(),
             event_type="VisionDraftCreated",
             aggregate_id=uuid.uuid4(),
             payload={"vision_text": "Build the best product management tool"},
@@ -64,6 +65,7 @@ class TestEventPublisher:
         }
 
         event = DomainEvent(
+            user_id=uuid.uuid4(),
             event_type="VisionRefined",
             aggregate_id=uuid.uuid4(),
             payload=complex_payload,
@@ -111,6 +113,7 @@ class TestEventPublisher:
     ):
         """Test that structured log contains event_type field for searchability."""
         event = DomainEvent(
+            user_id=uuid.uuid4(),
             event_type="StrategicPillarDefined",
             aggregate_id=uuid.uuid4(),
             payload={"name": "Customer Success"},
@@ -130,6 +133,7 @@ class TestEventPublisher:
         """Test that structured log contains aggregate_id field for searchability."""
         aggregate_id = uuid.uuid4()
         event = DomainEvent(
+            user_id=uuid.uuid4(),
             event_type="InitiativeStrategicallyEnriched",
             aggregate_id=aggregate_id,
             payload={"pillar_id": str(uuid.uuid4())},
@@ -173,6 +177,7 @@ class TestEventPublisher:
     ):
         """Test that event has occurred_at timestamp set automatically."""
         event = DomainEvent(
+            user_id=uuid.uuid4(),
             event_type="VisionDraftCreated",
             aggregate_id=uuid.uuid4(),
             payload={"vision_text": "Build great software"},

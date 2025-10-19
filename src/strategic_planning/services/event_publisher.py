@@ -44,6 +44,7 @@ class EventPublisher:
 
         Example:
             >>> event = DomainEvent(
+            ...     user_id=uuid.uuid4(),
             ...     event_type="VisionDraftCreated",
             ...     aggregate_id=vision_id,
             ...     payload={"vision_text": "Build the best product"}

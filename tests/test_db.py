@@ -42,7 +42,7 @@ def test_tables_in_public_schema(session: Session):
         )
     )
     table_names = [row[0] for row in result.fetchall()]
-    assert_that(len(table_names), equal_to(13))
+    assert_that(len(table_names), equal_to(20))
 
     for table in table_names:
         # Check that the table exists
