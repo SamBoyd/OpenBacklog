@@ -150,4 +150,5 @@ from src.models import User
 from src.users_views import *
 from src.views import *
 from src.views.initiative_views import *
+from src.views.product_strategy_views import *
 from src.views.task_views import *

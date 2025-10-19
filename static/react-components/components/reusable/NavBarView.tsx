@@ -1,6 +1,6 @@
 import React from 'react';
 import { MdBento, MdCategory, MdMenu, MdClose } from 'react-icons/md';
-import { FaDatabase } from "react-icons/fa6";
+import { FaChartLine, FaDatabase } from "react-icons/fa6";
 import { ButtonProps, NoBorderButton } from './Button';
 
 const NAV_BAR_ICON_SIZE = 'size-5';
@@ -63,6 +63,7 @@ interface NavBarViewProps {
     supportPath: string;
     accountPath: string;
     billingPath: string;
+    strategyPath: string;
     toggleTheme: () => void;
     currentTheme: string;
 }
@@ -81,6 +82,7 @@ const NavBarView: React.FC<NavBarViewProps> = ({
     supportPath,
     accountPath,
     billingPath,
+    strategyPath,
 }) => {
     return (
         <nav className="top-0 left-0 right-0 bg-sidebar text-sidebar-foreground h-18 grow-0 flex flex-col justify-center relative z-20"> {/* Increased z-index for navbar */}
@@ -133,6 +135,12 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                                             onClick={() => onNavigate(tasksPath)}
                                             active={currentPath.includes(tasksPath)}
                                         />
+                                        <NavBarButton
+                                            icon={<FaChartLine />}
+                                            title="Strategy"
+                                            onClick={() => onNavigate(strategyPath)}
+                                            active={currentPath.includes(strategyPath)}
+                                            />
                                     </div>
                                 </div>
 
@@ -218,6 +226,15 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                                 className="block w-full text-left"
                             >
                                 <span>Tasks</span>
+                            </MobileNavBarButton>
+                            <MobileNavBarButton
+                                icon={<FaChartLine />}
+                                title="Strategy"
+                                onClick={() => onNavigate(strategyPath)}
+                                active={currentPath.includes(strategyPath)}
+                                className="block w-full text-left"
+                            >
+                                <span>Strategy</span>
                             </MobileNavBarButton>
                         </div>
                         {/* Mobile Action Icons */}

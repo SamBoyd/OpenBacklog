@@ -319,6 +319,23 @@ def test_user_key(
 # --- End Additions ---
 
 
+@pytest.fixture(scope="function")
+def product_vision(session: Session, user: User, workspace: Workspace) -> Generator:
+    """Creates a test product vision for use in tests."""
+    from src.strategic_planning.aggregates.product_vision import ProductVision
+
+    vision = ProductVision(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        vision_text="Build the best product for developers",
+    )
+    session.add(vision)
+    session.commit()
+    session.refresh(vision)
+    yield vision
+    # Cleanup is handled by clean_tables fixture automatically
+
+
 @pytest.fixture
 def test_client(user):
     app.dependency_overrides[dependency_to_override] = lambda: user
