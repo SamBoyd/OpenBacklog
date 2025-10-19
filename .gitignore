@@ -70,6 +70,7 @@ quickNotes*
 *scratch*
 documentation/
 content-design-system/
+specs/
 
 # Jupyter lab
 .cache/
