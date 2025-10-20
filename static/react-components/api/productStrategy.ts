@@ -323,3 +323,143 @@ export async function reorderProductOutcomes(
 
   return response.json();
 }
+
+export interface ThemeCreateRequest {
+  name: string;
+  problem_statement: string;
+  hypothesis?: string | null;
+  indicative_metrics?: string | null;
+  time_horizon_months?: number | null;
+  outcome_ids?: string[];
+}
+
+export interface ThemeDto {
+  id: string;
+  workspace_id: string;
+  name: string;
+  problem_statement: string;
+  hypothesis: string | null;
+  indicative_metrics: string | null;
+  time_horizon_months: number | null;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getRoadmapThemes(
+  workspaceId: string
+): Promise<ThemeDto[]> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/themes`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch roadmap themes');
+  }
+
+  return response.json();
+}
+
+export async function createRoadmapTheme(
+  workspaceId: string,
+  request: ThemeCreateRequest
+): Promise<ThemeDto> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/themes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create roadmap theme');
+  }
+
+  return response.json();
+}
+
+export interface ThemeUpdateRequest {
+  name: string;
+  problem_statement: string;
+  hypothesis?: string | null;
+  indicative_metrics?: string | null;
+  time_horizon_months?: number | null;
+  outcome_ids?: string[];
+}
+
+export async function updateRoadmapTheme(
+  workspaceId: string,
+  themeId: string,
+  request: ThemeUpdateRequest
+): Promise<ThemeDto> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/themes/${themeId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to update roadmap theme');
+  }
+
+  return response.json();
+}
+
+export async function deleteRoadmapTheme(
+  workspaceId: string,
+  themeId: string
+): Promise<void> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/themes/${themeId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to delete roadmap theme');
+  }
+}
+
+export interface ThemeOrderItem {
+  id: string;
+  display_order: number;
+}
+
+export interface ThemeReorderRequest {
+  themes: ThemeOrderItem[];
+}
+
+export async function reorderRoadmapThemes(
+  workspaceId: string,
+  request: ThemeReorderRequest
+): Promise<ThemeDto[]> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/themes/reorder`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to reorder roadmap themes');
+  }
+
+  return response.json();
+}

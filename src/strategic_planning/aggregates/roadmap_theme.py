@@ -71,6 +71,13 @@ class RoadmapTheme(Base):
         server_default=text("gen_random_uuid()"),
     )
 
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("private.users.id", ondelete="CASCADE"),
+        nullable=False,
+        server_default=text("private.get_user_id_from_jwt()"),
+    )
+
     workspace_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("dev.workspace.id", ondelete="CASCADE"),
@@ -229,65 +236,84 @@ class RoadmapTheme(Base):
                 f"Time horizon must be between 0-12 months (got {time_horizon_months})"
             )
 
+    @staticmethod
     def define_theme(
-        self,
+        workspace_id: uuid.UUID,
+        user_id: uuid.UUID,
         name: str,
         problem_statement: str,
         hypothesis: str | None,
         indicative_metrics: str | None,
         time_horizon_months: int | None,
         display_order: int,
+        session: Session,
         publisher: "EventPublisher",
-    ) -> None:
+    ) -> "RoadmapTheme":
         """Define a new roadmap theme with business validation.
 
-        This method sets the theme's fields after validation and emits
-        a ThemeDefined domain event.
+        This static factory method creates a new RoadmapTheme, validates
+        all fields, persists to database, and emits a ThemeDefined domain event.
 
         Args:
+            workspace_id: UUID of the workspace
+            user_id: UUID of the user creating the theme
             name: Theme name (1-100 characters, unique per workspace)
             problem_statement: Problem being solved (1-1500 characters, required)
             hypothesis: Expected outcome (max 1500 characters)
             indicative_metrics: Success metrics (max 1000 characters)
             time_horizon_months: Time horizon in months (0-12)
             display_order: Display order within workspace
+            session: SQLAlchemy database session
             publisher: EventPublisher instance for emitting domain events
+
+        Returns:
+            The created RoadmapTheme instance
 
         Raises:
             DomainException: If any field violates validation rules
 
         Example:
-            >>> theme = RoadmapTheme(workspace_id=workspace.id)
-            >>> theme.define_theme(
+            >>> theme = RoadmapTheme.define_theme(
+            ...     workspace_id=workspace.id,
+            ...     user_id=user.id,
             ...     name="First Week Magic",
             ...     problem_statement="Users fail to integrate in first week",
             ...     hypothesis="Quick wins drive adoption",
             ...     indicative_metrics="% users active in week 1",
             ...     time_horizon_months=6,
             ...     display_order=0,
+            ...     session=session,
             ...     publisher=publisher
             ... )
         """
-        self._validate_name(name)
-        self._validate_problem_statement(problem_statement)
-        self._validate_text_field("Hypothesis", hypothesis, 1500)
-        self._validate_text_field("Indicative metrics", indicative_metrics, 1000)
-        self._validate_time_horizon(time_horizon_months)
+        RoadmapTheme._validate_name(name)
+        RoadmapTheme._validate_problem_statement(problem_statement)
+        RoadmapTheme._validate_text_field("Hypothesis", hypothesis, 1500)
+        RoadmapTheme._validate_text_field(
+            "Indicative metrics", indicative_metrics, 1000
+        )
+        RoadmapTheme._validate_time_horizon(time_horizon_months)
 
-        self.name = name
-        self.problem_statement = problem_statement
-        self.hypothesis = hypothesis
-        self.indicative_metrics = indicative_metrics
-        self.time_horizon_months = time_horizon_months
-        self.display_order = display_order
-        self.updated_at = datetime.now(timezone.utc)
+        theme = RoadmapTheme(
+            user_id=user_id,
+            workspace_id=workspace_id,
+            name=name,
+            problem_statement=problem_statement,
+            hypothesis=hypothesis,
+            indicative_metrics=indicative_metrics,
+            time_horizon_months=time_horizon_months,
+            display_order=display_order,
+        )
+
+        session.add(theme)
+        session.flush()
 
         event = DomainEvent(
-            user_id=uuid.uuid4(),
+            user_id=user_id,
             event_type="ThemeDefined",
-            aggregate_id=self.id,
+            aggregate_id=theme.id,
             payload={
-                "workspace_id": str(self.workspace_id),
+                "workspace_id": str(workspace_id),
                 "name": name,
                 "problem_statement": problem_statement,
                 "hypothesis": hypothesis,
@@ -296,7 +322,9 @@ class RoadmapTheme(Base):
                 "display_order": display_order,
             },
         )
-        publisher.publish(event, workspace_id=str(self.workspace_id))
+        publisher.publish(event, workspace_id=str(workspace_id))
+
+        return theme
 
     def update_theme(
         self,
@@ -387,7 +415,9 @@ class RoadmapTheme(Base):
         ).delete()
 
         for outcome_id in outcome_ids:
-            link = ThemeOutcomeLink(theme_id=self.id, outcome_id=outcome_id)
+            link = ThemeOutcomeLink(
+                theme_id=self.id, outcome_id=outcome_id, user_id=self.user_id
+            )
             session.add(link)
 
         self.updated_at = datetime.now(timezone.utc)

@@ -1,9 +1,11 @@
 import React from 'react';
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { useStrategicPillars } from '#hooks/useStrategicPillars';
+import { useProductOutcomes } from '#hooks/useProductOutcomes';
 import { ProductVision } from '#components/product-strategy/ProductVision';
 import { StrategicPillars } from '#components/product-strategy/StrategicPillars';
 import { ProductOutcomes } from '#components/product-strategy/ProductOutcomes';
+import { RoadmapThemes } from '#components/product-strategy/RoadmapThemes';
 
 /**
  * ProductStrategy page component for managing workspace product vision
@@ -14,6 +16,7 @@ const ProductStrategy: React.FC = () => {
   const workspaceId = currentWorkspace?.id || '';
 
   const { pillars } = useStrategicPillars(workspaceId);
+  const { outcomes } = useProductOutcomes(workspaceId);
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -28,6 +31,11 @@ const ProductStrategy: React.FC = () => {
       <ProductOutcomes
         workspaceId={workspaceId}
         availablePillars={pillars.map((p) => ({ id: p.id, name: p.name }))}
+      />
+
+      <RoadmapThemes
+        workspaceId={workspaceId}
+        availableOutcomes={outcomes.map((o) => ({ id: o.id, name: o.name }))}
       />
     </div>
   );

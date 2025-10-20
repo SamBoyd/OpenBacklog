@@ -11,7 +11,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from src.models import Workspace
+from src.models import User, Workspace
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.exceptions import DomainException
@@ -22,7 +22,7 @@ class TestProductOutcome:
     """Unit tests for ProductOutcome aggregate."""
 
     @pytest.fixture
-    def workspace(self, user, session: Session):
+    def workspace(self, user: User, session: Session):
         """Create a workspace for testing."""
         workspace = Workspace(
             id=uuid.uuid4(),
@@ -41,7 +41,7 @@ class TestProductOutcome:
         return MagicMock(spec=EventPublisher)
 
     @pytest.fixture
-    def product_outcome(self, workspace: Workspace, user):
+    def product_outcome(self, workspace: Workspace, user: User):
         """Create a ProductOutcome instance for testing."""
         return ProductOutcome(
             id=uuid.uuid4(),
@@ -57,7 +57,7 @@ class TestProductOutcome:
     def test_validate_outcome_limit_raises_exception_when_10_outcomes_exist(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
     ):
         """Test that validate_outcome_limit() raises exception when 10 outcomes exist."""
@@ -79,7 +79,7 @@ class TestProductOutcome:
     def test_validate_outcome_limit_passes_when_less_than_10_outcomes(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
     ):
         """Test that validate_outcome_limit() passes when < 10 outcomes exist."""
@@ -98,7 +98,7 @@ class TestProductOutcome:
     def test_map_outcome_validates_name_minimum_length(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -121,7 +121,7 @@ class TestProductOutcome:
     def test_map_outcome_validates_name_maximum_length(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -147,7 +147,7 @@ class TestProductOutcome:
     def test_map_outcome_validates_description_maximum_length(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -173,7 +173,7 @@ class TestProductOutcome:
     def test_map_outcome_validates_metrics_maximum_length(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -199,7 +199,7 @@ class TestProductOutcome:
     def test_map_outcome_validates_time_horizon_minimum(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -223,7 +223,7 @@ class TestProductOutcome:
     def test_map_outcome_validates_time_horizon_maximum(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -247,7 +247,7 @@ class TestProductOutcome:
     def test_map_outcome_accepts_valid_input(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -279,7 +279,7 @@ class TestProductOutcome:
     def test_map_outcome_accepts_none_for_optional_fields(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -306,7 +306,7 @@ class TestProductOutcome:
     def test_map_outcome_emits_outcome_mapped_event(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -442,7 +442,7 @@ class TestProductOutcome:
         self,
         product_outcome: ProductOutcome,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -485,7 +485,7 @@ class TestProductOutcome:
         self,
         product_outcome: ProductOutcome,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -526,7 +526,7 @@ class TestProductOutcome:
         self,
         product_outcome: ProductOutcome,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -553,7 +553,7 @@ class TestProductOutcome:
     def test_unique_constraint_enforced_for_workspace_name(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
     ):
         """Test that (workspace_id, name) unique constraint is enforced."""
@@ -580,7 +580,7 @@ class TestProductOutcome:
     def test_outcome_stores_correctly_in_database(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         mock_publisher: MagicMock,
         session: Session,
     ):

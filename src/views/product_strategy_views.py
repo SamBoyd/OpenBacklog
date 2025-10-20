@@ -584,3 +584,258 @@ async def delete_product_outcome(
     except Exception as e:
         logger.error(f"Error deleting outcome: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete outcome")
+
+
+# Roadmap Theme Endpoints
+
+
+class ThemeCreateRequest(BaseModel):
+    """Request model for creating a roadmap theme."""
+
+    name: str = Field(min_length=1, max_length=100)
+    problem_statement: str = Field(min_length=1, max_length=1500)
+    hypothesis: Optional[str] = Field(default=None, max_length=1500)
+    indicative_metrics: Optional[str] = Field(default=None, max_length=1000)
+    time_horizon_months: Optional[int] = Field(default=None, ge=0, le=12)
+    outcome_ids: List[uuid.UUID] = Field(default_factory=list)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "First Week Magic",
+                "problem_statement": "Users fail to integrate in first week",
+                "hypothesis": "Quick wins drive adoption",
+                "indicative_metrics": "% users active in week 1",
+                "time_horizon_months": 6,
+                "outcome_ids": ["123e4567-e89b-12d3-a456-426614174000"],
+            }
+        }
+
+
+class ThemeResponse(BaseModel):
+    """Response model for roadmap theme."""
+
+    id: uuid.UUID
+    workspace_id: uuid.UUID
+    name: str
+    problem_statement: str
+    hypothesis: Optional[str]
+    indicative_metrics: Optional[str]
+    time_horizon_months: Optional[int]
+    display_order: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+        json_encoders = {datetime: lambda v: v.isoformat()}
+
+
+@app.get(
+    "/api/workspaces/{workspace_id}/themes",
+    response_model=List[ThemeResponse],
+    tags=["product-strategy"],
+)
+async def get_workspace_themes(
+    workspace_id: uuid.UUID,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> List[ThemeResponse]:
+    """Get all roadmap themes for a workspace."""
+    try:
+        themes = product_strategy_controller.get_roadmap_themes(workspace_id, session)
+        return [ThemeResponse.model_validate(theme) for theme in themes]
+    except Exception as e:
+        logger.error(f"Error getting themes: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get themes")
+
+
+@app.post(
+    "/api/workspaces/{workspace_id}/themes",
+    response_model=ThemeResponse,
+    tags=["product-strategy"],
+    status_code=201,
+)
+async def create_roadmap_theme(
+    workspace_id: uuid.UUID,
+    request: ThemeCreateRequest,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> ThemeResponse:
+    """Create a new roadmap theme for a workspace."""
+    try:
+        theme = product_strategy_controller.create_roadmap_theme(
+            workspace_id,
+            user.id,
+            request.name,
+            request.problem_statement,
+            request.hypothesis,
+            request.indicative_metrics,
+            request.time_horizon_months,
+            request.outcome_ids,
+            session,
+        )
+
+        return ThemeResponse.model_validate(theme)
+    except DomainException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating theme: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create theme")
+
+
+class ThemeOrderItem(BaseModel):
+    """Model for a single theme order update."""
+
+    id: uuid.UUID
+    display_order: int = Field(ge=0, le=4)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "display_order": 2,
+            }
+        }
+
+
+class ThemeReorderRequest(BaseModel):
+    """Request model for reordering roadmap themes."""
+
+    themes: List[ThemeOrderItem] = Field(..., min_length=1, max_length=5)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "themes": [
+                    {
+                        "id": "123e4567-e89b-12d3-a456-426614174000",
+                        "display_order": 0,
+                    },
+                    {
+                        "id": "223e4567-e89b-12d3-a456-426614174001",
+                        "display_order": 1,
+                    },
+                ]
+            }
+        }
+
+
+@app.put(
+    "/api/workspaces/{workspace_id}/themes/reorder",
+    response_model=List[ThemeResponse],
+    tags=["product-strategy"],
+)
+async def reorder_roadmap_themes(
+    workspace_id: uuid.UUID,
+    request: ThemeReorderRequest,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> List[ThemeResponse]:
+    """Reorder roadmap themes by updating their display order."""
+    try:
+        # Convert request to dict for controller
+        theme_orders = {item.id: item.display_order for item in request.themes}
+
+        themes = product_strategy_controller.reorder_roadmap_themes(
+            workspace_id,
+            theme_orders,
+            session,
+        )
+
+        return [ThemeResponse.model_validate(theme) for theme in themes]
+    except DomainException as e:
+        # Check if it's a "not found" error
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error reordering themes: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reorder themes")
+
+
+class ThemeUpdateRequest(BaseModel):
+    """Request model for updating a roadmap theme."""
+
+    name: str = Field(min_length=1, max_length=100)
+    problem_statement: str = Field(min_length=1, max_length=1500)
+    hypothesis: Optional[str] = Field(default=None, max_length=1500)
+    indicative_metrics: Optional[str] = Field(default=None, max_length=1000)
+    time_horizon_months: Optional[int] = Field(default=None, ge=0, le=12)
+    outcome_ids: List[uuid.UUID] = Field(default_factory=list)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Updated theme name",
+                "problem_statement": "Updated problem statement",
+                "hypothesis": "Updated hypothesis",
+                "indicative_metrics": "Updated metrics",
+                "time_horizon_months": 9,
+                "outcome_ids": ["123e4567-e89b-12d3-a456-426614174000"],
+            }
+        }
+
+
+@app.put(
+    "/api/workspaces/{workspace_id}/themes/{theme_id}",
+    response_model=ThemeResponse,
+    tags=["product-strategy"],
+)
+async def update_roadmap_theme(
+    workspace_id: uuid.UUID,
+    theme_id: uuid.UUID,
+    request: ThemeUpdateRequest,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> ThemeResponse:
+    """Update an existing roadmap theme."""
+    try:
+        theme = product_strategy_controller.update_roadmap_theme(
+            theme_id,
+            workspace_id,
+            request.name,
+            request.problem_statement,
+            request.hypothesis,
+            request.indicative_metrics,
+            request.time_horizon_months,
+            request.outcome_ids,
+            session,
+        )
+
+        return ThemeResponse.model_validate(theme)
+    except DomainException as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error updating theme: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update theme")
+
+
+@app.delete(
+    "/api/workspaces/{workspace_id}/themes/{theme_id}",
+    status_code=204,
+    tags=["product-strategy"],
+)
+async def delete_roadmap_theme(
+    workspace_id: uuid.UUID,
+    theme_id: uuid.UUID,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> None:
+    """Delete a roadmap theme."""
+    try:
+        product_strategy_controller.delete_roadmap_theme(
+            theme_id,
+            workspace_id,
+            user.id,
+            session,
+        )
+    except DomainException as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error deleting theme: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete theme")
