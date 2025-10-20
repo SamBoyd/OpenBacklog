@@ -188,6 +188,76 @@ async def create_strategic_pillar(
         raise HTTPException(status_code=500, detail="Failed to create pillar")
 
 
+class PillarOrderItem(BaseModel):
+    """Model for a single pillar order update."""
+
+    id: uuid.UUID
+    display_order: int = Field(ge=0, le=4)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "display_order": 2,
+            }
+        }
+
+
+class PillarReorderRequest(BaseModel):
+    """Request model for reordering strategic pillars."""
+
+    pillars: List[PillarOrderItem] = Field(..., min_length=1, max_length=5)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "pillars": [
+                    {
+                        "id": "123e4567-e89b-12d3-a456-426614174000",
+                        "display_order": 0,
+                    },
+                    {
+                        "id": "223e4567-e89b-12d3-a456-426614174001",
+                        "display_order": 1,
+                    },
+                ]
+            }
+        }
+
+
+@app.put(
+    "/api/workspaces/{workspace_id}/pillars/reorder",
+    response_model=List[PillarResponse],
+    tags=["product-strategy"],
+)
+async def reorder_strategic_pillars(
+    workspace_id: uuid.UUID,
+    request: PillarReorderRequest,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> List[PillarResponse]:
+    """Reorder strategic pillars by updating their display order."""
+    try:
+        # Convert request to dict for controller
+        pillar_orders = {item.id: item.display_order for item in request.pillars}
+
+        pillars = product_strategy_controller.reorder_strategic_pillars(
+            workspace_id,
+            pillar_orders,
+            session,
+        )
+
+        return [PillarResponse.model_validate(pillar) for pillar in pillars]
+    except DomainException as e:
+        # Check if it's a "not found" error
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error reordering pillars: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reorder pillars")
+
+
 class PillarUpdateRequest(BaseModel):
     """Request model for updating a strategic pillar."""
 
@@ -230,7 +300,6 @@ async def update_strategic_pillar(
 
         return PillarResponse.model_validate(pillar)
     except DomainException as e:
-        # Check if it's a "not found" error
         if "not found" in str(e).lower():
             raise HTTPException(status_code=404, detail=str(e))
         raise HTTPException(status_code=400, detail=str(e))
@@ -259,7 +328,6 @@ async def delete_strategic_pillar(
             session,
         )
     except DomainException as e:
-        # Check if it's a "not found" error
         if "not found" in str(e).lower():
             raise HTTPException(status_code=404, detail=str(e))
         raise HTTPException(status_code=400, detail=str(e))

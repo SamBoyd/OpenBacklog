@@ -156,3 +156,33 @@ export async function deleteStrategicPillar(
     throw new Error(error.detail || 'Failed to delete strategic pillar');
   }
 }
+
+export interface PillarOrderItem {
+  id: string;
+  display_order: number;
+}
+
+export interface PillarReorderRequest {
+  pillars: PillarOrderItem[];
+}
+
+export async function reorderStrategicPillars(
+  workspaceId: string,
+  request: PillarReorderRequest
+): Promise<PillarDto[]> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/pillars/reorder`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to reorder strategic pillars');
+  }
+
+  return response.json();
+}

@@ -4,9 +4,11 @@ import {
   createStrategicPillar,
   updateStrategicPillar,
   deleteStrategicPillar,
+  reorderStrategicPillars,
   PillarDto,
   PillarCreateRequest,
   PillarUpdateRequest,
+  PillarReorderRequest,
 } from '#api/productStrategy';
 
 /**
@@ -57,6 +59,16 @@ export function useStrategicPillars(workspaceId: string) {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: (request: PillarReorderRequest) =>
+      reorderStrategicPillars(workspaceId, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['strategic-pillars', workspaceId],
+      });
+    },
+  });
+
   return {
     pillars: pillars || [],
     isLoading,
@@ -70,5 +82,8 @@ export function useStrategicPillars(workspaceId: string) {
     deletePillar: deleteMutation.mutate,
     isDeleting: deleteMutation.isPending,
     deleteError: deleteMutation.error,
+    reorderPillars: reorderMutation.mutate,
+    isReordering: reorderMutation.isPending,
+    reorderError: reorderMutation.error,
   };
 }

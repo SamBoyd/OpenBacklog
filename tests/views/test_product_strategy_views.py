@@ -525,3 +525,182 @@ def test_delete_pillar_unauthorized(test_client_no_user, workspace):
     )
 
     assert_that(response.status_code, equal_to(401))
+
+
+# Reorder Pillars View Tests
+
+
+def test_reorder_pillars_success(test_client, workspace, user):
+    """Test reordering pillars returns 200."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar1 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 1", None, None, session
+        )
+        pillar2 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 2", None, None, session
+        )
+        pillar3 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 3", None, None, session
+        )
+        # Store IDs before closing session
+        pillar1_id = str(pillar1.id)
+        pillar2_id = str(pillar2.id)
+        pillar3_id = str(pillar3.id)
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/reorder",
+        json={
+            "pillars": [
+                {"id": pillar3_id, "display_order": 0},
+                {"id": pillar2_id, "display_order": 1},
+                {"id": pillar1_id, "display_order": 2},
+            ]
+        },
+    )
+
+    assert_that(response.status_code, equal_to(200), response.content)
+    data = response.json()
+    assert_that(len(data), equal_to(3))
+    # Verify order
+    assert_that(data[0]["id"], equal_to(pillar3_id))
+    assert_that(data[0]["display_order"], equal_to(0))
+    assert_that(data[1]["id"], equal_to(pillar2_id))
+    assert_that(data[1]["display_order"], equal_to(1))
+    assert_that(data[2]["id"], equal_to(pillar1_id))
+    assert_that(data[2]["display_order"], equal_to(2))
+
+
+def test_reorder_pillars_validation_error_duplicate_display_order(
+    test_client, workspace, user
+):
+    """Test validation error for duplicate display_order returns 400."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar1 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 1", None, None, session
+        )
+        pillar2 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 2", None, None, session
+        )
+        # Store IDs before closing session
+        pillar1_id = str(pillar1.id)
+        pillar2_id = str(pillar2.id)
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/reorder",
+        json={
+            "pillars": [
+                {"id": pillar1_id, "display_order": 1},
+                {"id": pillar2_id, "display_order": 1},  # Duplicate
+            ]
+        },
+    )
+    assert_that(response.status_code, equal_to(400), response.content)
+
+
+def test_reorder_pillars_validation_error_display_order_too_high(
+    test_client, workspace, user
+):
+    """Test validation error for display_order > 4 returns 422."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar1 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 1", None, None, session
+        )
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/reorder",
+        json={
+            "pillars": [
+                {"id": str(pillar1.id), "display_order": 5},  # Out of range
+            ]
+        },
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_reorder_pillars_validation_error_display_order_negative(
+    test_client, workspace, user
+):
+    """Test validation error for negative display_order returns 422."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar1 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 1", None, None, session
+        )
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/reorder",
+        json={
+            "pillars": [
+                {"id": str(pillar1.id), "display_order": -1},  # Out of range
+            ]
+        },
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_reorder_pillars_pillar_not_found(test_client, workspace, user):
+    """Test reordering with invalid pillar ID returns 404."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar1 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 1", None, None, session
+        )
+        # Store ID before closing session
+        pillar1_id = str(pillar1.id)
+    finally:
+        session.close()
+
+    fake_pillar_id = uuid.uuid4()
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/reorder",
+        json={
+            "pillars": [
+                {"id": pillar1_id, "display_order": 0},
+                {"id": str(fake_pillar_id), "display_order": 1},  # Does not exist
+            ]
+        },
+    )
+
+    assert_that(response.status_code, equal_to(404), response.content)
+
+
+def test_reorder_pillars_unauthorized(test_client_no_user, workspace):
+    """Test reordering pillars without authentication returns 401."""
+    response = test_client_no_user.put(
+        f"/api/workspaces/{workspace.id}/pillars/reorder",
+        json={
+            "pillars": [
+                {"id": str(uuid.uuid4()), "display_order": 0},
+            ]
+        },
+    )
+
+    assert_that(response.status_code, equal_to(401))

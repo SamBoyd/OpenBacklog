@@ -397,3 +397,167 @@ def test_delete_strategic_pillar_not_found(user, workspace, session):
         product_strategy_controller.delete_strategic_pillar(
             fake_pillar_id, workspace.id, user.id, session
         )
+
+
+# Reorder Strategic Pillars Tests
+
+
+def test_reorder_strategic_pillars_success(user, workspace, session):
+    """Test successfully reordering pillars."""
+    # Create 3 pillars (display_order will be 0, 1, 2)
+    pillar1 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 1", None, None, session
+    )
+    pillar2 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 2", None, None, session
+    )
+    pillar3 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 3", None, None, session
+    )
+
+    # Reorder: swap pillar1 and pillar3 (0 -> 2, 2 -> 0)
+    pillar_orders = {
+        pillar1.id: 2,  # Move pillar1 to end
+        pillar2.id: 1,  # Keep pillar2 in middle
+        pillar3.id: 0,  # Move pillar3 to start
+    }
+
+    result = product_strategy_controller.reorder_strategic_pillars(
+        workspace.id, pillar_orders, session
+    )
+
+    # Verify result is ordered correctly
+    assert_that(result, has_length(3))
+    assert_that(result[0].id, equal_to(pillar3.id))
+    assert_that(result[0].display_order, equal_to(0))
+    assert_that(result[1].id, equal_to(pillar2.id))
+    assert_that(result[1].display_order, equal_to(1))
+    assert_that(result[2].id, equal_to(pillar1.id))
+    assert_that(result[2].display_order, equal_to(2))
+
+
+def test_reorder_strategic_pillars_requires_all_pillars(user, workspace, session):
+    """Test that partial reordering (not including all pillars) raises error."""
+    # Create 3 pillars
+    pillar1 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 1", None, None, session
+    )
+    pillar2 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 2", None, None, session
+    )
+    pillar3 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 3", None, None, session
+    )
+
+    # Try to reorder only pillar1 and pillar2 (missing pillar3)
+    pillar_orders = {
+        pillar1.id: 1,
+        pillar2.id: 0,
+    }
+
+    with pytest.raises(
+        DomainException, match="Must provide display order for all 3 pillars"
+    ):
+        product_strategy_controller.reorder_strategic_pillars(
+            workspace.id, pillar_orders, session
+        )
+
+
+def test_reorder_strategic_pillars_validates_incomplete_sequence(
+    user, workspace, session
+):
+    """Test that display orders must form complete sequence [0,1,2,...]."""
+    pillar1 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 1", None, None, session
+    )
+    pillar2 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 2", None, None, session
+    )
+    pillar3 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 3", None, None, session
+    )
+
+    # Try to set display orders with gaps: [0, 1, 5]
+    pillar_orders = {
+        pillar1.id: 0,
+        pillar2.id: 1,
+        pillar3.id: 5,
+    }
+
+    with pytest.raises(DomainException, match="Display orders must be"):
+        product_strategy_controller.reorder_strategic_pillars(
+            workspace.id, pillar_orders, session
+        )
+
+
+def test_reorder_strategic_pillars_validates_duplicate_display_order(
+    user, workspace, session
+):
+    """Test that duplicate display_order values raise DomainException."""
+    pillar1 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 1", None, None, session
+    )
+    pillar2 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 2", None, None, session
+    )
+    pillar3 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 3", None, None, session
+    )
+
+    # Try to set two pillars to same display_order
+    pillar_orders = {
+        pillar1.id: 0,
+        pillar2.id: 1,
+        pillar3.id: 1,
+    }
+
+    with pytest.raises(DomainException, match="Display orders must be"):
+        product_strategy_controller.reorder_strategic_pillars(
+            workspace.id, pillar_orders, session
+        )
+
+
+def test_reorder_strategic_pillars_missing_pillar(user, workspace, session):
+    """Test that missing a pillar raises DomainException."""
+    pillar1 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 1", None, None, session
+    )
+    pillar2 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 2", None, None, session
+    )
+
+    # Only include pillar1, missing pillar2
+    pillar_orders = {
+        pillar1.id: 0,
+    }
+
+    with pytest.raises(
+        DomainException, match="Must provide display order for all 2 pillars"
+    ):
+        product_strategy_controller.reorder_strategic_pillars(
+            workspace.id, pillar_orders, session
+        )
+
+
+def test_reorder_strategic_pillars_unknown_pillar(user, workspace, session):
+    """Test that unknown pillar ID raises DomainException."""
+    pillar1 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 1", None, None, session
+    )
+
+    product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 2", None, None, session
+    )
+
+    fake_pillar_id = uuid.uuid4()
+    pillar_orders = {
+        pillar1.id: 0,
+        fake_pillar_id: 1,
+    }
+
+    with pytest.raises(
+        DomainException, match="Strategic pillar not found: " + str(fake_pillar_id)
+    ):
+        product_strategy_controller.reorder_strategic_pillars(
+            workspace.id, pillar_orders, session
+        )
