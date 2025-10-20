@@ -704,3 +704,258 @@ def test_reorder_pillars_unauthorized(test_client_no_user, workspace):
     )
 
     assert_that(response.status_code, equal_to(401))
+
+
+# Product Outcome Tests
+
+
+def test_get_outcomes_success_empty(test_client, workspace):
+    """Test getting outcomes when none exist returns empty array."""
+    response = test_client.get(f"/api/workspaces/{workspace.id}/outcomes")
+
+    assert_that(response.status_code, equal_to(200))
+    data = response.json()
+    assert_that(data, equal_to([]))
+
+
+def test_get_outcomes_success_with_data(test_client, workspace, user):
+    """Test getting outcomes returns list."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        outcome1 = product_strategy_controller.create_product_outcome(
+            workspace.id,
+            user.id,
+            "Outcome 1",
+            "Description 1",
+            None,
+            12,
+            [],
+            session,
+        )
+        outcome2 = product_strategy_controller.create_product_outcome(
+            workspace.id,
+            user.id,
+            "Outcome 2",
+            None,
+            "Metrics 2",
+            None,
+            [],
+            session,
+        )
+        outcome1_id = str(outcome1.id)
+        outcome2_id = str(outcome2.id)
+    finally:
+        session.close()
+
+    response = test_client.get(f"/api/workspaces/{workspace.id}/outcomes")
+
+    assert_that(response.status_code, equal_to(200))
+    data = response.json()
+    assert_that(len(data), equal_to(2))
+    assert_that(data[0]["id"], equal_to(outcome1_id))
+    assert_that(data[0]["name"], equal_to("Outcome 1"))
+    assert_that(data[0]["description"], equal_to("Description 1"))
+    assert_that(data[0]["time_horizon_months"], equal_to(12))
+    assert_that(data[1]["id"], equal_to(outcome2_id))
+    assert_that(data[1]["name"], equal_to("Outcome 2"))
+    assert_that(data[1]["metrics"], equal_to("Metrics 2"))
+
+
+def test_get_outcomes_unauthorized(test_client_no_user, workspace):
+    """Test getting outcomes without authentication returns 401."""
+    response = test_client_no_user.get(f"/api/workspaces/{workspace.id}/outcomes")
+    assert_that(response.status_code, equal_to(401))
+
+
+def test_create_outcome_minimal(test_client, workspace):
+    """Test creating outcome with minimal data returns 201."""
+    response = test_client.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={"name": "80% weekly AI usage"},
+    )
+
+    assert_that(response.status_code, equal_to(201))
+    data = response.json()
+    assert_that(data["name"], equal_to("80% weekly AI usage"))
+    assert_that(data["workspace_id"], equal_to(str(workspace.id)))
+    assert_that(data["description"], equal_to(None))
+    assert_that(data["metrics"], equal_to(None))
+    assert_that(data["time_horizon_months"], equal_to(None))
+    assert_that(data["display_order"], equal_to(0))
+    assert_that(data, has_key("id"))
+    assert_that(data, has_key("created_at"))
+    assert_that(data, has_key("updated_at"))
+
+
+def test_create_outcome_full_details(test_client, workspace):
+    """Test creating outcome with all fields returns 201."""
+    response = test_client.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={
+            "name": "80% weekly AI usage",
+            "description": "Measure AI adoption as a leading indicator",
+            "metrics": "% of weekly active users who use AI features",
+            "time_horizon_months": 12,
+            "pillar_ids": [],
+        },
+    )
+
+    assert_that(response.status_code, equal_to(201))
+    data = response.json()
+    assert_that(data["name"], equal_to("80% weekly AI usage"))
+    assert_that(
+        data["description"], equal_to("Measure AI adoption as a leading indicator")
+    )
+    assert_that(
+        data["metrics"], equal_to("% of weekly active users who use AI features")
+    )
+    assert_that(data["time_horizon_months"], equal_to(12))
+
+
+def test_create_outcome_with_pillar_links(test_client, workspace, user):
+    """Test creating outcome linked to pillars returns 201."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar1 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 1", None, None, session
+        )
+        pillar2 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 2", None, None, session
+        )
+        pillar1_id = str(pillar1.id)
+        pillar2_id = str(pillar2.id)
+    finally:
+        session.close()
+
+    response = test_client.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={
+            "name": "Test Outcome",
+            "pillar_ids": [pillar1_id, pillar2_id],
+        },
+    )
+
+    assert_that(response.status_code, equal_to(201))
+    data = response.json()
+    assert_that(data["name"], equal_to("Test Outcome"))
+
+
+def test_create_outcome_validation_error_empty_name(test_client, workspace):
+    """Test validation error for empty name returns 422."""
+    response = test_client.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={"name": ""},
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_create_outcome_validation_error_name_too_long(test_client, workspace):
+    """Test validation error for name exceeding max length returns 422."""
+    response = test_client.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={"name": "A" * 151},
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_create_outcome_validation_error_description_too_long(test_client, workspace):
+    """Test validation error for description exceeding max length returns 422."""
+    response = test_client.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={
+            "name": "Valid name",
+            "description": "D" * 1501,
+        },
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_create_outcome_validation_error_metrics_too_long(test_client, workspace):
+    """Test validation error for metrics exceeding max length returns 422."""
+    response = test_client.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={
+            "name": "Valid name",
+            "metrics": "M" * 1001,
+        },
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_create_outcome_validation_error_time_horizon_too_low(test_client, workspace):
+    """Test validation error for time horizon below minimum returns 422."""
+    response = test_client.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={
+            "name": "Valid name",
+            "time_horizon_months": 5,
+        },
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_create_outcome_validation_error_time_horizon_too_high(test_client, workspace):
+    """Test validation error for time horizon above maximum returns 422."""
+    response = test_client.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={
+            "name": "Valid name",
+            "time_horizon_months": 37,
+        },
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_create_outcome_max_limit_exceeded(test_client, workspace, user):
+    """Test creating outcome when limit reached returns 400."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        for i in range(10):
+            product_strategy_controller.create_product_outcome(
+                workspace.id,
+                user.id,
+                f"Outcome {i}",
+                None,
+                None,
+                None,
+                [],
+                session,
+            )
+    finally:
+        session.close()
+
+    response = test_client.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={"name": "Outcome 11"},
+    )
+
+    assert_that(response.status_code, equal_to(400))
+    data = response.json()
+    assert_that(
+        data["detail"], equal_to("Workspace has reached maximum of 10 product outcomes")
+    )
+
+
+def test_create_outcome_unauthorized(test_client_no_user, workspace):
+    """Test creating outcome without authentication returns 401."""
+    response = test_client_no_user.post(
+        f"/api/workspaces/{workspace.id}/outcomes",
+        json={"name": "Test Outcome"},
+    )
+
+    assert_that(response.status_code, equal_to(401))

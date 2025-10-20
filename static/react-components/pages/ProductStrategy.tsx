@@ -3,8 +3,10 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { useProductVision } from '#hooks/useProductVision';
 import { useStrategicPillars } from '#hooks/useStrategicPillars';
+import { useProductOutcomes } from '#hooks/useProductOutcomes';
 import { VisionEditor } from '#components/product-strategy/VisionEditor';
 import { PillarForm } from '#components/product-strategy/PillarForm';
+import { OutcomeForm } from '#components/product-strategy/OutcomeForm';
 
 /**
  * ProductStrategy page component for managing workspace product vision
@@ -41,9 +43,19 @@ const ProductStrategy: React.FC = () => {
     reorderError,
   } = useStrategicPillars(workspaceId);
 
+  const {
+    outcomes,
+    isLoading: isOutcomesLoading,
+    error: outcomesError,
+    createOutcome,
+    isCreating: isCreatingOutcome,
+    createError: createOutcomeError,
+  } = useProductOutcomes(workspaceId);
+
   const [isEditingVision, setIsEditingVision] = useState(false);
   const [isAddingPillar, setIsAddingPillar] = useState(false);
   const [editingPillar, setEditingPillar] = useState<string | null>(null);
+  const [isAddingOutcome, setIsAddingOutcome] = useState(false);
 
   const handleSaveVision = (text: string) => {
     upsertVision(
@@ -105,6 +117,24 @@ const ProductStrategy: React.FC = () => {
     }
   };
 
+  const handleSaveOutcome = (data: {
+    name: string;
+    description?: string | null;
+    metrics?: string | null;
+    time_horizon_months?: number | null;
+    pillar_ids?: string[];
+  }) => {
+    createOutcome(data, {
+      onSuccess: () => {
+        setIsAddingOutcome(false);
+      },
+    });
+  };
+
+  const handleCancelOutcome = () => {
+    setIsAddingOutcome(false);
+  };
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) {
       return;
@@ -137,6 +167,7 @@ const ProductStrategy: React.FC = () => {
   };
 
   const maxPillarsReached = pillars.length >= 5;
+  const maxOutcomesReached = outcomes.length >= 10;
 
   if (isLoading) {
     return (
@@ -383,6 +414,94 @@ const ProductStrategy: React.FC = () => {
         {maxPillarsReached && (
           <p className="text-sm text-muted-foreground mt-4">
             Maximum of 5 strategic pillars reached.
+          </p>
+        )}
+      </div>
+
+      {/* Product Outcomes Section */}
+      <div className="bg-card rounded-lg border border-border p-6 mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-foreground">
+            Product Outcomes
+          </h2>
+          {!isAddingOutcome && (
+            <button
+              onClick={() => setIsAddingOutcome(true)}
+              disabled={maxOutcomesReached}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={
+                maxOutcomesReached
+                  ? 'Maximum of 10 outcomes reached'
+                  : 'Add a new product outcome'
+              }
+            >
+              Add Outcome
+            </button>
+          )}
+        </div>
+
+        {isAddingOutcome && (
+          <div className="mb-6">
+            <OutcomeForm
+              availablePillars={pillars.map((p) => ({ id: p.id, name: p.name }))}
+              onSave={handleSaveOutcome}
+              onCancel={handleCancelOutcome}
+              isSaving={isCreatingOutcome}
+            />
+          </div>
+        )}
+
+        {createOutcomeError && (
+          <p className="text-destructive mb-4">
+            {(createOutcomeError as Error).message}
+          </p>
+        )}
+
+        {isOutcomesLoading ? (
+          <p className="text-muted-foreground">Loading outcomes...</p>
+        ) : outcomesError ? (
+          <p className="text-destructive">Error loading outcomes</p>
+        ) : outcomes.length === 0 ? (
+          <p className="text-muted-foreground">
+            No product outcomes defined yet. Product outcomes are measurable
+            results that signal strategic progress.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {outcomes.map((outcome) => (
+              <div
+                key={outcome.id}
+                className="bg-background border border-border rounded-lg p-4"
+              >
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {outcome.name}
+                </h3>
+                {outcome.description && (
+                  <p className="text-foreground text-sm mb-2">
+                    {outcome.description}
+                  </p>
+                )}
+                {outcome.metrics && (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                      Metrics:
+                    </p>
+                    <p className="text-sm text-foreground">{outcome.metrics}</p>
+                  </div>
+                )}
+                {outcome.time_horizon_months && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Time Horizon: {outcome.time_horizon_months} months
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {maxOutcomesReached && (
+          <p className="text-sm text-muted-foreground mt-4">
+            Maximum of 10 product outcomes reached.
           </p>
         )}
       </div>

@@ -70,6 +70,13 @@ class ProductOutcome(Base):
         server_default=text("gen_random_uuid()"),
     )
 
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("private.users.id", ondelete="CASCADE"),
+        nullable=False,
+        server_default=text("private.get_user_id_from_jwt()"),
+    )
+
     workspace_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("dev.workspace.id", ondelete="CASCADE"),
@@ -207,60 +214,77 @@ class ProductOutcome(Base):
                 f"Time horizon must be between 6-36 months (got {time_horizon_months})"
             )
 
+    @staticmethod
     def map_outcome(
-        self,
+        workspace_id: uuid.UUID,
+        user_id: uuid.UUID,
         name: str,
         description: str | None,
         metrics: str | None,
         time_horizon_months: int | None,
         display_order: int,
+        session: Session,
         publisher: "EventPublisher",
-    ) -> None:
+    ) -> "ProductOutcome":
         """Map a new product outcome with business validation.
 
-        This method sets the outcome's fields after validation and emits
-        an OutcomeMapped domain event.
+        This static factory method creates a new ProductOutcome, validates
+        all fields, persists to database, and emits an OutcomeMapped domain event.
 
         Args:
+            workspace_id: UUID of the workspace
+            user_id: UUID of the user creating the outcome
             name: Outcome name (1-150 characters, unique per workspace)
             description: Optional outcome description (max 1500 characters)
             metrics: How to measure this outcome (max 1000 characters)
             time_horizon_months: Time horizon in months (6-36)
             display_order: Display order within workspace
+            session: SQLAlchemy database session
             publisher: EventPublisher instance for emitting domain events
+
+        Returns:
+            The created ProductOutcome instance
 
         Raises:
             DomainException: If any field violates validation rules
 
         Example:
-            >>> outcome = ProductOutcome(workspace_id=workspace.id)
-            >>> outcome.map_outcome(
+            >>> outcome = ProductOutcome.map_outcome(
+            ...     workspace_id=workspace.id,
+            ...     user_id=user.id,
             ...     name="80% of users use AI weekly",
             ...     description="Measure AI adoption",
             ...     metrics="Weekly AI usage %",
             ...     time_horizon_months=12,
             ...     display_order=0,
+            ...     session=session,
             ...     publisher=publisher
             ... )
         """
-        self._validate_name(name)
-        self._validate_text_field("Description", description, 1500)
-        self._validate_text_field("Metrics", metrics, 1000)
-        self._validate_time_horizon(time_horizon_months)
+        ProductOutcome._validate_name(name)
+        ProductOutcome._validate_text_field("Description", description, 1500)
+        ProductOutcome._validate_text_field("Metrics", metrics, 1000)
+        ProductOutcome._validate_time_horizon(time_horizon_months)
 
-        self.name = name
-        self.description = description
-        self.metrics = metrics
-        self.time_horizon_months = time_horizon_months
-        self.display_order = display_order
-        self.updated_at = datetime.now(timezone.utc)
+        outcome = ProductOutcome(
+            user_id=user_id,
+            workspace_id=workspace_id,
+            name=name,
+            description=description,
+            metrics=metrics,
+            time_horizon_months=time_horizon_months,
+            display_order=display_order,
+        )
+
+        session.add(outcome)
+        session.flush()
 
         event = DomainEvent(
-            user_id=uuid.uuid4(),
+            user_id=user_id,
             event_type="OutcomeMapped",
-            aggregate_id=self.id,
+            aggregate_id=outcome.id,
             payload={
-                "workspace_id": str(self.workspace_id),
+                "workspace_id": str(workspace_id),
                 "name": name,
                 "description": description,
                 "metrics": metrics,
@@ -268,7 +292,9 @@ class ProductOutcome(Base):
                 "display_order": display_order,
             },
         )
-        publisher.publish(event, workspace_id=str(self.workspace_id))
+        publisher.publish(event, workspace_id=str(workspace_id))
+
+        return outcome
 
     def update_outcome(
         self,
@@ -328,7 +354,11 @@ class ProductOutcome(Base):
         publisher.publish(event, workspace_id=str(self.workspace_id))
 
     def link_to_pillars(
-        self, pillar_ids: List[uuid.UUID], session: Session, publisher: "EventPublisher"
+        self,
+        pillar_ids: List[uuid.UUID],
+        user_id: uuid.UUID,
+        session: Session,
+        publisher: "EventPublisher",
     ) -> None:
         """Update pillar linkages for this outcome.
 
@@ -337,18 +367,21 @@ class ProductOutcome(Base):
 
         Args:
             pillar_ids: List of pillar IDs to link to this outcome
+            user_id: UUID of the user creating the links
             session: SQLAlchemy database session
             publisher: EventPublisher instance for emitting domain events
 
         Example:
-            >>> outcome.link_to_pillars([pillar1.id, pillar2.id], session, publisher)
+            >>> outcome.link_to_pillars([pillar1.id, pillar2.id], user.id, session, publisher)
         """
         session.query(OutcomePillarLink).filter(
             OutcomePillarLink.outcome_id == self.id
         ).delete()
 
         for pillar_id in pillar_ids:
-            link = OutcomePillarLink(outcome_id=self.id, pillar_id=pillar_id)
+            link = OutcomePillarLink(
+                outcome_id=self.id, pillar_id=pillar_id, user_id=user_id
+            )
             session.add(link)
 
         self.updated_at = datetime.now(timezone.utc)

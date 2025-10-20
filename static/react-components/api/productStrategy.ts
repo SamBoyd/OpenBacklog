@@ -186,3 +186,62 @@ export async function reorderStrategicPillars(
 
   return response.json();
 }
+
+export interface OutcomeCreateRequest {
+  name: string;
+  description?: string | null;
+  metrics?: string | null;
+  time_horizon_months?: number | null;
+  pillar_ids?: string[];
+}
+
+export interface OutcomeDto {
+  id: string;
+  workspace_id: string;
+  name: string;
+  description: string | null;
+  metrics: string | null;
+  time_horizon_months: number | null;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getProductOutcomes(
+  workspaceId: string
+): Promise<OutcomeDto[]> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/outcomes`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch product outcomes');
+  }
+
+  return response.json();
+}
+
+export async function createProductOutcome(
+  workspaceId: string,
+  request: OutcomeCreateRequest
+): Promise<OutcomeDto> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/outcomes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create product outcome');
+  }
+
+  return response.json();
+}

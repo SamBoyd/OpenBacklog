@@ -5,6 +5,7 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from src.strategic_planning.aggregates.product_outcome import ProductOutcome
 from src.strategic_planning.aggregates.product_vision import ProductVision
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.models import DomainEvent
@@ -55,14 +56,14 @@ def upsert_workspace_vision(
         vision.refine_vision(vision_text, publisher)
     else:
         # Validate vision text first
-        ProductVision._validate_vision_text(vision_text)
+        ProductVision._validate_vision_text(vision_text)  # type: ignore[attr-defined]
 
         # Create new vision with vision_text to satisfy NOT NULL constraint
         vision = ProductVision(
             workspace_id=workspace_id, user_id=user_id, vision_text=vision_text
         )
         session.add(vision)
-        session.flush()  # Flush to assign ID before emitting event
+        session.flush()
 
         # Emit the domain event
         publisher.publish(
@@ -325,3 +326,77 @@ def reorder_strategic_pillars(
         session.refresh(pillar)
 
     return get_strategic_pillars(workspace_id, session)
+
+
+def get_product_outcomes(
+    workspace_id: uuid.UUID, session: Session
+) -> List[ProductOutcome]:
+    """Get all product outcomes for a workspace.
+
+    Args:
+        workspace_id: UUID of the workspace
+        session: Database session
+
+    Returns:
+        List of ProductOutcome instances ordered by display_order
+    """
+    return (
+        session.query(ProductOutcome)
+        .filter_by(workspace_id=workspace_id)
+        .order_by(ProductOutcome.display_order)
+        .all()
+    )
+
+
+def create_product_outcome(
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
+    name: str,
+    description: Optional[str],
+    metrics: Optional[str],
+    time_horizon_months: Optional[int],
+    pillar_ids: List[uuid.UUID],
+    session: Session,
+) -> ProductOutcome:
+    """Create a new product outcome for a workspace.
+
+    Args:
+        workspace_id: UUID of the workspace
+        user_id: UUID of the user creating the outcome
+        name: Outcome name (1-150 characters, unique per workspace)
+        description: Optional outcome description (max 1500 characters)
+        metrics: How to measure this outcome (max 1000 characters)
+        time_horizon_months: Time horizon in months (6-36)
+        pillar_ids: List of pillar IDs to link to this outcome
+        session: Database session
+
+    Returns:
+        The created ProductOutcome
+
+    Raises:
+        DomainException: If validation fails or outcome limit exceeded
+    """
+    ProductOutcome.validate_outcome_limit(workspace_id, session)
+
+    current_outcomes = get_product_outcomes(workspace_id, session)
+    display_order = len(current_outcomes)
+
+    publisher = EventPublisher(session)
+    outcome = ProductOutcome.map_outcome(
+        workspace_id=workspace_id,
+        user_id=user_id,
+        name=name,
+        description=description,
+        metrics=metrics,
+        time_horizon_months=time_horizon_months,
+        display_order=display_order,
+        session=session,
+        publisher=publisher,
+    )
+
+    if pillar_ids:
+        outcome.link_to_pillars(pillar_ids, user_id, session, publisher)
+
+    session.commit()
+    session.refresh(outcome)
+    return outcome

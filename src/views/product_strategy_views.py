@@ -334,3 +334,99 @@ async def delete_strategic_pillar(
     except Exception as e:
         logger.error(f"Error deleting pillar: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete pillar")
+
+
+# Product Outcome Endpoints
+
+
+class OutcomeCreateRequest(BaseModel):
+    """Request model for creating a product outcome."""
+
+    name: str = Field(min_length=1, max_length=150)
+    description: Optional[str] = Field(default=None, max_length=1500)
+    metrics: Optional[str] = Field(default=None, max_length=1000)
+    time_horizon_months: Optional[int] = Field(default=None, ge=6, le=36)
+    pillar_ids: List[uuid.UUID] = Field(default_factory=list)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "80% of users use AI weekly",
+                "description": "Measure AI adoption as a leading indicator of value",
+                "metrics": "% of weekly active users who use AI features",
+                "time_horizon_months": 12,
+                "pillar_ids": ["123e4567-e89b-12d3-a456-426614174000"],
+            }
+        }
+
+
+class OutcomeResponse(BaseModel):
+    """Response model for product outcome."""
+
+    id: uuid.UUID
+    workspace_id: uuid.UUID
+    name: str
+    description: Optional[str]
+    metrics: Optional[str]
+    time_horizon_months: Optional[int]
+    display_order: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+        json_encoders = {datetime: lambda v: v.isoformat()}
+
+
+@app.get(
+    "/api/workspaces/{workspace_id}/outcomes",
+    response_model=List[OutcomeResponse],
+    tags=["product-strategy"],
+)
+async def get_workspace_outcomes(
+    workspace_id: uuid.UUID,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> List[OutcomeResponse]:
+    """Get all product outcomes for a workspace."""
+    try:
+        outcomes = product_strategy_controller.get_product_outcomes(
+            workspace_id, session
+        )
+        return [OutcomeResponse.model_validate(outcome) for outcome in outcomes]
+    except Exception as e:
+        logger.error(f"Error getting outcomes: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get outcomes")
+
+
+@app.post(
+    "/api/workspaces/{workspace_id}/outcomes",
+    response_model=OutcomeResponse,
+    tags=["product-strategy"],
+    status_code=201,
+)
+async def create_product_outcome(
+    workspace_id: uuid.UUID,
+    request: OutcomeCreateRequest,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> OutcomeResponse:
+    """Create a new product outcome for a workspace."""
+    try:
+        outcome = product_strategy_controller.create_product_outcome(
+            workspace_id,
+            user.id,
+            request.name,
+            request.description,
+            request.metrics,
+            request.time_horizon_months,
+            request.pillar_ids,
+            session,
+        )
+
+        return OutcomeResponse.model_validate(outcome)
+    except DomainException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating outcome: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create outcome")
