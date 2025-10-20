@@ -2,8 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getProductOutcomes,
   createProductOutcome,
+  updateProductOutcome,
+  deleteProductOutcome,
+  reorderProductOutcomes,
   OutcomeDto,
   OutcomeCreateRequest,
+  OutcomeUpdateRequest,
+  OutcomeReorderRequest,
 } from '#api/productStrategy';
 
 /**
@@ -34,6 +39,36 @@ export function useProductOutcomes(workspaceId: string) {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ outcomeId, request }: { outcomeId: string; request: OutcomeUpdateRequest }) =>
+      updateProductOutcome(workspaceId, outcomeId, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['product-outcomes', workspaceId],
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (outcomeId: string) =>
+      deleteProductOutcome(workspaceId, outcomeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['product-outcomes', workspaceId],
+      });
+    },
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: (request: OutcomeReorderRequest) =>
+      reorderProductOutcomes(workspaceId, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['product-outcomes', workspaceId],
+      });
+    },
+  });
+
   return {
     outcomes: outcomes || [],
     isLoading,
@@ -41,6 +76,15 @@ export function useProductOutcomes(workspaceId: string) {
     createOutcome: createMutation.mutate,
     isCreating: createMutation.isPending,
     createError: createMutation.error,
+    updateOutcome: updateMutation.mutate,
+    isUpdating: updateMutation.isPending,
+    updateError: updateMutation.error,
+    deleteOutcome: deleteMutation.mutate,
+    isDeleting: deleteMutation.isPending,
+    deleteError: deleteMutation.error,
+    reorderOutcomes: reorderMutation.mutate,
+    isReordering: reorderMutation.isPending,
+    reorderError: reorderMutation.error,
   };
 }
 

@@ -814,3 +814,448 @@ def test_create_product_outcome_display_order_increments(user, workspace, sessio
     assert_that(outcome1.display_order, equal_to(0))
     assert_that(outcome2.display_order, equal_to(1))
     assert_that(outcome3.display_order, equal_to(2))
+
+
+# Update Product Outcome Tests
+
+
+def test_update_product_outcome_with_all_fields(user, workspace, session):
+    """Test updating outcome with all fields."""
+    outcome = product_strategy_controller.create_product_outcome(
+        workspace.id,
+        user.id,
+        "Original Name",
+        "Original desc",
+        "Original metrics",
+        12,
+        [],
+        session,
+    )
+
+    updated_name = "Updated Name"
+    updated_description = "Updated description"
+    updated_metrics = "Updated metrics"
+    updated_time_horizon = 24
+
+    updated_outcome = product_strategy_controller.update_product_outcome(
+        outcome.id,
+        workspace.id,
+        updated_name,
+        updated_description,
+        updated_metrics,
+        updated_time_horizon,
+        [],
+        session,
+    )
+
+    assert_that(updated_outcome.id, equal_to(outcome.id))
+    assert_that(updated_outcome.name, equal_to(updated_name))
+    assert_that(updated_outcome.description, equal_to(updated_description))
+    assert_that(updated_outcome.metrics, equal_to(updated_metrics))
+    assert_that(updated_outcome.time_horizon_months, equal_to(updated_time_horizon))
+
+
+def test_update_product_outcome_name_only(user, workspace, session):
+    """Test updating only outcome name."""
+    outcome = product_strategy_controller.create_product_outcome(
+        workspace.id,
+        user.id,
+        "Original Name",
+        "Original desc",
+        "Original metrics",
+        12,
+        [],
+        session,
+    )
+
+    updated_name = "Updated Name"
+
+    updated_outcome = product_strategy_controller.update_product_outcome(
+        outcome.id,
+        workspace.id,
+        updated_name,
+        outcome.description,
+        outcome.metrics,
+        outcome.time_horizon_months,
+        [],
+        session,
+    )
+
+    assert_that(updated_outcome.name, equal_to(updated_name))
+    assert_that(updated_outcome.description, equal_to(outcome.description))
+    assert_that(updated_outcome.metrics, equal_to(outcome.metrics))
+    assert_that(
+        updated_outcome.time_horizon_months, equal_to(outcome.time_horizon_months)
+    )
+
+
+def test_update_product_outcome_pillar_links(user, workspace, session):
+    """Test updating outcome pillar linkages."""
+    pillar1 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 1", None, None, session
+    )
+    pillar2 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 2", None, None, session
+    )
+    pillar3 = product_strategy_controller.create_strategic_pillar(
+        workspace.id, user.id, "Pillar 3", None, None, session
+    )
+
+    # Create outcome with pillar1 and pillar2
+    outcome = product_strategy_controller.create_product_outcome(
+        workspace.id,
+        user.id,
+        "Test Outcome",
+        None,
+        None,
+        None,
+        [pillar1.id, pillar2.id],
+        session,
+    )
+
+    session.refresh(outcome)
+    assert_that(outcome.pillars, has_length(2))
+
+    # Update to link pillar2 and pillar3 (remove pillar1, add pillar3)
+    updated_outcome = product_strategy_controller.update_product_outcome(
+        outcome.id,
+        workspace.id,
+        outcome.name,
+        outcome.description,
+        outcome.metrics,
+        outcome.time_horizon_months,
+        [pillar2.id, pillar3.id],
+        session,
+    )
+
+    session.refresh(updated_outcome)
+    assert_that(updated_outcome.pillars, has_length(2))
+    pillar_ids = {p.id for p in updated_outcome.pillars}
+    assert pillar2.id in pillar_ids
+    assert pillar3.id in pillar_ids
+    assert pillar1.id not in pillar_ids
+
+
+def test_update_product_outcome_validates_name_empty(user, workspace, session):
+    """Test validation of empty name when updating."""
+    outcome = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Original Name", None, None, None, [], session
+    )
+
+    with pytest.raises(DomainException, match="at least 1 character"):
+        product_strategy_controller.update_product_outcome(
+            outcome.id, workspace.id, "", None, None, None, [], session
+        )
+
+
+def test_update_product_outcome_validates_name_too_long(user, workspace, session):
+    """Test validation of name exceeding max length when updating."""
+    outcome = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Original Name", None, None, None, [], session
+    )
+
+    long_name = "x" * 151
+    with pytest.raises(DomainException, match="150 characters or less"):
+        product_strategy_controller.update_product_outcome(
+            outcome.id, workspace.id, long_name, None, None, None, [], session
+        )
+
+
+def test_update_product_outcome_validates_description_too_long(
+    user, workspace, session
+):
+    """Test validation of description exceeding max length when updating."""
+    outcome = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Original Name", None, None, None, [], session
+    )
+
+    long_description = "x" * 1501
+    with pytest.raises(DomainException, match="1500 characters or less"):
+        product_strategy_controller.update_product_outcome(
+            outcome.id,
+            workspace.id,
+            "Valid Name",
+            long_description,
+            None,
+            None,
+            [],
+            session,
+        )
+
+
+def test_update_product_outcome_validates_metrics_too_long(user, workspace, session):
+    """Test validation of metrics exceeding max length when updating."""
+    outcome = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Original Name", None, None, None, [], session
+    )
+
+    long_metrics = "x" * 1001
+    with pytest.raises(DomainException, match="1000 characters or less"):
+        product_strategy_controller.update_product_outcome(
+            outcome.id,
+            workspace.id,
+            "Valid Name",
+            None,
+            long_metrics,
+            None,
+            [],
+            session,
+        )
+
+
+def test_update_product_outcome_validates_time_horizon_too_low(
+    user, workspace, session
+):
+    """Test validation of time horizon below minimum when updating."""
+    outcome = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Original Name", None, None, None, [], session
+    )
+
+    with pytest.raises(DomainException, match="between 6-36 months"):
+        product_strategy_controller.update_product_outcome(
+            outcome.id, workspace.id, "Valid Name", None, None, 5, [], session
+        )
+
+
+def test_update_product_outcome_validates_time_horizon_too_high(
+    user, workspace, session
+):
+    """Test validation of time horizon above maximum when updating."""
+    outcome = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Original Name", None, None, None, [], session
+    )
+
+    with pytest.raises(DomainException, match="between 6-36 months"):
+        product_strategy_controller.update_product_outcome(
+            outcome.id, workspace.id, "Valid Name", None, None, 37, [], session
+        )
+
+
+def test_update_product_outcome_not_found(user, workspace, session):
+    """Test updating non-existent outcome raises DomainException."""
+    fake_outcome_id = uuid.uuid4()
+
+    with pytest.raises(DomainException, match="not found"):
+        product_strategy_controller.update_product_outcome(
+            fake_outcome_id, workspace.id, "Some name", None, None, None, [], session
+        )
+
+
+# Delete Product Outcome Tests
+
+
+def test_delete_product_outcome_success(user, workspace, session):
+    """Test successfully deleting an outcome."""
+    outcome = product_strategy_controller.create_product_outcome(
+        workspace.id,
+        user.id,
+        "Outcome to Delete",
+        None,
+        None,
+        None,
+        [],
+        session,
+    )
+
+    product_strategy_controller.delete_product_outcome(
+        outcome.id, workspace.id, user.id, session
+    )
+
+    # Verify outcome is deleted
+    outcomes = product_strategy_controller.get_product_outcomes(workspace.id, session)
+    assert_that(outcomes, has_length(0))
+
+
+def test_delete_product_outcome_not_found(user, workspace, session):
+    """Test deleting non-existent outcome raises DomainException."""
+    fake_outcome_id = uuid.uuid4()
+
+    with pytest.raises(DomainException, match="not found"):
+        product_strategy_controller.delete_product_outcome(
+            fake_outcome_id, workspace.id, user.id, session
+        )
+
+
+# Reorder Product Outcomes Tests
+
+
+def test_reorder_product_outcomes_success(user, workspace, session):
+    """Test successfully reordering outcomes."""
+    # Create 3 outcomes (display_order will be 0, 1, 2)
+    outcome1 = product_strategy_controller.create_product_outcome(
+        workspace.id,
+        user.id,
+        "Outcome 1",
+        None,
+        None,
+        None,
+        [],
+        session,
+    )
+    outcome2 = product_strategy_controller.create_product_outcome(
+        workspace.id,
+        user.id,
+        "Outcome 2",
+        None,
+        None,
+        None,
+        [],
+        session,
+    )
+    outcome3 = product_strategy_controller.create_product_outcome(
+        workspace.id,
+        user.id,
+        "Outcome 3",
+        None,
+        None,
+        None,
+        [],
+        session,
+    )
+
+    # Reorder: swap outcome1 and outcome3 (0 -> 2, 2 -> 0)
+    outcome_orders = {
+        outcome1.id: 2,  # Move outcome1 to end
+        outcome2.id: 1,  # Keep outcome2 in middle
+        outcome3.id: 0,  # Move outcome3 to start
+    }
+
+    result = product_strategy_controller.reorder_product_outcomes(
+        workspace.id, outcome_orders, session
+    )
+
+    # Verify result is ordered correctly
+    assert_that(result, has_length(3))
+    assert_that(result[0].id, equal_to(outcome3.id))
+    assert_that(result[0].display_order, equal_to(0))
+    assert_that(result[1].id, equal_to(outcome2.id))
+    assert_that(result[1].display_order, equal_to(1))
+    assert_that(result[2].id, equal_to(outcome1.id))
+    assert_that(result[2].display_order, equal_to(2))
+
+
+def test_reorder_product_outcomes_requires_all_outcomes(user, workspace, session):
+    """Test that partial reordering (not including all outcomes) raises error."""
+    # Create 3 outcomes
+    outcome1 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 1", None, None, None, [], session
+    )
+    outcome2 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 2", None, None, None, [], session
+    )
+    outcome3 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 3", None, None, None, [], session
+    )
+
+    # Try to reorder only outcome1 and outcome2 (missing outcome3)
+    outcome_orders = {
+        outcome1.id: 1,
+        outcome2.id: 0,
+    }
+
+    with pytest.raises(
+        DomainException, match="Must provide display order for all 3 outcomes"
+    ):
+        product_strategy_controller.reorder_product_outcomes(
+            workspace.id, outcome_orders, session
+        )
+
+
+def test_reorder_product_outcomes_validates_incomplete_sequence(
+    user, workspace, session
+):
+    """Test that display orders must form complete sequence [0,1,2,...]."""
+    outcome1 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 1", None, None, None, [], session
+    )
+    outcome2 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 2", None, None, None, [], session
+    )
+    outcome3 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 3", None, None, None, [], session
+    )
+
+    # Try to set display orders with gaps: [0, 1, 5]
+    outcome_orders = {
+        outcome1.id: 0,
+        outcome2.id: 1,
+        outcome3.id: 5,
+    }
+
+    with pytest.raises(DomainException, match="Display orders must be"):
+        product_strategy_controller.reorder_product_outcomes(
+            workspace.id, outcome_orders, session
+        )
+
+
+def test_reorder_product_outcomes_validates_duplicate_display_order(
+    user, workspace, session
+):
+    """Test that duplicate display_order values raise DomainException."""
+    outcome1 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 1", None, None, None, [], session
+    )
+    outcome2 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 2", None, None, None, [], session
+    )
+    outcome3 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 3", None, None, None, [], session
+    )
+
+    # Try to set two outcomes to same display_order
+    outcome_orders = {
+        outcome1.id: 0,
+        outcome2.id: 1,
+        outcome3.id: 1,
+    }
+
+    with pytest.raises(DomainException, match="Display orders must be"):
+        product_strategy_controller.reorder_product_outcomes(
+            workspace.id, outcome_orders, session
+        )
+
+
+def test_reorder_product_outcomes_missing_outcome(user, workspace, session):
+    """Test that missing an outcome raises DomainException."""
+    outcome1 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 1", None, None, None, [], session
+    )
+    outcome2 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 2", None, None, None, [], session
+    )
+
+    # Only include outcome1, missing outcome2
+    outcome_orders = {
+        outcome1.id: 0,
+    }
+
+    with pytest.raises(
+        DomainException, match="Must provide display order for all 2 outcomes"
+    ):
+        product_strategy_controller.reorder_product_outcomes(
+            workspace.id, outcome_orders, session
+        )
+
+
+def test_reorder_product_outcomes_unknown_outcome(user, workspace, session):
+    """Test that unknown outcome ID raises DomainException."""
+    outcome1 = product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 1", None, None, None, [], session
+    )
+
+    product_strategy_controller.create_product_outcome(
+        workspace.id, user.id, "Outcome 2", None, None, None, [], session
+    )
+
+    fake_outcome_id = uuid.uuid4()
+    outcome_orders = {
+        outcome1.id: 0,
+        fake_outcome_id: 1,
+    }
+
+    with pytest.raises(
+        DomainException, match="Product outcome not found: " + str(fake_outcome_id)
+    ):
+        product_strategy_controller.reorder_product_outcomes(
+            workspace.id, outcome_orders, session
+        )

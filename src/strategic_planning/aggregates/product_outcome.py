@@ -397,3 +397,35 @@ class ProductOutcome(Base):
             },
         )
         publisher.publish(event, workspace_id=str(self.workspace_id))
+
+    def reorder_outcome(
+        self,
+        new_display_order: int,
+        publisher: "EventPublisher",
+    ) -> None:
+        """Update the display order of this outcome.
+
+        This method updates the outcome's display_order field and emits
+        an OutcomeReordered domain event.
+
+        Args:
+            new_display_order: The new display order (0-based index)
+            publisher: EventPublisher instance for emitting domain events
+
+        Example:
+            >>> outcome.reorder_outcome(2, publisher)
+        """
+        self.display_order = new_display_order
+        self.updated_at = datetime.now(timezone.utc)
+
+        event = DomainEvent(
+            user_id=uuid.uuid4(),
+            event_type="OutcomeReordered",
+            aggregate_id=self.id,
+            payload={
+                "workspace_id": str(self.workspace_id),
+                "outcome_id": str(self.id),
+                "display_order": new_display_order,
+            },
+        )
+        publisher.publish(event, workspace_id=str(self.workspace_id))

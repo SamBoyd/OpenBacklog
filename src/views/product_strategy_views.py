@@ -430,3 +430,157 @@ async def create_product_outcome(
     except Exception as e:
         logger.error(f"Error creating outcome: {e}")
         raise HTTPException(status_code=500, detail="Failed to create outcome")
+
+
+class OutcomeOrderItem(BaseModel):
+    """Model for a single outcome order update."""
+
+    id: uuid.UUID
+    display_order: int = Field(ge=0, le=9)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "123e4567-e89b-12d3-a456-426614174000",
+                "display_order": 2,
+            }
+        }
+
+
+class OutcomeReorderRequest(BaseModel):
+    """Request model for reordering product outcomes."""
+
+    outcomes: List[OutcomeOrderItem] = Field(..., min_length=1, max_length=10)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "outcomes": [
+                    {
+                        "id": "123e4567-e89b-12d3-a456-426614174000",
+                        "display_order": 0,
+                    },
+                    {
+                        "id": "223e4567-e89b-12d3-a456-426614174001",
+                        "display_order": 1,
+                    },
+                ]
+            }
+        }
+
+
+@app.put(
+    "/api/workspaces/{workspace_id}/outcomes/reorder",
+    response_model=List[OutcomeResponse],
+    tags=["product-strategy"],
+)
+async def reorder_product_outcomes(
+    workspace_id: uuid.UUID,
+    request: OutcomeReorderRequest,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> List[OutcomeResponse]:
+    """Reorder product outcomes by updating their display order."""
+    try:
+        # Convert request to dict for controller
+        outcome_orders = {item.id: item.display_order for item in request.outcomes}
+
+        outcomes = product_strategy_controller.reorder_product_outcomes(
+            workspace_id,
+            outcome_orders,
+            session,
+        )
+
+        return [OutcomeResponse.model_validate(outcome) for outcome in outcomes]
+    except DomainException as e:
+        # Check if it's a "not found" error
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error reordering outcomes: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reorder outcomes")
+
+
+class OutcomeUpdateRequest(BaseModel):
+    """Request model for updating a product outcome."""
+
+    name: str = Field(min_length=1, max_length=150)
+    description: Optional[str] = Field(default=None, max_length=1500)
+    metrics: Optional[str] = Field(default=None, max_length=1000)
+    time_horizon_months: Optional[int] = Field(default=None, ge=6, le=36)
+    pillar_ids: List[uuid.UUID] = Field(default_factory=list)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Updated outcome name",
+                "description": "Updated description",
+                "metrics": "Updated metrics",
+                "time_horizon_months": 18,
+                "pillar_ids": ["123e4567-e89b-12d3-a456-426614174000"],
+            }
+        }
+
+
+@app.put(
+    "/api/workspaces/{workspace_id}/outcomes/{outcome_id}",
+    response_model=OutcomeResponse,
+    tags=["product-strategy"],
+)
+async def update_product_outcome(
+    workspace_id: uuid.UUID,
+    outcome_id: uuid.UUID,
+    request: OutcomeUpdateRequest,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> OutcomeResponse:
+    """Update an existing product outcome."""
+    try:
+        outcome = product_strategy_controller.update_product_outcome(
+            outcome_id,
+            workspace_id,
+            request.name,
+            request.description,
+            request.metrics,
+            request.time_horizon_months,
+            request.pillar_ids,
+            session,
+        )
+
+        return OutcomeResponse.model_validate(outcome)
+    except DomainException as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error updating outcome: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update outcome")
+
+
+@app.delete(
+    "/api/workspaces/{workspace_id}/outcomes/{outcome_id}",
+    status_code=204,
+    tags=["product-strategy"],
+)
+async def delete_product_outcome(
+    workspace_id: uuid.UUID,
+    outcome_id: uuid.UUID,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> None:
+    """Delete a product outcome."""
+    try:
+        product_strategy_controller.delete_product_outcome(
+            outcome_id,
+            workspace_id,
+            user.id,
+            session,
+        )
+    except DomainException as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error deleting outcome: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete outcome")
