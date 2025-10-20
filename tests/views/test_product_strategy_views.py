@@ -136,6 +136,8 @@ def test_get_pillars_returns_list(test_client, workspace, user):
     assert_that(data[0], has_key("id"))
     assert_that(data[0], has_key("workspace_id"))
     assert_that(data[0], has_key("display_order"))
+    assert_that(data[0], has_key("outcome_ids"))
+    assert_that(data[0]["outcome_ids"], equal_to([]))
 
 
 def test_get_pillars_unauthorized(test_client_no_user, workspace):
@@ -162,6 +164,8 @@ def test_create_pillar_success_all_fields(test_client, workspace):
     assert_that(data["anti_strategy"], equal_to("Not enterprise features"))
     assert_that(data["workspace_id"], equal_to(str(workspace.id)))
     assert_that(data["display_order"], equal_to(0))
+    assert_that(data, has_key("outcome_ids"))
+    assert_that(data["outcome_ids"], equal_to([]))
 
 
 def test_create_pillar_success_name_only(test_client, workspace):
@@ -176,6 +180,8 @@ def test_create_pillar_success_name_only(test_client, workspace):
     assert_that(data["name"], equal_to("Developer Experience"))
     assert_that(data["description"], equal_to(None))
     assert_that(data["anti_strategy"], equal_to(None))
+    assert_that(data, has_key("outcome_ids"))
+    assert_that(data["outcome_ids"], equal_to([]))
 
 
 def test_create_pillar_validation_error_empty_name(test_client, workspace):
@@ -762,6 +768,9 @@ def test_get_outcomes_success_with_data(test_client, workspace, user):
     assert_that(data[1]["id"], equal_to(outcome2_id))
     assert_that(data[1]["name"], equal_to("Outcome 2"))
     assert_that(data[1]["metrics"], equal_to("Metrics 2"))
+    assert_that(data[0], has_key("pillar_ids"))
+    assert_that(data[0]["pillar_ids"], equal_to([]))
+    assert_that(data[1]["pillar_ids"], equal_to([]))
 
 
 def test_get_outcomes_unauthorized(test_client_no_user, workspace):
@@ -844,6 +853,8 @@ def test_create_outcome_with_pillar_links(test_client, workspace, user):
     assert_that(response.status_code, equal_to(201))
     data = response.json()
     assert_that(data["name"], equal_to("Test Outcome"))
+    # Verify the links are returned
+    assert_that(set(data["pillar_ids"]), equal_to(set([pillar1_id, pillar2_id])))
 
 
 def test_create_outcome_validation_error_empty_name(test_client, workspace):
@@ -1011,6 +1022,8 @@ def test_update_outcome_success_all_fields(test_client, workspace, user):
     assert_that(data["description"], equal_to("Updated description"))
     assert_that(data["metrics"], equal_to("Updated metrics"))
     assert_that(data["time_horizon_months"], equal_to(24))
+    # Verify pillar links echoed back
+    assert_that(set(data["pillar_ids"]), equal_to(set([pillar1_id, pillar2_id])))
 
 
 def test_update_outcome_success_name_only(test_client, workspace, user):
@@ -1208,6 +1221,7 @@ def test_update_outcome_pillar_links(test_client, workspace, user):
     assert_that(response.status_code, equal_to(200))
     data = response.json()
     assert_that(data["id"], equal_to(outcome_id))
+    assert_that(set(data["pillar_ids"]), equal_to(set([pillar1_id, pillar2_id])))
 
 
 def test_update_outcome_not_found(test_client, workspace):

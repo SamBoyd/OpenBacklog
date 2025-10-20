@@ -186,7 +186,7 @@ export const RoadmapThemes: React.FC<RoadmapThemesProps> = ({
                             hypothesis: theme.hypothesis,
                             indicative_metrics: theme.indicative_metrics,
                             time_horizon_months: theme.time_horizon_months,
-                            outcome_ids: [],
+                            outcome_ids: theme.outcome_ids,
                           }}
                           availableOutcomes={availableOutcomes}
                           onSave={handleUpdateTheme}
@@ -214,13 +214,11 @@ export const RoadmapThemes: React.FC<RoadmapThemesProps> = ({
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className={`bg-background border border-border rounded-lg p-4 ${
-                            snapshot.isDragging ? 'opacity-60 rotate-2 shadow-lg' : ''
-                          } ${
-                            isReorderingThemes || isAddingTheme || editingTheme !== null
+                          className={`bg-background border border-border rounded-lg p-4 ${snapshot.isDragging ? 'opacity-60 rotate-2 shadow-lg' : ''
+                            } ${isReorderingThemes || isAddingTheme || editingTheme !== null
                               ? 'opacity-50 cursor-not-allowed'
                               : 'cursor-grab active:cursor-grabbing'
-                          } transition-all duration-200`}
+                            } transition-all duration-200`}
                         >
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="text-lg font-semibold text-foreground">
@@ -277,6 +275,16 @@ export const RoadmapThemes: React.FC<RoadmapThemesProps> = ({
                             <p className="text-xs text-muted-foreground mt-2">
                               Time Horizon: {theme.time_horizon_months} months
                             </p>
+                          )}
+                          {theme.outcome_ids.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-xs font-medium text-muted-foreground mb-1">
+                                Product Outcomes:
+                              </p>
+                              {theme.outcome_ids.map(outcome_id => (
+                                <p key={outcome_id} className="text-sm text-foreground">{availableOutcomes.find(availableOutcome => availableOutcome.id == outcome_id)?.name}</p>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}

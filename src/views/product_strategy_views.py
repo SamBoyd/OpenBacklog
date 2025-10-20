@@ -128,6 +128,7 @@ class PillarResponse(BaseModel):
     description: Optional[str]
     anti_strategy: Optional[str]
     display_order: int
+    outcome_ids: List[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
@@ -151,7 +152,20 @@ async def get_workspace_pillars(
         pillars = product_strategy_controller.get_strategic_pillars(
             workspace_id, session
         )
-        return [PillarResponse.model_validate(pillar) for pillar in pillars]
+        return [
+            PillarResponse(
+                id=pillar.id,
+                workspace_id=pillar.workspace_id,
+                name=pillar.name,
+                description=pillar.description,
+                anti_strategy=pillar.anti_strategy,
+                display_order=pillar.display_order,
+                outcome_ids=[outcome.id for outcome in pillar.outcomes],
+                created_at=pillar.created_at,
+                updated_at=pillar.updated_at,
+            )
+            for pillar in pillars
+        ]
     except Exception as e:
         logger.error(f"Error getting pillars: {e}")
         raise HTTPException(status_code=500, detail="Failed to get pillars")
@@ -180,7 +194,17 @@ async def create_strategic_pillar(
             session,
         )
 
-        return PillarResponse.model_validate(pillar)
+        return PillarResponse(
+            id=pillar.id,
+            workspace_id=pillar.workspace_id,
+            name=pillar.name,
+            description=pillar.description,
+            anti_strategy=pillar.anti_strategy,
+            display_order=pillar.display_order,
+            outcome_ids=[outcome.id for outcome in pillar.outcomes],
+            created_at=pillar.created_at,
+            updated_at=pillar.updated_at,
+        )
     except DomainException as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -247,7 +271,20 @@ async def reorder_strategic_pillars(
             session,
         )
 
-        return [PillarResponse.model_validate(pillar) for pillar in pillars]
+        return [
+            PillarResponse(
+                id=pillar.id,
+                workspace_id=pillar.workspace_id,
+                name=pillar.name,
+                description=pillar.description,
+                anti_strategy=pillar.anti_strategy,
+                display_order=pillar.display_order,
+                outcome_ids=[outcome.id for outcome in pillar.outcomes],
+                created_at=pillar.created_at,
+                updated_at=pillar.updated_at,
+            )
+            for pillar in pillars
+        ]
     except DomainException as e:
         # Check if it's a "not found" error
         if "not found" in str(e).lower():
@@ -298,7 +335,17 @@ async def update_strategic_pillar(
             session,
         )
 
-        return PillarResponse.model_validate(pillar)
+        return PillarResponse(
+            id=pillar.id,
+            workspace_id=pillar.workspace_id,
+            name=pillar.name,
+            description=pillar.description,
+            anti_strategy=pillar.anti_strategy,
+            display_order=pillar.display_order,
+            outcome_ids=[outcome.id for outcome in pillar.outcomes],
+            created_at=pillar.created_at,
+            updated_at=pillar.updated_at,
+        )
     except DomainException as e:
         if "not found" in str(e).lower():
             raise HTTPException(status_code=404, detail=str(e))
@@ -370,6 +417,7 @@ class OutcomeResponse(BaseModel):
     metrics: Optional[str]
     time_horizon_months: Optional[int]
     display_order: int
+    pillar_ids: List[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
@@ -393,7 +441,21 @@ async def get_workspace_outcomes(
         outcomes = product_strategy_controller.get_product_outcomes(
             workspace_id, session
         )
-        return [OutcomeResponse.model_validate(outcome) for outcome in outcomes]
+        return [
+            OutcomeResponse(
+                id=outcome.id,
+                workspace_id=outcome.workspace_id,
+                name=outcome.name,
+                description=outcome.description,
+                metrics=outcome.metrics,
+                time_horizon_months=outcome.time_horizon_months,
+                display_order=outcome.display_order,
+                pillar_ids=[pillar.id for pillar in outcome.pillars],
+                created_at=outcome.created_at,
+                updated_at=outcome.updated_at,
+            )
+            for outcome in outcomes
+        ]
     except Exception as e:
         logger.error(f"Error getting outcomes: {e}")
         raise HTTPException(status_code=500, detail="Failed to get outcomes")
@@ -424,7 +486,18 @@ async def create_product_outcome(
             session,
         )
 
-        return OutcomeResponse.model_validate(outcome)
+        return OutcomeResponse(
+            id=outcome.id,
+            workspace_id=outcome.workspace_id,
+            name=outcome.name,
+            description=outcome.description,
+            metrics=outcome.metrics,
+            time_horizon_months=outcome.time_horizon_months,
+            display_order=outcome.display_order,
+            pillar_ids=[pillar.id for pillar in outcome.pillars],
+            created_at=outcome.created_at,
+            updated_at=outcome.updated_at,
+        )
     except DomainException as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -491,7 +564,21 @@ async def reorder_product_outcomes(
             session,
         )
 
-        return [OutcomeResponse.model_validate(outcome) for outcome in outcomes]
+        return [
+            OutcomeResponse(
+                id=outcome.id,
+                workspace_id=outcome.workspace_id,
+                name=outcome.name,
+                description=outcome.description,
+                metrics=outcome.metrics,
+                time_horizon_months=outcome.time_horizon_months,
+                display_order=outcome.display_order,
+                pillar_ids=[pillar.id for pillar in outcome.pillars],
+                created_at=outcome.created_at,
+                updated_at=outcome.updated_at,
+            )
+            for outcome in outcomes
+        ]
     except DomainException as e:
         # Check if it's a "not found" error
         if "not found" in str(e).lower():
@@ -548,7 +635,18 @@ async def update_product_outcome(
             session,
         )
 
-        return OutcomeResponse.model_validate(outcome)
+        return OutcomeResponse(
+            id=outcome.id,
+            workspace_id=outcome.workspace_id,
+            name=outcome.name,
+            description=outcome.description,
+            metrics=outcome.metrics,
+            time_horizon_months=outcome.time_horizon_months,
+            display_order=outcome.display_order,
+            pillar_ids=[pillar.id for pillar in outcome.pillars],
+            created_at=outcome.created_at,
+            updated_at=outcome.updated_at,
+        )
     except DomainException as e:
         if "not found" in str(e).lower():
             raise HTTPException(status_code=404, detail=str(e))
@@ -623,6 +721,7 @@ class ThemeResponse(BaseModel):
     indicative_metrics: Optional[str]
     time_horizon_months: Optional[int]
     display_order: int
+    outcome_ids: List[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
@@ -644,7 +743,22 @@ async def get_workspace_themes(
     """Get all roadmap themes for a workspace."""
     try:
         themes = product_strategy_controller.get_roadmap_themes(workspace_id, session)
-        return [ThemeResponse.model_validate(theme) for theme in themes]
+        return [
+            ThemeResponse(
+                id=theme.id,
+                workspace_id=theme.workspace_id,
+                name=theme.name,
+                problem_statement=theme.problem_statement,
+                hypothesis=theme.hypothesis,
+                indicative_metrics=theme.indicative_metrics,
+                time_horizon_months=theme.time_horizon_months,
+                display_order=theme.display_order,
+                outcome_ids=[outcome.id for outcome in theme.outcomes],
+                created_at=theme.created_at,
+                updated_at=theme.updated_at,
+            )
+            for theme in themes
+        ]
     except Exception as e:
         logger.error(f"Error getting themes: {e}")
         raise HTTPException(status_code=500, detail="Failed to get themes")
@@ -676,7 +790,19 @@ async def create_roadmap_theme(
             session,
         )
 
-        return ThemeResponse.model_validate(theme)
+        return ThemeResponse(
+            id=theme.id,
+            workspace_id=theme.workspace_id,
+            name=theme.name,
+            problem_statement=theme.problem_statement,
+            hypothesis=theme.hypothesis,
+            indicative_metrics=theme.indicative_metrics,
+            time_horizon_months=theme.time_horizon_months,
+            display_order=theme.display_order,
+            outcome_ids=[outcome.id for outcome in theme.outcomes],
+            created_at=theme.created_at,
+            updated_at=theme.updated_at,
+        )
     except DomainException as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -743,7 +869,22 @@ async def reorder_roadmap_themes(
             session,
         )
 
-        return [ThemeResponse.model_validate(theme) for theme in themes]
+        return [
+            ThemeResponse(
+                id=theme.id,
+                workspace_id=theme.workspace_id,
+                name=theme.name,
+                problem_statement=theme.problem_statement,
+                hypothesis=theme.hypothesis,
+                indicative_metrics=theme.indicative_metrics,
+                time_horizon_months=theme.time_horizon_months,
+                display_order=theme.display_order,
+                outcome_ids=[outcome.id for outcome in theme.outcomes],
+                created_at=theme.created_at,
+                updated_at=theme.updated_at,
+            )
+            for theme in themes
+        ]
     except DomainException as e:
         # Check if it's a "not found" error
         if "not found" in str(e).lower():
@@ -803,7 +944,19 @@ async def update_roadmap_theme(
             session,
         )
 
-        return ThemeResponse.model_validate(theme)
+        return ThemeResponse(
+            id=theme.id,
+            workspace_id=theme.workspace_id,
+            name=theme.name,
+            problem_statement=theme.problem_statement,
+            hypothesis=theme.hypothesis,
+            indicative_metrics=theme.indicative_metrics,
+            time_horizon_months=theme.time_horizon_months,
+            display_order=theme.display_order,
+            outcome_ids=[outcome.id for outcome in theme.outcomes],
+            created_at=theme.created_at,
+            updated_at=theme.updated_at,
+        )
     except DomainException as e:
         if "not found" in str(e).lower():
             raise HTTPException(status_code=404, detail=str(e))

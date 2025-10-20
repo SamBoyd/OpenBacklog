@@ -50,6 +50,7 @@ describe('useStrategicPillars', () => {
     display_order: 0,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
+    outcome_ids: []
   };
 
   const mockPillar2: PillarDto = {
@@ -61,6 +62,7 @@ describe('useStrategicPillars', () => {
     display_order: 1,
     created_at: '2025-01-02T00:00:00Z',
     updated_at: '2025-01-02T00:00:00Z',
+    outcome_ids: []
   };
 
   const mockPillars = [mockPillar1, mockPillar2];
@@ -160,6 +162,7 @@ describe('useStrategicPillars', () => {
       display_order: 2,
       created_at: '2025-01-03T00:00:00Z',
       updated_at: '2025-01-03T00:00:00Z',
+      outcome_ids: []
     };
 
     it('should create pillar successfully', async () => {

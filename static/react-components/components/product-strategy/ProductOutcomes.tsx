@@ -178,7 +178,7 @@ export const ProductOutcomes: React.FC<ProductOutcomesProps> = ({
                             description: outcome.description,
                             metrics: outcome.metrics,
                             time_horizon_months: outcome.time_horizon_months,
-                            pillar_ids: [],
+                            pillar_ids: outcome.pillar_ids,
                           }}
                           availablePillars={availablePillars}
                           onSave={handleUpdateOutcome}
@@ -206,13 +206,11 @@ export const ProductOutcomes: React.FC<ProductOutcomesProps> = ({
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
-                          className={`bg-background border border-border rounded-lg p-4 ${
-                            snapshot.isDragging ? 'opacity-60 rotate-2 shadow-lg' : ''
-                          } ${
-                            isReorderingOutcomes || isAddingOutcome || editingOutcome !== null
+                          className={`bg-background border border-border rounded-lg p-4 ${snapshot.isDragging ? 'opacity-60 rotate-2 shadow-lg' : ''
+                            } ${isReorderingOutcomes || isAddingOutcome || editingOutcome !== null
                               ? 'opacity-50 cursor-not-allowed'
                               : 'cursor-grab active:cursor-grabbing'
-                          } transition-all duration-200`}
+                            } transition-all duration-200`}
                         >
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="text-lg font-semibold text-foreground">
@@ -258,6 +256,18 @@ export const ProductOutcomes: React.FC<ProductOutcomesProps> = ({
                             <p className="text-xs text-muted-foreground mt-2">
                               Time Horizon: {outcome.time_horizon_months} months
                             </p>
+                          )}
+
+
+                          {outcome.pillar_ids.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-xs font-medium text-muted-foreground mb-1">
+                                Pillar:
+                              </p>
+                              {outcome.pillar_ids.map(pillar_id => (
+                                <p key={pillar_id} className="text-sm text-foreground">{availablePillars.find(pillar => pillar.id === pillar_id)?.name}</p>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}

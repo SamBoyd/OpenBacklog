@@ -3,7 +3,7 @@
 import uuid
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
 from src.strategic_planning.aggregates.product_vision import ProductVision
@@ -99,6 +99,7 @@ def get_strategic_pillars(
     """
     return (
         session.query(StrategicPillar)
+        .options(selectinload(StrategicPillar.outcomes))
         .filter_by(workspace_id=workspace_id)
         .order_by(StrategicPillar.display_order)
         .all()
@@ -343,6 +344,7 @@ def get_product_outcomes(
     """
     return (
         session.query(ProductOutcome)
+        .options(selectinload(ProductOutcome.pillars))
         .filter_by(workspace_id=workspace_id)
         .order_by(ProductOutcome.display_order)
         .all()
@@ -597,6 +599,7 @@ def get_roadmap_themes(workspace_id: uuid.UUID, session: Session) -> List[Roadma
     """
     return (
         session.query(RoadmapTheme)
+        .options(selectinload(RoadmapTheme.outcomes))
         .filter_by(workspace_id=workspace_id)
         .order_by(RoadmapTheme.display_order)
         .all()

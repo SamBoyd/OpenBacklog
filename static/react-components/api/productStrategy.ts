@@ -25,6 +25,7 @@ export interface PillarDto {
   description: string | null;
   anti_strategy: string | null;
   display_order: number;
+  outcome_ids: string[];
   created_at: string;
   updated_at: string;
 }
@@ -203,6 +204,7 @@ export interface OutcomeDto {
   metrics: string | null;
   time_horizon_months: number | null;
   display_order: number;
+  pillar_ids: string[];
   created_at: string;
   updated_at: string;
 }
@@ -342,6 +344,7 @@ export interface ThemeDto {
   indicative_metrics: string | null;
   time_horizon_months: number | null;
   display_order: number;
+  outcome_ids: string[];
   created_at: string;
   updated_at: string;
 }
