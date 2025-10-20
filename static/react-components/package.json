@@ -241,6 +241,22 @@
       "storybook": "./hooks/useOpenbacklogToken.mock.tsx",
       "default": "./hooks/useOpenbacklogToken.tsx"
     },
+    "#hooks/useStrategicPillars": {
+      "storybook": "./hooks/useStrategicPillars.mock.tsx",
+      "default": "./hooks/useStrategicPillars.tsx"
+    },
+    "#hooks/useProductVision": {
+      "storybook": "./hooks/useProductVision.mock.tsx",
+      "default": "./hooks/useProductVision.tsx"
+    },
+    "#hooks/useProductOutcomes": {
+      "storybook": "./hooks/useProductOutcomes.mock.tsx",
+      "default": "./hooks/useProductOutcomes.tsx"
+    },
+    "#hooks/useRoadmapThemes": {
+      "storybook": "./hooks/useRoadmapThemes.mock.tsx",
+      "default": "./hooks/useRoadmapThemes.tsx"
+    },
     "#styles": {
       "default": "./styles"
     },
