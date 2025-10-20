@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { useProductVision } from '#hooks/useProductVision';
+import { useStrategicPillars } from '#hooks/useStrategicPillars';
 import { VisionEditor } from '#components/product-strategy/VisionEditor';
+import { PillarForm } from '#components/product-strategy/PillarForm';
 
 /**
  * ProductStrategy page component for managing workspace product vision
@@ -20,22 +22,50 @@ const ProductStrategy: React.FC = () => {
     upsertError,
   } = useProductVision(workspaceId);
 
-  const [isEditing, setIsEditing] = useState(false);
+  const {
+    pillars,
+    isLoading: isPillarsLoading,
+    error: pillarsError,
+    createPillar,
+    isCreating,
+    createError,
+  } = useStrategicPillars(workspaceId);
 
-  const handleSave = (text: string) => {
+  const [isEditingVision, setIsEditingVision] = useState(false);
+  const [isAddingPillar, setIsAddingPillar] = useState(false);
+
+  const handleSaveVision = (text: string) => {
     upsertVision(
       { vision_text: text },
       {
         onSuccess: () => {
-          setIsEditing(false);
+          setIsEditingVision(false);
         },
       }
     );
   };
 
-  const handleCancel = () => {
-    setIsEditing(false);
+  const handleCancelVision = () => {
+    setIsEditingVision(false);
   };
+
+  const handleSavePillar = (data: {
+    name: string;
+    description?: string | null;
+    anti_strategy?: string | null;
+  }) => {
+    createPillar(data, {
+      onSuccess: () => {
+        setIsAddingPillar(false);
+      },
+    });
+  };
+
+  const handleCancelPillar = () => {
+    setIsAddingPillar(false);
+  };
+
+  const maxPillarsReached = pillars.length >= 5;
 
   if (isLoading) {
     return (
@@ -64,7 +94,7 @@ const ProductStrategy: React.FC = () => {
           Product Vision
         </h2>
 
-        {!isEditing && (
+        {!isEditingVision && (
           <div>
             {vision ? (
               <div className="space-y-4">
@@ -72,7 +102,7 @@ const ProductStrategy: React.FC = () => {
                   {vision.vision_text}
                 </p>
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => setIsEditingVision(true)}
                   className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
                 >
                   Edit Vision
@@ -85,7 +115,7 @@ const ProductStrategy: React.FC = () => {
                   your strategic planning.
                 </p>
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => setIsEditingVision(true)}
                   className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
                 >
                   Define Vision
@@ -95,11 +125,11 @@ const ProductStrategy: React.FC = () => {
           </div>
         )}
 
-        {isEditing && (
+        {isEditingVision && (
           <VisionEditor
             initialText={vision?.vision_text || ''}
-            onSave={handleSave}
-            onCancel={handleCancel}
+            onSave={handleSaveVision}
+            onCancel={handleCancelVision}
             isSaving={isUpserting}
           />
         )}
@@ -107,6 +137,90 @@ const ProductStrategy: React.FC = () => {
         {upsertError && (
           <p className="text-destructive mt-4">
             {(upsertError as Error).message}
+          </p>
+        )}
+      </div>
+
+      {/* Strategic Pillars Section */}
+      <div className="bg-card rounded-lg border border-border p-6 mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-foreground">
+            Strategic Pillars
+          </h2>
+          {!isAddingPillar && (
+            <button
+              onClick={() => setIsAddingPillar(true)}
+              disabled={maxPillarsReached}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={
+                maxPillarsReached
+                  ? 'Maximum of 5 pillars reached'
+                  : 'Add a new strategic pillar'
+              }
+            >
+              Add Pillar
+            </button>
+          )}
+        </div>
+
+        {isAddingPillar && (
+          <div className="mb-6">
+            <PillarForm
+              onSave={handleSavePillar}
+              onCancel={handleCancelPillar}
+              isSaving={isCreating}
+            />
+          </div>
+        )}
+
+        {createError && (
+          <p className="text-destructive mb-4">
+            {(createError as Error).message}
+          </p>
+        )}
+
+        {isPillarsLoading ? (
+          <p className="text-muted-foreground">Loading pillars...</p>
+        ) : pillarsError ? (
+          <p className="text-destructive">Error loading pillars</p>
+        ) : pillars.length === 0 ? (
+          <p className="text-muted-foreground">
+            No strategic pillars defined yet. Strategic pillars represent
+            enduring ways to win that guide your initiatives.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pillars.map((pillar) => (
+              <div
+                key={pillar.id}
+                className="bg-background border border-border rounded-lg p-4"
+              >
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {pillar.name}
+                </h3>
+                {pillar.description && (
+                  <p className="text-foreground text-sm mb-2">
+                    {pillar.description}
+                  </p>
+                )}
+                {pillar.anti_strategy && (
+                  <div className="mt-2 pt-2 border-t border-border">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                      Anti-Strategy:
+                    </p>
+                    <p className="text-sm text-foreground">
+                      {pillar.anti_strategy}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {maxPillarsReached && (
+          <p className="text-sm text-muted-foreground mt-4">
+            Maximum of 5 strategic pillars reached.
           </p>
         )}
       </div>

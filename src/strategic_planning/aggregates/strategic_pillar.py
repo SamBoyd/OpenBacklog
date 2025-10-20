@@ -5,7 +5,7 @@ business logic for defining, updating, and reordering strategic pillars.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List
 
 from sqlalchemy import (
@@ -194,63 +194,86 @@ class StrategicPillar(Base):
                 f"Display order must be between 0-4 (got {display_order})"
             )
 
+    @staticmethod
     def define_pillar(
-        self,
+        workspace_id: uuid.UUID,
+        user_id: uuid.UUID,
         name: str,
         description: str | None,
         anti_strategy: str | None,
         display_order: int,
+        session: Session,
         publisher: "EventPublisher",
-    ) -> None:
-        """Define a new strategic pillar with business validation.
+    ) -> "StrategicPillar":
+        """Create a new strategic pillar with business validation.
 
-        This method sets the pillar's fields after validation and emits
-        a StrategicPillarDefined domain event.
+        This factory method validates inputs, creates a fully-initialized pillar,
+        persists it to get an ID, and emits the StrategicPillarDefined domain event.
 
         Args:
+            workspace_id: UUID of the workspace
+            user_id: UUID of the user creating the pillar
             name: Pillar name (1-100 characters, unique per workspace)
             description: Optional pillar description (max 1000 characters)
             anti_strategy: Optional anti-strategy text (max 1000 characters)
             display_order: Display order for pillar list (0-4)
+            session: Database session for persistence
             publisher: EventPublisher instance for emitting domain events
+
+        Returns:
+            The created and persisted StrategicPillar with ID assigned
 
         Raises:
             DomainException: If any field violates validation rules
 
         Example:
-            >>> pillar = StrategicPillar(workspace_id=workspace.id)
-            >>> pillar.define_pillar(
+            >>> pillar = StrategicPillar.define_pillar(
+            ...     workspace_id=workspace.id,
+            ...     user_id=user.id,
             ...     name="Developer Experience",
             ...     description="Make developers love our product",
             ...     anti_strategy="Not enterprise features",
             ...     display_order=0,
+            ...     session=session,
             ...     publisher=publisher
             ... )
         """
-        self._validate_name(name)
-        self._validate_text_field("Description", description)
-        self._validate_text_field("Anti-strategy", anti_strategy)
-        self._validate_display_order(display_order)
+        # Validate all inputs
+        StrategicPillar._validate_name(name)
+        StrategicPillar._validate_text_field("Description", description)
+        StrategicPillar._validate_text_field("Anti-strategy", anti_strategy)
+        StrategicPillar._validate_display_order(display_order)
 
-        self.name = name
-        self.description = description
-        self.anti_strategy = anti_strategy
-        self.display_order = display_order
-        self.updated_at = datetime.utcnow()
+        # Create fully-initialized instance
+        pillar = StrategicPillar(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            name=name,
+            description=description,
+            anti_strategy=anti_strategy,
+            display_order=display_order,
+        )
 
+        # Persist to get ID
+        session.add(pillar)
+        session.flush()
+
+        # Emit event now that we have ID
         event = DomainEvent(
-            user_id=uuid.uuid4(),
+            user_id=user_id,
             event_type="StrategicPillarDefined",
-            aggregate_id=self.id,
+            aggregate_id=pillar.id,
             payload={
-                "workspace_id": str(self.workspace_id),
+                "workspace_id": str(workspace_id),
                 "name": name,
                 "description": description,
                 "anti_strategy": anti_strategy,
                 "display_order": display_order,
             },
         )
-        publisher.publish(event, workspace_id=str(self.workspace_id))
+        publisher.publish(event, workspace_id=str(workspace_id))
+
+        return pillar
 
     def update_pillar(
         self,

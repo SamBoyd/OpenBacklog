@@ -3,6 +3,7 @@
 import logging
 import uuid
 from datetime import datetime
+from typing import List, Optional
 
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -96,3 +97,92 @@ async def upsert_workspace_vision(
     except Exception as e:
         logger.error(f"Error upserting vision: {e}")
         raise HTTPException(status_code=500, detail="Failed to save vision")
+
+
+# Strategic Pillar Endpoints
+
+
+class PillarCreateRequest(BaseModel):
+    """Request model for creating a strategic pillar."""
+
+    name: str = Field(min_length=1, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    anti_strategy: Optional[str] = Field(default=None, max_length=1000)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Developer Experience",
+                "description": "Make developers love our product",
+                "anti_strategy": "Not enterprise features",
+            }
+        }
+
+
+class PillarResponse(BaseModel):
+    """Response model for strategic pillar."""
+
+    id: uuid.UUID
+    workspace_id: uuid.UUID
+    name: str
+    description: Optional[str]
+    anti_strategy: Optional[str]
+    display_order: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+        json_encoders = {datetime: lambda v: v.isoformat()}
+
+
+@app.get(
+    "/api/workspaces/{workspace_id}/pillars",
+    response_model=List[PillarResponse],
+    tags=["product-strategy"],
+)
+async def get_workspace_pillars(
+    workspace_id: uuid.UUID,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> List[PillarResponse]:
+    """Get all strategic pillars for a workspace."""
+    try:
+        pillars = product_strategy_controller.get_strategic_pillars(
+            workspace_id, session
+        )
+        return [PillarResponse.model_validate(pillar) for pillar in pillars]
+    except Exception as e:
+        logger.error(f"Error getting pillars: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get pillars")
+
+
+@app.post(
+    "/api/workspaces/{workspace_id}/pillars",
+    response_model=PillarResponse,
+    tags=["product-strategy"],
+    status_code=201,
+)
+async def create_strategic_pillar(
+    workspace_id: uuid.UUID,
+    request: PillarCreateRequest,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> PillarResponse:
+    """Create a new strategic pillar for a workspace."""
+    try:
+        pillar = product_strategy_controller.create_strategic_pillar(
+            workspace_id,
+            user.id,
+            request.name,
+            request.description,
+            request.anti_strategy,
+            session,
+        )
+
+        return PillarResponse.model_validate(pillar)
+    except DomainException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating pillar: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create pillar")

@@ -92,16 +92,21 @@ class TestStrategicPillar:
 
     def test_define_pillar_validates_name_minimum_length(
         self,
-        strategic_pillar: StrategicPillar,
+        workspace: Workspace,
+        user,
+        session: Session,
         mock_publisher: MagicMock,
     ):
         """Test that define_pillar() raises exception for empty name."""
         with pytest.raises(DomainException) as exc_info:
-            strategic_pillar.define_pillar(
+            StrategicPillar.define_pillar(
+                workspace_id=workspace.id,
+                user_id=user.id,
                 name="",
                 description="Some description",
                 anti_strategy=None,
                 display_order=0,
+                session=session,
                 publisher=mock_publisher,
             )
 
@@ -109,18 +114,23 @@ class TestStrategicPillar:
 
     def test_define_pillar_validates_name_maximum_length(
         self,
-        strategic_pillar: StrategicPillar,
+        workspace: Workspace,
+        user,
+        session: Session,
         mock_publisher: MagicMock,
     ):
         """Test that define_pillar() raises exception for name > 100 chars."""
         long_name = "x" * 101
 
         with pytest.raises(DomainException) as exc_info:
-            strategic_pillar.define_pillar(
+            StrategicPillar.define_pillar(
+                workspace_id=workspace.id,
+                user_id=user.id,
                 name=long_name,
                 description="Some description",
                 anti_strategy=None,
                 display_order=0,
+                session=session,
                 publisher=mock_publisher,
             )
 
@@ -129,18 +139,23 @@ class TestStrategicPillar:
 
     def test_define_pillar_validates_description_maximum_length(
         self,
-        strategic_pillar: StrategicPillar,
+        workspace: Workspace,
+        user,
+        session: Session,
         mock_publisher: MagicMock,
     ):
         """Test that define_pillar() raises exception for description > 1000 chars."""
         long_description = "x" * 1001
 
         with pytest.raises(DomainException) as exc_info:
-            strategic_pillar.define_pillar(
+            StrategicPillar.define_pillar(
+                workspace_id=workspace.id,
+                user_id=user.id,
                 name="Valid Name",
                 description=long_description,
                 anti_strategy=None,
                 display_order=0,
+                session=session,
                 publisher=mock_publisher,
             )
 
@@ -149,18 +164,23 @@ class TestStrategicPillar:
 
     def test_define_pillar_validates_anti_strategy_maximum_length(
         self,
-        strategic_pillar: StrategicPillar,
+        workspace: Workspace,
+        user,
+        session: Session,
         mock_publisher: MagicMock,
     ):
         """Test that define_pillar() raises exception for anti_strategy > 1000 chars."""
         long_anti_strategy = "x" * 1001
 
         with pytest.raises(DomainException) as exc_info:
-            strategic_pillar.define_pillar(
+            StrategicPillar.define_pillar(
+                workspace_id=workspace.id,
+                user_id=user.id,
                 name="Valid Name",
                 description="Valid description",
                 anti_strategy=long_anti_strategy,
                 display_order=0,
+                session=session,
                 publisher=mock_publisher,
             )
 
@@ -169,27 +189,35 @@ class TestStrategicPillar:
 
     def test_define_pillar_validates_display_order_range(
         self,
-        strategic_pillar: StrategicPillar,
+        workspace: Workspace,
+        user,
+        session: Session,
         mock_publisher: MagicMock,
     ):
         """Test that define_pillar() raises exception for display_order outside 0-4."""
         with pytest.raises(DomainException) as exc_info:
-            strategic_pillar.define_pillar(
+            StrategicPillar.define_pillar(
+                workspace_id=workspace.id,
+                user_id=user.id,
                 name="Valid Name",
                 description="Valid description",
                 anti_strategy=None,
                 display_order=5,
+                session=session,
                 publisher=mock_publisher,
             )
 
         assert "between 0-4" in str(exc_info.value)
 
         with pytest.raises(DomainException) as exc_info:
-            strategic_pillar.define_pillar(
+            StrategicPillar.define_pillar(
+                workspace_id=workspace.id,
+                user_id=user.id,
                 name="Valid Name",
                 description="Valid description",
                 anti_strategy=None,
                 display_order=-1,
+                session=session,
                 publisher=mock_publisher,
             )
 
@@ -197,7 +225,9 @@ class TestStrategicPillar:
 
     def test_define_pillar_accepts_valid_input(
         self,
-        strategic_pillar: StrategicPillar,
+        workspace: Workspace,
+        user,
+        session: Session,
         mock_publisher: MagicMock,
     ):
         """Test that define_pillar() accepts valid input."""
@@ -206,42 +236,52 @@ class TestStrategicPillar:
         anti_strategy = "Not enterprise features"
         display_order = 2
 
-        strategic_pillar.define_pillar(
+        pillar = StrategicPillar.define_pillar(
+            workspace_id=workspace.id,
+            user_id=user.id,
             name=name,
             description=description,
             anti_strategy=anti_strategy,
             display_order=display_order,
+            session=session,
             publisher=mock_publisher,
         )
 
-        assert strategic_pillar.name == name
-        assert strategic_pillar.description == description
-        assert strategic_pillar.anti_strategy == anti_strategy
-        assert strategic_pillar.display_order == display_order
+        assert pillar.name == name
+        assert pillar.description == description
+        assert pillar.anti_strategy == anti_strategy
+        assert pillar.display_order == display_order
 
     def test_define_pillar_accepts_none_for_optional_fields(
         self,
-        strategic_pillar: StrategicPillar,
+        workspace: Workspace,
+        user,
+        session: Session,
         mock_publisher: MagicMock,
     ):
         """Test that define_pillar() accepts None for optional fields."""
         name = "Developer Experience"
 
-        strategic_pillar.define_pillar(
+        pillar = StrategicPillar.define_pillar(
+            workspace_id=workspace.id,
+            user_id=user.id,
             name=name,
             description=None,
             anti_strategy=None,
             display_order=0,
+            session=session,
             publisher=mock_publisher,
         )
 
-        assert strategic_pillar.name == name
-        assert strategic_pillar.description is None
-        assert strategic_pillar.anti_strategy is None
+        assert pillar.name == name
+        assert pillar.description is None
+        assert pillar.anti_strategy is None
 
     def test_define_pillar_emits_strategic_pillar_defined_event(
         self,
-        strategic_pillar: StrategicPillar,
+        workspace: Workspace,
+        user,
+        session: Session,
         mock_publisher: MagicMock,
     ):
         """Test that define_pillar() emits StrategicPillarDefined event."""
@@ -250,26 +290,29 @@ class TestStrategicPillar:
         anti_strategy = "Not enterprise features"
         display_order = 1
 
-        strategic_pillar.define_pillar(
+        pillar = StrategicPillar.define_pillar(
+            workspace_id=workspace.id,
+            user_id=user.id,
             name=name,
             description=description,
             anti_strategy=anti_strategy,
             display_order=display_order,
+            session=session,
             publisher=mock_publisher,
         )
 
         mock_publisher.publish.assert_called_once()
         event = mock_publisher.publish.call_args[0][0]
-        workspace_id = mock_publisher.publish.call_args[1]["workspace_id"]
+        workspace_id_arg = mock_publisher.publish.call_args[1]["workspace_id"]
 
         assert event.event_type == "StrategicPillarDefined"
-        assert event.aggregate_id == strategic_pillar.id
+        assert event.aggregate_id == pillar.id
         assert event.payload["name"] == name
         assert event.payload["description"] == description
         assert event.payload["anti_strategy"] == anti_strategy
         assert event.payload["display_order"] == display_order
-        assert event.payload["workspace_id"] == str(strategic_pillar.workspace_id)
-        assert workspace_id == str(strategic_pillar.workspace_id)
+        assert event.payload["workspace_id"] == str(workspace.id)
+        assert workspace_id_arg == str(workspace.id)
 
     def test_update_pillar_validates_fields(
         self,
@@ -400,6 +443,7 @@ class TestStrategicPillar:
     def test_pillar_stores_correctly_in_database(
         self,
         workspace: Workspace,
+        user,
         mock_publisher: MagicMock,
         session: Session,
     ):
@@ -409,17 +453,14 @@ class TestStrategicPillar:
         anti_strategy = "Not enterprise features"
         display_order = 1
 
-        pillar = StrategicPillar(
-            user_id=uuid.uuid4(),
+        pillar = StrategicPillar.define_pillar(
             workspace_id=workspace.id,
-        )
-        session.add(pillar)
-
-        pillar.define_pillar(
+            user_id=user.id,
             name=name,
             description=description,
             anti_strategy=anti_strategy,
             display_order=display_order,
+            session=session,
             publisher=mock_publisher,
         )
         session.commit()

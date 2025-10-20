@@ -1,11 +1,12 @@
 """Controller for product strategy operations."""
 
 import uuid
-from typing import Optional
+from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
 from src.strategic_planning.aggregates.product_vision import ProductVision
+from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.models import DomainEvent
 from src.strategic_planning.services.event_publisher import EventPublisher
 
@@ -80,3 +81,73 @@ def upsert_workspace_vision(
     session.commit()
     session.refresh(vision)
     return vision
+
+
+def get_strategic_pillars(
+    workspace_id: uuid.UUID, session: Session
+) -> List[StrategicPillar]:
+    """Get all strategic pillars for a workspace.
+
+    Args:
+        workspace_id: UUID of the workspace
+        session: Database session
+
+    Returns:
+        List of StrategicPillar instances ordered by display_order
+    """
+    return (
+        session.query(StrategicPillar)
+        .filter_by(workspace_id=workspace_id)
+        .order_by(StrategicPillar.display_order)
+        .all()
+    )
+
+
+def create_strategic_pillar(
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
+    name: str,
+    description: Optional[str],
+    anti_strategy: Optional[str],
+    session: Session,
+) -> StrategicPillar:
+    """Create a new strategic pillar for a workspace.
+
+    Args:
+        workspace_id: UUID of the workspace
+        user_id: UUID of the user creating the pillar
+        name: Pillar name (1-100 characters, unique per workspace)
+        description: Optional pillar description (max 1000 characters)
+        anti_strategy: Optional anti-strategy text (max 1000 characters)
+        session: Database session
+
+    Returns:
+        The created StrategicPillar
+
+    Raises:
+        DomainException: If validation fails or pillar limit exceeded
+    """
+    # Validate workspace hasn't reached 5 pillar limit
+    StrategicPillar.validate_pillar_limit(workspace_id, session)
+
+    # Calculate display order based on existing pillars
+    current_pillars = get_strategic_pillars(workspace_id, session)
+    display_order = len(current_pillars)
+
+    # Use factory method - handles validation, persistence, and event emission
+    publisher = EventPublisher(session)
+    pillar = StrategicPillar.define_pillar(
+        workspace_id=workspace_id,
+        user_id=user_id,
+        name=name,
+        description=description,
+        anti_strategy=anti_strategy,
+        display_order=display_order,
+        session=session,
+        publisher=publisher,
+    )
+
+    # Commit and return
+    session.commit()
+    session.refresh(pillar)
+    return pillar
