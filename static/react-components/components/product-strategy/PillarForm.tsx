@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const MIN_NAME_LENGTH = 1;
 const MAX_NAME_LENGTH = 100;
@@ -6,6 +6,12 @@ const MAX_DESCRIPTION_LENGTH = 1000;
 const MAX_ANTI_STRATEGY_LENGTH = 1000;
 
 export interface PillarFormProps {
+  mode?: 'create' | 'edit';
+  initialData?: {
+    name: string;
+    description?: string | null;
+    anti_strategy?: string | null;
+  };
   onSave: (data: {
     name: string;
     description?: string | null;
@@ -16,22 +22,35 @@ export interface PillarFormProps {
 }
 
 /**
- * PillarForm component for creating new strategic pillars
+ * PillarForm component for creating or editing strategic pillars
  * @param {PillarFormProps} props - Component props
+ * @param {string} props.mode - Form mode: 'create' or 'edit'
+ * @param {object} props.initialData - Initial data for edit mode
  * @param {Function} props.onSave - Callback when user saves pillar
  * @param {Function} props.onCancel - Callback when user cancels
  * @param {boolean} props.isSaving - Whether save operation is in progress
  * @returns {React.ReactElement} The pillar form component
  */
 export const PillarForm: React.FC<PillarFormProps> = ({
+  mode = 'create',
+  initialData,
   onSave,
   onCancel,
   isSaving,
 }) => {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [antiStrategy, setAntiStrategy] = useState('');
+  const [name, setName] = useState(initialData?.name || '');
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [antiStrategy, setAntiStrategy] = useState(initialData?.anti_strategy || '');
   const [error, setError] = useState<string | null>(null);
+
+  // Update form when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || '');
+      setDescription(initialData.description || '');
+      setAntiStrategy(initialData.anti_strategy || '');
+    }
+  }, [initialData]);
 
   const handleSave = () => {
     if (name.length < MIN_NAME_LENGTH) {
@@ -77,7 +96,7 @@ export const PillarForm: React.FC<PillarFormProps> = ({
   return (
     <div className="space-y-4 bg-card rounded-lg border border-border p-6">
       <h3 className="text-lg font-semibold text-foreground mb-4">
-        Add Strategic Pillar
+        {mode === 'edit' ? 'Edit Strategic Pillar' : 'Add Strategic Pillar'}
       </h3>
 
       <div>

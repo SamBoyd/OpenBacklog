@@ -110,3 +110,49 @@ export async function createStrategicPillar(
 
   return response.json();
 }
+
+export interface PillarUpdateRequest {
+  name: string;
+  description?: string | null;
+  anti_strategy?: string | null;
+}
+
+export async function updateStrategicPillar(
+  workspaceId: string,
+  pillarId: string,
+  request: PillarUpdateRequest
+): Promise<PillarDto> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/pillars/${pillarId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to update strategic pillar');
+  }
+
+  return response.json();
+}
+
+export async function deleteStrategicPillar(
+  workspaceId: string,
+  pillarId: string
+): Promise<void> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/pillars/${pillarId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to delete strategic pillar');
+  }
+}

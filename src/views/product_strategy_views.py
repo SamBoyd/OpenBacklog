@@ -186,3 +186,83 @@ async def create_strategic_pillar(
     except Exception as e:
         logger.error(f"Error creating pillar: {e}")
         raise HTTPException(status_code=500, detail="Failed to create pillar")
+
+
+class PillarUpdateRequest(BaseModel):
+    """Request model for updating a strategic pillar."""
+
+    name: str = Field(min_length=1, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    anti_strategy: Optional[str] = Field(default=None, max_length=1000)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Updated Pillar Name",
+                "description": "Updated description",
+                "anti_strategy": "Updated anti-strategy",
+            }
+        }
+
+
+@app.put(
+    "/api/workspaces/{workspace_id}/pillars/{pillar_id}",
+    response_model=PillarResponse,
+    tags=["product-strategy"],
+)
+async def update_strategic_pillar(
+    workspace_id: uuid.UUID,
+    pillar_id: uuid.UUID,
+    request: PillarUpdateRequest,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> PillarResponse:
+    """Update an existing strategic pillar."""
+    try:
+        pillar = product_strategy_controller.update_strategic_pillar(
+            pillar_id,
+            workspace_id,
+            request.name,
+            request.description,
+            request.anti_strategy,
+            session,
+        )
+
+        return PillarResponse.model_validate(pillar)
+    except DomainException as e:
+        # Check if it's a "not found" error
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error updating pillar: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update pillar")
+
+
+@app.delete(
+    "/api/workspaces/{workspace_id}/pillars/{pillar_id}",
+    status_code=204,
+    tags=["product-strategy"],
+)
+async def delete_strategic_pillar(
+    workspace_id: uuid.UUID,
+    pillar_id: uuid.UUID,
+    user: User = Depends(dependency_to_override),
+    session: Session = Depends(get_db),
+) -> None:
+    """Delete a strategic pillar."""
+    try:
+        product_strategy_controller.delete_strategic_pillar(
+            pillar_id,
+            workspace_id,
+            user.id,
+            session,
+        )
+    except DomainException as e:
+        # Check if it's a "not found" error
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error deleting pillar: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete pillar")

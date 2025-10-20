@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getStrategicPillars,
   createStrategicPillar,
+  updateStrategicPillar,
+  deleteStrategicPillar,
   PillarDto,
   PillarCreateRequest,
+  PillarUpdateRequest,
 } from '#api/productStrategy';
 
 /**
@@ -34,6 +37,26 @@ export function useStrategicPillars(workspaceId: string) {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ pillarId, request }: { pillarId: string; request: PillarUpdateRequest }) =>
+      updateStrategicPillar(workspaceId, pillarId, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['strategic-pillars', workspaceId],
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (pillarId: string) =>
+      deleteStrategicPillar(workspaceId, pillarId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['strategic-pillars', workspaceId],
+      });
+    },
+  });
+
   return {
     pillars: pillars || [],
     isLoading,
@@ -41,5 +64,11 @@ export function useStrategicPillars(workspaceId: string) {
     createPillar: createMutation.mutate,
     isCreating: createMutation.isPending,
     createError: createMutation.error,
+    updatePillar: updateMutation.mutate,
+    isUpdating: updateMutation.isPending,
+    updateError: updateMutation.error,
+    deletePillar: deleteMutation.mutate,
+    isDeleting: deleteMutation.isPending,
+    deleteError: deleteMutation.error,
   };
 }

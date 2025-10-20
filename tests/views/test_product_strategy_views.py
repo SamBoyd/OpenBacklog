@@ -280,3 +280,248 @@ def test_create_pillar_unauthorized(test_client_no_user, workspace):
     )
 
     assert_that(response.status_code, equal_to(401))
+
+
+# Update Pillar View Tests
+
+
+def test_update_pillar_success_all_fields(test_client, workspace, user):
+    """Test updating pillar with all fields returns 200."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar = product_strategy_controller.create_strategic_pillar(
+            workspace.id,
+            user.id,
+            "Original Name",
+            "Original desc",
+            "Original anti",
+            session,
+        )
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/{pillar.id}",
+        json={
+            "name": "Updated Name",
+            "description": "Updated description",
+            "anti_strategy": "Updated anti-strategy",
+        },
+    )
+
+    assert_that(response.status_code, equal_to(200))
+    data = response.json()
+    assert_that(data["id"], equal_to(str(pillar.id)))
+    assert_that(data["name"], equal_to("Updated Name"))
+    assert_that(data["description"], equal_to("Updated description"))
+    assert_that(data["anti_strategy"], equal_to("Updated anti-strategy"))
+
+
+def test_update_pillar_success_name_only(test_client, workspace, user):
+    """Test updating pillar name only returns 200."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Original Name", None, None, session
+        )
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/{pillar.id}",
+        json={"name": "Updated Name"},
+    )
+
+    assert_that(response.status_code, equal_to(200))
+    data = response.json()
+    assert_that(data["name"], equal_to("Updated Name"))
+
+
+def test_update_pillar_validation_error_empty_name(test_client, workspace, user):
+    """Test validation error for empty name returns 422."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Original Name", None, None, session
+        )
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/{pillar.id}",
+        json={"name": ""},
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_update_pillar_validation_error_name_too_long(test_client, workspace, user):
+    """Test validation error for name exceeding max length returns 422."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Original Name", None, None, session
+        )
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/{pillar.id}",
+        json={"name": "A" * 101},
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_update_pillar_validation_error_description_too_long(
+    test_client, workspace, user
+):
+    """Test validation error for description exceeding max length returns 422."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Original Name", None, None, session
+        )
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/{pillar.id}",
+        json={"name": "Valid Name", "description": "A" * 1001},
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_update_pillar_validation_error_anti_strategy_too_long(
+    test_client, workspace, user
+):
+    """Test validation error for anti_strategy exceeding max length returns 422."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Original Name", None, None, session
+        )
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/{pillar.id}",
+        json={"name": "Valid Name", "anti_strategy": "A" * 1001},
+    )
+
+    assert_that(response.status_code, equal_to(422))
+
+
+def test_update_pillar_enforces_unique_name(test_client, workspace, user):
+    """Test updating to duplicate name returns 500."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar1 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 1", None, None, session
+        )
+        pillar2 = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 2", None, None, session
+        )
+    finally:
+        session.close()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/{pillar2.id}",
+        json={"name": "Pillar 1"},
+    )
+
+    assert_that(response.status_code, equal_to(500))
+
+
+def test_update_pillar_not_found(test_client, workspace):
+    """Test updating non-existent pillar returns 404."""
+    fake_pillar_id = uuid.uuid4()
+
+    response = test_client.put(
+        f"/api/workspaces/{workspace.id}/pillars/{fake_pillar_id}",
+        json={"name": "Some name"},
+    )
+
+    assert_that(response.status_code, equal_to(404))
+
+
+def test_update_pillar_unauthorized(test_client_no_user, workspace):
+    """Test updating pillar without authentication returns 401."""
+    fake_pillar_id = uuid.uuid4()
+
+    response = test_client_no_user.put(
+        f"/api/workspaces/{workspace.id}/pillars/{fake_pillar_id}",
+        json={"name": "Some name"},
+    )
+
+    assert_that(response.status_code, equal_to(401))
+
+
+# Delete Pillar View Tests
+
+
+def test_delete_pillar_success(test_client, workspace, user):
+    """Test deleting pillar returns 204."""
+    from src.controllers import product_strategy_controller
+    from src.db import SessionLocal
+
+    session = SessionLocal()
+    try:
+        pillar = product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar to Delete", None, None, session
+        )
+    finally:
+        session.close()
+
+    response = test_client.delete(f"/api/workspaces/{workspace.id}/pillars/{pillar.id}")
+
+    assert_that(response.status_code, equal_to(204))
+
+    # Verify pillar is deleted
+    response = test_client.get(f"/api/workspaces/{workspace.id}/pillars")
+    data = response.json()
+    assert_that(data, equal_to([]))
+
+
+def test_delete_pillar_not_found(test_client, workspace):
+    """Test deleting non-existent pillar returns 404."""
+    fake_pillar_id = uuid.uuid4()
+
+    response = test_client.delete(
+        f"/api/workspaces/{workspace.id}/pillars/{fake_pillar_id}"
+    )
+
+    assert_that(response.status_code, equal_to(404))
+
+
+def test_delete_pillar_unauthorized(test_client_no_user, workspace):
+    """Test deleting pillar without authentication returns 401."""
+    fake_pillar_id = uuid.uuid4()
+
+    response = test_client_no_user.delete(
+        f"/api/workspaces/{workspace.id}/pillars/{fake_pillar_id}"
+    )
+
+    assert_that(response.status_code, equal_to(401))

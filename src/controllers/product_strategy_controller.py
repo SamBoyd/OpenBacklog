@@ -151,3 +151,104 @@ def create_strategic_pillar(
     session.commit()
     session.refresh(pillar)
     return pillar
+
+
+def update_strategic_pillar(
+    pillar_id: uuid.UUID,
+    workspace_id: uuid.UUID,
+    name: str,
+    description: Optional[str],
+    anti_strategy: Optional[str],
+    session: Session,
+) -> StrategicPillar:
+    """Update an existing strategic pillar.
+
+    Args:
+        pillar_id: UUID of the pillar to update
+        workspace_id: UUID of the workspace (for verification)
+        name: Updated pillar name (1-100 characters, unique per workspace)
+        description: Updated pillar description (max 1000 characters)
+        anti_strategy: Updated anti-strategy text (max 1000 characters)
+        session: Database session
+
+    Returns:
+        The updated StrategicPillar
+
+    Raises:
+        DomainException: If validation fails or pillar not found
+    """
+    from src.strategic_planning.exceptions import DomainException
+
+    # Get the pillar
+    pillar = (
+        session.query(StrategicPillar)
+        .filter_by(id=pillar_id, workspace_id=workspace_id)
+        .first()
+    )
+
+    if not pillar:
+        raise DomainException("Strategic pillar not found")
+
+    # Use aggregate method for update - handles validation and event emission
+    publisher = EventPublisher(session)
+    pillar.update_pillar(
+        name=name,
+        description=description,
+        anti_strategy=anti_strategy,
+        publisher=publisher,
+    )
+
+    # Commit and return
+    session.commit()
+    session.refresh(pillar)
+    return pillar
+
+
+def delete_strategic_pillar(
+    pillar_id: uuid.UUID,
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
+    session: Session,
+) -> None:
+    """Delete a strategic pillar and unlink associated initiatives.
+
+    Args:
+        pillar_id: UUID of the pillar to delete
+        workspace_id: UUID of the workspace (for verification)
+        user_id: UUID of the user deleting the pillar
+        session: Database session
+
+    Raises:
+        DomainException: If pillar not found
+    """
+    from src.strategic_planning.exceptions import DomainException
+
+    # Get the pillar
+    pillar = (
+        session.query(StrategicPillar)
+        .filter_by(id=pillar_id, workspace_id=workspace_id)
+        .first()
+    )
+
+    if not pillar:
+        raise DomainException("Strategic pillar not found")
+
+    # Unlink initiatives (set pillar_id to NULL) - handled by database CASCADE
+    # The relationship is configured with ondelete="CASCADE" which handles this
+
+    # Emit domain event before deletion
+    publisher = EventPublisher(session)
+    event = DomainEvent(
+        user_id=user_id,
+        event_type="StrategicPillarDeleted",
+        aggregate_id=pillar.id,
+        payload={
+            "workspace_id": str(workspace_id),
+            "name": pillar.name,
+        },
+    )
+    publisher.publish(event, workspace_id=str(workspace_id))
+
+    # Delete the pillar
+    session.delete(pillar)
+    session.commit()
