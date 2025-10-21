@@ -466,3 +466,99 @@ export async function reorderRoadmapThemes(
 
   return response.json();
 }
+
+export interface StrategicInitiativeCreateRequest {
+  pillar_id?: string | null;
+  theme_id?: string | null;
+  user_need?: string | null;
+  connection_to_vision?: string | null;
+  success_criteria?: string | null;
+  out_of_scope?: string | null;
+}
+
+export interface StrategicInitiativeDto {
+  id: string;
+  initiative_id: string;
+  workspace_id: string;
+  pillar_id: string | null;
+  theme_id: string | null;
+  user_need: string | null;
+  connection_to_vision: string | null;
+  success_criteria: string | null;
+  out_of_scope: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getStrategicInitiative(
+  initiativeId: string
+): Promise<StrategicInitiativeDto | null> {
+  const response = await fetch(`/api/initiatives/${initiativeId}/strategic-context`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch strategic initiative');
+  }
+
+  return response.json();
+}
+
+export async function createStrategicInitiative(
+  initiativeId: string,
+  request: StrategicInitiativeCreateRequest
+): Promise<StrategicInitiativeDto> {
+  const response = await fetch(`/api/initiatives/${initiativeId}/strategic-context`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create strategic initiative');
+  }
+
+  return response.json();
+}
+
+export interface StrategicInitiativeUpdateRequest {
+  pillar_id?: string | null;
+  theme_id?: string | null;
+  user_need?: string | null;
+  connection_to_vision?: string | null;
+  success_criteria?: string | null;
+  out_of_scope?: string | null;
+}
+
+export async function updateStrategicInitiative(
+  initiativeId: string,
+  request: StrategicInitiativeUpdateRequest
+): Promise<StrategicInitiativeDto> {
+  const response = await fetch(`/api/initiatives/${initiativeId}/strategic-context`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to update strategic initiative');
+  }
+
+  return response.json();
+}

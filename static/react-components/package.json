@@ -257,6 +257,10 @@
       "storybook": "./hooks/useRoadmapThemes.mock.tsx",
       "default": "./hooks/useRoadmapThemes.tsx"
     },
+    "#hooks/useStrategicInitiative": {
+      "storybook": "./hooks/useStrategicInitiative.mock.tsx",
+      "default": "./hooks/useStrategicInitiative.tsx"
+    },
     "#styles": {
       "default": "./styles"
     },

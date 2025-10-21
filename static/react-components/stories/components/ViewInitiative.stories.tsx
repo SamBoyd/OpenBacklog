@@ -10,7 +10,10 @@ import { useFieldDefinitions } from '#hooks/useFieldDefinitions.mock';
 import { useParams } from '#hooks/useParams.mock';
 import { useActiveEntity } from '#hooks/useActiveEntity.mock';
 import { mockUseGithubReposReturn, useGithubRepos } from '#hooks/useGithubRepos.mock';
-
+import { useStrategicInitiative } from '#hooks/useStrategicInitiative.mock';
+import { useStrategicPillars } from '#hooks/useStrategicPillars.mock';
+import { useRoadmapThemes } from '#hooks/useRoadmapThemes.mock';
+import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 
 import {
     mockMarkJobAsResolved,
@@ -35,7 +38,8 @@ import {
     mockInitiativeAiJobResultError,
     mockAllFieldDefinitions,
     mockActiveEntityReturn,
-    mockInitiativeImprovements
+    mockInitiativeImprovements,
+    mockWorkspacesReturn
 } from '../example_data';
 
 import {
@@ -263,18 +267,19 @@ export const Default: Story = {
 
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+        
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
             useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
+            useWorkspaces.mockReset()
         }
     },
 };
 
 export const WithTasks: Story = {
-
-
     args: {
         workspace: mockWorkspace,
         initiative: mockInitiatives[4], // This initiative has tasks
@@ -303,11 +308,14 @@ export const WithTasks: Story = {
 
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
             useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
+            useWorkspaces.mockReset()
         }
     }
 };
@@ -375,11 +383,14 @@ export const Loading: Story = {
 
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
             useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
+            useWorkspaces.mockReset()
         }
     },
 };
@@ -418,12 +429,14 @@ export const WithDiff: Story = {
 
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
 
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
             useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
+            useWorkspaces.mockReset()
         }
     },
 };
@@ -466,11 +479,14 @@ export const WithDiffLoading: Story = {
 
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
             useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
+            useWorkspaces.mockReset()
         }
     },
 };
@@ -544,11 +560,14 @@ export const WithTaskDiff: Story = {
 
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
             useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
+            useWorkspaces.mockReset()
         }
     },
 };
@@ -602,11 +621,14 @@ export const WithCreateInitiativeDiff: Story = {
 
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+
         return () => {
             useInitiativesContext.mockReset()
             useAiImprovementsContext.mockReset()
             useTasksContext.mockReset()
             useActiveEntity.mockReset()
+            useWorkspaces.mockReset()
         }
     },
 };
@@ -647,11 +669,14 @@ export const WithDiffError: Story = {
 
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
             useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
+            useWorkspaces.mockReset()
         }
     },
 };
@@ -711,11 +736,14 @@ export const WithDeleteInitiativeDiff: Story = {
 
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+
         return () => {
             useInitiativesContext.mockReset()
             useAiImprovementsContext.mockReset()
             useTasksContext.mockReset()
             useActiveEntity.mockReset()
+            useWorkspaces.mockReset()
         }
     },
 };
@@ -762,11 +790,177 @@ export const WithAllFieldTypes: Story = {
 
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
             useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
+            useWorkspaces.mockReset()
+        }
+    },
+};
+
+export const WithStrategicContext: Story = {
+    args: {
+        workspace: mockWorkspace,
+        initiative: mockInitiatives[0],
+        tasks: mockTasks,
+        updateInitiatives: mockUpdateInitiatives,
+        reloadInitiatives: mockReloadInitiatives,
+        deleteInitiative: mockDeleteInitiative_Initiative,
+    },
+    beforeEach: () => {
+        useParams.mockReturnValue({
+            initiativeId: mockInitiatives[0].id
+        });
+
+        useInitiativesContext.mockReturnValue({
+            ...mockInitiativesContextReturn,
+            initiativesData: [{
+                ...mockInitiatives[0],
+                tasks: [],
+                properties: {
+                    "04e4c955-b341-4070-bbf3-13cb3c4650f2": "High",
+                    "eee09a42-fa2a-4567-bd9b-e7e06286ef52": "2024-06-01",
+                    "55d48178-68d2-4172-9b0e-81b51eddc2d4": true
+                }
+            }]
+        });
+
+        useFieldDefinitions.mockReturnValue(mockFieldDefinitionsReturn);
+
+        useTasksContext.mockReturnValue({
+            ...mockUseTasksContext,
+            tasks: []
+        });
+
+        useAiImprovementsContext.mockReturnValue(mockAiImprovementsContextReturn);
+
+        useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
+
+        useStrategicInitiative.mockReturnValue({
+            strategicInitiative: {
+                id: 'strategic-init-1',
+                initiative_id: mockInitiatives[0].id,
+                workspace_id: 'workspace-1',
+                pillar_id: 'pillar-1',
+                theme_id: 'theme-1',
+                user_need: 'Solo developers need AI-powered assistance to help them stay productive and organized when working alone.',
+                connection_to_vision: 'This initiative directly enables our vision of being the best AI-powered task management tool for solo developers by making AI a core part of the daily workflow.',
+                success_criteria: '80% of weekly active users engage with AI features at least once per week within 60 days of launch.',
+                out_of_scope: 'Team collaboration features, multi-user workflows, and enterprise integrations are explicitly out of scope for this initiative.',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            },
+            isLoading: false,
+            error: null,
+            createStrategicInitiative: () => {},
+            isCreating: false,
+            createError: null,
+            updateStrategicInitiative: () => {},
+            isUpdating: false,
+            updateError: null,
+        });
+
+        useStrategicPillars.mockReturnValue({
+            pillars: [
+                {
+                    id: 'pillar-1',
+                    workspace_id: 'workspace-1',
+                    name: 'AI-First Development',
+                    description: 'Make AI a natural and essential part of the development workflow for solo developers.',
+                    anti_strategy: 'We will not build AI features that require extensive configuration or setup.',
+                    display_order: 0,
+                    outcome_ids: ['outcome-1'],
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                },
+                {
+                    id: 'pillar-2',
+                    workspace_id: 'workspace-1',
+                    name: 'Developer Experience',
+                    description: 'Create a delightful, intuitive interface that developers love to use.',
+                    anti_strategy: null,
+                    display_order: 1,
+                    outcome_ids: [],
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                }
+            ],
+            isLoading: false,
+            error: null,
+            createPillar: () => {},
+            isCreating: false,
+            createError: null,
+            updatePillar: () => {},
+            isUpdating: false,
+            updateError: null,
+            deletePillar: () => {},
+            isDeleting: false,
+            deleteError: null,
+            reorderPillars: () => {},
+            isReordering: false,
+            reorderError: null,
+        });
+
+        useRoadmapThemes.mockReturnValue({
+            themes: [
+                {
+                    id: 'theme-1',
+                    workspace_id: 'workspace-1',
+                    name: 'First Week Magic',
+                    problem_statement: 'New users struggle to see value in the first week and often abandon the product before experiencing its key benefits.',
+                    hypothesis: 'If we can help users complete meaningful work with AI assistance in their first session, they will be more likely to adopt the product long-term.',
+                    indicative_metrics: 'Percentage of new users who complete at least one AI-assisted task in their first week.',
+                    time_horizon_months: 3,
+                    display_order: 0,
+                    outcome_ids: ['outcome-1'],
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                },
+                {
+                    id: 'theme-2',
+                    workspace_id: 'workspace-1',
+                    name: 'Weekly AI Habit',
+                    problem_statement: 'Users who try AI features once often forget to use them again.',
+                    hypothesis: 'Creating natural touchpoints and reminders will help users build a weekly habit of using AI assistance.',
+                    indicative_metrics: 'Weekly active users who engage with AI features.',
+                    time_horizon_months: 6,
+                    display_order: 1,
+                    outcome_ids: [],
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                }
+            ],
+            isLoading: false,
+            error: null,
+            createTheme: () => {},
+            isCreating: false,
+            createError: null,
+            updateTheme: () => {},
+            isUpdating: false,
+            updateError: null,
+            deleteTheme: () => {},
+            isDeleting: false,
+            deleteError: null,
+            reorderThemes: () => {},
+            isReordering: false,
+            reorderError: null,
+        });
+
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+
+        return () => {
+            useInitiativesContext.mockReset()
+            useTasksContext.mockReset()
+            useAiImprovementsContext.mockReset()
+            useActiveEntity.mockReset()
+            useStrategicInitiative.mockReset()
+            useStrategicPillars.mockReset()
+            useRoadmapThemes.mockReset()
+            useWorkspaces.mockReset()
         }
     },
 };
