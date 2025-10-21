@@ -27,6 +27,9 @@ from src.strategic_planning.models import DomainEvent
 if TYPE_CHECKING:
     from src.models import Initiative, Workspace
     from src.strategic_planning.aggregates.product_outcome import ProductOutcome
+    from src.strategic_planning.aggregates.strategic_initiative import (
+        StrategicInitiative,
+    )
     from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
     from src.strategic_planning.services.event_publisher import EventPublisher
 
@@ -140,8 +143,8 @@ class RoadmapTheme(Base):
         back_populates="themes",
     )
 
-    initiatives: Mapped[List["Initiative"]] = relationship(
-        "Initiative",
+    strategic_initiatives: Mapped[List["StrategicInitiative"]] = relationship(
+        "StrategicInitiative",
         back_populates="roadmap_theme",
     )
 

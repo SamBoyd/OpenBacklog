@@ -23,7 +23,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Create strategic planning tables and enhance initiatives table."""
+    """Create strategic planning tables."""
 
     # Create workspace_vision table
     op.create_table(
@@ -500,134 +500,9 @@ def upgrade() -> None:
         schema="dev",
     )
 
-    # Add strategic context fields to initiatives table
-    op.add_column(
-        "initiative",
-        sa.Column(
-            "theme_id",
-            postgresql.UUID(as_uuid=True),
-            nullable=True,
-        ),
-        schema="dev",
-    )
-
-    op.add_column(
-        "initiative",
-        sa.Column("user_need", sa.Text(), nullable=True),
-        schema="dev",
-    )
-
-    op.add_column(
-        "initiative",
-        sa.Column("connection_to_vision", sa.Text(), nullable=True),
-        schema="dev",
-    )
-
-    op.add_column(
-        "initiative",
-        sa.Column("success_criteria", sa.Text(), nullable=True),
-        schema="dev",
-    )
-
-    op.add_column(
-        "initiative",
-        sa.Column("out_of_scope", sa.Text(), nullable=True),
-        schema="dev",
-    )
-
-    op.create_check_constraint(
-        "ck_initiative_user_need_length",
-        "initiative",
-        "user_need IS NULL OR char_length(user_need) <= 1000",
-        schema="dev",
-    )
-
-    op.create_check_constraint(
-        "ck_initiative_connection_to_vision_length",
-        "initiative",
-        "connection_to_vision IS NULL OR char_length(connection_to_vision) <= 1000",
-        schema="dev",
-    )
-
-    op.create_check_constraint(
-        "ck_initiative_success_criteria_length",
-        "initiative",
-        "success_criteria IS NULL OR char_length(success_criteria) <= 1000",
-        schema="dev",
-    )
-
-    op.create_check_constraint(
-        "ck_initiative_out_of_scope_length",
-        "initiative",
-        "out_of_scope IS NULL OR char_length(out_of_scope) <= 1000",
-        schema="dev",
-    )
-
-    op.create_foreign_key(
-        "fk_initiative_theme_id",
-        "initiative",
-        "roadmap_themes",
-        ["theme_id"],
-        ["id"],
-        source_schema="dev",
-        referent_schema="dev",
-        ondelete="SET NULL",
-    )
-
-    op.create_index(
-        "ix_initiative_theme_id",
-        "initiative",
-        ["theme_id"],
-        schema="dev",
-    )
-
 
 def downgrade() -> None:
-    """Drop strategic planning tables and initiative enhancements."""
-
-    # Remove initiative strategic context columns and indexes
-    op.drop_index("ix_initiative_theme_id", table_name="initiative", schema="dev")
-
-    op.drop_constraint(
-        "fk_initiative_theme_id",
-        "initiative",
-        schema="dev",
-        type_="foreignkey",
-    )
-
-    op.drop_constraint(
-        "ck_initiative_out_of_scope_length",
-        "initiative",
-        schema="dev",
-        type_="check",
-    )
-
-    op.drop_constraint(
-        "ck_initiative_success_criteria_length",
-        "initiative",
-        schema="dev",
-        type_="check",
-    )
-
-    op.drop_constraint(
-        "ck_initiative_connection_to_vision_length",
-        "initiative",
-        schema="dev",
-        type_="check",
-    )
-
-    op.drop_constraint(
-        "ck_initiative_user_need_length",
-        "initiative",
-        schema="dev",
-        type_="check",
-    )
-
-    op.drop_column("initiative", "out_of_scope", schema="dev")
-    op.drop_column("initiative", "success_criteria", schema="dev")
-    op.drop_column("initiative", "connection_to_vision", schema="dev")
-    op.drop_column("initiative", "user_need", schema="dev")
-    op.drop_column("initiative", "theme_id", schema="dev")
+    """Drop strategic planning tables."""
 
     # Drop theme_outcome_links table
     op.drop_index(

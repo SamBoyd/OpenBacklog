@@ -25,7 +25,10 @@ from src.strategic_planning.exceptions import DomainException
 from src.strategic_planning.models import DomainEvent
 
 if TYPE_CHECKING:
-    from src.models import Initiative, Workspace
+    from src.models import Workspace
+    from src.strategic_planning.aggregates.strategic_initiative import (
+        StrategicInitiative,
+    )
     from src.strategic_planning.models import ProductOutcome
     from src.strategic_planning.services.event_publisher import EventPublisher
 
@@ -123,6 +126,11 @@ class StrategicPillar(Base):
         "ProductOutcome",
         secondary="dev.outcome_pillar_links",
         back_populates="pillars",
+    )
+
+    strategic_initiatives: Mapped[List["StrategicInitiative"]] = relationship(
+        "StrategicInitiative",
+        back_populates="strategic_pillar",
     )
 
     @staticmethod

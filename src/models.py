@@ -37,6 +37,9 @@ from src.db import Base
 if TYPE_CHECKING:
     from src.accounting.models import UserAccountDetails
     from src.github_app.models import RepositoryFileIndex
+    from src.strategic_planning.aggregates.strategic_initiative import (
+        StrategicInitiative,
+    )
 
 title_max_length: int = 100
 description_max_length: int = 500
@@ -321,6 +324,11 @@ class Workspace(PublicBase, Base):
         back_populates="workspace",
         cascade="all, delete-orphan",
     )
+    strategic_initiatives: Mapped[List["StrategicInitiative"]] = relationship(
+        "StrategicInitiative",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
 
     def dict(self) -> Dict[str, Union[str, datetime]]:
         return {
@@ -486,32 +494,6 @@ class Initiative(DoableBase, PublicBase, Base):
 
     type: Mapped[str] = mapped_column(String, nullable=True)
 
-    theme_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        ForeignKey("dev.roadmap_themes.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-
-    user_need: Mapped[Optional[str]] = mapped_column(
-        String,
-        nullable=True,
-    )
-
-    connection_to_vision: Mapped[Optional[str]] = mapped_column(
-        String,
-        nullable=True,
-    )
-
-    success_criteria: Mapped[Optional[str]] = mapped_column(
-        String,
-        nullable=True,
-    )
-
-    out_of_scope: Mapped[Optional[str]] = mapped_column(
-        String,
-        nullable=True,
-    )
-
     tasks: Mapped[List[Task]] = relationship(
         back_populates="initiative", cascade="all, delete-orphan"
     )
@@ -521,9 +503,11 @@ class Initiative(DoableBase, PublicBase, Base):
         back_populates="initiative", cascade="all, delete-orphan"
     )
 
-    roadmap_theme: Mapped[Optional["RoadmapTheme"]] = relationship(
-        "RoadmapTheme",
-        back_populates="initiatives",
+    strategic_context: Mapped[Optional["StrategicInitiative"]] = relationship(
+        "StrategicInitiative",
+        back_populates="initiative",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
 
     properties: Mapped[Dict[str, Any]] = mapped_column(

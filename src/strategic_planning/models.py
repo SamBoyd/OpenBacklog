@@ -26,6 +26,7 @@ from src.db import Base
 
 if TYPE_CHECKING:
     from src.models import Initiative, Workspace
+    from src.strategic_planning.aggregates.product_outcome import ProductOutcome
     from src.strategic_planning.aggregates.product_vision import ProductVision
     from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 
