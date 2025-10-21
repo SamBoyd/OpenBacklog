@@ -6,11 +6,12 @@ from fastmcp.server import FastMCP
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-mcp = FastMCP(name="OpenBacklog MCP server")  # type: ignore
+mcp: FastMCP = FastMCP(name="OpenBacklog MCP server")  # type: ignore
 
 from src.mcp_server.checklist_tools import *
 from src.mcp_server.healthcheck_tool import *
 from src.mcp_server.initiative_tools import *
+from src.mcp_server.product_strategy_tools import *
 from src.mcp_server.slash_commands import *
 
 # Import all tool modules to register them with the MCP server
