@@ -576,6 +576,21 @@ export interface ContextDocumentDto {
     updated_at: string;
 }
 
+export interface StrategicInitiativeDto {
+    id: string;
+    initiative_id: string;
+    workspace_id: string;
+    pillar_id: string | null;
+    theme_id: string | null;
+    user_need: string | null;
+    connection_to_vision: string | null;
+    success_criteria: string | null;
+    out_of_scope: string | null;
+    created_at: string;
+    updated_at: string;
+    initiative?: Partial<InitiativeDto>; // Join data for display
+}
+
 export const ContextDocumentDtoSchema = z.object({
     id: z.string(),
     title: z.string(),

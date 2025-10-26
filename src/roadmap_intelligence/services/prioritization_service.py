@@ -9,6 +9,7 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from src.models import Workspace
 from src.roadmap_intelligence.aggregates.prioritized_roadmap import PrioritizedRoadmap
 from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.exceptions import DomainException
@@ -229,11 +230,11 @@ class PrioritizationService:
             >>> if roadmap:
             ...     print(roadmap.get_prioritized_themes())
         """
-        return (
-            self.session.query(PrioritizedRoadmap)
-            .filter_by(workspace_id=workspace_id)
-            .first()
-        )
+        workspace = self.session.query(Workspace).filter_by(id=workspace_id).first()
+        if not workspace:
+            return None
+
+        return self._get_or_create_prioritized_roadmap(workspace_id, workspace.user_id)
 
     def get_prioritized_themes_with_details(
         self, workspace_id: uuid.UUID
@@ -294,7 +295,7 @@ class PrioritizationService:
         all_themes = (
             self.session.query(RoadmapTheme)
             .filter_by(workspace_id=workspace_id)
-            .order_by(RoadmapTheme.display_order)
+            .order_by(RoadmapTheme.created_at)
             .all()
         )
 

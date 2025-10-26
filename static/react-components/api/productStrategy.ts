@@ -643,3 +643,25 @@ export async function updateStrategicInitiative(
 
   return response.json();
 }
+
+export async function getStrategicInitiativesByTheme(
+  workspaceId: string,
+  themeId: string
+): Promise<StrategicInitiativeDto[]> {
+  const { getPostgrestClient, withApiCall } = await import('#api/api-utils');
+
+  return withApiCall(async () => {
+    const response = await getPostgrestClient()
+      .from('strategic_initiatives')
+      .select('*, initiative(id, identifier, title)')
+      .eq('workspace_id', workspaceId)
+      .eq('theme_id', themeId);
+
+    if (response.error) {
+      console.error('Error loading strategic initiatives by theme', response.error);
+      throw new Error('Error loading strategic initiatives by theme');
+    }
+
+    return response.data as StrategicInitiativeDto[];
+  });
+}

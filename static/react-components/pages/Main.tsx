@@ -22,6 +22,7 @@ import SubscriptionCheckoutPage from '#pages/SubscriptionCheckout';
 import SubscriptionCompletePage from '#pages/SubscriptionComplete';
 import Onboarding from '#pages/Onboarding';
 import ProductStrategy from '#pages/ProductStrategy';
+import Roadmap from '#pages/Roadmap';
 
 import ViewInitiative from '#components/ViewInitiative';
 import ViewTask from '#components/ViewTask';
@@ -69,6 +70,7 @@ export const MainContent = () => {
             {/* Protected workspace routes */}
             <Route element={<AppGuard><Layout /></AppGuard>}>
                 <Route path="/workspace/strategy" element={<ProductStrategy />} />
+                <Route path="/workspace/roadmap" element={<Roadmap />} />
                 <Route path="/workspace/context" element={<ContextDocument />} />
                 <Route path="/workspace/backlog" element={<InitiativesBacklog />} />
                 <Route path="/workspace/tasks" element={<Tasks />} />

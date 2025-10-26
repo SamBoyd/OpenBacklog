@@ -265,6 +265,10 @@
       "storybook": "./hooks/useThemePrioritization.mock.tsx",
       "default": "./hooks/useThemePrioritization.tsx"
     },
+    "#hooks/useRoadmapWithInitiatives": {
+      "storybook": "./hooks/useRoadmapWithInitiatives.mock.tsx",
+      "default": "./hooks/useRoadmapWithInitiatives.tsx"
+    },
     "#styles": {
       "default": "./styles"
     },

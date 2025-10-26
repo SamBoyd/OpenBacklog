@@ -37,6 +37,7 @@ const NavBar = ({ enableNavigation = true }: NavBarProps) => {
             billingPath={'/workspace/billing'}
             supportPath={'/support'}
             accountPath={'/account'}
+            roadmapPath={'/workspace/roadmap'}
             strategyPath={'/workspace/strategy'}
         />
     );

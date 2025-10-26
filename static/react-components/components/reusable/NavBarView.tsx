@@ -1,5 +1,5 @@
 import React from 'react';
-import { MdBento, MdCategory, MdMenu, MdClose } from 'react-icons/md';
+import { MdBento, MdCategory, MdMenu, MdClose, MdMap } from 'react-icons/md';
 import { FaChartLine, FaDatabase } from "react-icons/fa6";
 import { ButtonProps, NoBorderButton } from './Button';
 
@@ -64,6 +64,7 @@ interface NavBarViewProps {
     accountPath: string;
     billingPath: string;
     strategyPath: string;
+    roadmapPath: string;
     toggleTheme: () => void;
     currentTheme: string;
 }
@@ -83,6 +84,7 @@ const NavBarView: React.FC<NavBarViewProps> = ({
     accountPath,
     billingPath,
     strategyPath,
+    roadmapPath,
 }) => {
     return (
         <nav className="top-0 left-0 right-0 bg-sidebar text-sidebar-foreground h-18 grow-0 flex flex-col justify-center relative z-20"> {/* Increased z-index for navbar */}
@@ -136,11 +138,17 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                                             active={currentPath.includes(tasksPath)}
                                         />
                                         <NavBarButton
+                                            icon={<MdMap />}
+                                            title="Roadmap"
+                                            onClick={() => onNavigate(roadmapPath)}
+                                            active={currentPath.includes(roadmapPath)}
+                                        />
+                                        <NavBarButton
                                             icon={<FaChartLine />}
                                             title="Strategy"
                                             onClick={() => onNavigate(strategyPath)}
                                             active={currentPath.includes(strategyPath)}
-                                            />
+                                        />
                                     </div>
                                 </div>
 
@@ -226,6 +234,15 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                                 className="block w-full text-left"
                             >
                                 <span>Tasks</span>
+                            </MobileNavBarButton>
+                            <MobileNavBarButton
+                                icon={<MdMap />}
+                                title="Roadmap"
+                                onClick={() => onNavigate(roadmapPath)}
+                                active={currentPath.includes(roadmapPath)}
+                                className="block w-full text-left"
+                            >
+                                <span>Roadmap</span>
                             </MobileNavBarButton>
                             <MobileNavBarButton
                                 icon={<FaChartLine />}
