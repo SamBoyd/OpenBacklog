@@ -261,6 +261,10 @@
       "storybook": "./hooks/useStrategicInitiative.mock.tsx",
       "default": "./hooks/useStrategicInitiative.tsx"
     },
+    "#hooks/useThemePrioritization": {
+      "storybook": "./hooks/useThemePrioritization.mock.tsx",
+      "default": "./hooks/useThemePrioritization.tsx"
+    },
     "#styles": {
       "default": "./styles"
     },

@@ -343,7 +343,6 @@ export interface ThemeDto {
   hypothesis: string | null;
   indicative_metrics: string | null;
   time_horizon_months: number | null;
-  display_order: number;
   outcome_ids: string[];
   created_at: string;
   updated_at: string;
@@ -462,6 +461,88 @@ export async function reorderRoadmapThemes(
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to reorder roadmap themes');
+  }
+
+  return response.json();
+}
+
+export async function getPrioritizedThemes(
+  workspaceId: string
+): Promise<ThemeDto[]> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/themes/prioritized`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch prioritized roadmap themes');
+  }
+
+  return response.json();
+}
+
+export async function getUnprioritizedThemes(
+  workspaceId: string
+): Promise<ThemeDto[]> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/themes/unprioritized`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch unprioritized roadmap themes');
+  }
+
+  return response.json();
+}
+
+export interface ThemePrioritizeRequest {
+  position: number;
+}
+
+export async function prioritizeTheme(
+  workspaceId: string,
+  themeId: string,
+  request: ThemePrioritizeRequest
+): Promise<ThemeDto> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/themes/${themeId}/prioritize`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to prioritize roadmap theme');
+  }
+
+  return response.json();
+}
+
+export async function deprioritizeTheme(
+  workspaceId: string,
+  themeId: string
+): Promise<ThemeDto> {
+  const response = await fetch(`/api/workspaces/${workspaceId}/themes/${themeId}/deprioritize`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${loadAndValidateJWT()}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to deprioritize roadmap theme');
   }
 
   return response.json();

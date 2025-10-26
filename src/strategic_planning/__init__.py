@@ -8,9 +8,9 @@ This package contains all strategic planning functionality including:
 - Exceptions: DomainException
 """
 
+from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
 from src.strategic_planning.aggregates.product_vision import ProductVision
-from src.strategic_planning.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.exceptions import DomainException
 from src.strategic_planning.models import (

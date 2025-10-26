@@ -18,7 +18,7 @@ from src.strategic_planning.models import DomainEvent
 
 if TYPE_CHECKING:
     from src.models import Initiative, Workspace
-    from src.strategic_planning.aggregates.roadmap_theme import RoadmapTheme
+    from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
     from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
     from src.strategic_planning.services.event_publisher import EventPublisher
 

@@ -12,8 +12,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.models import User, Workspace
+from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
-from src.strategic_planning.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.exceptions import DomainException
 from src.strategic_planning.services.event_publisher import EventPublisher
 
@@ -52,7 +52,6 @@ class TestRoadmapTheme:
             hypothesis="Quick wins drive adoption",
             indicative_metrics="% users active in week 1",
             time_horizon_months=6,
-            display_order=0,
         )
         session.add(theme)
         session.commit()
@@ -72,7 +71,6 @@ class TestRoadmapTheme:
                 workspace_id=workspace.id,
                 name=f"Theme {i}",
                 problem_statement=f"Problem {i}",
-                display_order=i,
             )
             session.add(theme)
         session.commit()
@@ -95,7 +93,6 @@ class TestRoadmapTheme:
                 workspace_id=workspace.id,
                 name=f"Theme {i}",
                 problem_statement=f"Problem {i}",
-                display_order=i,
             )
             session.add(theme)
         session.commit()
@@ -119,7 +116,6 @@ class TestRoadmapTheme:
                 hypothesis=None,
                 indicative_metrics=None,
                 time_horizon_months=None,
-                display_order=0,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -145,7 +141,6 @@ class TestRoadmapTheme:
                 hypothesis=None,
                 indicative_metrics=None,
                 time_horizon_months=None,
-                display_order=0,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -170,7 +165,6 @@ class TestRoadmapTheme:
                 hypothesis=None,
                 indicative_metrics=None,
                 time_horizon_months=None,
-                display_order=0,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -196,7 +190,6 @@ class TestRoadmapTheme:
                 hypothesis=None,
                 indicative_metrics=None,
                 time_horizon_months=None,
-                display_order=0,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -223,7 +216,6 @@ class TestRoadmapTheme:
                 hypothesis=long_hypothesis,
                 indicative_metrics=None,
                 time_horizon_months=None,
-                display_order=0,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -250,7 +242,6 @@ class TestRoadmapTheme:
                 hypothesis=None,
                 indicative_metrics=long_metrics,
                 time_horizon_months=None,
-                display_order=0,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -275,7 +266,6 @@ class TestRoadmapTheme:
                 hypothesis=None,
                 indicative_metrics=None,
                 time_horizon_months=-1,
-                display_order=0,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -299,7 +289,6 @@ class TestRoadmapTheme:
                 hypothesis=None,
                 indicative_metrics=None,
                 time_horizon_months=13,
-                display_order=0,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -319,7 +308,6 @@ class TestRoadmapTheme:
         hypothesis = "Quick wins drive adoption"
         indicative_metrics = "% users active in week 1"
         time_horizon_months = 6
-        display_order = 2
 
         theme = RoadmapTheme.define_theme(
             workspace_id=workspace.id,
@@ -329,7 +317,6 @@ class TestRoadmapTheme:
             hypothesis=hypothesis,
             indicative_metrics=indicative_metrics,
             time_horizon_months=time_horizon_months,
-            display_order=display_order,
             session=session,
             publisher=mock_publisher,
         )
@@ -339,7 +326,6 @@ class TestRoadmapTheme:
         assert theme.hypothesis == hypothesis
         assert theme.indicative_metrics == indicative_metrics
         assert theme.time_horizon_months == time_horizon_months
-        assert theme.display_order == display_order
 
     def test_define_theme_accepts_none_for_optional_fields(
         self,
@@ -360,7 +346,6 @@ class TestRoadmapTheme:
             hypothesis=None,
             indicative_metrics=None,
             time_horizon_months=None,
-            display_order=0,
             session=session,
             publisher=mock_publisher,
         )
@@ -384,7 +369,6 @@ class TestRoadmapTheme:
         hypothesis = "Quick wins drive adoption"
         indicative_metrics = "% users active in week 1"
         time_horizon_months = 6
-        display_order = 1
 
         theme = RoadmapTheme.define_theme(
             workspace_id=workspace.id,
@@ -394,7 +378,6 @@ class TestRoadmapTheme:
             hypothesis=hypothesis,
             indicative_metrics=indicative_metrics,
             time_horizon_months=time_horizon_months,
-            display_order=display_order,
             session=session,
             publisher=mock_publisher,
         )
@@ -410,7 +393,6 @@ class TestRoadmapTheme:
         assert event.payload["hypothesis"] == hypothesis
         assert event.payload["indicative_metrics"] == indicative_metrics
         assert event.payload["time_horizon_months"] == time_horizon_months
-        assert event.payload["display_order"] == display_order
         assert event.payload["workspace_id"] == str(workspace.id)
         assert workspace_id_arg == str(workspace.id)
 
@@ -481,64 +463,6 @@ class TestRoadmapTheme:
         assert event.event_type == "ThemeUpdated"
         assert event.payload["name"] == new_name
         assert event.payload["problem_statement"] == new_problem
-
-    def test_reorder_theme_updates_display_order(
-        self,
-        roadmap_theme: RoadmapTheme,
-        mock_publisher: MagicMock,
-    ):
-        """Test that reorder_theme() updates display_order correctly."""
-        old_order = roadmap_theme.display_order
-        new_order = 3
-
-        roadmap_theme.reorder_theme(new_order, mock_publisher)
-
-        assert roadmap_theme.display_order == new_order
-        assert roadmap_theme.display_order != old_order
-
-    def test_reorder_theme_validates_display_order_minimum(
-        self,
-        roadmap_theme: RoadmapTheme,
-        mock_publisher: MagicMock,
-    ):
-        """Test that reorder_theme() validates display_order >= 0."""
-        with pytest.raises(DomainException) as exc_info:
-            roadmap_theme.reorder_theme(-1, mock_publisher)
-
-        assert "between 0-4" in str(exc_info.value)
-
-    def test_reorder_theme_validates_display_order_maximum(
-        self,
-        roadmap_theme: RoadmapTheme,
-        mock_publisher: MagicMock,
-    ):
-        """Test that reorder_theme() validates display_order <= 4."""
-        with pytest.raises(DomainException) as exc_info:
-            roadmap_theme.reorder_theme(5, mock_publisher)
-
-        assert "between 0-4" in str(exc_info.value)
-
-    def test_reorder_theme_emits_themes_reordered_event(
-        self,
-        roadmap_theme: RoadmapTheme,
-        mock_publisher: MagicMock,
-    ):
-        """Test that reorder_theme() emits ThemesReordered event."""
-        old_order = roadmap_theme.display_order
-        new_order = 2
-
-        roadmap_theme.reorder_theme(new_order, mock_publisher)
-
-        mock_publisher.publish.assert_called_once()
-        event = mock_publisher.publish.call_args[0][0]
-        workspace_id_arg = mock_publisher.publish.call_args[1]["workspace_id"]
-
-        assert event.event_type == "ThemesReordered"
-        assert event.payload["old_order"] == old_order
-        assert event.payload["new_order"] == new_order
-        assert event.payload["theme_id"] == str(roadmap_theme.id)
-        assert event.payload["workspace_id"] == str(roadmap_theme.workspace_id)
-        assert workspace_id_arg == str(roadmap_theme.workspace_id)
 
     def test_link_to_outcomes_creates_outcome_links(
         self,
@@ -660,7 +584,6 @@ class TestRoadmapTheme:
             workspace_id=workspace.id,
             name="First Week Magic",
             problem_statement="Problem 1",
-            display_order=0,
         )
         session.add(theme1)
         session.commit()
@@ -670,7 +593,6 @@ class TestRoadmapTheme:
             workspace_id=workspace.id,
             name="First Week Magic",
             problem_statement="Problem 2",
-            display_order=1,
         )
         session.add(theme2)
 
@@ -690,7 +612,6 @@ class TestRoadmapTheme:
         hypothesis = "Quick wins drive adoption"
         indicative_metrics = "% users active in week 1"
         time_horizon_months = 6
-        display_order = 1
 
         theme = RoadmapTheme.define_theme(
             workspace_id=workspace.id,
@@ -700,7 +621,6 @@ class TestRoadmapTheme:
             hypothesis=hypothesis,
             indicative_metrics=indicative_metrics,
             time_horizon_months=time_horizon_months,
-            display_order=display_order,
             session=session,
             publisher=mock_publisher,
         )
@@ -716,7 +636,6 @@ class TestRoadmapTheme:
         assert saved_theme.hypothesis == hypothesis
         assert saved_theme.indicative_metrics == indicative_metrics
         assert saved_theme.time_horizon_months == time_horizon_months
-        assert saved_theme.display_order == display_order
         assert saved_theme.workspace_id == workspace.id
 
     def test_get_derived_pillars_returns_pillars_from_outcomes(

@@ -147,6 +147,7 @@ from src.github_app.views import *
 
 # --- Other Application Imports ---
 from src.models import User
+from src.roadmap_intelligence.views import *
 from src.users_views import *
 from src.views import *
 from src.views.initiative_views import *

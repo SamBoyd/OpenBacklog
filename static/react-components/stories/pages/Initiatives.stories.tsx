@@ -35,6 +35,7 @@ import {
 import { AiImprovementJobStatus, LENS } from '#types';
 import { ResponsiveLayout } from '#components/layout/ResponsiveLayout';
 import { localStorageForStorybook } from '@alexgorbatchev/storybook-addon-localstorage';
+import { mockUseThemePrioritizationReturn, useThemePrioritization } from '#hooks/useThemePrioritization.mock';
 
 const mockLocalStorage = {
     storage: new Map<string, string>([
@@ -111,7 +112,7 @@ export const Primary: Story = {
         useInitiativesContext.mockReturnValue(mockInitiativesContextReturn);
         useAiImprovementsContext.mockReturnValue(mockAiImprovementsContextReturn);
         useSuggestionsToBeResolved.mockReturnValue(mockSuggestionsToBeResolvedContextReturn);
-        
+        useThemePrioritization.mockReturnValue(mockUseThemePrioritizationReturn);
         useChatMessages.mockReturnValue({
                 threadId: 'test-thread-id',
                 messages: mockChatMessages.map(msg => ({

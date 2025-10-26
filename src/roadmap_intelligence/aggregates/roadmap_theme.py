@@ -25,7 +25,7 @@ from src.strategic_planning.exceptions import DomainException
 from src.strategic_planning.models import DomainEvent
 
 if TYPE_CHECKING:
-    from src.models import Initiative, Workspace
+    from src.models import Workspace
     from src.strategic_planning.aggregates.product_outcome import ProductOutcome
     from src.strategic_planning.aggregates.strategic_initiative import (
         StrategicInitiative,
@@ -49,7 +49,6 @@ class RoadmapTheme(Base):
         hypothesis: Expected outcome (max 1500 characters)
         indicative_metrics: Success metrics (max 1000 characters)
         time_horizon_months: Time horizon in months (0-12)
-        display_order: Display order within workspace
         created_at: Timestamp when theme was created
         updated_at: Timestamp when theme was last modified
         workspace: Relationship to Workspace entity
@@ -110,11 +109,6 @@ class RoadmapTheme(Base):
     time_horizon_months: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,
-    )
-
-    display_order: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -248,7 +242,6 @@ class RoadmapTheme(Base):
         hypothesis: str | None,
         indicative_metrics: str | None,
         time_horizon_months: int | None,
-        display_order: int,
         session: Session,
         publisher: "EventPublisher",
     ) -> "RoadmapTheme":
@@ -265,7 +258,6 @@ class RoadmapTheme(Base):
             hypothesis: Expected outcome (max 1500 characters)
             indicative_metrics: Success metrics (max 1000 characters)
             time_horizon_months: Time horizon in months (0-12)
-            display_order: Display order within workspace
             session: SQLAlchemy database session
             publisher: EventPublisher instance for emitting domain events
 
@@ -284,7 +276,6 @@ class RoadmapTheme(Base):
             ...     hypothesis="Quick wins drive adoption",
             ...     indicative_metrics="% users active in week 1",
             ...     time_horizon_months=6,
-            ...     display_order=0,
             ...     session=session,
             ...     publisher=publisher
             ... )
@@ -305,7 +296,6 @@ class RoadmapTheme(Base):
             hypothesis=hypothesis,
             indicative_metrics=indicative_metrics,
             time_horizon_months=time_horizon_months,
-            display_order=display_order,
         )
 
         session.add(theme)
@@ -322,7 +312,6 @@ class RoadmapTheme(Base):
                 "hypothesis": hypothesis,
                 "indicative_metrics": indicative_metrics,
                 "time_horizon_months": time_horizon_months,
-                "display_order": display_order,
             },
         )
         publisher.publish(event, workspace_id=str(workspace_id))
@@ -433,44 +422,6 @@ class RoadmapTheme(Base):
                 "workspace_id": str(self.workspace_id),
                 "theme_id": str(self.id),
                 "outcome_ids": [str(oid) for oid in outcome_ids],
-            },
-        )
-        publisher.publish(event, workspace_id=str(self.workspace_id))
-
-    def reorder_theme(self, new_order: int, publisher: "EventPublisher") -> None:
-        """Reorder a theme by updating its display order.
-
-        This method updates the theme's display_order and emits a
-        ThemesReordered domain event.
-
-        Args:
-            new_order: New display order (0-4)
-            publisher: EventPublisher instance for emitting domain events
-
-        Raises:
-            DomainException: If new_order is not between 0-4
-
-        Example:
-            >>> theme.reorder_theme(2, publisher)
-        """
-        if new_order < 0 or new_order > 4:
-            raise DomainException(
-                f"Display order must be between 0-4 (got {new_order})"
-            )
-
-        old_order = self.display_order
-        self.display_order = new_order
-        self.updated_at = datetime.now(timezone.utc)
-
-        event = DomainEvent(
-            user_id=uuid.uuid4(),
-            event_type="ThemesReordered",
-            aggregate_id=self.id,
-            payload={
-                "workspace_id": str(self.workspace_id),
-                "theme_id": str(self.id),
-                "old_order": old_order,
-                "new_order": new_order,
             },
         )
         publisher.publish(event, workspace_id=str(self.workspace_id))

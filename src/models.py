@@ -37,6 +37,9 @@ from src.db import Base
 if TYPE_CHECKING:
     from src.accounting.models import UserAccountDetails
     from src.github_app.models import RepositoryFileIndex
+    from src.roadmap_intelligence.aggregates.prioritized_roadmap import (
+        PrioritizedRoadmap,
+    )
     from src.strategic_planning.aggregates.strategic_initiative import (
         StrategicInitiative,
     )
@@ -322,6 +325,12 @@ class Workspace(PublicBase, Base):
     roadmap_themes: Mapped[List["RoadmapTheme"]] = relationship(
         "RoadmapTheme",
         back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+    prioritized_roadmap: Mapped["PrioritizedRoadmap"] = relationship(
+        "PrioritizedRoadmap",
+        back_populates="workspace",
+        uselist=False,
         cascade="all, delete-orphan",
     )
     strategic_initiatives: Mapped[List["StrategicInitiative"]] = relationship(
@@ -1456,3 +1465,6 @@ class Ordering(Base):
 # Import related models to ensure they're in the SQLAlchemy registry
 # This must be done after the main models are defined to avoid circular imports
 from src.github_app.models import RepositoryFileIndex  # noqa: E402
+from src.roadmap_intelligence.aggregates.prioritized_roadmap import (  # noqa: E402
+    PrioritizedRoadmap,
+)

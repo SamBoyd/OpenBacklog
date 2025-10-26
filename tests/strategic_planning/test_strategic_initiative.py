@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.models import Initiative, InitiativeStatus, User, Workspace
-from src.strategic_planning.aggregates.roadmap_theme import RoadmapTheme
+from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.aggregates.strategic_initiative import StrategicInitiative
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.exceptions import DomainException
@@ -78,7 +78,6 @@ class TestStrategicInitiative:
             workspace_id=workspace.id,
             name="First Week Magic",
             problem_statement="Users fail to integrate in first week",
-            display_order=0,
         )
         session.add(theme)
         session.commit()

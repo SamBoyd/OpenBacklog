@@ -39,8 +39,8 @@ from src.mcp_server.product_strategy_tools.utils import (
     serialize_theme,
     serialize_vision,
 )
+from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
-from src.strategic_planning.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.aggregates.strategic_initiative import StrategicInitiative
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 

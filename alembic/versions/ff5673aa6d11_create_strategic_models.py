@@ -295,7 +295,6 @@ def upgrade() -> None:
         sa.Column("hypothesis", sa.Text(), nullable=True),
         sa.Column("indicative_metrics", sa.Text(), nullable=True),
         sa.Column("time_horizon_months", sa.Integer(), nullable=True),
-        sa.Column("display_order", sa.Integer(), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -356,13 +355,6 @@ def upgrade() -> None:
         "ix_roadmap_themes_workspace_id",
         "roadmap_themes",
         ["workspace_id"],
-        schema="dev",
-    )
-
-    op.create_index(
-        "ix_roadmap_themes_workspace_id_display_order",
-        "roadmap_themes",
-        ["workspace_id", "display_order"],
         schema="dev",
     )
 
@@ -535,12 +527,6 @@ def downgrade() -> None:
     op.drop_table("outcome_pillar_links", schema="dev")
 
     # Drop roadmap_themes table
-    op.drop_index(
-        "ix_roadmap_themes_workspace_id_display_order",
-        table_name="roadmap_themes",
-        schema="dev",
-    )
-
     op.drop_index(
         "ix_roadmap_themes_workspace_id",
         table_name="roadmap_themes",
