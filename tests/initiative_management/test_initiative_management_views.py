@@ -45,7 +45,7 @@ class TestInitiativeViews:
             )
         ]
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_create_initiative_success(
         self, mock_initiative_controller, client, user, workspace, session
     ):
@@ -110,7 +110,7 @@ class TestInitiativeViews:
         # Verify the initiative controller was called
         mock_initiative_controller_instance.create_initiative.assert_called_once()
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_create_initiative_minimal_payload(
         self, mock_initiative_controller, client, user, workspace, session
     ):
@@ -173,7 +173,7 @@ class TestInitiativeViews:
 
         assert_that(response.status_code, equal_to(422))
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_delete_initiative_success(
         self,
         mock_initiative_controller,
@@ -202,7 +202,7 @@ class TestInitiativeViews:
             initiative_id, user.id
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_delete_initiative_not_found(
         self, mock_initiative_controller, client, user
     ):
@@ -221,7 +221,7 @@ class TestInitiativeViews:
             fake_id, user.id
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_move_initiative_success(
         self,
         mock_initiative_controller,
@@ -272,7 +272,7 @@ class TestInitiativeViews:
             before_id=None,
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_move_initiative_not_found(self, mock_initiative_controller, client, user):
         from src.controllers.initiative_controller import InitiativeNotFoundError
 
@@ -292,7 +292,7 @@ class TestInitiativeViews:
             initiative_id=fake_id, user_id=user.id, after_id=after_id, before_id=None
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_move_initiative_to_status_success(
         self,
         mock_initiative_controller,
@@ -346,7 +346,7 @@ class TestInitiativeViews:
             before_id=None,
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_move_initiative_to_status_not_found(
         self, mock_initiative_controller, client, user
     ):
@@ -371,7 +371,7 @@ class TestInitiativeViews:
             before_id=None,
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_add_initiative_to_group_success(
         self,
         mock_initiative_controller,
@@ -423,7 +423,7 @@ class TestInitiativeViews:
             before_id=None,
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_add_initiative_to_group_not_found(
         self, mock_initiative_controller, client, user
     ):
@@ -449,7 +449,7 @@ class TestInitiativeViews:
             before_id=None,
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_remove_initiative_from_group_success(
         self,
         mock_initiative_controller,
@@ -482,7 +482,7 @@ class TestInitiativeViews:
             initiative_id=initiative_id, user_id=user.id, group_id=group_id
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_remove_initiative_from_group_not_in_group(
         self,
         mock_initiative_controller,
@@ -515,7 +515,7 @@ class TestInitiativeViews:
             initiative_id=initiative_id, user_id=user.id, group_id=group_id
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_remove_initiative_from_group_not_found(
         self, mock_initiative_controller, client, user
     ):
@@ -535,7 +535,7 @@ class TestInitiativeViews:
             initiative_id=fake_id, user_id=user.id, group_id=group_id
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_delete_initiative_with_multiple_group_orderings(
         self,
         mock_initiative_controller,
@@ -566,7 +566,7 @@ class TestInitiativeViews:
             initiative_id, user.id
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_move_initiative_in_group_success(
         self,
         mock_initiative_controller,
@@ -621,7 +621,7 @@ class TestInitiativeViews:
             before_id=None,
         )
 
-    @patch("src.views.initiative_views.InitiativeController")
+    @patch("src.initiative_management.views.InitiativeController")
     def test_move_initiative_in_group_not_found(
         self, mock_initiative_controller, client, user
     ):

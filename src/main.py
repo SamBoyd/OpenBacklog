@@ -144,6 +144,7 @@ from src.api import *
 from src.api_key_views import *
 from src.error_views import *
 from src.github_app.views import *
+from src.initiative_management.views import *
 
 # --- Other Application Imports ---
 from src.models import User
@@ -151,6 +152,4 @@ from src.roadmap_intelligence.views import *
 from src.strategic_planning.views import *
 from src.users_views import *
 from src.views import *
-from src.views.initiative_views import *
-from src.views.product_strategy_views import *
 from src.views.task_views import *
