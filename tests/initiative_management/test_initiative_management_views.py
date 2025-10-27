@@ -206,7 +206,9 @@ class TestInitiativeViews:
     def test_delete_initiative_not_found(
         self, mock_initiative_controller, client, user
     ):
-        from src.controllers.initiative_controller import InitiativeNotFoundError
+        from src.initiative_management.initiative_controller import (
+            InitiativeNotFoundError,
+        )
 
         mock_initiative_controller_instance = mock_initiative_controller.return_value
         fake_id = uuid.uuid4()
@@ -274,7 +276,9 @@ class TestInitiativeViews:
 
     @patch("src.initiative_management.views.InitiativeController")
     def test_move_initiative_not_found(self, mock_initiative_controller, client, user):
-        from src.controllers.initiative_controller import InitiativeNotFoundError
+        from src.initiative_management.initiative_controller import (
+            InitiativeNotFoundError,
+        )
 
         mock_initiative_controller_instance = mock_initiative_controller.return_value
         fake_id = uuid.uuid4()
@@ -350,7 +354,9 @@ class TestInitiativeViews:
     def test_move_initiative_to_status_not_found(
         self, mock_initiative_controller, client, user
     ):
-        from src.controllers.initiative_controller import InitiativeNotFoundError
+        from src.initiative_management.initiative_controller import (
+            InitiativeNotFoundError,
+        )
 
         mock_initiative_controller_instance = mock_initiative_controller.return_value
         fake_id = uuid.uuid4()
@@ -427,7 +433,9 @@ class TestInitiativeViews:
     def test_add_initiative_to_group_not_found(
         self, mock_initiative_controller, client, user
     ):
-        from src.controllers.initiative_controller import InitiativeNotFoundError
+        from src.initiative_management.initiative_controller import (
+            InitiativeNotFoundError,
+        )
 
         mock_initiative_controller_instance = mock_initiative_controller.return_value
         fake_id = uuid.uuid4()
@@ -519,7 +527,9 @@ class TestInitiativeViews:
     def test_remove_initiative_from_group_not_found(
         self, mock_initiative_controller, client, user
     ):
-        from src.controllers.initiative_controller import InitiativeNotFoundError
+        from src.initiative_management.initiative_controller import (
+            InitiativeNotFoundError,
+        )
 
         mock_initiative_controller_instance = mock_initiative_controller.return_value
         fake_id = uuid.uuid4()
@@ -625,7 +635,9 @@ class TestInitiativeViews:
     def test_move_initiative_in_group_not_found(
         self, mock_initiative_controller, client, user
     ):
-        from src.controllers.initiative_controller import InitiativeNotFoundError
+        from src.initiative_management.initiative_controller import (
+            InitiativeNotFoundError,
+        )
 
         mock_initiative_controller_instance = mock_initiative_controller.return_value
         fake_id = uuid.uuid4()

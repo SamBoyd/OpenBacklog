@@ -3,7 +3,7 @@ import uuid
 import pytest
 from hamcrest import assert_that, calling, equal_to, has_length, is_, not_none, raises
 
-from src.controllers.task_controller import (
+from src.initiative_management.task_controller import (
     ChecklistItemData,
     TaskController,
     TaskControllerError,

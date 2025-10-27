@@ -8,13 +8,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.controllers.task_controller import (
+from src.db import get_db
+from src.initiative_management.task_controller import (
     ChecklistItemData,
     TaskController,
     TaskControllerError,
     TaskNotFoundError,
 )
-from src.db import get_db
 from src.main import app
 from src.models import ContextType, EntityType, TaskStatus, User
 from src.views import dependency_to_override

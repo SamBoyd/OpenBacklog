@@ -238,7 +238,7 @@ class TestTaskViews:
 
     @patch("src.views.task_views.TaskController")
     def test_delete_task_not_found(self, mock_task_controller, client, user):
-        from src.controllers.task_controller import TaskNotFoundError
+        from src.initiative_management.task_controller import TaskNotFoundError
 
         mock_task_controller_instance = mock_task_controller.return_value
         fake_id = uuid.uuid4()
@@ -299,7 +299,7 @@ class TestTaskViews:
 
     @patch("src.views.task_views.TaskController")
     def test_move_task_not_found(self, mock_task_controller, client, user):
-        from src.controllers.task_controller import TaskNotFoundError
+        from src.initiative_management.task_controller import TaskNotFoundError
 
         mock_task_controller_instance = mock_task_controller.return_value
         fake_id = uuid.uuid4()
@@ -368,7 +368,7 @@ class TestTaskViews:
 
     @patch("src.views.task_views.TaskController")
     def test_move_task_to_status_not_found(self, mock_task_controller, client, user):
-        from src.controllers.task_controller import TaskNotFoundError
+        from src.initiative_management.task_controller import TaskNotFoundError
 
         mock_task_controller_instance = mock_task_controller.return_value
         fake_id = uuid.uuid4()

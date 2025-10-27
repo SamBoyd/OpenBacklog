@@ -11,12 +11,12 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from src.controllers import product_strategy_controller
-from src.controllers.initiative_controller import (
+from src.db import get_db
+from src.initiative_management.initiative_controller import (
     InitiativeController,
     InitiativeControllerError,
     InitiativeNotFoundError,
 )
-from src.db import get_db
 from src.main import app
 from src.models import ContextType, EntityType, InitiativeStatus, User
 from src.strategic_planning.exceptions import DomainException

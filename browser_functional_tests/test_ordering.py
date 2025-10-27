@@ -1,12 +1,20 @@
 import re
 from time import sleep
+
 import pytest
-from playwright.sync_api import expect, Page
+from playwright.sync_api import Page, expect
 
-
-from src.controllers.task_controller import TaskController
-from src.controllers.initiative_controller import InitiativeController
-from src.models import Group, GroupType, InitiativeStatus, Task, TaskStatus, User, Workspace
+from src.initiative_management.initiative_controller import InitiativeController
+from src.initiative_management.task_controller import TaskController
+from src.models import (
+    Group,
+    GroupType,
+    InitiativeStatus,
+    Task,
+    TaskStatus,
+    User,
+    Workspace,
+)
 
 TEST_DATABASE_CONNECTION_STRING = (
     "postgresql://taskmanager_user:securepassword123@localhost:5433/taskmanager_db"
@@ -43,6 +51,7 @@ def browser_page(reset_test_user, browser):  # type: ignore
     yield page
     context.close()
 
+
 def test_can_reorder_initiative_list(
     browser_page: Page, onboard_test_user, user: User, workspace: Workspace, session
 ):
@@ -73,18 +82,16 @@ def test_can_reorder_initiative_list(
     browser_page.reload()
 
     expect(browser_page.get_by_role("button", name="Test Initiative")).to_have_count(3)
-    expect(browser_page.get_by_role("button", name="Test Initiative")).to_have_text([
-        'Test Initiative 1I-001',
-        'Test Initiative 2I-002',
-        'Test Initiative 3I-003'
-    ])
+    expect(browser_page.get_by_role("button", name="Test Initiative")).to_have_text(
+        ["Test Initiative 1I-001", "Test Initiative 2I-002", "Test Initiative 3I-003"]
+    )
 
     # Playwright notes
-    # If your page relies on the dragover event being dispatched, you need at least two mouse moves 
-    # to trigger it in all browsers. To reliably issue the second mouse move, repeat your mouse.move() 
-    # or locator.hover() twice. The sequence of operations would be: hover the drag element, mouse 
+    # If your page relies on the dragover event being dispatched, you need at least two mouse moves
+    # to trigger it in all browsers. To reliably issue the second mouse move, repeat your mouse.move()
+    # or locator.hover() twice. The sequence of operations would be: hover the drag element, mouse
     # down, hover the drop element, hover the drop element second time, mouse up.
-    
+
     # card_height: float = browser_page.get_by_role("button", name="Test Initiative 1").bounding_box()["height"] # type: ignore
 
     # browser_page.get_by_role("button", name="Test Initiative 1").hover();
@@ -110,23 +117,22 @@ def test_can_reorder_initiative_list(
         initiative_id=test_initiative_1.id,
         user_id=user.id,
         after_id=test_initiative_3.id,
-        before_id=None
+        before_id=None,
     )
 
     sleep(0.5)
     browser_page.reload()
 
     expect(browser_page.get_by_role("button", name="Test Initiative")).to_have_count(3)
-    expect(browser_page.get_by_role("button", name="Test Initiative")).to_have_text([
-        'Test Initiative 2I-002',
-        'Test Initiative 3I-003',
-        'Test Initiative 1I-001'
-    ])
+    expect(browser_page.get_by_role("button", name="Test Initiative")).to_have_text(
+        ["Test Initiative 2I-002", "Test Initiative 3I-003", "Test Initiative 1I-001"]
+    )
+
 
 def test_can_reorder_task_list(
     browser_page: Page, onboard_test_user, user: User, workspace: Workspace, session
 ):
-    
+
     initiative_controller = InitiativeController(session)
     test_initiative = initiative_controller.create_initiative(
         title="Test Initiative",
@@ -143,7 +149,7 @@ def test_can_reorder_task_list(
         description="",
         user_id=user.id,
         workspace_id=workspace.id,
-        status=TaskStatus.TO_DO
+        status=TaskStatus.TO_DO,
     )
     test_task_2: Task = task_controller.create_task(
         initiative_id=test_initiative.id,
@@ -151,7 +157,7 @@ def test_can_reorder_task_list(
         description="",
         user_id=user.id,
         workspace_id=workspace.id,
-        status=TaskStatus.TO_DO
+        status=TaskStatus.TO_DO,
     )
     test_task_3: Task = task_controller.create_task(
         initiative_id=test_initiative.id,
@@ -159,7 +165,7 @@ def test_can_reorder_task_list(
         description="",
         user_id=user.id,
         workspace_id=workspace.id,
-        status=TaskStatus.TO_DO
+        status=TaskStatus.TO_DO,
     )
 
     sleep(0.5)
@@ -169,28 +175,29 @@ def test_can_reorder_task_list(
     browser_page.get_by_role("button", name="Test Initiative").click()
 
     expect(browser_page.get_by_role("button", name="Test task")).to_have_count(3)
-    expect(browser_page.get_by_role("button", name="Test task")).to_have_text([
-        'TM-001Test task 1',
-        'TM-002Test task 2',
-        'TM-003Test task 3',
-    ])
+    expect(browser_page.get_by_role("button", name="Test task")).to_have_text(
+        [
+            "TM-001Test task 1",
+            "TM-002Test task 2",
+            "TM-003Test task 3",
+        ]
+    )
 
     task_controller.move_task(
-        task_id=test_task_1.id,
-        user_id=user.id,
-        after_id=test_task_3.id,
-        before_id=None
+        task_id=test_task_1.id, user_id=user.id, after_id=test_task_3.id, before_id=None
     )
 
     sleep(0.5)
     browser_page.reload()
 
     expect(browser_page.get_by_role("button", name="Test task")).to_have_count(3)
-    expect(browser_page.get_by_role("button", name="Test task")).to_have_text([
-        'TM-002Test task 2',
-        'TM-003Test task 3',
-        'TM-001Test task 1',
-    ])
+    expect(browser_page.get_by_role("button", name="Test task")).to_have_text(
+        [
+            "TM-002Test task 2",
+            "TM-003Test task 3",
+            "TM-001Test task 1",
+        ]
+    )
 
 
 def test_can_reorder_initiative_group(
@@ -228,57 +235,62 @@ def test_can_reorder_initiative_group(
     session.add(group)
     session.flush()
 
-
     controller.add_initiative_to_group(
-        initiative_id=test_initiative_1.id,
-        user_id=user.id,
-        group_id=group.id
+        initiative_id=test_initiative_1.id, user_id=user.id, group_id=group.id
     )
 
     controller.add_initiative_to_group(
-        initiative_id=test_initiative_2.id,
-        user_id=user.id,
-        group_id=group.id
+        initiative_id=test_initiative_2.id, user_id=user.id, group_id=group.id
     )
 
     controller.add_initiative_to_group(
-        initiative_id=test_initiative_3.id,
-        user_id=user.id,
-        group_id=group.id
+        initiative_id=test_initiative_3.id, user_id=user.id, group_id=group.id
     )
 
     sleep(0.5)
     browser_page.reload()
 
     browser_page.get_by_role("button", name="Backlog").click()
-    browser_page.locator("#selected-groups-list").get_by_role("button").filter(has_text=re.compile(r"^$")).click()
+    browser_page.locator("#selected-groups-list").get_by_role("button").filter(
+        has_text=re.compile(r"^$")
+    ).click()
     expect(browser_page.get_by_text("Test group")).to_be_visible()
     browser_page.locator(f"#group-checkbox-header-group-select-{group.id}").check()
     browser_page.locator(".flex-grow").first.click()
     expect(browser_page.get_by_role("heading", name="Test group")).to_be_visible()
-    expect(browser_page.get_by_role("button", name="I-001Test Initiative")).to_be_visible()
-    expect(browser_page.get_by_role("button", name="I-002Test Initiative")).to_be_visible()
-    expect(browser_page.get_by_role("button", name="I-003Test Initiative")).to_be_visible()
+    expect(
+        browser_page.get_by_role("button", name="I-001Test Initiative")
+    ).to_be_visible()
+    expect(
+        browser_page.get_by_role("button", name="I-002Test Initiative")
+    ).to_be_visible()
+    expect(
+        browser_page.get_by_role("button", name="I-003Test Initiative")
+    ).to_be_visible()
 
-    expect(browser_page.get_by_role("button", name="I-00")).to_have_text([
-        "I-001Test Initiative 1",
-        "I-002Test Initiative 2",
-        "I-003Test Initiative 3",
-    ])
+    expect(browser_page.get_by_role("button", name="I-00")).to_have_text(
+        [
+            "I-001Test Initiative 1",
+            "I-002Test Initiative 2",
+            "I-003Test Initiative 3",
+        ]
+    )
 
     controller.move_initiative_in_group(
         initiative_id=test_initiative_1.id,
         user_id=user.id,
         group_id=group.id,
         after_id=test_initiative_3.id,
-        before_id=None
+        before_id=None,
     )
 
     sleep(0.5)
     browser_page.reload()
 
-    expect(browser_page.get_by_role("button", name="I-00")).to_have_text([
-        "I-002Test Initiative 2",
-        "I-003Test Initiative 3",
-        "I-001Test Initiative 1",
-    ])
+    expect(browser_page.get_by_role("button", name="I-00")).to_have_text(
+        [
+            "I-002Test Initiative 2",
+            "I-003Test Initiative 3",
+            "I-001Test Initiative 1",
+        ]
+    )

@@ -6,7 +6,7 @@ from hamcrest import assert_that, calling, equal_to, is_, is_not, raises
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from src.controllers.initiative_controller import (
+from src.initiative_management.initiative_controller import (
     InitiativeController,
     InitiativeControllerError,
     InitiativeNotFoundError,
@@ -21,7 +21,7 @@ from src.models import (
     User,
     Workspace,
 )
-from src.services.ordering_service import EntityNotFoundError, OrderingServiceError
+from src.services.ordering_service import OrderingServiceError
 
 
 class TestInitiativeController:
