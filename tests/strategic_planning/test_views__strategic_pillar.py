@@ -18,8 +18,8 @@ class TestStrategicPillarViews:
 
     def test_get_pillars_returns_list(self, test_client, workspace, user):
         """Test getting pillars returns list of pillars."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -128,8 +128,8 @@ class TestStrategicPillarViews:
 
     def test_create_pillar_enforces_5_pillar_limit(self, test_client, workspace, user):
         """Test creating 6th pillar returns 400 error."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -190,8 +190,8 @@ class TestStrategicPillarViews:
 
     def test_update_pillar_success_all_fields(self, test_client, workspace, user):
         """Test updating pillar with all fields returns 200."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -224,8 +224,8 @@ class TestStrategicPillarViews:
 
     def test_update_pillar_success_name_only(self, test_client, workspace, user):
         """Test updating pillar name only returns 200."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -248,8 +248,8 @@ class TestStrategicPillarViews:
         self, test_client, workspace, user
     ):
         """Test validation error for empty name returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -270,8 +270,8 @@ class TestStrategicPillarViews:
         self, test_client, workspace, user
     ):
         """Test validation error for name exceeding max length returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -292,8 +292,8 @@ class TestStrategicPillarViews:
         self, test_client, workspace, user
     ):
         """Test validation error for description exceeding max length returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -314,8 +314,8 @@ class TestStrategicPillarViews:
         self, test_client, workspace, user
     ):
         """Test validation error for anti_strategy exceeding max length returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -334,8 +334,8 @@ class TestStrategicPillarViews:
 
     def test_update_pillar_enforces_unique_name(self, test_client, workspace, user):
         """Test updating to duplicate name returns 500."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -381,8 +381,8 @@ class TestStrategicPillarViews:
 
     def test_delete_pillar_success(self, test_client, workspace, user):
         """Test deleting pillar returns 204."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -427,8 +427,8 @@ class TestStrategicPillarViews:
 
     def test_reorder_pillars_success(self, test_client, workspace, user):
         """Test reordering pillars returns 200."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -474,8 +474,8 @@ class TestStrategicPillarViews:
         self, test_client, workspace, user
     ):
         """Test validation error for duplicate display_order returns 400."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -506,8 +506,8 @@ class TestStrategicPillarViews:
         self, test_client, workspace, user
     ):
         """Test validation error for display_order > 4 returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -532,8 +532,8 @@ class TestStrategicPillarViews:
         self, test_client, workspace, user
     ):
         """Test validation error for negative display_order returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -556,8 +556,8 @@ class TestStrategicPillarViews:
 
     def test_reorder_pillars_pillar_not_found(self, test_client, workspace, user):
         """Test reordering with invalid pillar ID returns 404."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:

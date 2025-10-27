@@ -16,8 +16,8 @@ class TestProductOutcomeViews:
 
     def test_get_outcomes_success_with_data(self, test_client, workspace, user):
         """Test getting outcomes returns list."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -112,8 +112,8 @@ class TestProductOutcomeViews:
 
     def test_create_outcome_with_pillar_links(self, test_client, workspace, user):
         """Test creating outcome linked to pillars returns 201."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -220,8 +220,8 @@ class TestProductOutcomeViews:
 
     def test_create_outcome_max_limit_exceeded(self, test_client, workspace, user):
         """Test creating outcome when limit reached returns 400."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -264,8 +264,8 @@ class TestProductOutcomeViews:
 
     def test_update_outcome_success_all_fields(self, test_client, workspace, user):
         """Test updating outcome with all fields returns 200."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -314,8 +314,8 @@ class TestProductOutcomeViews:
 
     def test_update_outcome_success_name_only(self, test_client, workspace, user):
         """Test updating outcome name only returns 200."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -339,8 +339,8 @@ class TestProductOutcomeViews:
         self, test_client, workspace, user
     ):
         """Test validation error for empty name returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -362,8 +362,8 @@ class TestProductOutcomeViews:
         self, test_client, workspace, user
     ):
         """Test validation error for name exceeding max length returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -385,8 +385,8 @@ class TestProductOutcomeViews:
         self, test_client, workspace, user
     ):
         """Test validation error for description exceeding max length returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -408,8 +408,8 @@ class TestProductOutcomeViews:
         self, test_client, workspace, user
     ):
         """Test validation error for metrics exceeding max length returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -431,8 +431,8 @@ class TestProductOutcomeViews:
         self, test_client, workspace, user
     ):
         """Test validation error for time horizon below minimum returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -454,8 +454,8 @@ class TestProductOutcomeViews:
         self, test_client, workspace, user
     ):
         """Test validation error for time horizon above maximum returns 422."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -475,8 +475,8 @@ class TestProductOutcomeViews:
 
     def test_update_outcome_pillar_links(self, test_client, workspace, user):
         """Test updating outcome pillar links returns 200."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -534,8 +534,8 @@ class TestProductOutcomeViews:
 
     def test_delete_outcome_success(self, test_client, workspace, user):
         """Test deleting outcome returns 204."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -588,8 +588,8 @@ class TestProductOutcomeViews:
 
     def test_reorder_outcomes_success(self, test_client, workspace, user):
         """Test reordering outcomes returns 200."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -635,8 +635,8 @@ class TestProductOutcomeViews:
         self, test_client, workspace, user
     ):
         """Test validation error for duplicate display_order returns 400."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -667,8 +667,8 @@ class TestProductOutcomeViews:
         self, test_client, workspace, user
     ):
         """Test validation error when not all outcomes are included returns 400."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -700,8 +700,8 @@ class TestProductOutcomeViews:
         self, test_client, workspace, user
     ):
         """Test validation error for incomplete sequence returns 400."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
@@ -731,8 +731,8 @@ class TestProductOutcomeViews:
 
     def test_reorder_outcomes_outcome_not_found(self, test_client, workspace, user):
         """Test reordering with invalid outcome ID returns 404."""
-        from src.controllers import product_strategy_controller
         from src.db import SessionLocal
+        from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:

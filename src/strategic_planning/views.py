@@ -9,10 +9,10 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.controllers import product_strategy_controller
 from src.db import get_db
 from src.main import app
 from src.models import User
+from src.strategic_planning import controller as product_strategy_controller
 from src.strategic_planning.exceptions import DomainException
 from src.views import dependency_to_override
 

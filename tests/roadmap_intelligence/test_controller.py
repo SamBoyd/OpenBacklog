@@ -5,14 +5,12 @@ import pytest
 from hamcrest import assert_that, equal_to, has_length
 from sqlalchemy.orm import Session
 
-from src.controllers import product_strategy_controller
 from src.models import User, Workspace
 from src.roadmap_intelligence import controller
-from src.roadmap_intelligence.services import prioritization_service
 from src.roadmap_intelligence.services.prioritization_service import (
     PrioritizationService,
 )
-from src.roadmap_intelligence.views import prioritize_theme
+from src.strategic_planning import controller as product_strategy_controller
 from src.strategic_planning.exceptions import DomainException
 from src.strategic_planning.services.event_publisher import EventPublisher
 
