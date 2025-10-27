@@ -37,11 +37,11 @@ from src.db import Base
 if TYPE_CHECKING:
     from src.accounting.models import UserAccountDetails
     from src.github_app.models import RepositoryFileIndex
+    from src.initiative_management.aggregates.strategic_initiative import (
+        StrategicInitiative,
+    )
     from src.roadmap_intelligence.aggregates.prioritized_roadmap import (
         PrioritizedRoadmap,
-    )
-    from src.strategic_planning.aggregates.strategic_initiative import (
-        StrategicInitiative,
     )
 
 title_max_length: int = 100

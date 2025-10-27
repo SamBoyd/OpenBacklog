@@ -10,8 +10,8 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from src.controllers import product_strategy_controller
 from src.db import SessionLocal
+from src.initiative_management import product_strategy_controller
 from src.mcp_server.main import mcp
 from src.mcp_server.product_strategy_tools.utils import (
     get_user_id_from_request,

@@ -25,11 +25,11 @@ from src.strategic_planning.exceptions import DomainException
 from src.strategic_planning.models import DomainEvent
 
 if TYPE_CHECKING:
-    from src.models import Workspace
-    from src.strategic_planning.aggregates.product_outcome import ProductOutcome
-    from src.strategic_planning.aggregates.strategic_initiative import (
+    from src.initiative_management.aggregates.strategic_initiative import (
         StrategicInitiative,
     )
+    from src.models import Workspace
+    from src.strategic_planning.aggregates.product_outcome import ProductOutcome
     from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
     from src.strategic_planning.services.event_publisher import EventPublisher
 

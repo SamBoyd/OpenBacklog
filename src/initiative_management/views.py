@@ -10,8 +10,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.controllers import product_strategy_controller
 from src.db import get_db
+from src.initiative_management import product_strategy_controller
 from src.initiative_management.initiative_controller import (
     InitiativeController,
     InitiativeControllerError,

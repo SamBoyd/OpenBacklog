@@ -18,10 +18,12 @@ from typing import Any, Dict, Optional
 from fastmcp.server.dependencies import get_http_request
 from starlette.requests import Request
 
+from src.initiative_management.aggregates.strategic_initiative import (
+    StrategicInitiative,
+)
 from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
 from src.strategic_planning.aggregates.product_vision import ProductVision
-from src.strategic_planning.aggregates.strategic_initiative import StrategicInitiative
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 
 logging.basicConfig(level=logging.INFO)

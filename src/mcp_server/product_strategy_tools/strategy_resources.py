@@ -29,8 +29,11 @@ from typing import Any, Dict, List
 
 from fastmcp.exceptions import ResourceError
 
-from src.controllers import product_strategy_controller
 from src.db import SessionLocal
+from src.initiative_management import product_strategy_controller
+from src.initiative_management.aggregates.strategic_initiative import (
+    StrategicInitiative,
+)
 from src.mcp_server.main import mcp
 from src.mcp_server.product_strategy_tools.utils import (
     serialize_outcome,
@@ -41,7 +44,6 @@ from src.mcp_server.product_strategy_tools.utils import (
 )
 from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
-from src.strategic_planning.aggregates.strategic_initiative import StrategicInitiative
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 
 logging.basicConfig(level=logging.INFO)

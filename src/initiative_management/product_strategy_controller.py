@@ -5,7 +5,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session, selectinload
 
-from src.strategic_planning.aggregates.strategic_initiative import StrategicInitiative
+from src.initiative_management.aggregates.strategic_initiative import (
+    StrategicInitiative,
+)
 from src.strategic_planning.services.event_publisher import EventPublisher
 
 
