@@ -56,10 +56,8 @@ interface NavBarViewProps {
     currentPath: string;
     onToggleMenu: () => void;
     onNavigate: (path: string) => void;
-    backlogPath: string;
     dashboardPath: string;
     initiativesPath: string;
-    tasksPath: string;
     supportPath: string;
     accountPath: string;
     billingPath: string;
@@ -77,9 +75,7 @@ const NavBarView: React.FC<NavBarViewProps> = ({
     onNavigate,
     currentTheme,
     toggleTheme,
-    backlogPath,
     initiativesPath,
-    tasksPath,
     supportPath,
     accountPath,
     billingPath,
@@ -120,22 +116,10 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                                     {/* Breadcrumb/Nav Links */}
                                     <div className="flex items-center space-x-2">
                                         <NavBarButton
-                                            icon={<FaDatabase size="0.8em" />}
-                                            title="Backlog"
-                                            onClick={() => onNavigate(backlogPath)}
-                                            active={currentPath.includes(backlogPath)}
-                                        />
-                                        <NavBarButton
                                             icon={<MdBento />}
                                             title="Initiatives"
                                             onClick={() => onNavigate(initiativesPath)}
                                             active={currentPath.includes(initiativesPath)}
-                                        />
-                                        <NavBarButton
-                                            icon={<MdCategory />}
-                                            title="Tasks"
-                                            onClick={() => onNavigate(tasksPath)}
-                                            active={currentPath.includes(tasksPath)}
                                         />
                                         <NavBarButton
                                             icon={<MdMap />}
@@ -209,15 +193,6 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                     <div className={`${isMenuOpen ? 'block' : 'hidden'} md:hidden max-w-sm absolute top-12 right-0  bg-sidebar shadow-md z-10`} id="mobile-menu">
                         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
                             <MobileNavBarButton
-                                icon={<FaDatabase size="0.8em" />}
-                                title="Backlog"
-                                onClick={() => onNavigate(backlogPath)}
-                                active={currentPath.includes(backlogPath)}
-                                className="block w-full text-left"
-                            >
-                                <span>Backlog</span>
-                            </MobileNavBarButton>
-                            <MobileNavBarButton
                                 icon={<MdBento />}
                                 title="Initiatives"
                                 onClick={() => onNavigate(initiativesPath)}
@@ -225,15 +200,6 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                                 className="block w-full text-left"
                             >
                                 <span>Initiatives</span>
-                            </MobileNavBarButton>
-                            <MobileNavBarButton
-                                icon={<MdCategory />}
-                                title="Tasks"
-                                onClick={() => onNavigate(tasksPath)}
-                                active={currentPath.includes(tasksPath)}
-                                className="block w-full text-left"
-                            >
-                                <span>Tasks</span>
                             </MobileNavBarButton>
                             <MobileNavBarButton
                                 icon={<MdMap />}
