@@ -65,7 +65,12 @@ export async function getAllInitiatives(filters?: InitiativeFilters): Promise<In
             )
             .eq('workspace_id', currentWorkspace.id);
 
-        // Apply filters if they exist
+        // Apply ID array filter if provided
+        if (filters?.ids && filters.ids.length > 0) {
+            query = query.in('id', filters.ids);
+        }
+
+        // Apply status filter if it exists
         if (filters?.status && filters.status.length > 0) {
             query = query.in('status', filters.status);
         }

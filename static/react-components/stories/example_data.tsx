@@ -119,6 +119,10 @@ export const mockUpdateChatLayoutMode = () => {
     console.log('mockUpdateChatLayoutMode');
 };
 
+export const mockUpdateSelectedThemes = () => {
+    console.log('mockUpdateSelectedThemes');
+};
+
 export const mockUserPreferencesReturn: UserPreferencesContextType = {
     preferences: {
         theme: Theme.DARK,
@@ -126,6 +130,7 @@ export const mockUserPreferencesReturn: UserPreferencesContextType = {
         selectedGroupIds: ['all-pseudo-group'],
         selectedInitiativeStatuses: [InitiativeStatus.TO_DO, InitiativeStatus.IN_PROGRESS],
         selectedTaskStatuses: [TaskStatus.TO_DO, TaskStatus.IN_PROGRESS],
+        selectedThemeIds: ['all-prioritized-themes'],
         compactnessLevel: 'normal',
         isRewriteEnabled: true,
         initiativesShowListView: false,
@@ -138,6 +143,7 @@ export const mockUserPreferencesReturn: UserPreferencesContextType = {
     updateSelectedGroups: mockUpdateSelectedGroups,
     updateSelectedInitiativeStatuses: mockUpdateSelectedInitiativeStatuses,
     updateSelectedTaskStatuses: mockUpdateSelectedTaskStatuses,
+    updateSelectedThemes: mockUpdateSelectedThemes,
     updateCompactnessLevel: mockUpdateCompactnessLevel,
     updateIsRewriteEnabled: mockUpdateIsRewriteEnabled,
     updateInitiativesShowListView: mockUpdateInitiativesShowListView,

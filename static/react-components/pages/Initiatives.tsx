@@ -8,20 +8,34 @@ import { useSuggestionsToBeResolved } from '#contexts/SuggestionsToBeResolvedCon
 import InitiativesListDiff from '#components/diffs/InitiativesListDiff';
 import { useInitiativesContext } from '#contexts/InitiativesContext';
 import ThemeSidebar from '#components/ThemeSidebar';
-
+import { useWorkspaces } from '#hooks/useWorkspaces';
 import { useUserPreferences } from '#hooks/useUserPreferences';
+import { useInitiativeIdsByTheme } from '#hooks/useInitiativeIdsByTheme';
 
 import { InitiativeStatus } from '#types';
 
 /**
  * Container component for the Initiatives page
- * 
+ *
  * @returns A React component
  */
 const Initiatives = () => {
     const { suggestions } = useSuggestionsToBeResolved();
-    const { initiativesData } = useInitiativesContext();
+    const { currentWorkspace } = useWorkspaces();
     const { preferences, updateSelectedInitiativeStatuses, updateInitiativesShowListView } = useUserPreferences();
+
+    // Derive initiative IDs based on selected themes
+    const initiativeIds = useInitiativeIdsByTheme(
+        currentWorkspace?.id || '',
+        preferences.selectedThemeIds
+    );
+
+    // Pass IDs to context via filters
+    const filters = {
+        ids: initiativeIds.length > 0 ? initiativeIds : undefined,
+    };
+
+    const { initiativesData } = useInitiativesContext(filters);
 
     const showListView = preferences.initiativesShowListView;
     const [initiativeReloadCounter, setInitiativeReloadCounter] = useState(0);
@@ -94,11 +108,13 @@ const Initiatives = () => {
                     {showListView ? (
                         <InitiativesList
                             selectedStatuses={preferences.selectedInitiativeStatuses as InitiativeStatus[]}
+                            data={initiativesData}
                         />
                     ) : (
                         <InitiativesKanbanBoard
                             reloadCounter={initiativeReloadCounter}
                             selectedStatuses={preferences.selectedInitiativeStatuses as InitiativeStatus[]}
+                            data={initiativesData}
                         />
                     )}
 

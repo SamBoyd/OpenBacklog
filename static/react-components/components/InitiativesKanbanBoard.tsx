@@ -13,14 +13,24 @@ import { computeOrderingIds } from '#utils/dragDropUtils';
 interface InitiativesKanbanBoardProps {
     reloadCounter?: number;
     selectedStatuses?: InitiativeStatus[];
+    data?: OrderedEntity<InitiativeDto>[] | null;
 }
 
 const InitiativesKanbanBoard: React.FC<InitiativesKanbanBoardProps> = ({
     reloadCounter,
-    selectedStatuses = Object.values(InitiativeStatus)
+    selectedStatuses = Object.values(InitiativeStatus),
+    data: dataProp,
 }) => {
-    const { initiativesData, shouldShowSkeleton, error, updateInitiative, reloadInitiatives, reorderInitiative, moveInitiativeToStatus } = useInitiativesContext();
+    const contextData = useInitiativesContext();
     const navigate = useNavigate();
+
+    // Use prop data if provided, otherwise use context data
+    const initiativesData = dataProp ?? contextData.initiativesData;
+    const shouldShowSkeleton = dataProp !== undefined ? false : contextData.shouldShowSkeleton;
+    const error = dataProp !== undefined ? null : contextData.error;
+
+    // Always use context for mutations
+    const { updateInitiative, reloadInitiatives, reorderInitiative, moveInitiativeToStatus } = contextData;
 
     useEffect(() => {
         reloadInitiatives();

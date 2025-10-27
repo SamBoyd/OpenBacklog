@@ -6,6 +6,7 @@ import { OrderedEntity } from '#hooks/useOrderings';
  */
 export type InitiativeFilters = {
   id?: string;
+  ids?: string[];
   status?: string[];
 };
 

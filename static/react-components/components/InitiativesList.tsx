@@ -9,12 +9,26 @@ import InitiativesListView from './InitiativesListView';
 
 interface InitiativesListViewProps {
     selectedStatuses?: InitiativeStatus[];
+    data?: OrderedEntity<InitiativeDto>[] | null;
     moveToStatus?: (initiativeId: string) => (status: InitiativeStatus) => (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-export default function InitiativesList({ selectedStatuses = Object.values(InitiativeStatus), moveToStatus }: InitiativesListViewProps) {
-    const { initiativesData, shouldShowSkeleton, isQueryFetching, error, reorderInitiative, moveInitiativeToStatus } = useInitiativesContext();
+export default function InitiativesList({
+    selectedStatuses = Object.values(InitiativeStatus),
+    data: dataProp,
+    moveToStatus
+}: InitiativesListViewProps) {
+    const contextData = useInitiativesContext();
     const navigate = useNavigate();
+
+    // Use prop data if provided, otherwise use context data
+    const initiativesData = dataProp ?? contextData.initiativesData;
+    const shouldShowSkeleton = dataProp !== undefined ? false : contextData.shouldShowSkeleton;
+    const isQueryFetching = dataProp !== undefined ? false : contextData.isQueryFetching;
+    const error = dataProp !== undefined ? null : contextData.error;
+
+    // Always use context for mutations
+    const { reorderInitiative, moveInitiativeToStatus } = contextData;
 
     const loading = shouldShowSkeleton || isQueryFetching;
 

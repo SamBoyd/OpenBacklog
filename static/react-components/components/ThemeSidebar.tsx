@@ -1,17 +1,18 @@
 import React from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { useThemePrioritization } from '#hooks/useThemePrioritization';
+import { useUserPreferences } from '#hooks/useUserPreferences';
 
 /**
- * Sidebar component displaying prioritized and unprioritized roadmap themes
+ * Sidebar component for filtering initiatives by roadmap themes
  *
  * This component fetches and displays themes using the Roadmap Intelligence Context.
  * Themes are automatically separated into:
  * - Prioritized: Themes currently being actively worked on
  * - Unprioritized: Themes in the backlog
  *
- * The component manages its own data fetching via hooks and displays loading/error states.
+ * Users can click on themes to filter the initiatives shown in the main view.
+ * Multiple themes can be selected using Cmd/Ctrl + Click.
  */
 const ThemeSidebar: React.FC = () => {
   const { currentWorkspace } = useWorkspaces();
@@ -21,52 +22,82 @@ const ThemeSidebar: React.FC = () => {
     isLoading,
     prioritizedError,
     unprioritizedError,
-    prioritizeTheme,
-    isPrioritizing,
-    deprioritizeTheme,
-    isDeprioritizing,
-    reorderPrioritizedThemes,
-    isReordering,
   } = useThemePrioritization(currentWorkspace?.id || '');
+
+  const { preferences, updateSelectedThemes } = useUserPreferences();
+  const selectedThemeIds = preferences.selectedThemeIds;
 
   const error = prioritizedError || unprioritizedError;
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-
-    const { source, destination } = result;
-
-    // No change
-    if (source.droppableId === destination.droppableId && source.index === destination.index) {
-      return;
+  /**
+   * Handle theme click for filtering initiatives
+   * Supports multi-select with Cmd/Ctrl key
+   */
+  const handleThemeClick = (themeId: string, event: React.MouseEvent) => {
+    if (event.metaKey || event.ctrlKey) {
+      // Multi-select mode
+      if (selectedThemeIds.includes(themeId)) {
+        // Deselect if already selected
+        const newSelection = selectedThemeIds.filter(id => id !== themeId);
+        // Don't allow empty selection - default to all-prioritized-themes
+        updateSelectedThemes(newSelection.length > 0 ? newSelection : ['all-prioritized-themes']);
+      } else {
+        // Add to selection, removing special values if present
+        const filteredSelection = selectedThemeIds.filter(
+          id => id !== 'all-prioritized-themes' && id !== 'unthemed'
+        );
+        updateSelectedThemes([...filteredSelection, themeId]);
+      }
+    } else {
+      // Single select mode
+      if (selectedThemeIds.length === 1 && selectedThemeIds[0] === themeId) {
+        // Clicking the same theme again - reset to all-prioritized-themes
+        updateSelectedThemes(['all-prioritized-themes']);
+      } else {
+        updateSelectedThemes([themeId]);
+      }
     }
-
-    const themeId = result.draggableId;
-
-    // Case 1: Move from unprioritized to prioritized
-    if (source.droppableId === 'unprioritized' && destination.droppableId === 'prioritized') {
-      prioritizeTheme({ themeId, position: destination.index });
-    }
-    // Case 2: Move from prioritized to unprioritized
-    else if (source.droppableId === 'prioritized' && destination.droppableId === 'unprioritized') {
-      deprioritizeTheme(themeId);
-    }
-    // Case 3: Reorder within prioritized
-    else if (source.droppableId === 'prioritized' && destination.droppableId === 'prioritized') {
-      const reordered = Array.from(prioritizedThemes);
-      const [removed] = reordered.splice(source.index, 1);
-      reordered.splice(destination.index, 0, removed);
-
-      const themeOrders = reordered.map((theme, index) => ({
-        id: theme.id,
-        display_order: index,
-      }));
-
-      reorderPrioritizedThemes({ themes: themeOrders });
-    }
-    // Case 4: Within unprioritized - no action needed (no ordering in backlog)
   };
-  
+
+  /**
+   * Handle special option clicks
+   */
+  const handleSpecialOptionClick = (optionId: string, event: React.MouseEvent) => {
+    if (event.metaKey || event.ctrlKey) {
+      // Multi-select with special option not allowed - just select the option
+      updateSelectedThemes([optionId]);
+    } else {
+      // Toggle special option
+      if (selectedThemeIds.length === 1 && selectedThemeIds[0] === optionId) {
+        // Already selected - do nothing (special options can't be deselected via click)
+        return;
+      }
+      updateSelectedThemes([optionId]);
+    }
+  };
+
+  /**
+   * Check if a theme is selected
+   */
+  const isThemeSelected = (themeId: string) => {
+    // Check for exact match
+    if (selectedThemeIds.includes(themeId)) {
+      return true;
+    }
+    // Check if 'all-prioritized-themes' is selected and this is a prioritized theme
+    if (selectedThemeIds.includes('all-prioritized-themes')) {
+      return prioritizedThemes.some(theme => theme.id === themeId);
+    }
+    return false;
+  };
+
+  /**
+   * Check if special option is selected
+   */
+  const isSpecialOptionSelected = (optionId: string) => {
+    return selectedThemeIds.includes(optionId);
+  };
+
   // Don't render if no workspace is selected
   if (!currentWorkspace) {
     return null;
@@ -96,144 +127,96 @@ const ThemeSidebar: React.FC = () => {
     );
   }
 
-  const isDragDisabled = isLoading || isPrioritizing || isDeprioritizing || isReordering;
-
   return (
     <div className="w-60 flex-shrink-0 border-r border-border bg-card">
       <div className="flex flex-col h-full">
-        <DragDropContext onDragEnd={handleDragEnd}>
-          {/* Prioritized Themes Section */}
-          {(prioritizedThemes.length > 0 || unprioritizedThemes.length > 0) && (
-            <div className="px-4 py-3">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                Prioritized Themes
-              </h3>
-              <Droppable droppableId="prioritized">
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`min-h-[3rem] space-y-1 ${
-                      snapshot.isDraggingOver ? 'bg-primary/5 rounded-md' : ''
-                    }`}
-                  >
-                    {prioritizedThemes.length === 0 ? (
-                      <div className="flex items-center justify-center h-[3rem] border-2 border-dashed border-border/50 rounded-md">
-                        <span className="text-xs text-muted-foreground">
-                          {snapshot.isDraggingOver ? 'Drop here to prioritize' : 'Drag themes here'}
-                        </span>
-                      </div>
-                    ) : (
-                      prioritizedThemes.map((theme, index) => (
-                        <Draggable
-                          key={theme.id}
-                          draggableId={theme.id}
-                          index={index}
-                          isDragDisabled={isDragDisabled}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`px-3 py-2 rounded-md transition-all ${
-                                snapshot.isDragging
-                                  ? 'opacity-60 rotate-1 shadow-lg bg-accent'
-                                  : 'hover:bg-accent'
-                              } ${
-                                isDragDisabled
-                                  ? 'opacity-50 cursor-not-allowed'
-                                  : 'cursor-grab active:cursor-grabbing'
-                              }`}
-                            >
-                              <div className="text-sm font-medium text-foreground">
-                                {theme.name}
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))
-                    )}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
-          )}
+        {/* Prioritized Themes Section */}
+        {(prioritizedThemes.length > 0 || unprioritizedThemes.length > 0) && (
+          <div className="px-4 py-3">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+              Prioritized Themes
+            </h3>
+            <div className="space-y-1">
+              {/* "All Prioritized" special option */}
+              <div
+                onClick={(e) => handleSpecialOptionClick('all-prioritized-themes', e)}
+                className={`px-3 py-2 rounded-md cursor-pointer transition-all text-sm ${
+                  isSpecialOptionSelected('all-prioritized-themes')
+                    ? 'bg-primary/20 text-primary font-medium'
+                    : 'hover:bg-accent text-foreground'
+                }`}
+              >
+                All Prioritized
+              </div>
 
-          {/* Divider between prioritized and unprioritized */}
-          {(prioritizedThemes.length > 0 || unprioritizedThemes.length > 0) && (
-            <div className="border-t border-border" />
-          )}
-
-          {/* Unprioritized Themes Section */}
-          {(prioritizedThemes.length > 0 || unprioritizedThemes.length > 0) && (
-            <div className="px-4 py-3">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                Unprioritized
-              </h3>
-              <Droppable droppableId="unprioritized">
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`min-h-[3rem] space-y-1 ${
-                      snapshot.isDraggingOver ? 'bg-primary/5 rounded-md' : ''
-                    }`}
-                  >
-                    {unprioritizedThemes.length === 0 ? (
-                      <div className="flex items-center justify-center h-[3rem] border-2 border-dashed border-border/50 rounded-md">
-                        <span className="text-xs text-muted-foreground">
-                          {snapshot.isDraggingOver ? 'Drop here to deprioritize' : 'Drag themes here'}
-                        </span>
-                      </div>
-                    ) : (
-                      unprioritizedThemes.map((theme, index) => (
-                        <Draggable
-                          key={theme.id}
-                          draggableId={theme.id}
-                          index={index}
-                          isDragDisabled={isDragDisabled}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`px-3 py-2 rounded-md transition-all opacity-70 ${
-                                snapshot.isDragging
-                                  ? 'opacity-40 rotate-1 shadow-lg bg-accent'
-                                  : 'hover:bg-accent'
-                              } ${
-                                isDragDisabled
-                                  ? 'opacity-30 cursor-not-allowed'
-                                  : 'cursor-grab active:cursor-grabbing'
-                              }`}
-                            >
-                              <div className="text-sm font-medium text-foreground">
-                                {theme.name}
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))
-                    )}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
+              {/* Individual prioritized themes */}
+              {prioritizedThemes.map((theme) => (
+                <div
+                  key={theme.id}
+                  onClick={(e) => handleThemeClick(theme.id, e)}
+                  className={`px-3 py-2 rounded-md cursor-pointer transition-all text-sm ${
+                    isThemeSelected(theme.id)
+                      ? 'bg-primary/20 text-primary font-medium'
+                      : 'hover:bg-accent text-foreground'
+                  }`}
+                >
+                  {theme.name}
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Empty state */}
-          {prioritizedThemes.length === 0 && unprioritizedThemes.length === 0 && (
-            <div className="flex flex-col h-full items-center justify-center p-4">
-              <p className="text-sm text-muted-foreground text-center">
-                No themes yet
-              </p>
+        {/* Divider between prioritized and unprioritized */}
+        {(prioritizedThemes.length > 0 || unprioritizedThemes.length > 0) && (
+          <div className="border-t border-border" />
+        )}
+
+        {/* Unprioritized Themes Section */}
+        {(prioritizedThemes.length > 0 || unprioritizedThemes.length > 0) && (
+          <div className="px-4 py-3">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+              Unprioritized
+            </h3>
+            <div className="space-y-1">
+              {/* "Unthemed" special option */}
+              <div
+                onClick={(e) => handleSpecialOptionClick('unthemed', e)}
+                className={`px-3 py-2 rounded-md cursor-pointer transition-all text-sm opacity-70 ${
+                  isSpecialOptionSelected('unthemed')
+                    ? 'bg-primary/20 text-primary font-medium'
+                    : 'hover:bg-accent text-foreground'
+                }`}
+              >
+                Unthemed Initiatives
+              </div>
+
+              {/* Individual unprioritized themes */}
+              {unprioritizedThemes.map((theme) => (
+                <div
+                  key={theme.id}
+                  onClick={(e) => handleThemeClick(theme.id, e)}
+                  className={`px-3 py-2 rounded-md cursor-pointer transition-all text-sm opacity-70 ${
+                    isThemeSelected(theme.id)
+                      ? 'bg-primary/20 text-primary font-medium opacity-100'
+                      : 'hover:bg-accent text-foreground'
+                  }`}
+                >
+                  {theme.name}
+                </div>
+              ))}
             </div>
-          )}
-        </DragDropContext>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {prioritizedThemes.length === 0 && unprioritizedThemes.length === 0 && (
+          <div className="flex flex-col h-full items-center justify-center p-4">
+            <p className="text-sm text-muted-foreground text-center">
+              No themes yet
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

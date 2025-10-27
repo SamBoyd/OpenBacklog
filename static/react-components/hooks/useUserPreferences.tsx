@@ -25,6 +25,7 @@ export interface UserPreferences {
   selectedGroupIds: string[];
   selectedInitiativeStatuses: string[];
   selectedTaskStatuses: string[];
+  selectedThemeIds: string[];
   compactnessLevel: CompactnessLevel;
   isRewriteEnabled: boolean;
   initiativesShowListView: boolean;
@@ -317,6 +318,9 @@ const validators = {
   selectedTaskStatuses: (value: unknown): value is string[] =>
     Array.isArray(value) && value.every(item => typeof item === 'string'),
 
+  selectedThemeIds: (value: unknown): value is string[] =>
+    Array.isArray(value) && value.every(item => typeof item === 'string'),
+
   compactnessLevel: (value: unknown): value is CompactnessLevel =>
     typeof value === 'string' && ['spacious', 'normal', 'compact'].includes(value),
 
@@ -345,6 +349,7 @@ const defaultPreferences: UserPreferences = {
   selectedGroupIds: ['all-pseudo-group'],
   selectedInitiativeStatuses: ['TO_DO', 'IN_PROGRESS'],
   selectedTaskStatuses: ['TO_DO', 'IN_PROGRESS'],
+  selectedThemeIds: ['all-prioritized-themes'],
   compactnessLevel: 'normal',
   isRewriteEnabled: true,
   initiativesShowListView: false,
@@ -361,6 +366,7 @@ const loadPreferencesFromLocalStorage = (): UserPreferences => {
     selectedGroupIds: SafeStorage.safeGet('selectedGroupIds', validators.selectedGroupIds, defaultPreferences.selectedGroupIds),
     selectedInitiativeStatuses: SafeStorage.safeGet('selectedInitiativeStatuses', validators.selectedInitiativeStatuses, defaultPreferences.selectedInitiativeStatuses),
     selectedTaskStatuses: SafeStorage.safeGet('selectedTaskStatuses', validators.selectedTaskStatuses, defaultPreferences.selectedTaskStatuses),
+    selectedThemeIds: SafeStorage.safeGet('selectedThemeIds', validators.selectedThemeIds, defaultPreferences.selectedThemeIds),
     compactnessLevel: SafeStorage.safeGet('ui-compactness-level', validators.compactnessLevel, defaultPreferences.compactnessLevel),
     isRewriteEnabled: SafeStorage.safeGet('isRewriteEnabled', validators.isRewriteEnabled, defaultPreferences.isRewriteEnabled),
     initiativesShowListView: SafeStorage.safeGet('initiativesShowListView', validators.initiativesShowListView, defaultPreferences.initiativesShowListView),
@@ -377,6 +383,7 @@ export interface UserPreferencesContextType {
   updateSelectedGroups: (groupIds: string[]) => void;
   updateSelectedInitiativeStatuses: (statuses: string[]) => void;
   updateSelectedTaskStatuses: (statuses: string[]) => void;
+  updateSelectedThemes: (themeIds: string[]) => void;
   updateCompactnessLevel: (level: CompactnessLevel) => void;
   updateIsRewriteEnabled: (isEnabled: boolean) => void;
   updateInitiativesShowListView: (show: boolean) => void;
@@ -393,6 +400,7 @@ const UserPreferencesContext = createContext<UserPreferencesContextType>({
   updateSelectedGroups: () => { console.warn('UserPreferencesProvider not found'); },
   updateSelectedInitiativeStatuses: () => { console.warn('UserPreferencesProvider not found'); },
   updateSelectedTaskStatuses: () => { console.warn('UserPreferencesProvider not found'); },
+  updateSelectedThemes: () => { console.warn('UserPreferencesProvider not found'); },
   updateCompactnessLevel: () => { console.warn('UserPreferencesProvider not found'); },
   updateIsRewriteEnabled: () => { console.warn('UserPreferencesProvider not found'); },
   updateInitiativesShowListView: () => { console.warn('UserPreferencesProvider not found'); },
@@ -458,6 +466,12 @@ export const UserPreferencesProvider: React.FC<UserPreferencesProviderProps> = (
     });
   }, []);
 
+  const updateSelectedThemes = useCallback((selectedThemeIds: string[]) => {
+    setPreferences((prev) => {
+      return { ...prev, selectedThemeIds };
+    });
+  }, []);
+
   const updateCompactnessLevel = useCallback((level: CompactnessLevel) => {
     setPreferences((prev) => {
       return { ...prev, compactnessLevel: level };
@@ -508,6 +522,7 @@ export const UserPreferencesProvider: React.FC<UserPreferencesProviderProps> = (
       SafeStorage.safeSet('selectedGroupIds', preferences.selectedGroupIds);
       SafeStorage.safeSet('selectedInitiativeStatuses', preferences.selectedInitiativeStatuses);
       SafeStorage.safeSet('selectedTaskStatuses', preferences.selectedTaskStatuses);
+      SafeStorage.safeSet('selectedThemeIds', preferences.selectedThemeIds);
       SafeStorage.safeSet('ui-compactness-level', preferences.compactnessLevel);
       SafeStorage.safeSet('isRewriteEnabled', preferences.isRewriteEnabled);
       SafeStorage.safeSet('initiativesShowListView', preferences.initiativesShowListView);
@@ -533,13 +548,14 @@ export const UserPreferencesProvider: React.FC<UserPreferencesProviderProps> = (
     updateSelectedGroups,
     updateSelectedInitiativeStatuses,
     updateSelectedTaskStatuses,
+    updateSelectedThemes,
     updateCompactnessLevel,
     updateIsRewriteEnabled,
     updateInitiativesShowListView,
     updateTasksShowListView,
     updateViewInitiativeShowListView,
     updateChatLayoutMode,
-  }), [preferences, toggleTheme, updateFilterTasksToInitiative, updateSelectedGroups, updateSelectedInitiativeStatuses, updateSelectedTaskStatuses, updateCompactnessLevel, updateIsRewriteEnabled, updateInitiativesShowListView, updateTasksShowListView, updateViewInitiativeShowListView, updateChatLayoutMode]);
+  }), [preferences, toggleTheme, updateFilterTasksToInitiative, updateSelectedGroups, updateSelectedInitiativeStatuses, updateSelectedTaskStatuses, updateSelectedThemes, updateCompactnessLevel, updateIsRewriteEnabled, updateInitiativesShowListView, updateTasksShowListView, updateViewInitiativeShowListView, updateChatLayoutMode]);
 
   return (
     <UserPreferencesContext.Provider value={value}>
@@ -555,6 +571,7 @@ export interface UseUserPreferencesReturn {
   updateSelectedGroups: (groupIds: string[]) => void;
   updateSelectedInitiativeStatuses: (statuses: string[]) => void;
   updateSelectedTaskStatuses: (statuses: string[]) => void;
+  updateSelectedThemes: (themeIds: string[]) => void;
   updateCompactnessLevel: (level: CompactnessLevel) => void;
   updateIsRewriteEnabled: (isEnabled: boolean) => void;
   updateInitiativesShowListView: (show: boolean) => void;
