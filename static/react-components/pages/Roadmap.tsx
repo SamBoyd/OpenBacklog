@@ -100,7 +100,7 @@ const Roadmap: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="h-full grid grid-cols-2 gap-4 p-6">
+          <div className="flex flex-col gap-4 p-6">
             {/* Prioritized Themes Column */}
             <div className="flex flex-col">
               <h2 className="text-lg font-semibold text-foreground mb-4">
