@@ -106,65 +106,6 @@ services:
       retries: 3
       start_period: 40s
 
-  mcp_server:
-    container_name: mcp_server
-    build:
-      context: ..
-      dockerfile: docker/mcp_server.Dockerfile
-    ports:
-      - "9000:9000"
-    environment:
-      # Database connection strings - match lowercase as expected in Settings class
-      - environment=${environment}
-      - database_name=${database_name}
-      - database_app_user_username=${database_app_user_username}
-      - database_app_user_password=${database_app_user_password}
-      - database_url=${database_url}
-      - async_database_url=${async_database_url}
-      # Application settings - match lowercase as expected in Settings class
-      - environment=${environment}
-      - app_domain=${app_domain}
-      # Auth0 configuration - match lowercase as expected in Settings class
-      - auth0_application_id=${auth0_application_id}
-      - auth0_audience=${auth0_audience}
-      - auth0_client_id=${auth0_client_id}
-      - auth0_client_secret=${auth0_client_secret}
-      - auth0_domain=${auth0_domain}
-      - cookie_lifetime_seconds=${cookie_lifetime_seconds}
-      - auth0_login_cookie_name=${auth0_login_cookie_name}
-      - auth0_jwt_cookie_name=${auth0_jwt_cookie_name}
-      - auth0_refresh_token_cookie_name=${auth0_refresh_token_cookie_name}
-      # Postgrest roles - match lowercase as expected in Settings class
-      - postgrest_authenticator__role=${postgrest_authenticator__role}
-      - postgrest_anonymous__role=${postgrest_anonymous__role}
-      - postgrest_authenticated_role=${postgrest_authenticated_role}
-      - postgrest_authenticator__password=${postgrest_authenticator__password}
-      # Cloudflare R2 storage - match lowercase as expected in Settings class
-      - cloudflare_account_id=${cloudflare_account_id}
-      - r2_access_key_id=${r2_access_key_id}
-      - r2_secret_access_key=${r2_secret_access_key}
-      - r2_profile_picture_bucket_name=${r2_profile_picture_bucket_name}
-      - default_profile_picture=${default_profile_picture}
-      # GitHub integration - match lowercase as expected in Settings class
-      - github_app_id=${github_app_id}
-      - github_app_private_key=${github_app_private_key}
-      - github_webhook_secret=${github_webhook_secret}
-      # Vault integration - match lowercase as expected in Settings class
-      - vault_url=${vault_url}
-      - vault_cert_path=${vault_cert_path}
-      - vault_cert_key_path=${vault_cert_key_path}
-      - vault_role_id_path=${vault_role_id_path}
-      - vault_secret_id_path=${vault_secret_id_path}
-      - vault_verify_cert=${vault_verify_cert}
-      - sentry_url=${sentry_url}
-      - csrf_token_name=${csrf_token_name}
-      - csrf_token_value=${csrf_token_value}
-    volumes:
-      - ../:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   litellm_proxy:
     build: https://github.com/samboyd/litellm.git#7569-openmeter-event-bug
     ports:
