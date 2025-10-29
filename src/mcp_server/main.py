@@ -18,8 +18,6 @@ from src.mcp_server.slash_commands import *
 from src.mcp_server.start_openbacklog_workflow import *
 from src.mcp_server.task_tools import *
 
-# http_app = mcp.http_app(path="/mcp")
-
 if __name__ == "__main__":
     # Run with HTTP transport for hosted MCP server
     mcp.run(

@@ -17,11 +17,13 @@ from fastapi_csrf_protect import CsrfProtect
 from fastapi_csrf_protect.exceptions import CsrfProtectError
 from pydantic_settings import BaseSettings
 
-# from alembic import command
-# from alembic.config import Config
 from src import litellm_service
 from src.config import settings
 from src.db import get_async_db
+
+# from alembic import command
+# from alembic.config import Config
+from src.mcp_server.main import mcp
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,6 +44,8 @@ templates.env.globals["app_domain"] = settings.app_domain
 from src.utils.assets import get_hashed_css_path
 
 templates.env.globals["hashed_css_path"] = get_hashed_css_path()
+
+mcp_app = mcp.http_app(path="/")
 
 
 @asynccontextmanager
@@ -65,13 +69,30 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     if settings.environment == "development":
         litellm_service.regenerate_litellm_master_key()
+
     yield
     # Clean up the ML models and release the resources
     pass
 
 
+# Combine both lifespans
+@asynccontextmanager
+async def combined_lifespan(app: FastAPI):
+    # Run both lifespans
+    async with lifespan(app):
+        async with mcp_app.lifespan(app):
+            yield
+
+
 def app_init() -> FastAPI:
-    app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(
+        lifespan=combined_lifespan, docs_url=None, redoc_url=None, openapi_url=None
+    )
+
+    app.mount(
+        "/mcp",
+        mcp_app,
+    )
 
     static_files_dir = PROJECT_ABSOLUTE_PATH / "static"
     if os.path.exists(static_files_dir):
