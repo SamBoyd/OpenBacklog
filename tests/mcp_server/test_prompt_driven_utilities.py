@@ -13,7 +13,6 @@ from src.mcp_server.prompt_driven_tools.utilities import (
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
 from src.strategic_planning.aggregates.product_vision import ProductVision
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
-from src.strategic_planning.exceptions import DomainException
 
 
 class TestReviewStrategicFoundation:
@@ -178,13 +177,16 @@ class TestReviewStrategicFoundation:
 class TestConnectOutcomeToPillars:
     """Test suite for connect_outcome_to_pillars tool."""
 
+    @patch("src.mcp_server.prompt_driven_tools.utilities.get_user_id_from_request")
     @pytest.mark.asyncio
-    async def test_connect_outcome_to_pillars_success(self):
+    async def test_connect_outcome_to_pillars_success(self, mock_get_user_id):
         """Test that connect successfully links outcome to pillars."""
         workspace_id = str(uuid.uuid4())
         outcome_id = str(uuid.uuid4())
         pillar_id1 = str(uuid.uuid4())
         pillar_id2 = str(uuid.uuid4())
+
+        mock_get_user_id.return_value = uuid.uuid4()
 
         with patch(
             "src.mcp_server.prompt_driven_tools.utilities.SessionLocal"

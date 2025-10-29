@@ -13,18 +13,15 @@ from typing import Any, Dict, List, Optional
 
 from src.db import SessionLocal
 from src.mcp_server.main import mcp
-from src.mcp_server.product_strategy_tools.utils import (
-    get_user_id_from_request,
-    serialize_outcome,
-    serialize_theme,
-)
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
     build_error_response,
     build_success_response,
     calculate_alignment_score,
     get_alignment_recommendation,
+    get_user_id_from_request,
     identify_alignment_issues,
+    serialize_theme,
     validate_uuid,
 )
 from src.roadmap_intelligence import controller as roadmap_controller

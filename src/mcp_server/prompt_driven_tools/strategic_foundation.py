@@ -13,16 +13,14 @@ from typing import Any, Dict, List, Optional
 
 from src.db import SessionLocal
 from src.mcp_server.main import mcp
-from src.mcp_server.product_strategy_tools.utils import (
-    get_user_id_from_request,
-    serialize_outcome,
-    serialize_pillar,
-    serialize_vision,
-)
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
     build_error_response,
     build_success_response,
+    get_user_id_from_request,
+    serialize_outcome,
+    serialize_pillar,
+    serialize_vision,
     validate_uuid,
 )
 from src.strategic_planning import controller as strategic_controller

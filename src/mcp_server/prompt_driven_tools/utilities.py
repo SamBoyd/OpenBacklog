@@ -8,21 +8,18 @@ Note: Phase 2 already implemented roadmap-related utilities (deprioritize_workst
 organize_roadmap, connect_theme_to_outcomes) in roadmap_themes.py.
 """
 
-import uuid
 from typing import Any, Dict, List
 
 from src.db import SessionLocal
 from src.mcp_server.main import mcp
-from src.mcp_server.product_strategy_tools.utils import get_user_id_from_request
-from src.mcp_server.prompt_driven_tools.utils.response_builder import (
+from src.mcp_server.prompt_driven_tools.utils import (
     build_error_response,
     build_success_response,
-)
-from src.mcp_server.prompt_driven_tools.utils.serializers import (
+    get_user_id_from_request,
     serialize_outcome,
     serialize_strategic_foundation,
+    validate_uuid,
 )
-from src.mcp_server.prompt_driven_tools.utils.validators import validate_uuid
 from src.strategic_planning import controller as strategic_controller
 from src.strategic_planning.exceptions import DomainException
 
@@ -123,7 +120,8 @@ async def connect_outcome_to_pillars(
         from src.strategic_planning.services.event_publisher import EventPublisher
 
         publisher = EventPublisher(session)
-        outcome.link_to_pillars(pillar_uuids, session, publisher)
+        user_id = get_user_id_from_request()
+        outcome.link_to_pillars(pillar_uuids, user_id, session, publisher)
 
         session.commit()
         session.refresh(outcome)
