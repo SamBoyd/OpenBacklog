@@ -149,7 +149,7 @@ describe.skip('JWT refresh', () => {
 
     test('can request a new JWT with a refresh token', async () => {
         server.use(
-            http.post('https://samboyd.ngrok.app/auth/renew-jwt', async ({ request }) => {
+            http.post('/auth/renew-jwt', async ({ request }) => {
                 return HttpResponse.json({
                     "auth0_jwt": jwtWithExpiry(1000),
                     "refresh_token": "skhs8eoenmdccx-MKJxywtFUrdcDh-EnzheJ951Myi-Uf",
@@ -164,7 +164,7 @@ describe.skip('JWT refresh', () => {
 
     test('should check if JWT is expired and renew it if it is', async () => {
         server.use(
-            http.post('https://samboyd.ngrok.app/auth/renew-jwt', async ({ request }) => {
+            http.post('/auth/renew-jwt', async ({ request }) => {
                 return HttpResponse.json({
                     "auth0_jwt": jwtWithExpiry(-1000),
                     "refresh_token": "skhs8eoenmdccx-MKJxywtFUrdcDh-EnzheJ951Myi-Uf",
@@ -182,7 +182,7 @@ describe.skip('JWT refresh', () => {
 
     test('should check if JWT is going to expire in the next 1 hour and renew it if it is', async () => {
         server.use(
-            http.post('https://samboyd.ngrok.app/auth/renew-jwt', async ({ request }) => {
+            http.post('/auth/renew-jwt', async ({ request }) => {
                 return HttpResponse.json({
                     "auth0_jwt": jwtWithExpiry(1000),
                     "refresh_token": "skhs8eoenmdccx-MKJxywtFUrdcDh-EnzheJ951Myi-Uf",

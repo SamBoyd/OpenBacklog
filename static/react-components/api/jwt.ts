@@ -63,7 +63,7 @@ export function renewJWT() {
     }
     // const refreshToken = getRefreshToken();
     // TODO - This needs to use a different domain in production *********
-    return fetch('https://samboyd.ngrok.app/auth/renew-jwt', {
+    return fetch(`/auth/renew-jwt`, {
         method: 'POST',
     }).then(response => {
         if (!response.ok) {
