@@ -37,7 +37,6 @@ export async function getWorkspaceVision(
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
   });
 
@@ -60,7 +59,6 @@ export async function upsertWorkspaceVision(
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
     body: JSON.stringify(request),
   });
@@ -80,7 +78,6 @@ export async function getStrategicPillars(
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
   });
 
@@ -99,7 +96,6 @@ export async function createStrategicPillar(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
     body: JSON.stringify(request),
   });
@@ -127,7 +123,6 @@ export async function updateStrategicPillar(
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
     body: JSON.stringify(request),
   });
@@ -147,8 +142,7 @@ export async function deleteStrategicPillar(
   const response = await fetch(`/api/workspaces/${workspaceId}/pillars/${pillarId}`, {
     method: 'DELETE',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
+      'Content-Type': 'application/json'
     },
   });
 
@@ -175,7 +169,6 @@ export async function reorderStrategicPillars(
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
     body: JSON.stringify(request),
   });
@@ -215,8 +208,7 @@ export async function getProductOutcomes(
   const response = await fetch(`/api/workspaces/${workspaceId}/outcomes`, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
+      'Content-Type': 'application/json'
     },
   });
 
@@ -235,7 +227,6 @@ export async function createProductOutcome(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
     body: JSON.stringify(request),
   });
@@ -265,7 +256,6 @@ export async function updateProductOutcome(
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
     body: JSON.stringify(request),
   });
@@ -285,8 +275,7 @@ export async function deleteProductOutcome(
   const response = await fetch(`/api/workspaces/${workspaceId}/outcomes/${outcomeId}`, {
     method: 'DELETE',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
+      'Content-Type': 'application/json'
     },
   });
 
@@ -312,8 +301,7 @@ export async function reorderProductOutcomes(
   const response = await fetch(`/api/workspaces/${workspaceId}/outcomes/reorder`, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(request),
   });
@@ -354,8 +342,7 @@ export async function getRoadmapThemes(
   const response = await fetch(`/api/workspaces/${workspaceId}/themes`, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
+      'Content-Type': 'application/json'
     },
   });
 
@@ -373,8 +360,7 @@ export async function createRoadmapTheme(
   const response = await fetch(`/api/workspaces/${workspaceId}/themes`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(request),
   });
@@ -404,8 +390,7 @@ export async function updateRoadmapTheme(
   const response = await fetch(`/api/workspaces/${workspaceId}/themes/${themeId}`, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(request),
   });
@@ -425,8 +410,7 @@ export async function deleteRoadmapTheme(
   const response = await fetch(`/api/workspaces/${workspaceId}/themes/${themeId}`, {
     method: 'DELETE',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
+      'Content-Type': 'application/json'
     },
   });
 
@@ -452,8 +436,7 @@ export async function reorderRoadmapThemes(
   const response = await fetch(`/api/workspaces/${workspaceId}/themes/reorder`, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(request),
   });
@@ -472,8 +455,7 @@ export async function getPrioritizedThemes(
   const response = await fetch(`/api/workspaces/${workspaceId}/themes/prioritized`, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
+      'Content-Type': 'application/json'
     },
   });
 
@@ -491,7 +473,6 @@ export async function getUnprioritizedThemes(
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
   });
 
@@ -515,7 +496,6 @@ export async function prioritizeTheme(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
     body: JSON.stringify(request),
   });
@@ -536,7 +516,6 @@ export async function deprioritizeTheme(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
   });
 
@@ -578,7 +557,6 @@ export async function getStrategicInitiative(
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
   });
 
@@ -601,7 +579,6 @@ export async function createStrategicInitiative(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
     body: JSON.stringify(request),
   });
@@ -631,7 +608,6 @@ export async function updateStrategicInitiative(
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${loadAndValidateJWT()}`,
     },
     body: JSON.stringify(request),
   });
