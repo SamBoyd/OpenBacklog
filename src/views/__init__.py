@@ -38,6 +38,9 @@ async def request_logging_dependency(request: Request, db: Session = Depends(get
     else:
         print("No access token found by logging dependency")
 
+    # Commit the read-only transaction to prevent "idle in transaction" state
+    db.commit()
+
 
 # Healthcheck endpoint
 @app.get("/healthcheck", response_class=JSONResponse)

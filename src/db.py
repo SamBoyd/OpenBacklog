@@ -13,8 +13,15 @@ from src.config import settings
 
 logger = logging.getLogger(__name__)  # pragma: no mutate
 
-# Create the sync engine
-engine = create_engine(settings.database_url, echo=False)
+# Create the sync engine with connection pooling
+engine = create_engine(
+    settings.database_url,
+    echo=False,
+    pool_size=10,  # Max persistent connections
+    max_overflow=20,  # Additional burst connections
+    pool_pre_ping=True,  # Verify connections before use
+    pool_recycle=3600,  # Recycle connections after 1 hour
+)
 Base = declarative_base()
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
@@ -23,6 +30,9 @@ def get_db():  # type: ignore
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+        db.rollback()  # Rollback on exception to prevent idle in transaction
+        raise
     finally:
         db.close()
 
