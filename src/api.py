@@ -129,11 +129,54 @@ async def update_display_pref(
     return JSONResponse(content={"message": "Display preference updated successfully"})
 
 
+class WorkspaceCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    icon: Optional[str] = None
+
+
+class WorkspaceResponse(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    icon: Optional[str] = None
+
+
 class WorkspaceUpdate(BaseModel):
     id: str
     name: str
     description: Optional[str] = None
     icon: Optional[str] = None
+
+
+@app.post("/api/workspaces", response_model=WorkspaceResponse)
+async def create_workspace(
+    workspace: WorkspaceCreate,
+    user=Depends(dependency_to_override),
+    session=Depends(get_db),
+) -> WorkspaceResponse:
+    """Create a new workspace with required dependencies.
+
+    This endpoint creates a workspace and automatically creates the required
+    1:1 relationship entities (PrioritizedRoadmap and ProductVision) via
+    the SQLAlchemy event listener.
+    """
+    # Create workspace using controller
+    new_workspace = controller.create_workspace(
+        user=user,
+        name=workspace.name,
+        description=workspace.description,
+        icon=workspace.icon,
+        db=session,
+    )
+
+    # Return workspace data
+    return WorkspaceResponse(
+        id=str(new_workspace.id),
+        name=new_workspace.name,
+        description=new_workspace.description,
+        icon=new_workspace.icon,
+    )
 
 
 @app.post("/api/workspace", response_class=JSONResponse)

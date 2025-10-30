@@ -241,6 +241,37 @@ def confirm_delete_account(user: User, reason: str, db: Session) -> None:
     db.commit()
 
 
+def create_workspace(
+    user: User, name: str, description: str | None, icon: str | None, db: Session
+) -> Workspace:
+    """Create a new workspace with required dependencies.
+
+    The SQLAlchemy event listener will automatically create:
+    - PrioritizedRoadmap (empty prioritized_theme_ids list)
+    - ProductVision (empty vision_text)
+
+    Args:
+        user: The user creating the workspace
+        name: Workspace name (required)
+        description: Workspace description (optional)
+        icon: Workspace icon filename (optional)
+        db: Database session
+
+    Returns:
+        The created Workspace instance with all dependencies
+    """
+    workspace = Workspace(
+        name=name,
+        description=description,
+        icon=icon,
+        user_id=user.id,
+    )
+    db.add(workspace)
+    db.commit()  # Event listener fires here and creates dependencies
+    db.refresh(workspace)
+    return workspace
+
+
 def update_workspace(
     user: User, workspace_update: "WorkspaceUpdate", db: Session
 ) -> Workspace:

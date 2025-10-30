@@ -46,29 +46,41 @@ export async function getAllWorkspaces(): Promise<WorkspaceDto[]> {
 export async function postWorkspace(workspace: Partial<WorkspaceDto>): Promise<WorkspaceDto> {
     return withApiCall(async () => {
         const jsonPayload = workspaceToPayloadJSON(workspace);
-        let response: Partial<WorkspaceDto>[];
 
         try {
-            const res = await getPostgrestClient()
-                .from('workspace')
-                .upsert(jsonPayload)
-                .select();
+            // Use FastAPI endpoint instead of PostgREST
+            // This ensures the SQLAlchemy event listener creates required dependencies
+            const response = await fetch('/api/workspaces', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: jsonPayload.name,
+                    description: jsonPayload.description,
+                    icon: jsonPayload.icon,
+                }),
+            });
 
-            if (res.error) {
-                console.error('Error posting workspace', res);
-                throw new Error(res.error.message);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                console.error('Error creating workspace', errorData);
+                throw new Error(errorData.detail || 'Failed to create workspace');
             }
 
-            response = res.data as Partial<WorkspaceDto>[];
+            const data = await response.json();
+
+            // Validate response data
+            const parsedData = WorkspaceDtoSchema.safeParse(data);
+            if (!parsedData.success) {
+                console.error('Error parsing workspace response', parsedData.error);
+                throw new Error('Invalid workspace data returned');
+            }
+
+            return workspaceFromData(parsedData.data);
         } catch (error) {
-            throw new Error('Failed to create workspace');
+            console.error('Failed to create workspace', error);
+            throw error;
         }
-
-        // Check that we have a response and that it's not an empty array
-        if (!response || response.length === 0) {
-            throw new Error('No workspace created');
-        }
-
-        return workspaceFromData(response[0]);
     });
 }
