@@ -324,11 +324,8 @@ def product_vision(session: Session, user: User, workspace: Workspace) -> Genera
     """Creates a test product vision for use in tests."""
     from src.strategic_planning.aggregates.product_vision import ProductVision
 
-    vision = ProductVision(
-        workspace_id=workspace.id,
-        user_id=user.id,
-        vision_text="Build the best product for developers",
-    )
+    vision: ProductVision = workspace.vision
+    vision.vision_text = ("Build the best product for developers",)
     session.add(vision)
     session.commit()
     session.refresh(vision)

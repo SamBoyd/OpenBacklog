@@ -102,38 +102,6 @@ class ProductVision(Base):
                 f"Vision text must be 1000 characters or less (got {len(vision_text)})"
             )
 
-    def draft_vision(self, vision_text: str, publisher: "EventPublisher") -> None:
-        """Draft a new product vision for the workspace.
-
-        This method creates or updates the vision text and emits a
-        VisionDraftCreated domain event.
-
-        Args:
-            vision_text: The product vision text (1-1000 characters)
-            publisher: EventPublisher instance for emitting domain events
-
-        Raises:
-            DomainException: If vision_text violates character limits
-
-        Example:
-            >>> vision = ProductVision(workspace_id=workspace.id)
-            >>> vision.draft_vision("Build the best product", publisher)
-        """
-        self._validate_vision_text(vision_text)
-        self.vision_text = vision_text
-        self.updated_at = datetime.utcnow()
-
-        event = DomainEvent(
-            user_id=uuid.uuid4(),
-            event_type="VisionDraftCreated",
-            aggregate_id=self.id,
-            payload={
-                "workspace_id": str(self.workspace_id),
-                "vision_text": vision_text,
-            },
-        )
-        publisher.publish(event, workspace_id=str(self.workspace_id))
-
     def refine_vision(self, refined_text: str, publisher: "EventPublisher") -> None:
         """Refine the existing product vision with updated text.
 

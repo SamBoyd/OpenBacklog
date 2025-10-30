@@ -38,35 +38,6 @@ class PrioritizationService:
         self.session = session
         self.publisher = publisher
 
-    def _get_or_create_prioritized_roadmap(
-        self, workspace_id: uuid.UUID, user_id: uuid.UUID
-    ) -> PrioritizedRoadmap:
-        """Get existing or create new PrioritizedRoadmap for workspace.
-
-        Args:
-            workspace_id: UUID of the workspace
-            user_id: UUID of the user
-
-        Returns:
-            PrioritizedRoadmap instance
-        """
-        roadmap = (
-            self.session.query(PrioritizedRoadmap)
-            .filter_by(workspace_id=workspace_id)
-            .first()
-        )
-
-        if not roadmap:
-            roadmap = PrioritizedRoadmap(
-                workspace_id=workspace_id,
-                user_id=user_id,
-                prioritized_theme_ids=[],
-            )
-            self.session.add(roadmap)
-            self.session.flush()
-
-        return roadmap
-
     def _validate_theme_exists(
         self, theme_id: uuid.UUID, workspace_id: uuid.UUID
     ) -> RoadmapTheme:
@@ -123,7 +94,7 @@ class PrioritizationService:
         self._validate_theme_exists(theme_id, workspace_id)
 
         # Get or create prioritized roadmap
-        roadmap = self._get_or_create_prioritized_roadmap(workspace_id, user_id)
+        roadmap = self.get_prioritized_roadmap(workspace_id)
 
         # Add theme to priority list
         roadmap.add_theme_to_priority(theme_id, position, self.publisher)
@@ -214,27 +185,20 @@ class PrioritizationService:
 
         return roadmap
 
-    def get_prioritized_roadmap(
-        self, workspace_id: uuid.UUID
-    ) -> Optional[PrioritizedRoadmap]:
-        """Get prioritized roadmap for workspace.
+    def get_prioritized_roadmap(self, workspace_id: uuid.UUID) -> PrioritizedRoadmap:
+        """Get prioritized roadmap for workspace (read-only, does not create).
 
         Args:
             workspace_id: UUID of the workspace
 
         Returns:
-            PrioritizedRoadmap instance if exists, None otherwise
-
-        Example:
-            >>> roadmap = service.get_prioritized_roadmap(workspace.id)
-            >>> if roadmap:
-            ...     print(roadmap.get_prioritized_themes())
+            PrioritizedRoadmap instance
         """
-        workspace = self.session.query(Workspace).filter_by(id=workspace_id).first()
-        if not workspace:
-            return None
-
-        return self._get_or_create_prioritized_roadmap(workspace_id, workspace.user_id)
+        return (
+            self.session.query(PrioritizedRoadmap)
+            .filter_by(workspace_id=workspace_id)
+            .first()
+        )
 
     def get_prioritized_themes_with_details(
         self, workspace_id: uuid.UUID

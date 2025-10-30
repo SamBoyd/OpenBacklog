@@ -350,6 +350,52 @@ class Workspace(PublicBase, Base):
         }
 
 
+@event.listens_for(Workspace, "after_insert")
+def create_workspace_dependencies(mapper, connection, target):
+    """Automatically create required 1:1 entities when a Workspace is created.
+
+    Creates:
+    - PrioritizedRoadmap (empty prioritized_theme_ids list)
+    - ProductVision (empty vision_text)
+
+    This ensures that workspaces always have these required entities,
+    preventing race conditions in GET endpoints that expect them to exist.
+    """
+    from sqlalchemy import Table
+
+    # Import models to get table definitions
+    from src.roadmap_intelligence.aggregates.prioritized_roadmap import (
+        PrioritizedRoadmap,
+    )
+    from src.strategic_planning.aggregates.product_vision import ProductVision
+
+    # Create PrioritizedRoadmap
+    prioritized_roadmap_table = PrioritizedRoadmap.__table__
+    connection.execute(
+        prioritized_roadmap_table.insert().values(
+            id=uuid.uuid4(),
+            user_id=target.user_id,
+            workspace_id=target.id,
+            prioritized_theme_ids=[],
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+    )
+
+    # Create ProductVision with empty vision
+    product_vision_table = ProductVision.__table__
+    connection.execute(
+        product_vision_table.insert().values(
+            id=uuid.uuid4(),
+            user_id=target.user_id,
+            workspace_id=target.id,
+            vision_text="",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+    )
+
+
 class DoableBase:
     __abstract__ = True
 

@@ -11,11 +11,6 @@ class TestVisionViews:
         response = test_client_no_user.get(f"/api/workspaces/{workspace.id}/vision")
         assert_that(response.status_code, equal_to(401))
 
-    def test_get_vision_not_found(self, test_client, workspace):
-        """Test getting vision when none exists returns 404."""
-        response = test_client.get(f"/api/workspaces/{workspace.id}/vision")
-        assert_that(response.status_code, equal_to(404))
-
     def test_get_vision_success(self, test_client, workspace, product_vision):
         """Test getting existing vision returns 200."""
         response = test_client.get(f"/api/workspaces/{workspace.id}/vision")

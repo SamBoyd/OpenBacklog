@@ -12,9 +12,7 @@ from src.strategic_planning.models import DomainEvent
 from src.strategic_planning.services.event_publisher import EventPublisher
 
 
-def get_workspace_vision(
-    workspace_id: uuid.UUID, session: Session
-) -> Optional[ProductVision]:
+def get_workspace_vision(workspace_id: uuid.UUID, session: Session) -> ProductVision:
     """Get the product vision for a workspace.
 
     Args:
@@ -22,9 +20,14 @@ def get_workspace_vision(
         session: Database session
 
     Returns:
-        ProductVision if exists, None otherwise
+        ProductVision instance
     """
-    return session.query(ProductVision).filter_by(workspace_id=workspace_id).first()
+    return (
+        session.query(ProductVision)
+        .options(selectinload(ProductVision.workspace))
+        .filter_by(workspace_id=workspace_id)
+        .first()
+    )
 
 
 def upsert_workspace_vision(
@@ -51,34 +54,20 @@ def upsert_workspace_vision(
     vision = get_workspace_vision(workspace_id, session)
     publisher = EventPublisher(session)
 
-    if vision:
-        # Update existing vision
-        vision.refine_vision(vision_text, publisher)
-    else:
-        # Validate vision text first
-        ProductVision._validate_vision_text(vision_text)  # type: ignore[attr-defined]
+    ProductVision._validate_vision_text(vision_text)  # type: ignore[attr-defined]
+    vision.refine_vision(vision_text, publisher)
 
-        # Create new vision with vision_text to satisfy NOT NULL constraint
-        vision = ProductVision(
-            workspace_id=workspace_id, user_id=user_id, vision_text=vision_text
-        )
-        session.add(vision)
-        session.flush()
+    publisher.publish(
+        DomainEvent(
+            user_id=user_id,
+            event_type="VisionRefined",
+            aggregate_id=vision.id,
+            payload={"workspace_id": str(workspace_id), "vision_text": vision_text},
+        ),
+        workspace_id=str(workspace_id),
+    )
 
-        # Emit the domain event
-        publisher.publish(
-            DomainEvent(
-                user_id=user_id,
-                event_type="VisionDraftCreated",
-                aggregate_id=vision.id,
-                payload={
-                    "workspace_id": str(workspace_id),
-                    "vision_text": vision_text,
-                },
-            ),
-            workspace_id=str(workspace_id),
-        )
-
+    session.add(vision)
     session.commit()
     session.refresh(vision)
     return vision
