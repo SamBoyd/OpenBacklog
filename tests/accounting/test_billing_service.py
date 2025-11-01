@@ -360,8 +360,8 @@ class TestBalanceManagement:
     def test_process_full_refund_without_balance(
         self, billing_service: BillingService, user: User, session: Session
     ):
-        """Test full refund without usage balance."""
-        # Setup - user has no balance
+        """Test full refund without usage balance and already cancelled subscription."""
+        # Setup - user has no balance and subscription already cancelled
         user.account_details.balance_cents = 0
         user.account_details.status = UserAccountStatus.NO_SUBSCRIPTION
 
@@ -375,11 +375,11 @@ class TestBalanceManagement:
             # Execute
             result = billing_service.process_full_refund(user, "refund_123")
 
-            # Verify no balance refund was called
+            # Verify no balance refund was called (balance is 0)
             mock_refund_balance.assert_not_called()
 
-            # Verify subscription cancellation was called
-            mock_cancel.assert_called_once_with(user, "refund_123")
+            # Verify subscription cancellation was NOT called (already cancelled)
+            mock_cancel.assert_not_called()
 
             # Verify return value
             assert result == user.account_details
