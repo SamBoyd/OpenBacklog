@@ -192,6 +192,46 @@ class TestSubscriptionLifecycle:
         with pytest.raises(BillingCommandError, match="Reactivate failed"):
             billing_service.reactivate_subscription(user, "reactivate_123")
 
+    def test_skip_subscription_success(
+        self,
+        billing_service: BillingService,
+        user: User,
+        session: Session,
+        mock_refresh: Mock,
+    ):
+        """Test successful subscription skip."""
+        # Execute
+        result = billing_service.skip_subscription(user, "onboarding_complete_123")
+
+        # Verify command handler was called correctly
+        billing_service.command_handler.handle_skip_subscription.assert_called_once_with(
+            user.id, "onboarding_complete_123"
+        )
+
+        # Verify account details were refreshed
+        mock_refresh.assert_called_once_with(user.account_details)
+
+        # Verify return value is the account details object
+        assert result == user.account_details
+
+    def test_skip_subscription_command_error(
+        self, billing_service: BillingService, user: User
+    ):
+        """Test subscription skip with command handler error."""
+        # Setup command handler to raise error
+        billing_service.command_handler.handle_skip_subscription.side_effect = (
+            BillingCommandError("Skip failed")
+        )
+
+        # Execute and verify error is propagated
+        with pytest.raises(BillingCommandError, match="Skip failed"):
+            billing_service.skip_subscription(user, "onboarding_complete_123")
+
+        # Verify command handler was called
+        billing_service.command_handler.handle_skip_subscription.assert_called_once_with(
+            user.id, "onboarding_complete_123"
+        )
+
 
 class TestBalanceManagement:
     """Test balance management methods."""

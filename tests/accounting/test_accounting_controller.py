@@ -781,3 +781,160 @@ class TestHandleSubscriptionCreatedWithSetup:
         # Verify final state is correct
         session.refresh(user.account_details)
         assert user.account_details.stripe_customer_id == "cus_test123"
+
+
+# ---------------------------------------------------------------------------
+# Tests for complete_onboarding
+# ---------------------------------------------------------------------------
+
+
+class _FakeBillingServiceForOnboarding:
+    """Billing service stub for onboarding tests that tracks skip_subscription calls."""
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def skip_subscription(self, user: User, external_id: str):
+        """Update user account details to simulate state transition."""
+        user.account_details.status = UserAccountStatus.NO_SUBSCRIPTION
+        return user.account_details
+
+
+class TestCompleteOnboarding:
+    """Test cases for complete_onboarding function."""
+
+    def test_complete_onboarding_new_state_transitions_to_no_subscription(
+        self, monkeypatch: pytest.MonkeyPatch, session: Session, user: User
+    ):
+        """Test that user in NEW state transitions to NO_SUBSCRIPTION and marks onboarding complete."""
+        # Arrange
+        account_details = user.account_details
+        account_details.status = UserAccountStatus.NEW
+        account_details.onboarding_completed = False
+        session.add(account_details)
+        session.commit()
+
+        mock_billing_service = Mock(spec=_FakeBillingServiceForOnboarding)
+
+        # Make skip_subscription update the status when called
+        def skip_subscription_side_effect(user: User, external_id: str):
+            user.account_details.status = UserAccountStatus.NO_SUBSCRIPTION
+            return user.account_details
+
+        mock_billing_service.skip_subscription.side_effect = (
+            skip_subscription_side_effect
+        )
+        monkeypatch.setattr(
+            accounting_controller, "BillingService", lambda db: mock_billing_service  # type: ignore
+        )
+
+        # Act
+        result = accounting_controller.complete_onboarding(user, session)
+
+        # Assert
+        assert isinstance(result, UserAccountDetails)
+        assert result.onboarding_completed is True
+        mock_billing_service.skip_subscription.assert_called_once_with(
+            user, f"onboarding_{user.id}"
+        )
+
+        # Verify database state
+        session.refresh(account_details)
+        assert account_details.onboarding_completed is True
+        assert account_details.status == UserAccountStatus.NO_SUBSCRIPTION
+
+    def test_complete_onboarding_no_subscription_state_idempotent(
+        self, monkeypatch: pytest.MonkeyPatch, session: Session, user: User
+    ):
+        """Test that user already in NO_SUBSCRIPTION state doesn't call skip_subscription (idempotent)."""
+        # Arrange
+        account_details = user.account_details
+        account_details.status = UserAccountStatus.NO_SUBSCRIPTION
+        account_details.onboarding_completed = False
+        session.add(account_details)
+        session.commit()
+
+        mock_billing_service = Mock(spec=_FakeBillingServiceForOnboarding)
+        mock_billing_service.skip_subscription.return_value = account_details
+        monkeypatch.setattr(
+            accounting_controller, "BillingService", lambda db: mock_billing_service  # type: ignore
+        )
+
+        # Act
+        result = accounting_controller.complete_onboarding(user, session)
+
+        # Assert
+        assert isinstance(result, UserAccountDetails)
+        assert result.onboarding_completed is True
+        mock_billing_service.skip_subscription.assert_not_called()
+
+        # Verify database state
+        session.refresh(account_details)
+        assert account_details.onboarding_completed is True
+        assert account_details.status == UserAccountStatus.NO_SUBSCRIPTION
+
+    def test_complete_onboarding_active_subscription_state_idempotent(
+        self, monkeypatch: pytest.MonkeyPatch, session: Session, user: User
+    ):
+        """Test that user in ACTIVE_SUBSCRIPTION state doesn't call skip_subscription (idempotent)."""
+        # Arrange
+        account_details = user.account_details
+        account_details.status = UserAccountStatus.ACTIVE_SUBSCRIPTION
+        account_details.onboarding_completed = False
+        session.add(account_details)
+        session.commit()
+
+        mock_billing_service = Mock(spec=_FakeBillingServiceForOnboarding)
+        mock_billing_service.skip_subscription.return_value = account_details
+        monkeypatch.setattr(
+            accounting_controller, "BillingService", lambda db: mock_billing_service  # type: ignore
+        )
+
+        # Act
+        result = accounting_controller.complete_onboarding(user, session)
+
+        # Assert
+        assert isinstance(result, UserAccountDetails)
+        assert result.onboarding_completed is True
+        mock_billing_service.skip_subscription.assert_not_called()
+
+        # Verify database state
+        session.refresh(account_details)
+        assert account_details.onboarding_completed is True
+        assert account_details.status == UserAccountStatus.ACTIVE_SUBSCRIPTION
+
+    def test_complete_onboarding_already_completed_idempotent(
+        self, monkeypatch: pytest.MonkeyPatch, session: Session, user: User
+    ):
+        """Test that calling complete_onboarding multiple times is idempotent."""
+        # Arrange
+        account_details = user.account_details
+        account_details.status = UserAccountStatus.NEW
+        account_details.onboarding_completed = False
+        session.add(account_details)
+        session.commit()
+
+        mock_billing_service = Mock(spec=_FakeBillingServiceForOnboarding)
+        mock_billing_service.skip_subscription.return_value = account_details
+        monkeypatch.setattr(
+            accounting_controller, "BillingService", lambda db: mock_billing_service  # type: ignore
+        )
+
+        # Act - call twice
+        result1 = accounting_controller.complete_onboarding(user, session)
+        # After first call, status should be NO_SUBSCRIPTION
+        account_details.status = UserAccountStatus.NO_SUBSCRIPTION
+        session.commit()
+        result2 = accounting_controller.complete_onboarding(user, session)
+
+        # Assert
+        assert result1.onboarding_completed is True
+        assert result2.onboarding_completed is True
+        # skip_subscription should only be called once (on first call)
+        mock_billing_service.skip_subscription.assert_called_once_with(
+            user, f"onboarding_{user.id}"
+        )
+
+        # Verify database state
+        session.refresh(account_details)
+        assert account_details.onboarding_completed is True
