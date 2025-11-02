@@ -192,6 +192,46 @@ class TestSubscriptionLifecycle:
         with pytest.raises(BillingCommandError, match="Reactivate failed"):
             billing_service.reactivate_subscription(user, "reactivate_123")
 
+    def test_skip_subscription_success(
+        self,
+        billing_service: BillingService,
+        user: User,
+        session: Session,
+        mock_refresh: Mock,
+    ):
+        """Test successful subscription skip."""
+        # Execute
+        result = billing_service.skip_subscription(user, "onboarding_complete_123")
+
+        # Verify command handler was called correctly
+        billing_service.command_handler.handle_skip_subscription.assert_called_once_with(
+            user.id, "onboarding_complete_123"
+        )
+
+        # Verify account details were refreshed
+        mock_refresh.assert_called_once_with(user.account_details)
+
+        # Verify return value is the account details object
+        assert result == user.account_details
+
+    def test_skip_subscription_command_error(
+        self, billing_service: BillingService, user: User
+    ):
+        """Test subscription skip with command handler error."""
+        # Setup command handler to raise error
+        billing_service.command_handler.handle_skip_subscription.side_effect = (
+            BillingCommandError("Skip failed")
+        )
+
+        # Execute and verify error is propagated
+        with pytest.raises(BillingCommandError, match="Skip failed"):
+            billing_service.skip_subscription(user, "onboarding_complete_123")
+
+        # Verify command handler was called
+        billing_service.command_handler.handle_skip_subscription.assert_called_once_with(
+            user.id, "onboarding_complete_123"
+        )
+
 
 class TestBalanceManagement:
     """Test balance management methods."""
@@ -320,8 +360,8 @@ class TestBalanceManagement:
     def test_process_full_refund_without_balance(
         self, billing_service: BillingService, user: User, session: Session
     ):
-        """Test full refund without usage balance."""
-        # Setup - user has no balance
+        """Test full refund without usage balance and already cancelled subscription."""
+        # Setup - user has no balance and subscription already cancelled
         user.account_details.balance_cents = 0
         user.account_details.status = UserAccountStatus.NO_SUBSCRIPTION
 
@@ -335,11 +375,11 @@ class TestBalanceManagement:
             # Execute
             result = billing_service.process_full_refund(user, "refund_123")
 
-            # Verify no balance refund was called
+            # Verify no balance refund was called (balance is 0)
             mock_refund_balance.assert_not_called()
 
-            # Verify subscription cancellation was called
-            mock_cancel.assert_called_once_with(user, "refund_123")
+            # Verify subscription cancellation was NOT called (already cancelled)
+            mock_cancel.assert_not_called()
 
             # Verify return value
             assert result == user.account_details

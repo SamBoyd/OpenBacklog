@@ -1,7 +1,11 @@
-import React from 'react';
-import { MdSubscriptions, MdCheckCircle, MdInfo, MdWarning } from 'react-icons/md';
+import React, { useEffect } from 'react';
+import { MdCheckCircle, MdInfo, MdClose } from 'react-icons/md';
 import { useNavigate } from 'react-router';
 import { UserAccountStatus } from '#constants/userAccountStatus';
+import {
+    trackFreeUserSubscriptionPromptViewed,
+    trackFreeUserSubscriptionCTAClicked,
+} from '#services/tracking/onboarding';
 
 /**
  * Subscription required view for users who need to subscribe or reactivate
@@ -17,17 +21,24 @@ const SubscriptionRequiredView: React.FC<{
     const isClosedAccount = subscriptionStatus === UserAccountStatus.CLOSED;
     const isNoSubscription = subscriptionStatus === UserAccountStatus.NO_SUBSCRIPTION;
 
+    // Track when subscription prompt is viewed
+    useEffect(() => {
+        trackFreeUserSubscriptionPromptViewed('billing_page', subscriptionStatus);
+    }, [subscriptionStatus]);
+
     /**
      * Handle navigation to subscription checkout
      */
     const handleSubscribe = () => {
+        const action = isClosedAccount ? 'reactivate_subscription' : 'unlock_ai_features';
+        trackFreeUserSubscriptionCTAClicked('billing_page', action);
         navigate('/workspace/billing/subscription/checkout');
     };
 
     const getTitle = () => {
         if (isClosedAccount) return 'Reactivate Your Account';
-        if (isNoSubscription) return 'Subscription Required';
-        return 'Subscription Required';
+        if (isNoSubscription) return 'Ready to Build Faster?';
+        return 'Ready to Build Faster?';
     };
 
     const getDescription = () => {
@@ -35,70 +46,132 @@ const SubscriptionRequiredView: React.FC<{
             return 'Your account has been closed. Reactivate your subscription to continue using AI features and access your workspace.';
         }
         if (isNoSubscription) {
-            return 'A monthly subscription is required to access the full platform. Subscribe now to unlock all AI features and workspace functionality.';
+            return "You've been using OpenBacklog to manage your tasks—nice work. Now unlock AI features to ship even faster. Get intelligent task breakdowns, automated planning, and smart suggestions that keep you in flow.";
         }
-        return 'A subscription is required to access this feature.';
+        return "You've been using OpenBacklog to manage your tasks—nice work. Now unlock AI features to ship even faster.";
     };
 
     const getButtonText = () => {
-        if (isClosedAccount) return 'Reactivate Subscription';
-        return 'Subscribe Now';
+        if (isClosedAccount) return 'Reactivate subscription';
+        return 'Subscribe now';
     };
 
-    const getIcon = () => {
-        if (isClosedAccount) return <MdWarning className="text-2xl" />;
-        return <MdSubscriptions className="text-2xl" />;
-    };
+
 
     return (
-        <div className="min-h-screen bg-background text-foreground p-6 flex flex-col items-center justify-center">
-            <div className="max-w-xl w-full space-y-8">
-                <div className="bg-card border border-border rounded-lg p-8 text-center">
+        <div className="min-h-screen text-foreground py-16 flex flex-col items-center justify-center">
+            <div className="max-w-5xl w-full space-y-16">
+                <div className="text-center">
                     <h1 className="text-2xl font-bold mb-2">{getTitle()}</h1>
-                    <p className="text-muted-foreground mb-4">
-                        {getDescription()}
-                    </p>
-                    <div className="bg-muted rounded-lg p-4 mb-4">
-                        <span className="block text-lg font-semibold mb-1">Monthly Subscription - $7/month</span>
-                        <span className="text-sm text-muted-foreground">
-                            Includes AI credits, full platform access, and premium features
-                        </span>
-                    </div>
-                    <button
-                        onClick={handleSubscribe}
-                        className="mt-6 w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg text-lg font-semibold hover:bg-primary/90 transition-colors"
-                    >
-                        {getIcon()}
-                        {getButtonText()}
-                    </button>
-                    <div className="mt-6 text-xs text-muted-foreground">
-                        Cancel anytime. Full refunds available for unused credits.
-                    </div>
+                    <p className="text-muted-foreground">{getDescription()}</p>
                 </div>
 
-                {/* What's Included */}
-                <div className="bg-card border border-border rounded-lg p-6">
-                    <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                        <MdCheckCircle className="text-success" /> What's Included
-                    </h2>
-                    <ul className="space-y-3">
-                        <li className="flex items-center gap-3">
-                            <MdCheckCircle className="text-success" />
-                            <span>$7 worth of AI credits included every month</span>
-                        </li>
-                        <li className="flex items-center gap-3">
-                            <MdCheckCircle className="text-success" />
-                            <span>Full access to all workspace features</span>
-                        </li>
-                        <li className="flex items-center gap-3">
-                            <MdCheckCircle className="text-success" />
-                            <span>Priority support and updates</span>
-                        </li>
-                        <li className="flex items-center gap-3">
-                            <MdCheckCircle className="text-success" />
-                            <span>Additional usage charged to your balance</span>
-                        </li>
-                    </ul>
+                {/* Plans comparison */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    {/* Free Plan */}
+                    <div className="bg-card border border-border rounded-lg">
+                        <div className="flex flex-col items-start justify-between px-6 py-10 bg-gradient-to-r from-primary/10 to-transparent rounded-md">
+                            <h2 className="text-xl font-semibold">Free plan</h2>
+                        </div>
+
+                        <div className=" p-6 flex flex-col space-y-10">
+                            <div className="py-3">
+                                <span className="text-8xl">$0</span>
+                                <span className="text-muted-foreground ml-2">per month</span>
+                            </div>
+
+
+                            <ul className="mt-4 space-y-3 flex-1">
+                                <div className="text-muted-foreground text-sm">Great for getting started</div>
+
+                                <li className="flex items-center gap-3">
+                                    <MdCheckCircle className="text-success" />
+                                    <span>Unlimited projects and tasks</span>
+                                </li>
+                                <li className="flex items-center gap-3">
+                                    <MdCheckCircle className="text-success" />
+                                    <span>Manual planning tools and checklists</span>
+                                </li>
+                                <li className="flex items-center gap-3">
+                                    <MdCheckCircle className="text-success" />
+                                    <span>Email support</span>
+                                </li>
+                                <li className="flex items-center gap-3 text-muted-foreground">
+                                    <MdClose />
+                                    <span>No AI task breakdowns or smart suggestions</span>
+                                </li>
+                                <li className="flex items-center gap-3 text-muted-foreground">
+                                    <MdClose />
+                                    <span>No included AI credits</span>
+                                </li>
+                            </ul>
+
+                            <div className="w-full flex flex-col items-center">
+
+                                <button
+                                    onClick={() => {}}
+                                    className="mt-6 mb-6 w-full px-6 h-10 border border-border rounded-lg font-medium cursor-default"
+                                >
+                                    Current plan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Paid Plan */}
+                    <div className="bg-card border border-border rounded-lg ring-1 ring-primary/20">
+                        <div className="flex flex-col items-start justify-between px-6 py-10 bg-gradient-to-r from-primary/20 to-transparent rounded-md">
+                            <h2 className="text-xl font-semibold">Monthly Subscription</h2>
+                        </div>
+
+                        <div className="p-6 flex flex-col space-y-10">
+
+                            <div className="py-3">
+                                <span className="text-8xl">$7</span>
+                                <span className="text-muted-foreground ml-2">per month</span>
+                            </div>
+
+                            <ul className="mt-4 space-y-3 flex-1">
+                                <div className="text-muted-foreground text-sm">Unlock AI features</div>
+                                <li className="flex items-center gap-3">
+                                    <MdCheckCircle className="text-success" />
+                                    <span>AI-powered task planning and breakdowns</span>
+                                </li>
+                                <li className="flex items-center gap-3">
+                                    <MdCheckCircle className="text-success" />
+                                    <span>Intelligent suggestions that keep you in flow</span>
+                                </li>
+                                <li className="flex items-center gap-3">
+                                    <MdCheckCircle className="text-success" />
+                                    <span>Best-practice guidance while you build</span>
+                                </li>
+                                <li className="flex items-center gap-3">
+                                    <MdCheckCircle className="text-success" />
+                                    <span>$7 in AI credits included monthly — top up anytime</span>
+                                </li>
+                                <li className="flex items-center gap-3">
+                                    <MdCheckCircle className="text-success" />
+                                    <span>Priority support</span>
+                                </li>
+                            </ul>
+
+                            <div className="w-full flex flex-col items-center">
+                                <button
+                                    onClick={handleSubscribe}
+                                    className={
+                                        "mt-6 w-full flex items-center justify-center gap-2 px-6 h-10 bg-primary " +
+                                        "text-primary-foreground rounded-lg text-md font-semibold hover:bg-primary/90 transition-colors"
+                                    }
+                                >
+                                    {getButtonText()}
+                                </button>
+                                <div className="h-3 mt-3 text-xs text-muted-foreground text-center">
+                                    Cancel anytime. Full refunds for unused balance.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Additional Information */}

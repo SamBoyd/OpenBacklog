@@ -218,6 +218,69 @@ class TestSubscriptionLifecycle:
         fsm_new.apply_events(events)
         assert_that(fsm_new.state, equal_to(UserAccountStatus.ACTIVE_SUBSCRIPTION))
 
+    def test_skip_subscription_from_new(self, fsm_new: BillingStateMachine):
+        """Test skipping subscription from NEW state generates correct events."""
+        # Generate skip subscription events
+        events = fsm_new.skip_subscription()
+
+        # Verify correct events are generated
+        assert_that(len(events), equal_to(1))
+        assert_that(events[0], instance_of(StateTransitionEvent))
+
+        # Verify state transition event details
+        transition_event: StateTransitionEvent = events[0]
+        assert_that(transition_event.from_state, equal_to(UserAccountStatus.NEW))
+        assert_that(
+            transition_event.to_state, equal_to(UserAccountStatus.NO_SUBSCRIPTION)
+        )
+        assert_that(transition_event.reason, equal_to("SKIP_SUBSCRIPTION"))
+
+        # Apply events and verify final state
+        fsm_new.apply_events(events)
+        assert_that(fsm_new.state, equal_to(UserAccountStatus.NO_SUBSCRIPTION))
+
+    def test_skip_subscription_with_custom_external_id(
+        self, fsm_new: BillingStateMachine
+    ):
+        """Test skip subscription accepts custom external_id."""
+        # Generate events with custom external_id
+        events = fsm_new.skip_subscription(external_id="custom_onboarding_123")
+
+        # Verify event was generated
+        assert_that(len(events), equal_to(1))
+        assert_that(events[0], instance_of(StateTransitionEvent))
+
+    def test_skip_subscription_invalid_states(
+        self,
+        fsm_active_subscription: BillingStateMachine,
+        fsm_no_subscription: BillingStateMachine,
+        fsm_metered_billing: BillingStateMachine,
+        fsm_suspended: BillingStateMachine,
+        fsm_closed: BillingStateMachine,
+    ):
+        """Test skip subscription fails from invalid states."""
+        # Test with FSM fixtures in invalid states
+        assert_that(
+            calling(fsm_active_subscription.skip_subscription),
+            raises(BillingFSMInvalidTransitionError),
+        )
+        assert_that(
+            calling(fsm_no_subscription.skip_subscription),
+            raises(BillingFSMInvalidTransitionError),
+        )
+        assert_that(
+            calling(fsm_metered_billing.skip_subscription),
+            raises(BillingFSMInvalidTransitionError),
+        )
+        assert_that(
+            calling(fsm_suspended.skip_subscription),
+            raises(BillingFSMInvalidTransitionError),
+        )
+        assert_that(
+            calling(fsm_closed.skip_subscription),
+            raises(BillingFSMInvalidTransitionError),
+        )
+
     def test_signup_subscription_from_no_subscription(
         self, fsm_no_subscription: BillingStateMachine
     ):

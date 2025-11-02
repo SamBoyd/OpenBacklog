@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -13,7 +13,12 @@ from src.accounting.billing_state_machine import (
     UsageImpactSimulation,
 )
 from src.accounting.event_store import EventStore
-from src.accounting.models import PendingTopup, PendingTopupStatus, UserAccountDetails
+from src.accounting.models import (
+    PendingTopup,
+    PendingTopupStatus,
+    UserAccountDetails,
+    UserAccountStatus,
+)
 from src.models import User
 
 logger = logging.getLogger(__name__)
@@ -81,6 +86,23 @@ class BillingService:
             external_id: External reference ID (e.g., cancellation reason)
         """
         self.command_handler.handle_cancel_subscription(user.id, external_id)
+
+        # Return updated account details
+        self.db.refresh(user.account_details)
+        return user.account_details
+
+    def skip_subscription(self, user: User, external_id: str) -> UserAccountDetails:
+        """
+        Skip subscription during onboarding, transition NEW → NO_SUBSCRIPTION
+
+        This allows users to complete onboarding and access task management features
+        without signing up for a paid subscription (free tier).
+
+        Args:
+            user: The user skipping subscription
+            external_id: External reference ID (e.g., onboarding completion)
+        """
+        self.command_handler.handle_skip_subscription(user.id, external_id)
 
         # Return updated account details
         self.db.refresh(user.account_details)
@@ -169,11 +191,17 @@ class BillingService:
         """
         account_details = user.account_details
 
-        # Process both subscription and balance refunds
+        # Process balance refund if applicable
         if account_details.balance_cents > 0:
             self._refund_balance(user, account_details.balance_cents, external_id)
 
-        return self.cancel_subscription(user, external_id)
+        # Only cancel subscription if not already cancelled
+        if account_details.status != UserAccountStatus.NO_SUBSCRIPTION:
+            return self.cancel_subscription(user, external_id)
+
+        # Return updated account details without attempting cancellation
+        self.db.refresh(user.account_details)
+        return user.account_details
 
     def process_balance_refund(
         self, user: User, external_id: str

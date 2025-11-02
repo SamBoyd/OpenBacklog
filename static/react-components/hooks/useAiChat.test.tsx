@@ -7,6 +7,7 @@ import { useInitiativesContext } from '#contexts/InitiativesContext';
 import { useUserPreferences } from '#hooks/useUserPreferences';
 import { useBillingUsage } from './useBillingUsage';
 import { AiImprovementJobResult, AiImprovementJobStatus, LENS, TaskDto, InitiativeDto, WorkspaceDto, TaskStatus, ManagedEntityAction, AiJobChatMessage, AgentMode } from '#types';
+import { UserAccountStatus } from '#constants/userAccountStatus';
 
 // Mock dependencies
 vi.mock('#contexts/AiImprovementsContext');
@@ -75,7 +76,7 @@ describe('useAiChat', () => {
         mockMarkJobAsResolved.mockClear();
         mockError = null;
         mockFilterTasksToInitiative = 'init1'; // Default to having a filter
-        
+
         // Mock localStorage
         const localStorageMock = {
             getItem: vi.fn(),
@@ -119,7 +120,7 @@ describe('useAiChat', () => {
             preferences: { filterTasksToInitiative: mockFilterTasksToInitiative },
         });
         mockUseBillingUsage.mockReturnValue({
-            userAccountDetails: { status: 'ACTIVE' },
+            userAccountDetails: { status: UserAccountStatus.ACTIVE_SUBSCRIPTION },
             invalidateUserAccountDetails: vi.fn(),
         });
     });
@@ -140,7 +141,7 @@ describe('useAiChat', () => {
             preferences: { filterTasksToInitiative: mockFilterTasksToInitiative },
         });
         mockUseBillingUsage.mockReturnValue({
-            userAccountDetails: { status: 'ACTIVE' },
+            userAccountDetails: { status: UserAccountStatus.ACTIVE_SUBSCRIPTION },
             invalidateUserAccountDetails: vi.fn(),
         });
         mockUseTasksContext.mockReturnValue({ tasks: mockTasks });

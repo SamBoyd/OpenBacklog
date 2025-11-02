@@ -15,6 +15,8 @@ import { InitiativeDto, InitiativeStatus, EntityType } from '#types';
 import { useAiChat } from '#hooks/useAiChat';
 import { LENS } from '#types';
 import { InitiativesMutationOperations, InitiativeFilters, InitiativeMutationContext } from './types';
+import { SafeStorage } from '#hooks/useUserPreferences';
+import { trackFirstInitiativeCreated } from '#services/tracking/onboarding';
 
 /**
  * Hook for managing all initiative mutation operations
@@ -102,6 +104,15 @@ export function useInitiativesMutations(
       // queryClient.invalidateQueries({ queryKey: ['initiatives'] });
       // queryClient.invalidateQueries({ queryKey: ['initiatives', { status: data.status }] });
       // queryClient.invalidateQueries({ queryKey: ['initiatives', { id: data.id }] });
+
+      // Track first initiative creation for time-to-value metric
+      const hasTrackedFirstInitiative = SafeStorage.safeGet('hasTrackedFirstInitiative', (val): val is boolean => typeof val === 'boolean', false);
+      if (!hasTrackedFirstInitiative) {
+        // Get signup timestamp from user account details cache
+        const onboardingCompletedAt = SafeStorage.safeGet('onboarding_completed_at', (val): val is string => typeof val === 'string', null);
+        trackFirstInitiativeCreated(onboardingCompletedAt || undefined);
+        SafeStorage.safeSet('hasTrackedFirstInitiative', true);
+      }
     },
   });
 

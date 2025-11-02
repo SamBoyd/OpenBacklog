@@ -607,3 +607,169 @@ def test_transcribe_audio_no_api_key(mock_get_api_key, test_client, user):
     assert_that(response.status_code, equal_to(400))
     data = response.json()
     assert_that(data["detail"], contains_string("User has no OpenAI API key"))
+
+
+# Subscription Status Tests
+
+
+def test_ai_improvement_requires_active_subscription(
+    test_client_no_user, user, session
+):
+    """Test that /api/ai-improvement requires active subscription"""
+    from src.accounting.models import UserAccountStatus
+    from src.main import app
+    from src.views import dependency_to_override
+
+    # Set user to NO_SUBSCRIPTION status
+    user.account_details.status = UserAccountStatus.NO_SUBSCRIPTION
+    session.add(user.account_details)
+    session.commit()
+
+    # Override dependency to inject user without subscription
+    app.dependency_overrides[dependency_to_override] = lambda: user
+
+    try:
+        response = test_client_no_user.post(
+            "/api/ai-improvement",
+            json={"lens": Lens.INITIATIVE, "thread_id": "1", "mode": ChatMode.EDIT},
+        )
+
+        assert_that(response.status_code, equal_to(403))
+        data = response.json()
+        assert_that(
+            data["detail"], contains_string("AI features require a subscription")
+        )
+    finally:
+        app.dependency_overrides.pop(dependency_to_override, None)
+
+
+def test_transcribe_requires_active_subscription(test_client_no_user, user, session):
+    """Test that /api/transcribe requires active subscription"""
+    from src.accounting.models import UserAccountStatus
+    from src.main import app
+    from src.views import dependency_to_override
+
+    # Set user to NO_SUBSCRIPTION status
+    user.account_details.status = UserAccountStatus.NO_SUBSCRIPTION
+    session.add(user.account_details)
+    session.commit()
+
+    # Override dependency to inject user without subscription
+    app.dependency_overrides[dependency_to_override] = lambda: user
+
+    try:
+        mock_file_content = b"fake audio content"
+        response = test_client_no_user.post(
+            "/api/transcribe",
+            files={"file": ("test.webm", mock_file_content, "audio/webm")},
+        )
+
+        assert_that(response.status_code, equal_to(403))
+        data = response.json()
+        assert_that(
+            data["detail"], contains_string("AI features require a subscription")
+        )
+    finally:
+        app.dependency_overrides.pop(dependency_to_override, None)
+
+
+def test_text_completion_requires_active_subscription(
+    test_client_no_user, user, session
+):
+    """Test that /api/text-completion requires active subscription"""
+    from src.accounting.models import UserAccountStatus
+    from src.main import app
+    from src.views import dependency_to_override
+
+    # Set user to NO_SUBSCRIPTION status
+    user.account_details.status = UserAccountStatus.NO_SUBSCRIPTION
+    session.add(user.account_details)
+    session.commit()
+
+    # Override dependency to inject user without subscription
+    app.dependency_overrides[dependency_to_override] = lambda: user
+
+    try:
+        response = test_client_no_user.post(
+            "/api/text-completion",
+            json={"text": "This is a partial sentence", "stream": False},
+        )
+
+        assert_that(response.status_code, equal_to(403))
+        data = response.json()
+        assert_that(
+            data["detail"], contains_string("AI features require a subscription")
+        )
+    finally:
+        app.dependency_overrides.pop(dependency_to_override, None)
+
+
+def test_rewrite_requires_active_subscription(test_client_no_user, user, session):
+    """Test that /api/rewrite requires active subscription"""
+    from src.accounting.models import UserAccountStatus
+    from src.main import app
+    from src.views import dependency_to_override
+
+    # Set user to NO_SUBSCRIPTION status
+    user.account_details.status = UserAccountStatus.NO_SUBSCRIPTION
+    session.add(user.account_details)
+    session.commit()
+
+    # Override dependency to inject user without subscription
+    app.dependency_overrides[dependency_to_override] = lambda: user
+
+    try:
+        response = test_client_no_user.post(
+            "/api/rewrite",
+            json={"text": "Some text", "existing_description": "Context"},
+        )
+
+        assert_that(response.status_code, equal_to(403))
+        data = response.json()
+        assert_that(
+            data["detail"], contains_string("AI features require a subscription")
+        )
+    finally:
+        app.dependency_overrides.pop(dependency_to_override, None)
+
+
+def test_ai_improvement_allows_metered_billing(test_client_no_user, user, session):
+    """Test that /api/ai-improvement allows METERED_BILLING status"""
+    from unittest.mock import patch
+
+    from src.accounting.models import UserAccountStatus
+    from src.main import app
+    from src.views import dependency_to_override
+
+    # Set user to METERED_BILLING status
+    user.account_details.status = UserAccountStatus.METERED_BILLING
+    session.add(user.account_details)
+    session.commit()
+
+    # Override dependency to inject user with metered billing
+    app.dependency_overrides[dependency_to_override] = lambda: user
+
+    try:
+        with patch("src.ai.ai_views.ai_controller.create_ai_improvement_job") as mock:
+            mock_job = AIImprovementJob()
+            mock_job.id = uuid.uuid4()
+            mock_job.user = user
+            mock_job.status = JobStatus.PENDING
+            mock_job.lens = Lens.INITIATIVE
+            mock_job.input_data = []
+            mock_job.thread_id = "1"
+            mock.return_value = mock_job
+
+            response = test_client_no_user.post(
+                "/api/ai-improvement",
+                json={
+                    "lens": Lens.INITIATIVE,
+                    "thread_id": "1",
+                    "mode": ChatMode.EDIT,
+                },
+            )
+
+            # Should succeed (200) since METERED_BILLING is allowed
+            assert_that(response.status_code, equal_to(200))
+    finally:
+        app.dependency_overrides.pop(dependency_to_override, None)

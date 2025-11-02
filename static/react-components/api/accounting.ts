@@ -148,6 +148,14 @@ const BillingDetailsDataSchema = z.object({
 });
 
 /**
+ * Schema for complete onboarding response
+ */
+const CompleteOnboardingResponseSchema = z.object({
+    success: z.boolean(),
+    onboardingCompleted: z.boolean()
+});
+
+/**
  * Schema for billing details response
  */
 const BillingDetailsResponseSchema = z.object({
@@ -215,6 +223,7 @@ export type OpenMeterQueryDataPoint = z.infer<typeof OpenMeterQueryDataPointSche
 export type OpenMeterQueryResponse = z.infer<typeof OpenMeterQueryResponseSchema>;
 export type SessionStatusResponse = z.infer<typeof SessionStatusResponseSchema>;
 export type SubscriptionOnboardingResponse = z.infer<typeof SubscriptionOnboardingResponseSchema>;
+export type CompleteOnboardingResponse = z.infer<typeof CompleteOnboardingResponseSchema>;
 
 /**
  * Error class for accounting API related errors
@@ -666,7 +675,7 @@ export const queryOpenMeterData = async (
 
 /**
  * Check the status of a Stripe checkout session
- * 
+ *
  * @param sessionId - The Stripe session ID to check
  * @returns {Promise<SessionStatusResponse>} The session status
  * @throws {AccountingApiError} On API errors
@@ -705,6 +714,48 @@ export const checkSessionStatus = async (sessionId: string): Promise<SessionStat
                 throw error;
             }
             throw new Error(`Error checking session status: ${(error as Error).message}`);
+        }
+    });
+};
+
+/**
+ * Complete onboarding for the current user without requiring a subscription.
+ * Marks the onboarding_completed flag as true, allowing access to task management features.
+ *
+ * @returns {Promise<CompleteOnboardingResponse>} The onboarding completion status
+ * @throws {AccountingApiError} On API errors
+ * @throws {Error} On validation or other errors
+ */
+export const completeOnboarding = async (): Promise<CompleteOnboardingResponse> => {
+    return withApiCall(async () => {
+        try {
+            const response = await fetch('/api/accounting/complete-onboarding', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new AccountingApiError(
+                    `Failed to complete onboarding: ${errorText}`,
+                    response.status
+                );
+            }
+
+            const data = await response.json();
+            const validatedData = CompleteOnboardingResponseSchema.parse(data);
+
+            return validatedData;
+        } catch (error) {
+            if (error instanceof z.ZodError) {
+                throw new Error(`Invalid onboarding response format: ${error.message}`);
+            }
+            if (error instanceof AccountingApiError) {
+                throw error;
+            }
+            throw new Error(`Error completing onboarding: ${(error as Error).message}`);
         }
     });
 };

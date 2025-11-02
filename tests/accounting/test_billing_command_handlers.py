@@ -302,6 +302,105 @@ class TestBillingCommandHandler:
                 command_handler.handle_signup_subscription(user_id, "stripe_sub_123")
 
     # =============================================================================
+    # handle_skip_subscription() Tests
+    # =============================================================================
+
+    def test_handle_skip_subscription_success(
+        self,
+        command_handler: BillingCommandHandler,
+        mock_event_store: Mock,
+        user_id: uuid.UUID,
+    ):
+        """Test successful subscription skip during onboarding."""
+        skip_events = [
+            StateTransitionEvent(
+                event_id=uuid.uuid4(),
+                user_id=user_id,
+                created_at=datetime.now(),
+                from_state=UserAccountStatus.NEW,
+                to_state=UserAccountStatus.NO_SUBSCRIPTION,
+                reason="SKIP_SUBSCRIPTION",
+            ),
+        ]
+
+        with (
+            patch.object(command_handler, "_reconstruct_fsm") as mock_reconstruct,
+            patch.object(command_handler, "_update_account_details") as mock_update,
+        ):
+
+            mock_fsm = Mock()
+            mock_fsm.version = 1
+            mock_fsm.skip_subscription.return_value = skip_events
+            mock_reconstruct.return_value = mock_fsm
+
+            # Execute
+            command_handler.handle_skip_subscription(user_id, "onboarding_123")
+
+            # Verify call sequence
+            mock_reconstruct.assert_called_once_with(user_id)
+            mock_fsm.skip_subscription.assert_called_once_with("onboarding_123")
+            mock_event_store.save_events.assert_called_once_with(
+                user_id, skip_events, 1
+            )
+            mock_update.assert_called_once_with(user_id)
+
+    def test_handle_skip_subscription_default_external_id(
+        self,
+        command_handler: BillingCommandHandler,
+        mock_event_store: Mock,
+        user_id: uuid.UUID,
+    ):
+        """Test subscription skip with default external_id."""
+        skip_events = [
+            StateTransitionEvent(
+                event_id=uuid.uuid4(),
+                user_id=user_id,
+                created_at=datetime.now(),
+                from_state=UserAccountStatus.NEW,
+                to_state=UserAccountStatus.NO_SUBSCRIPTION,
+                reason="SKIP_SUBSCRIPTION",
+            ),
+        ]
+
+        with (
+            patch.object(command_handler, "_reconstruct_fsm") as mock_reconstruct,
+            patch.object(command_handler, "_update_account_details") as mock_update,
+        ):
+
+            mock_fsm = Mock()
+            mock_fsm.version = 1
+            mock_fsm.skip_subscription.return_value = skip_events
+            mock_reconstruct.return_value = mock_fsm
+
+            # Execute with default external_id
+            command_handler.handle_skip_subscription(user_id)
+
+            # Verify call sequence - should use "onboarding" as default
+            mock_reconstruct.assert_called_once_with(user_id)
+            mock_fsm.skip_subscription.assert_called_once_with("onboarding")
+            mock_event_store.save_events.assert_called_once_with(
+                user_id, skip_events, 1
+            )
+            mock_update.assert_called_once_with(user_id)
+
+    def test_handle_skip_subscription_invalid_state(
+        self, command_handler: BillingCommandHandler, user_id: uuid.UUID
+    ):
+        """Test skip subscription from invalid state."""
+        with patch.object(command_handler, "_reconstruct_fsm") as mock_reconstruct:
+            mock_fsm = Mock()
+            mock_fsm.skip_subscription.side_effect = BillingFSMInvalidTransitionError(
+                "Cannot skip subscription from ACTIVE_SUBSCRIPTION state"
+            )
+            mock_reconstruct.return_value = mock_fsm
+
+            with pytest.raises(
+                BillingFSMInvalidTransitionError,
+                match="Cannot skip subscription from ACTIVE_SUBSCRIPTION state",
+            ):
+                command_handler.handle_skip_subscription(user_id, "onboarding_123")
+
+    # =============================================================================
     # handle_cancel_subscription() Tests
     # =============================================================================
 
