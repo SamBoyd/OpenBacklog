@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from src.db import get_db
@@ -69,17 +69,18 @@ class InitiativeGroupRequest(BaseModel):
 
 
 class OrderingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     context_type: ContextType
     context_id: Optional[uuid.UUID]
     entity_type: EntityType
     position: str
 
-    class Config:
-        from_attributes = True
-
 
 class InitiativeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     identifier: str
     title: str
@@ -93,9 +94,6 @@ class InitiativeResponse(BaseModel):
     properties: Dict[str, Any]
     orderings: List[OrderingResponse] = Field(default_factory=list)
     tasks: List[TaskResponse]
-
-    class Config:
-        from_attributes = True
 
 
 def _handle_controller_error(e: Exception) -> HTTPException:
@@ -284,15 +282,8 @@ async def move_initiative_in_group(
 class StrategicInitiativeCreateRequest(BaseModel):
     """Request model for creating strategic initiative context."""
 
-    pillar_id: Optional[uuid.UUID] = Field(default=None)
-    theme_id: Optional[uuid.UUID] = Field(default=None)
-    user_need: Optional[str] = Field(default=None, max_length=1000)
-    connection_to_vision: Optional[str] = Field(default=None, max_length=1000)
-    success_criteria: Optional[str] = Field(default=None, max_length=1000)
-    out_of_scope: Optional[str] = Field(default=None, max_length=1000)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "pillar_id": "123e4567-e89b-12d3-a456-426614174000",
                 "theme_id": "223e4567-e89b-12d3-a456-426614174001",
@@ -302,10 +293,22 @@ class StrategicInitiativeCreateRequest(BaseModel):
                 "out_of_scope": "Team collaboration features",
             }
         }
+    )
+
+    pillar_id: Optional[uuid.UUID] = Field(default=None)
+    theme_id: Optional[uuid.UUID] = Field(default=None)
+    user_need: Optional[str] = Field(default=None, max_length=1000)
+    connection_to_vision: Optional[str] = Field(default=None, max_length=1000)
+    success_criteria: Optional[str] = Field(default=None, max_length=1000)
+    out_of_scope: Optional[str] = Field(default=None, max_length=1000)
 
 
 class StrategicInitiativeResponse(BaseModel):
     """Response model for strategic initiative context."""
+
+    model_config = ConfigDict(
+        from_attributes=True, json_encoders={datetime.datetime: lambda v: v.isoformat()}
+    )
 
     id: uuid.UUID
     initiative_id: uuid.UUID
@@ -318,10 +321,6 @@ class StrategicInitiativeResponse(BaseModel):
     out_of_scope: Optional[str]
     created_at: datetime.datetime
     updated_at: datetime.datetime
-
-    class Config:
-        from_attributes = True
-        json_encoders = {datetime.datetime: lambda v: v.isoformat()}
 
 
 @app.get(
@@ -403,15 +402,8 @@ async def create_initiative_strategic_context(
 class StrategicInitiativeUpdateRequest(BaseModel):
     """Request model for updating strategic initiative context."""
 
-    pillar_id: Optional[uuid.UUID] = Field(default=None)
-    theme_id: Optional[uuid.UUID] = Field(default=None)
-    user_need: Optional[str] = Field(default=None, max_length=1000)
-    connection_to_vision: Optional[str] = Field(default=None, max_length=1000)
-    success_criteria: Optional[str] = Field(default=None, max_length=1000)
-    out_of_scope: Optional[str] = Field(default=None, max_length=1000)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "pillar_id": "123e4567-e89b-12d3-a456-426614174000",
                 "theme_id": "223e4567-e89b-12d3-a456-426614174001",
@@ -421,6 +413,14 @@ class StrategicInitiativeUpdateRequest(BaseModel):
                 "out_of_scope": "Updated out of scope",
             }
         }
+    )
+
+    pillar_id: Optional[uuid.UUID] = Field(default=None)
+    theme_id: Optional[uuid.UUID] = Field(default=None)
+    user_need: Optional[str] = Field(default=None, max_length=1000)
+    connection_to_vision: Optional[str] = Field(default=None, max_length=1000)
+    success_criteria: Optional[str] = Field(default=None, max_length=1000)
+    out_of_scope: Optional[str] = Field(default=None, max_length=1000)
 
 
 @app.put(

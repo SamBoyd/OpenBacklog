@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from src.db import get_db
@@ -22,28 +22,29 @@ logger = logging.getLogger(__name__)
 class VisionUpdateRequest(BaseModel):
     """Request model for creating or updating a vision."""
 
-    vision_text: str = Field(min_length=1, max_length=1000)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "vision_text": "Build the best AI-powered task management tool for solo developers"
             }
         }
+    )
+
+    vision_text: str = Field(min_length=1, max_length=1000)
 
 
 class VisionResponse(BaseModel):
     """Response model for vision."""
+
+    model_config = ConfigDict(
+        from_attributes=True, json_encoders={datetime: lambda v: v.isoformat()}
+    )
 
     id: uuid.UUID
     workspace_id: uuid.UUID
     vision_text: str
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
-        json_encoders = {datetime: lambda v: v.isoformat()}
 
 
 @app.get(
@@ -105,22 +106,27 @@ async def upsert_workspace_vision(
 class PillarCreateRequest(BaseModel):
     """Request model for creating a strategic pillar."""
 
-    name: str = Field(min_length=1, max_length=100)
-    description: Optional[str] = Field(default=None, max_length=1000)
-    anti_strategy: Optional[str] = Field(default=None, max_length=1000)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "Developer Experience",
                 "description": "Make developers love our product",
                 "anti_strategy": "Not enterprise features",
             }
         }
+    )
+
+    name: str = Field(min_length=1, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    anti_strategy: Optional[str] = Field(default=None, max_length=1000)
 
 
 class PillarResponse(BaseModel):
     """Response model for strategic pillar."""
+
+    model_config = ConfigDict(
+        from_attributes=True, json_encoders={datetime: lambda v: v.isoformat()}
+    )
 
     id: uuid.UUID
     workspace_id: uuid.UUID
@@ -131,10 +137,6 @@ class PillarResponse(BaseModel):
     outcome_ids: List[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
-        json_encoders = {datetime: lambda v: v.isoformat()}
 
 
 @app.get(
@@ -215,25 +217,24 @@ async def create_strategic_pillar(
 class PillarOrderItem(BaseModel):
     """Model for a single pillar order update."""
 
-    id: uuid.UUID
-    display_order: int = Field(ge=0, le=4)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
                 "display_order": 2,
             }
         }
+    )
+
+    id: uuid.UUID
+    display_order: int = Field(ge=0, le=4)
 
 
 class PillarReorderRequest(BaseModel):
     """Request model for reordering strategic pillars."""
 
-    pillars: List[PillarOrderItem] = Field(..., min_length=1, max_length=5)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "pillars": [
                     {
@@ -247,6 +248,9 @@ class PillarReorderRequest(BaseModel):
                 ]
             }
         }
+    )
+
+    pillars: List[PillarOrderItem] = Field(..., min_length=1, max_length=5)
 
 
 @app.put(
@@ -298,18 +302,19 @@ async def reorder_strategic_pillars(
 class PillarUpdateRequest(BaseModel):
     """Request model for updating a strategic pillar."""
 
-    name: str = Field(min_length=1, max_length=100)
-    description: Optional[str] = Field(default=None, max_length=1000)
-    anti_strategy: Optional[str] = Field(default=None, max_length=1000)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "Updated Pillar Name",
                 "description": "Updated description",
                 "anti_strategy": "Updated anti-strategy",
             }
         }
+    )
+
+    name: str = Field(min_length=1, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    anti_strategy: Optional[str] = Field(default=None, max_length=1000)
 
 
 @app.put(
@@ -389,14 +394,8 @@ async def delete_strategic_pillar(
 class OutcomeCreateRequest(BaseModel):
     """Request model for creating a product outcome."""
 
-    name: str = Field(min_length=1, max_length=150)
-    description: Optional[str] = Field(default=None, max_length=1500)
-    metrics: Optional[str] = Field(default=None, max_length=1000)
-    time_horizon_months: Optional[int] = Field(default=None, ge=6, le=36)
-    pillar_ids: List[uuid.UUID] = Field(default_factory=list)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "80% of users use AI weekly",
                 "description": "Measure AI adoption as a leading indicator of value",
@@ -405,10 +404,21 @@ class OutcomeCreateRequest(BaseModel):
                 "pillar_ids": ["123e4567-e89b-12d3-a456-426614174000"],
             }
         }
+    )
+
+    name: str = Field(min_length=1, max_length=150)
+    description: Optional[str] = Field(default=None, max_length=1500)
+    metrics: Optional[str] = Field(default=None, max_length=1000)
+    time_horizon_months: Optional[int] = Field(default=None, ge=6, le=36)
+    pillar_ids: List[uuid.UUID] = Field(default_factory=list)
 
 
 class OutcomeResponse(BaseModel):
     """Response model for product outcome."""
+
+    model_config = ConfigDict(
+        from_attributes=True, json_encoders={datetime: lambda v: v.isoformat()}
+    )
 
     id: uuid.UUID
     workspace_id: uuid.UUID
@@ -420,10 +430,6 @@ class OutcomeResponse(BaseModel):
     pillar_ids: List[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
-        json_encoders = {datetime: lambda v: v.isoformat()}
 
 
 @app.get(
@@ -508,25 +514,24 @@ async def create_product_outcome(
 class OutcomeOrderItem(BaseModel):
     """Model for a single outcome order update."""
 
-    id: uuid.UUID
-    display_order: int = Field(ge=0, le=9)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
                 "display_order": 2,
             }
         }
+    )
+
+    id: uuid.UUID
+    display_order: int = Field(ge=0, le=9)
 
 
 class OutcomeReorderRequest(BaseModel):
     """Request model for reordering product outcomes."""
 
-    outcomes: List[OutcomeOrderItem] = Field(..., min_length=1, max_length=10)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "outcomes": [
                     {
@@ -540,6 +545,9 @@ class OutcomeReorderRequest(BaseModel):
                 ]
             }
         }
+    )
+
+    outcomes: List[OutcomeOrderItem] = Field(..., min_length=1, max_length=10)
 
 
 @app.put(
@@ -592,14 +600,8 @@ async def reorder_product_outcomes(
 class OutcomeUpdateRequest(BaseModel):
     """Request model for updating a product outcome."""
 
-    name: str = Field(min_length=1, max_length=150)
-    description: Optional[str] = Field(default=None, max_length=1500)
-    metrics: Optional[str] = Field(default=None, max_length=1000)
-    time_horizon_months: Optional[int] = Field(default=None, ge=6, le=36)
-    pillar_ids: List[uuid.UUID] = Field(default_factory=list)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "Updated outcome name",
                 "description": "Updated description",
@@ -608,6 +610,13 @@ class OutcomeUpdateRequest(BaseModel):
                 "pillar_ids": ["123e4567-e89b-12d3-a456-426614174000"],
             }
         }
+    )
+
+    name: str = Field(min_length=1, max_length=150)
+    description: Optional[str] = Field(default=None, max_length=1500)
+    metrics: Optional[str] = Field(default=None, max_length=1000)
+    time_horizon_months: Optional[int] = Field(default=None, ge=6, le=36)
+    pillar_ids: List[uuid.UUID] = Field(default_factory=list)
 
 
 @app.put(

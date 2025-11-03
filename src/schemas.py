@@ -1,19 +1,18 @@
 import uuid
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     email: EmailStr
     is_active: bool = True
     is_superuser: bool = False
     is_verified: bool = False
     name: Optional[str] = None
-
-    class Config:
-        from_attributes = True
 
 
 class UserCreate(BaseModel):

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from src.db import get_db
@@ -22,15 +22,8 @@ logger = logging.getLogger(__name__)
 class ThemeCreateRequest(BaseModel):
     """Request model for creating a roadmap theme."""
 
-    name: str = Field(min_length=1, max_length=100)
-    problem_statement: str = Field(min_length=1, max_length=1500)
-    hypothesis: Optional[str] = Field(default=None, max_length=1500)
-    indicative_metrics: Optional[str] = Field(default=None, max_length=1000)
-    time_horizon_months: Optional[int] = Field(default=None, ge=0, le=12)
-    outcome_ids: List[uuid.UUID] = Field(default_factory=list)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "First Week Magic",
                 "problem_statement": "Users fail to integrate in first week",
@@ -40,10 +33,22 @@ class ThemeCreateRequest(BaseModel):
                 "outcome_ids": ["123e4567-e89b-12d3-a456-426614174000"],
             }
         }
+    )
+
+    name: str = Field(min_length=1, max_length=100)
+    problem_statement: str = Field(min_length=1, max_length=1500)
+    hypothesis: Optional[str] = Field(default=None, max_length=1500)
+    indicative_metrics: Optional[str] = Field(default=None, max_length=1000)
+    time_horizon_months: Optional[int] = Field(default=None, ge=0, le=12)
+    outcome_ids: List[uuid.UUID] = Field(default_factory=list)
 
 
 class ThemeResponse(BaseModel):
     """Response model for roadmap theme."""
+
+    model_config = ConfigDict(
+        from_attributes=True, json_encoders={datetime: lambda v: v.isoformat()}
+    )
 
     id: uuid.UUID
     workspace_id: uuid.UUID
@@ -55,10 +60,6 @@ class ThemeResponse(BaseModel):
     outcome_ids: List[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
-        json_encoders = {datetime: lambda v: v.isoformat()}
 
 
 @app.get(
@@ -142,25 +143,24 @@ async def create_roadmap_theme(
 class ThemeOrderItem(BaseModel):
     """Model for a single theme order update."""
 
-    id: uuid.UUID
-    display_order: int = Field(ge=0, le=4)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "123e4567-e89b-12d3-a456-426614174000",
                 "display_order": 2,
             }
         }
+    )
+
+    id: uuid.UUID
+    display_order: int = Field(ge=0, le=4)
 
 
 class ThemeReorderRequest(BaseModel):
     """Request model for reordering roadmap themes."""
 
-    themes: List[ThemeOrderItem] = Field(..., min_length=1, max_length=5)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "themes": [
                     {
@@ -174,6 +174,9 @@ class ThemeReorderRequest(BaseModel):
                 ]
             }
         }
+    )
+
+    themes: List[ThemeOrderItem] = Field(..., min_length=1, max_length=5)
 
 
 @app.put(
@@ -230,15 +233,8 @@ async def reorder_roadmap_themes(
 class ThemeUpdateRequest(BaseModel):
     """Request model for updating a roadmap theme."""
 
-    name: str = Field(min_length=1, max_length=100)
-    problem_statement: str = Field(min_length=1, max_length=1500)
-    hypothesis: Optional[str] = Field(default=None, max_length=1500)
-    indicative_metrics: Optional[str] = Field(default=None, max_length=1000)
-    time_horizon_months: Optional[int] = Field(default=None, ge=0, le=12)
-    outcome_ids: List[uuid.UUID] = Field(default_factory=list)
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "Updated theme name",
                 "problem_statement": "Updated problem statement",
@@ -248,6 +244,14 @@ class ThemeUpdateRequest(BaseModel):
                 "outcome_ids": ["123e4567-e89b-12d3-a456-426614174000"],
             }
         }
+    )
+
+    name: str = Field(min_length=1, max_length=100)
+    problem_statement: str = Field(min_length=1, max_length=1500)
+    hypothesis: Optional[str] = Field(default=None, max_length=1500)
+    indicative_metrics: Optional[str] = Field(default=None, max_length=1000)
+    time_horizon_months: Optional[int] = Field(default=None, ge=0, le=12)
+    outcome_ids: List[uuid.UUID] = Field(default_factory=list)
 
 
 @app.put(
@@ -405,14 +409,15 @@ async def get_unprioritized_themes(
 class ThemePrioritizeRequest(BaseModel):
     """Request model for prioritizing a theme."""
 
-    position: int = Field(ge=0, description="Position in the priority list (0-indexed)")
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "position": 0,
             }
         }
+    )
+
+    position: int = Field(ge=0, description="Position in the priority list (0-indexed)")
 
 
 @app.post(

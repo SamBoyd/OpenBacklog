@@ -105,41 +105,37 @@ async def github_app_uninstall(
 
 # Response models for file search string API
 class FileSearchStringResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     repository_full_name: str
     file_search_string: str
     updated_at: datetime
     success: bool
 
-    class Config:
-        from_attributes = True
-
 
 class RepositoryFileData(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     repository_full_name: str
     file_search_string: str
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class AllFileSearchStringsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     repositories: List[RepositoryFileData]
     total_repositories: int
     success: bool
 
-    class Config:
-        from_attributes = True
-
 
 class RepositoryNamesResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     repository_names: List[str]
     repository_timestamps: Dict[str, str]  # repo_name -> ISO timestamp string
     total_repositories: int
     success: bool
-
-    class Config:
-        from_attributes = True
 
 
 @app.get("/api/github/file-search-string", response_class=JSONResponse)

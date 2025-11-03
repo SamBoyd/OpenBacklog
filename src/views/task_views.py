@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from src.db import get_db
@@ -60,17 +60,18 @@ class TaskStatusMoveRequest(BaseModel):
 
 
 class OrderingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     context_type: ContextType
     context_id: Optional[uuid.UUID]
     entity_type: EntityType
     position: str
 
-    class Config:
-        from_attributes = True
-
 
 class ChecklistItemResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     title: str
     is_complete: bool
@@ -78,11 +79,10 @@ class ChecklistItemResponse(BaseModel):
     task_id: uuid.UUID
     user_id: uuid.UUID
 
-    class Config:
-        from_attributes = True
-
 
 class TaskResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: uuid.UUID
     identifier: str
     title: str
@@ -96,9 +96,6 @@ class TaskResponse(BaseModel):
     initiative_id: uuid.UUID
     checklist: List[ChecklistItemResponse] = Field(default_factory=list)
     orderings: List[OrderingResponse] = Field(default_factory=list)
-
-    class Config:
-        from_attributes = True
 
 
 def _handle_controller_error(e: Exception) -> HTTPException:
