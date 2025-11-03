@@ -40,22 +40,24 @@ export function useInitiativeIdsByTheme(
 
     // Handle 'all-prioritized-themes' special value
     if (selectedThemeIds.includes('all-prioritized-themes')) {
-      initiativeIds = prioritizedThemes.flatMap(
+      const allPrioritizedIds = prioritizedThemes.flatMap(
         theme => theme.strategicInitiatives.map(si => si.initiative_id)
       );
-    } else {
-      // Handle specific theme IDs (excluding special values)
-      const regularThemeIds = selectedThemeIds.filter(
-        id => id !== 'all-prioritized-themes' && id !== 'unthemed'
-      );
+      initiativeIds = [...initiativeIds, ...allPrioritizedIds];
+    }
 
-      if (regularThemeIds.length > 0) {
-        const allThemes = [...prioritizedThemes, ...unprioritizedThemes];
-        const relevantThemes = allThemes.filter(t => regularThemeIds.includes(t.id));
-        initiativeIds = relevantThemes.flatMap(
-          theme => theme.strategicInitiatives.map(si => si.initiative_id)
-        );
-      }
+    // Handle specific theme IDs (excluding special values)
+    const regularThemeIds = selectedThemeIds.filter(
+      id => id !== 'all-prioritized-themes' && id !== 'unthemed'
+    );
+
+    if (regularThemeIds.length > 0) {
+      const allThemes = [...prioritizedThemes, ...unprioritizedThemes];
+      const relevantThemes = allThemes.filter(t => regularThemeIds.includes(t.id));
+      const specificIds = relevantThemes.flatMap(
+        theme => theme.strategicInitiatives.map(si => si.initiative_id)
+      );
+      initiativeIds = [...initiativeIds, ...specificIds];
     }
 
     // Handle 'unthemed' special value
