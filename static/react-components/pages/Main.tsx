@@ -16,7 +16,6 @@ import { InitiativeGroupsProvider } from '#hooks/useInitiativeGroups';
 
 import Initiatives from '#pages/Initiatives';
 import Tasks from '#pages/Tasks';
-import InitiativesBacklog from '#pages/InitiativesBacklog';
 import BillingUsage from '#pages/BillingUsage';
 import SubscriptionCheckoutPage from '#pages/SubscriptionCheckout';
 import SubscriptionCompletePage from '#pages/SubscriptionComplete';
@@ -72,7 +71,6 @@ export const MainContent = () => {
                 <Route path="/workspace/strategy" element={<ProductStrategy />} />
                 <Route path="/workspace/roadmap" element={<Roadmap />} />
                 <Route path="/workspace/context" element={<ContextDocument />} />
-                <Route path="/workspace/backlog" element={<InitiativesBacklog />} />
                 <Route path="/workspace/tasks" element={<Tasks />} />
                 <Route path="/workspace/initiatives/:initiativeId/tasks/:taskId" element={<ViewTask />} />
                 <Route path="/workspace/initiatives/:initiativeId" element={<ViewInitiative />} />
