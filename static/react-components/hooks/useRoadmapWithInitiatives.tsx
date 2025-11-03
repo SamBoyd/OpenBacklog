@@ -44,26 +44,49 @@ export function useRoadmapWithInitiatives(workspaceId: string) {
     })),
   });
 
+  // Create a Map for O(1) theme ID to query index lookups (performance optimization)
+  const themeIndexMap = useMemo(
+    () => new Map(allThemes.map((theme, idx) => [theme.id, idx])),
+    [allThemes]
+  );
+
+  // Extract stable query data to prevent unnecessary memoization recalculations
+  // useQueries returns a new array reference on every render, so we need to derive
+  // stable dependencies based on the actual data content
+  const queryDataSnapshot = useMemo(
+    () => initiativeQueries.map(q => ({
+      data: q.data,
+      isLoading: q.isLoading,
+    })),
+    // Only recalculate when the stringified data changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(initiativeQueries.map(q => ({ data: q.data, isLoading: q.isLoading })))]
+  );
+
   // Enrich themes with their strategic initiatives
-  const enrichThemes = (themes: ThemeDto[]): ThemeWithInitiatives[] => {
-    return themes.map((theme, index) => {
-      const queryResult = initiativeQueries[allThemes.findIndex((t) => t.id === theme.id)];
-      return {
-        ...theme,
-        strategicInitiatives: queryResult?.data || [],
-        isLoadingInitiatives: queryResult?.isLoading || false,
-      };
-    });
-  };
+  const enrichThemes = useMemo(
+    () => (themes: ThemeDto[]): ThemeWithInitiatives[] => {
+      return themes.map((theme) => {
+        const queryIndex = themeIndexMap.get(theme.id);
+        const queryData = queryIndex !== undefined ? queryDataSnapshot[queryIndex] : undefined;
+        return {
+          ...theme,
+          strategicInitiatives: queryData?.data || [],
+          isLoadingInitiatives: queryData?.isLoading || false,
+        };
+      });
+    },
+    [themeIndexMap, queryDataSnapshot]
+  );
 
   const prioritizedThemesWithInitiatives = useMemo(
     () => enrichThemes(prioritizedThemes),
-    [prioritizedThemes, initiativeQueries]
+    [prioritizedThemes, enrichThemes]
   );
 
   const unprioritizedThemesWithInitiatives = useMemo(
     () => enrichThemes(unprioritizedThemes),
-    [unprioritizedThemes, initiativeQueries]
+    [unprioritizedThemes, enrichThemes]
   );
 
   const isLoadingAnyInitiatives = initiativeQueries.some((query) => query.isLoading);
