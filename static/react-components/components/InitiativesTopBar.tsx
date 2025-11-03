@@ -1,11 +1,13 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { MdOutlineViewKanban, MdViewHeadline } from 'react-icons/md';
 
 import StatusFilter from '#components/StatusFilter';
+import ThemeFilter from '#components/ThemeFilter';
 import { Button } from '#components/reusable/Button';
 import Card from '#components/reusable/Card';
 import { InitiativeStatus } from '#types';
+import { ThemeDto } from '#api/productStrategy';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
 import { useContainerWidth } from '#hooks/useContainerWidth';
 
@@ -13,13 +15,14 @@ interface InitiativesTopBarProps {
   showListView: boolean;
   showToggleView?: boolean;
   showFilterView?: boolean;
-  isFilterOpen: boolean;
   selectedStatuses: InitiativeStatus[];
   availableStatuses: InitiativeStatus[];
+  prioritizedThemes: ThemeDto[];
+  unprioritizedThemes: ThemeDto[];
+  selectedThemeIds: string[];
   onToggleView: () => void;
-  onToggleFilter: () => void;
   onStatusToggle: (status: InitiativeStatus) => void;
-  onCloseFilter: () => void;
+  onThemeToggle: (themeId: string) => void;
   onCreateInitiative: () => void;
   withBottomBorder: boolean;
 }
@@ -34,21 +37,30 @@ const InitiativesTopBar: React.FC<InitiativesTopBarProps> = ({
   showListView,
   showToggleView = true,
   showFilterView = true,
-  isFilterOpen,
   selectedStatuses,
   availableStatuses,
+  prioritizedThemes,
+  unprioritizedThemes,
+  selectedThemeIds,
   onToggleView,
-  onToggleFilter,
   onStatusToggle,
-  onCloseFilter,
+  onThemeToggle,
   onCreateInitiative,
   withBottomBorder,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { isNarrow } = useContainerWidth(containerRef, 600);
 
+  // Manage filter visibility state internally
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const [isThemeFilterOpen, setIsThemeFilterOpen] = useState(false);
+
   const handleStatusToggle = (status: string) => {
     onStatusToggle(status as InitiativeStatus);
+  };
+
+  const handleThemeToggle = (themeId: string) => {
+    onThemeToggle(themeId);
   };
 
   return (
@@ -79,31 +91,63 @@ const InitiativesTopBar: React.FC<InitiativesTopBarProps> = ({
         )}
 
         {showFilterView && (
-          <div className="relative">
-            <Button
-              onClick={onToggleFilter}
-              data-testid="filter-button"
-              aria-expanded={isFilterOpen}
-              aria-controls="initiative-filter-popover"
-              title="Filter initiatives"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5"
-                stroke="currentColor" className="size-6">
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
-              </svg> {!isNarrow && 'Filter'}
-            </Button>
-            {isFilterOpen && (
-              <div id="initiative-filter-popover">
-                <StatusFilter
-                  availableStatuses={availableStatuses}
-                  selectedStatuses={selectedStatuses}
-                  onStatusToggle={handleStatusToggle}
-                  onClose={onCloseFilter}
-                />
-              </div>
-            )}
-          </div>
+          <>
+            {/* Theme Filter */}
+            <div className="relative">
+              <Button
+                onClick={() => setIsThemeFilterOpen(!isThemeFilterOpen)}
+                data-testid="theme-filter-button"
+                aria-expanded={isThemeFilterOpen}
+                aria-controls="theme-filter-popover"
+                title="Filter by theme"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5"
+                  stroke="currentColor" className="size-6">
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
+                </svg> {!isNarrow && 'Theme'}
+              </Button>
+              {isThemeFilterOpen && (
+                <div id="theme-filter-popover">
+                  <ThemeFilter
+                    prioritizedThemes={prioritizedThemes}
+                    unprioritizedThemes={unprioritizedThemes}
+                    selectedThemeIds={selectedThemeIds}
+                    onThemeToggle={handleThemeToggle}
+                    onClose={() => setIsThemeFilterOpen(false)}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Status Filter */}
+            <div className="relative">
+              <Button
+                onClick={() => setIsStatusFilterOpen(!isStatusFilterOpen)}
+                data-testid="status-filter-button"
+                aria-expanded={isStatusFilterOpen}
+                aria-controls="status-filter-popover"
+                title="Filter by status"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5"
+                  stroke="currentColor" className="size-6">
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+                </svg> {!isNarrow && 'Status'}
+              </Button>
+              {isStatusFilterOpen && (
+                <div id="status-filter-popover">
+                  <StatusFilter
+                    availableStatuses={availableStatuses}
+                    selectedStatuses={selectedStatuses}
+                    onStatusToggle={handleStatusToggle}
+                    onClose={() => setIsStatusFilterOpen(false)}
+                  />
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         <Button
