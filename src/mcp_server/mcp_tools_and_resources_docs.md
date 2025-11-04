@@ -7,13 +7,14 @@ This document provides a comprehensive overview of all tools and resources avail
 1. [Overview](#overview)
 2. [Authentication](#authentication)
 3. [Core Workflow Tools](#core-workflow-tools)
-4. [Initiative Management Tools](#initiative-management-tools)
-5. [Task Management Tools](#task-management-tools)
-6. [Checklist Management Tools](#checklist-management-tools)
-7. [Strategic Planning Tools](#strategic-planning-tools)
-8. [Roadmap Management Tools](#roadmap-management-tools)
-9. [Utility Tools](#utility-tools)
-10. [Prompts](#prompts)
+4. [Workspace Management Tools](#workspace-management-tools)
+5. [Initiative Management Tools](#initiative-management-tools)
+6. [Task Management Tools](#task-management-tools)
+7. [Checklist Management Tools](#checklist-management-tools)
+8. [Strategic Planning Tools](#strategic-planning-tools)
+9. [Roadmap Management Tools](#roadmap-management-tools)
+10. [Utility Tools](#utility-tools)
+11. [Prompts](#prompts)
 
 ---
 
@@ -86,6 +87,51 @@ Comprehensive workflow object with 11 steps covering:
 - Get explicit user confirmation before updates
 - Update OpenBacklog task BEFORE any coding
 - TodoWrite is for local tracking only
+
+---
+
+## Workspace Management Tools
+
+### `create_workspace(name: str, description: str = "")`
+
+Creates a new workspace for the authenticated user.
+
+A workspace is a container for initiatives, tasks, and strategic planning. Creating a workspace automatically creates required dependencies (ProductVision and PrioritizedRoadmap).
+
+**Parameters:**
+- `name` (required): Workspace name (max 255 characters)
+- `description` (optional): Workspace description
+
+**Returns:**
+```json
+{
+  "status": "success" | "error",
+  "type": "workspace",
+  "message": "Created workspace '{name}'",
+  "workspace": {
+    "id": "<uuid>",
+    "name": "...",
+    "description": "...",
+    "icon": null
+  }
+}
+```
+
+**Use Cases:**
+- First-time user setup (onboarding)
+- Creating additional workspaces for different projects
+- Setting up workspace before creating initiatives
+
+**Important Notes:**
+- This is typically the first step for new users
+- After creating a workspace, use its ID in the `X-Workspace-Id` header for all subsequent requests
+- Creating your first initiative after workspace creation will automatically complete onboarding
+
+**Example Usage:**
+```
+User: "Create a workspace called 'My SaaS Product' in OpenBacklog"
+Claude Code calls: create_workspace(name="My SaaS Product", description="")
+```
 
 ---
 
@@ -431,7 +477,7 @@ Marks a specific checklist item as complete or incomplete.
 ## Strategic Planning Tools
 
 Strategic planning tools follow a **prompt-driven collaboration pattern**:
-**Get Framework ’ Claude + User Collaborate ’ Submit Result**
+**Get Framework ï¿½ Claude + User Collaborate ï¿½ Submit Result**
 
 ### Vision Management
 
@@ -728,7 +774,7 @@ All tools return consistent error responses:
 
 1. **Always start with health_check** to verify connectivity
 2. **Follow the workflow sequence** for best results:
-   - Health check ’ Initiative selection ’ Task selection ’ Prioritization ’ Details ’ Planning ’ Updates ’ Implementation ’ Completion
+   - Health check ï¿½ Initiative selection ï¿½ Task selection ï¿½ Prioritization ï¿½ Details ï¿½ Planning ï¿½ Updates ï¿½ Implementation ï¿½ Completion
 3. **Validate context before updates** using `validate_context()`
 4. **Get user confirmation** before making changes
 5. **Update OpenBacklog first** before local implementation

@@ -17,6 +17,7 @@ from src.mcp_server.slash_commands import *
 # Import all tool modules to register them with the MCP server
 from src.mcp_server.start_openbacklog_workflow import *
 from src.mcp_server.task_tools import *
+from src.mcp_server.workspace_tools import *
 
 if __name__ == "__main__":
     # Run with HTTP transport for hosted MCP server
