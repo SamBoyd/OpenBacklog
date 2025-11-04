@@ -119,12 +119,14 @@ async def create_initiative(
         controller = InitiativeController(db)
         initiative = controller.create_initiative(
             title=request.title,
-            description=request.description,
+            description=request.description or "",
             user_id=user.id,
             workspace_id=request.workspace_id,
             status=request.status,
             initiative_type=request.type,
         )
+
+        controller.complete_onboarding_if_first_initiative(user.id)
 
         return InitiativeResponse.model_validate(initiative)
 

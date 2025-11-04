@@ -77,6 +77,42 @@ class InitiativeController:
             logger.error(f"Unexpected error creating initiative: {e}")
             raise InitiativeControllerError(f"Failed to create initiative: {e}")
 
+    def complete_onboarding_if_first_initiative(self, user_id: uuid.UUID) -> None:
+        """
+        Complete onboarding if this is the user's first initiative.
+
+        Checks if the user has exactly one initiative. If so, completes onboarding
+        by calling the accounting controller. This is idempotent - if onboarding
+        is already completed, the accounting controller handles it gracefully.
+
+        Args:
+            user_id: The user ID to check
+
+        Note:
+            This method does not raise exceptions. If onboarding completion fails,
+            it logs the error but does not interrupt the initiative creation flow.
+        """
+        try:
+            initiative_count = (
+                self.db.query(Initiative).filter(Initiative.user_id == user_id).count()
+            )
+
+            if initiative_count == 1:
+                from src.accounting import accounting_controller
+                from src.models import User
+
+                user = self.db.query(User).filter(User.id == user_id).first()
+                if user:
+                    accounting_controller.complete_onboarding(user, self.db)
+                    logger.info(
+                        f"Completed onboarding for user {user_id} after creating first initiative"
+                    )
+        except Exception as e:
+            logger.error(
+                f"Failed to complete onboarding for user {user_id}: {e}",
+                exc_info=True,
+            )
+
     def delete_initiative(self, initiative_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         try:
             initiative = (

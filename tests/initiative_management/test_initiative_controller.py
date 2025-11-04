@@ -731,3 +731,134 @@ class TestInitiativeController:
 
         # Verify ordering service was not called
         mock_ordering_service.move_item.assert_not_called()
+
+    def test_complete_onboarding_if_first_initiative_calls_complete_onboarding(
+        self, controller, user, workspace, session, monkeypatch
+    ):
+        """Test that onboarding is completed when user has exactly one initiative."""
+        from src.accounting.models import UserAccountStatus
+
+        mock_ordering_service = Mock()
+        controller.ordering_service = mock_ordering_service
+
+        mock_complete_onboarding = Mock(return_value=user.account_details)
+        monkeypatch.setattr(
+            "src.initiative_management.initiative_controller.accounting_controller.complete_onboarding",
+            mock_complete_onboarding,
+        )
+
+        account_details = user.account_details
+        account_details.status = UserAccountStatus.NEW
+        account_details.onboarding_completed = False
+        session.add(account_details)
+        session.commit()
+
+        controller.create_initiative(
+            title="First Initiative",
+            description="",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+            initiative_type="FEATURE",
+        )
+
+        controller.complete_onboarding_if_first_initiative(user.id)
+
+        mock_complete_onboarding.assert_called_once_with(user, session)
+
+        session.refresh(account_details)
+        assert_that(account_details.onboarding_completed, is_(True))
+
+    def test_complete_onboarding_if_first_initiative_not_called_for_multiple_initiatives(
+        self, controller, user, workspace, session, monkeypatch
+    ):
+        """Test that onboarding is NOT completed when user has more than one initiative."""
+        mock_ordering_service = Mock()
+        controller.ordering_service = mock_ordering_service
+
+        mock_complete_onboarding = Mock()
+        monkeypatch.setattr(
+            "src.initiative_management.initiative_controller.accounting_controller.complete_onboarding",
+            mock_complete_onboarding,
+        )
+
+        controller.create_initiative(
+            title="First Initiative",
+            description="",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+            initiative_type="FEATURE",
+        )
+
+        controller.create_initiative(
+            title="Second Initiative",
+            description="",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+            initiative_type="FEATURE",
+        )
+
+        controller.complete_onboarding_if_first_initiative(user.id)
+
+        mock_complete_onboarding.assert_not_called()
+
+    def test_complete_onboarding_if_first_initiative_handles_errors_gracefully(
+        self, controller, user, workspace, session, monkeypatch
+    ):
+        """Test that errors during onboarding completion are handled gracefully."""
+        mock_ordering_service = Mock()
+        controller.ordering_service = mock_ordering_service
+
+        mock_complete_onboarding = Mock(side_effect=Exception("Onboarding error"))
+        monkeypatch.setattr(
+            "src.initiative_management.initiative_controller.accounting_controller.complete_onboarding",
+            mock_complete_onboarding,
+        )
+
+        controller.create_initiative(
+            title="First Initiative",
+            description="",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+            initiative_type="FEATURE",
+        )
+
+        controller.complete_onboarding_if_first_initiative(user.id)
+
+        mock_complete_onboarding.assert_called_once()
+
+    def test_complete_onboarding_if_first_initiative_handles_nonexistent_user(
+        self, controller, session, monkeypatch
+    ):
+        """Test that method handles nonexistent user gracefully."""
+        mock_ordering_service = Mock()
+        controller.ordering_service = mock_ordering_service
+
+        mock_complete_onboarding = Mock()
+        monkeypatch.setattr(
+            "src.initiative_management.initiative_controller.accounting_controller.complete_onboarding",
+            mock_complete_onboarding,
+        )
+
+        nonexistent_user_id = uuid.uuid4()
+
+        controller.complete_onboarding_if_first_initiative(nonexistent_user_id)
+
+        mock_complete_onboarding.assert_not_called()
+
+    def test_complete_onboarding_if_first_initiative_not_called_for_zero_initiatives(
+        self, controller, user, session, monkeypatch
+    ):
+        """Test that onboarding is NOT completed when user has zero initiatives."""
+        mock_complete_onboarding = Mock()
+        monkeypatch.setattr(
+            "src.initiative_management.initiative_controller.accounting_controller.complete_onboarding",
+            mock_complete_onboarding,
+        )
+
+        controller.complete_onboarding_if_first_initiative(user.id)
+
+        mock_complete_onboarding.assert_not_called()
