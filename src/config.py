@@ -50,6 +50,19 @@ class Settings(BaseSettings):
     auth0_jwks_endpoint: str = Field(default="")
     auth0_jwt_cookie_name: str = Field(default="auth0_jwt")
 
+    # Auth0 settings for MCP server
+    mcp_server_auth0_application_id: str = Field(default="")
+    mcp_server_auth0_audience: str = Field(default="")
+    mcp_server_auth0_client_id: str = Field(default="")
+    mcp_server_auth0_client_secret: str = Field(default="")
+    mcp_server_auth0_domain: str = Field(default="")
+    mcp_server_cookie_lifetime_seconds: int = Field(default=3600)
+    mcp_server_auth0_jwks_endpoint: str = Field(default="")
+    mcp_server_auth0_jwt_cookie_name: str = Field(default="auth0_jwt")
+    mcp_server_auth0_refresh_token_cookie_name: str = Field(
+        default="auth0_refresh_token"
+    )
+
     postgrest_authenticator__role: str
     postgrest_authenticator__password: str
     postgrest_anonymous__role: str

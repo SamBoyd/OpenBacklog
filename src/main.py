@@ -1,6 +1,4 @@
-import json
 import logging
-import logging.handlers
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -85,8 +83,15 @@ async def combined_lifespan(app: FastAPI):
 
 
 def app_init() -> FastAPI:
+    from src.mcp_server.main import well_known_routes
+
     app = FastAPI(
-        lifespan=combined_lifespan, docs_url=None, redoc_url=None, openapi_url=None
+        lifespan=combined_lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+        routes=[*well_known_routes],
+        redirect_slashes=False,
     )
 
     app.mount(
@@ -110,7 +115,7 @@ def app_init() -> FastAPI:
             name="static",
         )
 
-    origins = [settings.static_site_url, settings.app_url]
+    origins = [settings.static_site_url, settings.app_url, settings.mcp_server_domain]
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -141,7 +146,7 @@ def get_csrf_config():
 
 @app.exception_handler(CsrfProtectError)
 def csrf_protect_exception_handler(request: Request, exc: CsrfProtectError):
-    logger.error("handle csrf exception {exc.status_code}, {exc.message}")
+    logger.error("handle csrf exception {exc.stat>us_code}, {exc.message}")
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 
