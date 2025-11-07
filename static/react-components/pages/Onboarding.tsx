@@ -1,33 +1,12 @@
-import React, { useState } from 'react';
-import { Navigate } from 'react-router';
-import { useBillingUsage } from '#hooks/useBillingUsage';
-import { useIsDeviceMobile } from '#hooks/isDeviceMobile';
-
-import NavBar from '#components/reusable/NavBar';
-import AppBackground from '#components/AppBackground';
-import OnboardingCarousel from '#components/onboarding/OnboardingCarousel';
+import React from 'react';
+import MCPSetupPage from '#components/onboarding/MCPSetupPage';
 
 /**
- * Onboarding page with carousel-style flow
- * Shows product introduction steps and pricing options
+ * Onboarding page with MCP setup instructions
+ * Shows how to connect Claude Code and create first workspace/initiative
  */
 const Onboarding: React.FC = () => {
-  const isMobile = useIsDeviceMobile();
-
-
-  return (
-    <AppBackground>
-      <div className="inset-0 flex flex-col h-screen w-screen">
-        {/* Navigation bar */}
-        {!isMobile && <NavBar enableNavigation={false} />}
-
-        {/* Carousel onboarding flow */}
-        <div className="flex-1 flex items-center justify-center">
-          <OnboardingCarousel />
-        </div>
-      </div>
-    </AppBackground>
-  );
+  return <MCPSetupPage />;
 };
 
 export default Onboarding;

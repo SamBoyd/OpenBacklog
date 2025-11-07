@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Navigate } from 'react-router';
 import { useBillingUsage } from '#hooks/useBillingUsage';
 import { useWorkspaces } from '#hooks/useWorkspaces';
-import { UserAccountStatus } from '#constants/userAccountStatus';
+import { useInitiativesContext } from '#hooks/initiatives/useInitiativesContext';
 import WorkspaceCreateModal from '#components/WorkspaceSwitcher/WorkspaceCreateModal';
 
 interface AppGuardProps {
@@ -114,7 +114,37 @@ const AppGuard: React.FC<AppGuardProps> = ({ children }) => {
     );
   }
 
-  // Stage 6: All validations passed - render protected content
+  // Stage 6: Check if user has created first initiative via MCP
+  const { initiativesData, shouldShowSkeleton } = useInitiativesContext();
+  const hasInitiatives = initiativesData && initiativesData.length > 0;
+
+  if (!hasInitiatives && !shouldShowSkeleton) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="mb-6">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              Waiting for your first initiative...
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              Create your first initiative via Claude Code to unlock the web interface.
+            </p>
+            <div className="bg-muted p-4 rounded-lg text-left">
+              <p className="text-sm text-muted-foreground mb-2">
+                In Claude Code, say:
+              </p>
+              <code className="text-sm text-foreground">
+                "Create an initiative for [your feature] in OpenBacklog"
+              </code>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Stage 7: All validations passed - render protected content
   return <>{children}</>;
 };
 
