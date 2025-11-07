@@ -1,21 +1,27 @@
-# src/ai/mcp_server.py
+# src/mcp_server/task_tools.py
 import logging
-import urllib.parse
+import uuid
 from typing import Any, Dict
 
-import requests
-from fastmcp.server.dependencies import get_http_request
-from mcp.server.fastmcp import Context
-from starlette.requests import Request
+from sqlalchemy.orm import Session
 
-from src.config import settings
+from src.db import SessionLocal
+from src.initiative_management.task_controller import (
+    TaskController,
+    TaskControllerError,
+    TaskNotFoundError,
+)
+from src.mcp_server.auth_utils import extract_user_from_request, get_user_workspace
 from src.mcp_server.main import mcp  # type: ignore
+from src.models import Initiative, Task, TaskStatus
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def _generate_task_context(task, initiative, related_tasks, checklist_items):
+def _generate_task_context(
+    task_dict, initiative_dict, related_tasks_dicts, checklist_items_dicts
+):
     """
     Generate a natural language summary of task context including initiative
     and related tasks information for better LLM understanding.
@@ -23,11 +29,11 @@ def _generate_task_context(task, initiative, related_tasks, checklist_items):
     context_parts = []
 
     # Initiative context section
-    if initiative:
+    if initiative_dict:
         context_parts.append(
             f"""INITIATIVE CONTEXT:
-This task belongs to Initiative {initiative.get('identifier', 'Unknown')}: "{initiative.get('title', 'Unknown')}" (Status: {initiative.get('status', 'Unknown')})
-Initiative Description: {initiative.get('description', 'No description available')}"""
+This task belongs to Initiative {initiative_dict.get('identifier', 'Unknown')}: "{initiative_dict.get('title', 'Unknown')}" (Status: {initiative_dict.get('status', 'Unknown')})
+Initiative Description: {initiative_dict.get('description', 'No description available')}"""
         )
     else:
         context_parts.append(
@@ -36,16 +42,18 @@ Unable to load initiative details for this task."""
         )
 
     # Task scope definition section
-    if initiative and related_tasks:
+    if initiative_dict and related_tasks_dicts:
         context_parts.append(
             f"""
 TASK SCOPE:
-Current task {task.get('identifier', 'Unknown')} focuses on "{task.get('title', 'Unknown')}". This is part of the broader "{initiative.get('title', 'initiative')}" but should NOT include work that belongs to other tasks:"""
+Current task {task_dict.get('identifier', 'Unknown')} focuses on "{task_dict.get('title', 'Unknown')}". This is part of the broader "{initiative_dict.get('title', 'initiative')}" but should NOT include work that belongs to other tasks:"""
         )
 
         # Add related tasks as scope boundaries
         incomplete_tasks = [
-            rt for rt in related_tasks if rt.get("status") not in ["DONE", "ARCHIVED"]
+            rt
+            for rt in related_tasks_dicts
+            if rt.get("status") not in ["DONE", "ARCHIVED"]
         ]
         if incomplete_tasks:
             for related_task in incomplete_tasks[
@@ -61,7 +69,7 @@ Current task {task.get('identifier', 'Unknown')} focuses on "{task.get('title', 
                 )
 
     # Related work section
-    if related_tasks:
+    if related_tasks_dicts:
         context_parts.append(
             f"""
 RELATED WORK IN THIS INITIATIVE:"""
@@ -69,7 +77,7 @@ RELATED WORK IN THIS INITIATIVE:"""
 
         # Group tasks by status for better organization
         status_groups = {}
-        for rt in related_tasks:
+        for rt in related_tasks_dicts:
             status = rt.get("status", "Unknown")
             if status not in status_groups:
                 status_groups[status] = []
@@ -105,14 +113,31 @@ Unable to load related tasks for this initiative."""
         )
 
     # Implementation notes
-    if initiative and task:
+    if initiative_dict and task_dict:
         context_parts.append(
             f"""
 IMPLEMENTATION NOTES:
-Focus on the specific scope of task {task.get('identifier', 'Unknown')}. Coordinate with related tasks as needed, especially those marked as IN_PROGRESS or TO_DO."""
+Focus on the specific scope of task {task_dict.get('identifier', 'Unknown')}. Coordinate with related tasks as needed, especially those marked as IN_PROGRESS or TO_DO."""
         )
 
     return "\n".join(context_parts)
+
+
+def _task_to_dict(task: Task) -> Dict[str, Any]:
+    """Convert Task model to dictionary."""
+    return {
+        "id": str(task.id),
+        "title": task.title,
+        "description": task.description,
+        "identifier": task.identifier,
+        "status": task.status.value,
+        "type": task.type,
+        "created_at": task.created_at.isoformat() if task.created_at else None,
+        "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+        "user_id": str(task.user_id),
+        "workspace_id": str(task.workspace_id),
+        "initiative_id": str(task.initiative_id) if task.initiative_id else None,
+    }
 
 
 @mcp.tool()
@@ -125,54 +150,33 @@ async def get_initiative_tasks(
     Used in the workflow after user selects an initiative to show available tasks
     for that initiative that they can work on.
 
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
     Args:
         - initiative_id: The UUID of the initiative to get tasks for
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Returns:
         - List of tasks belonging to the initiative with full context
     """
     logger.info(f"Fetching tasks for initiative {initiative_id}")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        logger.info(f"Authorization header: {authorization_header}")
-        if not authorization_header:
+        user_id, error = extract_user_from_request(session)
+        if error:
             return {
                 "status": "error",
                 "type": "task",
-                "error_message": "No authorization header found",
+                "error_message": error,
             }
 
-        workspace_id = request.headers.get("X-Workspace-Id")
-        logger.info(f"Workspace ID: {workspace_id}")
+        initiative_uuid = uuid.UUID(initiative_id)
 
-        # Query for tasks belonging to the specific initiative
-        url = f"{settings.postgrest_domain}/task?initiative_id=eq.{initiative_id}&workspace_id=eq.{workspace_id}&select=*"
+        # Use TaskController to get initiative tasks
+        controller = TaskController(session)
+        tasks = controller.get_initiative_tasks(user_id, initiative_uuid)
 
-        response = requests.get(
-            url,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-
-        if response.status_code != 200:
-            logger.exception(
-                f"Error in get_initiative_tasks MCP tool: {response.status_code} - {response.json()}"
-            )
-            return {
-                "status": "error",
-                "type": "task",
-                "error_message": f"Server error: {response.status_code}",
-            }
-
-        tasks_data = response.json()
+        # Convert to dict format
+        tasks_data = [_task_to_dict(task) for task in tasks]
 
         logger.info(f"Found {len(tasks_data)} tasks for initiative {initiative_id}")
 
@@ -184,6 +188,22 @@ async def get_initiative_tasks(
             "data": tasks_data,
         }
 
+    except TaskControllerError as e:
+        logger.exception(f"Controller error in get_initiative_tasks: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
+    except ValueError as e:
+        logger.exception(f"Invalid UUID format: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": f"Invalid initiative ID format: {str(e)}",
+            "error_type": "validation_error",
+        }
     except Exception as e:
         logger.exception(f"Error in get_initiative_tasks MCP tool: {str(e)}")
         return {
@@ -192,6 +212,8 @@ async def get_initiative_tasks(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()
 
 
 @mcp.tool()
@@ -204,163 +226,130 @@ async def get_task_details(
     Used in the workflow after user selects a task to get full context needed
     for implementation planning.
 
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
     Args:
         - task_id: The UUID of the task to get details for
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Returns:
         - Complete task details with checklist items and relationships
     """
     logger.info(f"Fetching details for task {task_id}")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        logger.info(f"Authorization header: {authorization_header}")
-        if not authorization_header:
+        user_id, error = extract_user_from_request(session)
+        if error:
             return {
                 "status": "error",
                 "type": "task_details",
-                "error_message": "No authorization header found",
+                "error_message": error,
             }
 
-        workspace_id = request.headers.get("X-Workspace-Id")
-        logger.info(f"Workspace ID: {workspace_id}")
+        task_uuid = uuid.UUID(task_id)
 
-        # Query for task details
-        task_url = f"{settings.postgrest_domain}/task?id=eq.{task_id}&workspace_id=eq.{workspace_id}&select=*"
+        # Use TaskController to get task details
+        controller = TaskController(session)
+        task = controller.get_task_details(user_id, task_uuid)
 
-        task_response = requests.get(
-            task_url,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-
-        if task_response.status_code != 200:
-            logger.exception(
-                f"Error fetching task details: {task_response.status_code} - {task_response.json()}"
-            )
-            return {
-                "status": "error",
-                "type": "task_details",
-                "error_message": f"Server error fetching task: {task_response.status_code}",
-            }
-
-        task_data = task_response.json()
-        if not task_data or len(task_data) == 0:
+        if not task:
             return {
                 "status": "error",
                 "type": "task_details",
                 "error_message": f"Task {task_id} not found",
             }
 
-        task = task_data[0]
+        # Convert task to dict
+        task_dict = _task_to_dict(task)
 
-        # Query for checklist items
-        checklist_url = f"{settings.postgrest_domain}/checklist?task_id=eq.{task_id}&select=*&order=order"
+        # Convert checklist items to dict
+        checklist_items = [
+            {
+                "id": str(item.id),
+                "title": item.title,
+                "is_complete": item.is_complete,
+                "order": item.order,
+                "task_id": str(item.task_id),
+            }
+            for item in task.checklist_items
+        ]
 
-        checklist_response = requests.get(
-            checklist_url,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-
-        checklist_items = []
-        if checklist_response.status_code == 200:
-            checklist_items = checklist_response.json()
-        else:
-            logger.warning(
-                f"Could not fetch checklist items: {checklist_response.status_code}"
+        # Get initiative details
+        initiative_dict = None
+        if task.initiative_id:
+            initiative = (
+                session.query(Initiative)
+                .filter(
+                    Initiative.id == task.initiative_id, Initiative.user_id == user_id
+                )
+                .first()
             )
+            if initiative:
+                initiative_dict = {
+                    "id": str(initiative.id),
+                    "title": initiative.title,
+                    "description": initiative.description,
+                    "identifier": initiative.identifier,
+                    "status": initiative.status.value,
+                }
 
-        # Query for initiative details
-        initiative = None
-        if task.get("initiative_id"):
-            initiative_url = f"{settings.postgrest_domain}/initiative?id=eq.{task['initiative_id']}&workspace_id=eq.{workspace_id}&select=*"
-
-            try:
-                initiative_response = requests.get(
-                    initiative_url,
-                    headers={
-                        "Authorization": authorization_header,
-                        "Content-Type": "application/json",
-                    },
-                    timeout=30,
-                )
-
-                if initiative_response.status_code == 200:
-                    initiative_data = initiative_response.json()
-                    if initiative_data and len(initiative_data) > 0:
-                        initiative = initiative_data[0]
-                        logger.info(
-                            f"Found initiative {initiative['identifier']} for task {task_id}"
-                        )
-                    else:
-                        logger.warning(f"No initiative found for task {task_id}")
-                else:
-                    logger.warning(
-                        f"Could not fetch initiative: {initiative_response.status_code}"
-                    )
-            except Exception as e:
-                logger.warning(
-                    f"Error fetching initiative for task {task_id}: {str(e)}"
-                )
-
-        # Query for related tasks in the same initiative
-        related_tasks = []
-        if task.get("initiative_id"):
-            related_tasks_url = f"{settings.postgrest_domain}/task?initiative_id=eq.{task['initiative_id']}&workspace_id=eq.{workspace_id}&id=neq.{task_id}&select=id,identifier,title,status,type&order=status,identifier"
-
-            try:
-                related_tasks_response = requests.get(
-                    related_tasks_url,
-                    headers={
-                        "Authorization": authorization_header,
-                        "Content-Type": "application/json",
-                    },
-                    timeout=30,
-                )
-
-                if related_tasks_response.status_code == 200:
-                    related_tasks = related_tasks_response.json()
-                    logger.info(
-                        f"Found {len(related_tasks)} related tasks for initiative"
-                    )
-                else:
-                    logger.warning(
-                        f"Could not fetch related tasks: {related_tasks_response.status_code}"
-                    )
-            except Exception as e:
-                logger.warning(
-                    f"Error fetching related tasks for task {task_id}: {str(e)}"
-                )
+        # Get related tasks in the same initiative
+        related_tasks_dicts = []
+        if task.initiative_id:
+            related_tasks = controller.get_initiative_tasks(user_id, task.initiative_id)
+            related_tasks_dicts = [
+                {
+                    "id": str(rt.id),
+                    "identifier": rt.identifier,
+                    "title": rt.title,
+                    "status": rt.status.value,
+                    "type": rt.type,
+                }
+                for rt in related_tasks
+                if rt.id != task.id
+            ]
 
         # Generate task context summary
         task_context = _generate_task_context(
-            task, initiative, related_tasks, checklist_items
+            task_dict, initiative_dict, related_tasks_dicts, checklist_items
         )
 
         logger.info(
-            f"Found task details for {task_id} with {len(checklist_items)} checklist items, initiative context, and {len(related_tasks)} related tasks"
+            f"Found task details for {task_id} with {len(checklist_items)} checklist items, initiative context, and {len(related_tasks_dicts)} related tasks"
         )
 
         return {
             "status": "success",
             "type": "task_details",
-            "message": f"Retrieved comprehensive task context for {task['title']}",
-            "task": task,
+            "message": f"Retrieved comprehensive task context for {task.title}",
+            "task": task_dict,
             "checklist_items": checklist_items,
             "task_context": task_context,
         }
 
+    except TaskNotFoundError as e:
+        logger.exception(f"Task not found: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_details",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
+    except TaskControllerError as e:
+        logger.exception(f"Controller error in get_task_details: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_details",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
+    except ValueError as e:
+        logger.exception(f"Invalid UUID format: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_details",
+            "error_message": f"Invalid task ID format: {str(e)}",
+            "error_type": "validation_error",
+        }
     except Exception as e:
         logger.exception(f"Error in get_task_details MCP tool: {str(e)}")
         return {
@@ -369,6 +358,8 @@ async def get_task_details(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()
 
 
 @mcp.tool()
@@ -376,57 +367,41 @@ async def search_tasks(
     query: str,
 ) -> Dict[str, Any]:
     """
-    Search for tasks by title, description, and identifier. Uses Postgrest LIKE operator.
+    Search for tasks by title, description, and identifier. Uses LIKE operator.
+
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Args:
         - query: The query string to search the titles, descriptions, and identifiers of the user's tasks
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Returns:
         - a list of tasks that match the query
     """
     logger.info(f"Searching for tasks with query {query}")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        logger.info(f"Authorization header: {authorization_header}")
-        if not authorization_header:
+        user_id, error = extract_user_from_request(session)
+        if error:
             return {
                 "status": "error",
                 "type": "task",
-                "error_message": "No authorization header found",
+                "error_message": error,
             }
 
-        workspace_id = request.headers.get("X-Workspace-Id")
-        logger.info(f"Workspace ID: {workspace_id}")
-
-        # postgrest query url
-        url_encoded_query = urllib.parse.quote(query)
-        url = f"{settings.postgrest_domain}/task?or(title.plfts({url_encoded_query}),description.plfts({url_encoded_query}),identifier.plfts({url_encoded_query}))&workspace_id=eq.{workspace_id}"
-
-        response = requests.get(
-            url,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-
-        if response.status_code != 200:
-            logger.exception(
-                f"Error in search_tasks MCP tool: {response.status_code} - {response.json()}"
-            )
+        workspace, error = get_user_workspace(session, user_id)
+        if error:
             return {
                 "status": "error",
                 "type": "task",
-                "error_message": f"Server error: {response.status_code}",
+                "error_message": error,
             }
 
-        tasks_data = response.json()
+        # Use TaskController to search tasks
+        controller = TaskController(session)
+        tasks = controller.search_tasks(user_id, workspace.id, query)
+
+        # Convert to dict format
+        tasks_data = [_task_to_dict(task) for task in tasks]
 
         logger.info(f"Found {len(tasks_data)} tasks")
 
@@ -436,6 +411,14 @@ async def search_tasks(
             "data": tasks_data,
         }
 
+    except TaskControllerError as e:
+        logger.exception(f"Controller error in search_tasks: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
     except Exception as e:
         logger.exception(f"Error in search_tasks MCP tool: {str(e)}")
         return {
@@ -444,6 +427,8 @@ async def search_tasks(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()
 
 
 @mcp.tool()
@@ -457,54 +442,31 @@ async def update_task_description(
     Used during implementation planning to add context, notes, and implementation
     details to the task description.
 
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
     Args:
         - task_id: The UUID of the task to update
         - description: The new description content
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Returns:
         - Confirmation of the update with the new description
     """
     logger.info(f"Updating description for task {task_id}")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        if not authorization_header:
+        user_id, error = extract_user_from_request(session)
+        if error:
             return {
                 "status": "error",
                 "type": "task_update",
-                "error_message": "No authorization header found",
+                "error_message": error,
             }
 
-        workspace_id = request.headers.get("X-Workspace-Id")
+        task_uuid = uuid.UUID(task_id)
 
-        # Update the task description
-        update_url = f"{settings.postgrest_domain}/task?id=eq.{task_id}&workspace_id=eq.{workspace_id}"
-
-        payload = {"description": description}
-
-        response = requests.patch(
-            update_url,
-            json=payload,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-
-        if response.status_code not in [200, 204]:
-            logger.exception(
-                f"Error updating task description: {response.status_code} - {response.text}"
-            )
-            return {
-                "status": "error",
-                "type": "task_update",
-                "error_message": f"Server error: {response.status_code}",
-            }
+        # Use TaskController to update task description
+        controller = TaskController(session)
+        task = controller.update_task_description(user_id, task_uuid, description)
 
         logger.info(f"Successfully updated description for task {task_id}")
 
@@ -516,6 +478,30 @@ async def update_task_description(
             "updated_description": description,
         }
 
+    except TaskNotFoundError as e:
+        logger.exception(f"Task not found: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_update",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
+    except TaskControllerError as e:
+        logger.exception(f"Controller error in update_task_description: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_update",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
+    except ValueError as e:
+        logger.exception(f"Invalid UUID format: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_update",
+            "error_message": f"Invalid task ID format: {str(e)}",
+            "error_type": "validation_error",
+        }
     except Exception as e:
         logger.exception(f"Error in update_task_description MCP tool: {str(e)}")
         return {
@@ -524,6 +510,8 @@ async def update_task_description(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()
 
 
 @mcp.tool()
@@ -537,81 +525,41 @@ async def validate_context(
     details haven't changed and that the context is still valid before
     making updates.
 
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
     Args:
         - task_id: The UUID of the task to validate
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Returns:
         - Validation status and current task state
     """
     logger.info(f"Validating context for task {task_id}")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        if not authorization_header:
+        user_id, error = extract_user_from_request(session)
+        if error:
             return {
                 "status": "error",
                 "type": "context_validation",
-                "error_message": "No authorization header found",
+                "error_message": error,
             }
 
-        workspace_id = request.headers.get("X-Workspace-Id")
+        task_uuid = uuid.UUID(task_id)
 
-        # Fetch current task state
-        task_url = f"{settings.postgrest_domain}/task?id=eq.{task_id}&workspace_id=eq.{workspace_id}&select=*"
+        # Use TaskController to get task details
+        controller = TaskController(session)
+        task = controller.get_task_details(user_id, task_uuid)
 
-        task_response = requests.get(
-            task_url,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-
-        if task_response.status_code != 200:
-            logger.exception(
-                f"Error validating task context: {task_response.status_code} - {task_response.json()}"
-            )
-            return {
-                "status": "error",
-                "type": "context_validation",
-                "error_message": f"Could not fetch task: {task_response.status_code}",
-            }
-
-        task_data = task_response.json()
-        if not task_data or len(task_data) == 0:
+        if not task:
             return {
                 "status": "error",
                 "type": "context_validation",
                 "error_message": f"Task {task_id} not found or access denied",
             }
 
-        task = task_data[0]
-
-        # Fetch current checklist state
-        checklist_url = f"{settings.postgrest_domain}/checklist?task_id=eq.{task_id}&select=*&order=order"
-
-        checklist_response = requests.get(
-            checklist_url,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-
-        checklist_items = []
-        if checklist_response.status_code == 200:
-            checklist_items = checklist_response.json()
-
         # Calculate checklist progress
-        completed_items = [
-            item for item in checklist_items if item.get("is_complete", False)
-        ]
+        checklist_items = task.checklist_items
+        completed_items = [item for item in checklist_items if item.is_complete]
         total_items = len(checklist_items)
         completion_percentage = (
             (len(completed_items) / total_items * 100) if total_items > 0 else 0
@@ -625,11 +573,11 @@ async def validate_context(
             "message": f"Task context is valid and up-to-date",
             "task_id": task_id,
             "task": {
-                "id": task["id"],
-                "title": task["title"],
-                "description": task.get("description", ""),
-                "status": task.get("status", ""),
-                "updated_at": task.get("updated_at", ""),
+                "id": str(task.id),
+                "title": task.title,
+                "description": task.description or "",
+                "status": task.status.value,
+                "updated_at": task.updated_at.isoformat() if task.updated_at else "",
             },
             "checklist_summary": {
                 "total_items": total_items,
@@ -639,6 +587,30 @@ async def validate_context(
             "validation_timestamp": "current",
         }
 
+    except TaskNotFoundError as e:
+        logger.exception(f"Task not found: {str(e)}")
+        return {
+            "status": "error",
+            "type": "context_validation",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
+    except TaskControllerError as e:
+        logger.exception(f"Controller error in validate_context: {str(e)}")
+        return {
+            "status": "error",
+            "type": "context_validation",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
+    except ValueError as e:
+        logger.exception(f"Invalid UUID format: {str(e)}")
+        return {
+            "status": "error",
+            "type": "context_validation",
+            "error_message": f"Invalid task ID format: {str(e)}",
+            "error_type": "validation_error",
+        }
     except Exception as e:
         logger.exception(f"Error in validate_context MCP tool: {str(e)}")
         return {
@@ -647,6 +619,8 @@ async def validate_context(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()
 
 
 @mcp.tool()
@@ -656,53 +630,32 @@ async def update_task_status_inprogress(
     """
     Update a task's status to 'IN_PROGRESS'.
 
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
     Args:
         - task_id: The UUID of the task to update
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Returns:
         - Confirmation of the status update
     """
     logger.info(f"Updating task {task_id} status to IN_PROGRESS")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        if not authorization_header:
+        user_id, error = extract_user_from_request(session)
+        if error:
             return {
                 "status": "error",
                 "type": "task_status_update",
-                "error_message": "No authorization header found",
+                "error_message": error,
             }
 
-        workspace_id = request.headers.get("X-Workspace-Id")
+        task_uuid = uuid.UUID(task_id)
 
-        # Update the task status
-        update_url = f"{settings.postgrest_domain}/task?id=eq.{task_id}&workspace_id=eq.{workspace_id}"
-
-        payload = {"status": "IN_PROGRESS"}
-
-        response = requests.patch(
-            update_url,
-            json=payload,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
+        # Use TaskController to update task status
+        controller = TaskController(session)
+        task = controller.move_task_to_status(
+            user_id, task_uuid, TaskStatus.IN_PROGRESS
         )
-
-        if response.status_code not in [200, 204]:
-            logger.exception(
-                f"Error updating task status: {response.status_code} - {response.text}"
-            )
-            return {
-                "status": "error",
-                "type": "task_status_update",
-                "error_message": f"Server error: {response.status_code}",
-            }
 
         logger.info(f"Successfully updated task {task_id} status to IN_PROGRESS")
 
@@ -714,6 +667,30 @@ async def update_task_status_inprogress(
             "new_status": "IN_PROGRESS",
         }
 
+    except TaskNotFoundError as e:
+        logger.exception(f"Task not found: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_status_update",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
+    except TaskControllerError as e:
+        logger.exception(f"Controller error in update_task_status_inprogress: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_status_update",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
+    except ValueError as e:
+        logger.exception(f"Invalid UUID format: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_status_update",
+            "error_message": f"Invalid task ID format: {str(e)}",
+            "error_type": "validation_error",
+        }
     except Exception as e:
         logger.exception(f"Error in update_task_status_inprogress MCP tool: {str(e)}")
         return {
@@ -722,6 +699,8 @@ async def update_task_status_inprogress(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()
 
 
 @mcp.tool()
@@ -731,53 +710,30 @@ async def update_task_status_done(
     """
     Update a task's status to 'DONE'.
 
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
     Args:
         - task_id: The UUID of the task to update
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Returns:
         - Confirmation of the status update
     """
     logger.info(f"Updating task {task_id} status to DONE")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        if not authorization_header:
+        user_id, error = extract_user_from_request(session)
+        if error:
             return {
                 "status": "error",
                 "type": "task_status_update",
-                "error_message": "No authorization header found",
+                "error_message": error,
             }
 
-        workspace_id = request.headers.get("X-Workspace-Id")
+        task_uuid = uuid.UUID(task_id)
 
-        # Update the task status
-        update_url = f"{settings.postgrest_domain}/task?id=eq.{task_id}&workspace_id=eq.{workspace_id}"
-
-        payload = {"status": "DONE"}
-
-        response = requests.patch(
-            update_url,
-            json=payload,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-
-        if response.status_code not in [200, 204]:
-            logger.exception(
-                f"Error updating task status: {response.status_code} - {response.text}"
-            )
-            return {
-                "status": "error",
-                "type": "task_status_update",
-                "error_message": f"Server error: {response.status_code}",
-            }
+        # Use TaskController to update task status
+        controller = TaskController(session)
+        task = controller.move_task_to_status(user_id, task_uuid, TaskStatus.DONE)
 
         logger.info(f"Successfully updated task {task_id} status to DONE")
 
@@ -789,6 +745,30 @@ async def update_task_status_done(
             "new_status": "DONE",
         }
 
+    except TaskNotFoundError as e:
+        logger.exception(f"Task not found: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_status_update",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
+    except TaskControllerError as e:
+        logger.exception(f"Controller error in update_task_status_done: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_status_update",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
+    except ValueError as e:
+        logger.exception(f"Invalid UUID format: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_status_update",
+            "error_message": f"Invalid task ID format: {str(e)}",
+            "error_type": "validation_error",
+        }
     except Exception as e:
         logger.exception(f"Error in update_task_status_done MCP tool: {str(e)}")
         return {
@@ -797,3 +777,5 @@ async def update_task_status_done(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()

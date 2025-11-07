@@ -1,13 +1,15 @@
 import logging
-import urllib.parse
+import uuid
 from typing import Any, Dict
 
-import requests
-from fastmcp.server.dependencies import get_http_request
-from mcp.server.fastmcp import Context
-from starlette.requests import Request
+from sqlalchemy.orm import Session
 
-from src.config import settings
+from src.db import SessionLocal
+from src.initiative_management.initiative_controller import (
+    InitiativeController,
+    InitiativeControllerError,
+    InitiativeNotFoundError,
+)
 from src.mcp_server.main import mcp  # type: ignore
 
 logging.basicConfig(level=logging.INFO)
@@ -28,45 +30,53 @@ async def get_active_initiatives() -> Dict[str, Any]:
         - List of active initiatives with full context (title, description, identifier)
     """
     logger.info("Fetching active initiatives")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        logger.info(f"Authorization header: {authorization_header}")
-        if not authorization_header:
-            return {
-                "status": "error",
-                "type": "initiative",
-                "error_message": "No authorization header found",
-            }
-
-        workspace_id = request.headers.get("X-Workspace-Id")
-        logger.info(f"Workspace ID: {workspace_id}")
-
-        # Query for initiatives with IN_PROGRESS status
-        url = f"{settings.postgrest_domain}/initiative?status=eq.IN_PROGRESS&workspace_id=eq.{workspace_id}&select=*"
-
-        response = requests.get(
-            url,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
+        from src.mcp_server.auth_utils import (
+            extract_user_from_request,
+            get_user_workspace,
         )
 
-        if response.status_code != 200:
-            logger.exception(
-                f"Error in get_active_initiatives MCP tool: {response.status_code} - {response.json()}"
-            )
+        user_id, error_message = extract_user_from_request(session)
+        if error_message or user_id is None:
             return {
                 "status": "error",
                 "type": "initiative",
-                "error_message": f"Server error: {response.status_code}",
+                "error_message": error_message or "Could not extract user ID",
             }
 
-        initiatives_data = response.json()
+        workspace, workspace_error = get_user_workspace(session, user_id)
+        if workspace_error or workspace is None:
+            return {
+                "status": "error",
+                "type": "initiative",
+                "error_message": workspace_error or "Workspace not found",
+            }
+
+        # Use InitiativeController to get active initiatives
+        controller = InitiativeController(session)
+        initiatives = controller.get_active_initiatives(user_id, workspace.id)
+
+        # Convert to dict format expected by MCP clients
+        initiatives_data = [
+            {
+                "id": str(initiative.id),
+                "title": initiative.title,
+                "description": initiative.description,
+                "identifier": initiative.identifier,
+                "status": initiative.status.value,
+                "type": initiative.type,
+                "created_at": (
+                    initiative.created_at.isoformat() if initiative.created_at else None
+                ),
+                "updated_at": (
+                    initiative.updated_at.isoformat() if initiative.updated_at else None
+                ),
+                "user_id": str(initiative.user_id),
+                "workspace_id": str(initiative.workspace_id),
+            }
+            for initiative in initiatives
+        ]
 
         logger.info(f"Found {len(initiatives_data)} active initiatives")
 
@@ -77,6 +87,14 @@ async def get_active_initiatives() -> Dict[str, Any]:
             "data": initiatives_data,
         }
 
+    except InitiativeControllerError as e:
+        logger.exception(f"Controller error in get_active_initiatives: {str(e)}")
+        return {
+            "status": "error",
+            "type": "initiative",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
     except Exception as e:
         logger.exception(f"Error in get_active_initiatives MCP tool: {str(e)}")
         return {
@@ -85,6 +103,8 @@ async def get_active_initiatives() -> Dict[str, Any]:
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()
 
 
 @mcp.tool()
@@ -92,57 +112,64 @@ async def search_initiatives(
     query: str,
 ) -> Dict[str, Any]:
     """
-    Search for initiatives by title. Uses Postgrest LIKE operator.
+    Search for initiatives by title. Uses LIKE operator.
+
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Args:
         - query: The query string to search the titles, descriptions, and identifiers of the user's initiatives
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Returns:
         - a list of initiatives that match the query
     """
     logger.info(f"Searching for initiatives with query {query}")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        logger.info(f"Authorization header: {authorization_header}")
-        if not authorization_header:
-            return {
-                "status": "error",
-                "type": "initiative",
-                "error_message": "No authorization header found",
-            }
-
-        workspace_id = request.headers.get("X-Workspace-Id")
-        logger.info(f"Workspace ID: {workspace_id}")
-
-        # postgrest query url
-        url_encoded_query = urllib.parse.quote(query)
-        url = f"{settings.postgrest_domain}/initiative?or(title.plfts({url_encoded_query}),description.plfts({url_encoded_query}),identifier.plfts({url_encoded_query}))&workspace_id=eq.{workspace_id}"
-
-        response = requests.get(
-            url,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
+        from src.mcp_server.auth_utils import (
+            extract_user_from_request,
+            get_user_workspace,
         )
 
-        if response.status_code != 200:
-            logger.exception(
-                f"Error in search_initiatives MCP tool: {response.status_code} - {response.json()}"
-            )
+        user_id, error_message = extract_user_from_request(session)
+        if error_message or user_id is None:
             return {
                 "status": "error",
                 "type": "initiative",
-                "error_message": f"Server error: {response.status_code}",
+                "error_message": error_message or "Could not extract user ID",
             }
 
-        initiatives_data = response.json()
+        workspace, workspace_error = get_user_workspace(session, user_id)
+        if workspace_error or workspace is None:
+            return {
+                "status": "error",
+                "type": "initiative",
+                "error_message": workspace_error or "Workspace not found",
+            }
+
+        # Use InitiativeController to search initiatives
+        controller = InitiativeController(session)
+        initiatives = controller.search_initiatives(user_id, workspace.id, query)
+
+        # Convert to dict format expected by MCP clients
+        initiatives_data = [
+            {
+                "id": str(initiative.id),
+                "title": initiative.title,
+                "description": initiative.description,
+                "identifier": initiative.identifier,
+                "status": initiative.status.value,
+                "type": initiative.type,
+                "created_at": (
+                    initiative.created_at.isoformat() if initiative.created_at else None
+                ),
+                "updated_at": (
+                    initiative.updated_at.isoformat() if initiative.updated_at else None
+                ),
+                "user_id": str(initiative.user_id),
+                "workspace_id": str(initiative.workspace_id),
+            }
+            for initiative in initiatives
+        ]
 
         logger.info(f"Found {len(initiatives_data)} initiatives")
 
@@ -152,6 +179,14 @@ async def search_initiatives(
             "data": initiatives_data,
         }
 
+    except InitiativeControllerError as e:
+        logger.exception(f"Controller error in search_initiatives: {str(e)}")
+        return {
+            "status": "error",
+            "type": "initiative",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
     except Exception as e:
         logger.exception(f"Error in search_initiatives MCP tool: {str(e)}")
         return {
@@ -160,6 +195,8 @@ async def search_initiatives(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()
 
 
 @mcp.tool()
@@ -172,101 +209,112 @@ async def get_initiative_details(
     Used in the workflow after user selects or searches for an initiative to get
     full context needed for planning and operations.
 
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
     Args:
         - initiative_id: The UUID of the initiative to get details for
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Returns:
         - Complete initiative details with all associated tasks
     """
     logger.info(f"Fetching details for initiative {initiative_id}")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
+        from src.mcp_server.auth_utils import extract_user_from_request
 
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        logger.info(f"Authorization header: {authorization_header}")
-        if not authorization_header:
+        user_id, error_message = extract_user_from_request(session)
+        if error_message or user_id is None:
             return {
                 "status": "error",
                 "type": "initiative_details",
-                "error_message": "No authorization header found",
+                "error_message": error_message or "Could not extract user ID",
             }
 
-        workspace_id = request.headers.get("X-Workspace-Id")
-        logger.info(f"Workspace ID: {workspace_id}")
+        initiative_uuid = uuid.UUID(initiative_id)
 
-        # Query for initiative details
-        initiative_url = f"{settings.postgrest_domain}/initiative?id=eq.{initiative_id}&workspace_id=eq.{workspace_id}&select=*"
+        # Use InitiativeController to get initiative details
+        controller = InitiativeController(session)
+        initiative = controller.get_initiative_details(user_id, initiative_uuid)
 
-        initiative_response = requests.get(
-            initiative_url,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-
-        if initiative_response.status_code != 200:
-            logger.exception(
-                f"Error fetching initiative details: {initiative_response.status_code} - {initiative_response.json()}"
-            )
-            return {
-                "status": "error",
-                "type": "initiative_details",
-                "error_message": f"Server error fetching initiative: {initiative_response.status_code}",
-            }
-
-        initiative_data = initiative_response.json()
-        if not initiative_data or len(initiative_data) == 0:
+        if not initiative:
             return {
                 "status": "error",
                 "type": "initiative_details",
                 "error_message": f"Initiative {initiative_id} not found",
             }
 
-        initiative = initiative_data[0]
+        # Convert initiative to dict
+        initiative_data = {
+            "id": str(initiative.id),
+            "title": initiative.title,
+            "description": initiative.description,
+            "identifier": initiative.identifier,
+            "status": initiative.status.value,
+            "type": initiative.type,
+            "created_at": (
+                initiative.created_at.isoformat() if initiative.created_at else None
+            ),
+            "updated_at": (
+                initiative.updated_at.isoformat() if initiative.updated_at else None
+            ),
+            "user_id": str(initiative.user_id),
+            "workspace_id": str(initiative.workspace_id),
+        }
 
-        # Query for all tasks belonging to this initiative
-        tasks = []
-        tasks_url = f"{settings.postgrest_domain}/task?initiative_id=eq.{initiative_id}&workspace_id=eq.{workspace_id}&select=*&order=status,identifier"
-
-        try:
-            tasks_response = requests.get(
-                tasks_url,
-                headers={
-                    "Authorization": authorization_header,
-                    "Content-Type": "application/json",
-                },
-                timeout=30,
-            )
-
-            if tasks_response.status_code == 200:
-                tasks = tasks_response.json()
-                logger.info(f"Found {len(tasks)} tasks for initiative {initiative_id}")
-            else:
-                logger.warning(
-                    f"Could not fetch tasks for initiative: {tasks_response.status_code}"
-                )
-        except Exception as e:
-            logger.warning(
-                f"Error fetching tasks for initiative {initiative_id}: {str(e)}"
-            )
+        # Convert tasks to dict
+        tasks_data = [
+            {
+                "id": str(task.id),
+                "title": task.title,
+                "description": task.description,
+                "identifier": task.identifier,
+                "status": task.status.value,
+                "type": task.type,
+                "created_at": task.created_at.isoformat() if task.created_at else None,
+                "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+                "user_id": str(task.user_id),
+                "workspace_id": str(task.workspace_id),
+                "initiative_id": str(task.initiative_id),
+            }
+            for task in initiative.tasks
+        ]
 
         logger.info(
-            f"Found initiative details for {initiative_id} with {len(tasks)} tasks"
+            f"Found initiative details for {initiative_id} with {len(tasks_data)} tasks"
         )
 
         return {
             "status": "success",
             "type": "initiative_details",
-            "message": f"Retrieved comprehensive initiative context for {initiative['title']}",
-            "initiative": initiative,
-            "tasks": tasks,
+            "message": f"Retrieved comprehensive initiative context for {initiative.title}",
+            "initiative": initiative_data,
+            "tasks": tasks_data,
         }
 
+    except InitiativeNotFoundError as e:
+        logger.exception(f"Initiative not found: {str(e)}")
+        return {
+            "status": "error",
+            "type": "initiative_details",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
+    except InitiativeControllerError as e:
+        logger.exception(f"Controller error in get_initiative_details: {str(e)}")
+        return {
+            "status": "error",
+            "type": "initiative_details",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
+    except ValueError as e:
+        logger.exception(f"Invalid UUID format: {str(e)}")
+        return {
+            "status": "error",
+            "type": "initiative_details",
+            "error_message": f"Invalid initiative ID format: {str(e)}",
+            "error_type": "validation_error",
+        }
     except Exception as e:
         logger.exception(f"Error in get_initiative_details MCP tool: {str(e)}")
         return {
@@ -275,3 +323,5 @@ async def get_initiative_details(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()

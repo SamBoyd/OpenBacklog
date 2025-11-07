@@ -2,9 +2,7 @@ import logging
 import uuid
 from typing import Any, Dict
 
-from fastmcp.server.dependencies import get_http_request
 from sqlalchemy.orm import Session
-from starlette.requests import Request
 
 from src.db import SessionLocal
 from src.mcp_server.main import mcp  # type: ignore
@@ -47,37 +45,17 @@ async def create_workspace(name: str, description: str = "") -> Dict[str, Any]:
     logger.info(f"Creating workspace with name: {name}")
     session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
+        from src.mcp_server.auth_utils import extract_user_from_request
 
-        authorization_header = request.headers.get("Authorization")
-        logger.info(f"Authorization header: {authorization_header}")
-        if not authorization_header:
+        user_id, error_message = extract_user_from_request(session)
+        if error_message or user_id is None:
             return {
                 "status": "error",
                 "type": "workspace",
-                "error_message": "No authorization header found",
+                "error_message": error_message or "Could not extract user ID",
             }
 
-        token = authorization_header.replace("Bearer ", "").strip()
-
-        from src.auth.jwt_utils import extract_user_id_from_jwt
-
-        user_id_str = extract_user_id_from_jwt(token)
-        if not user_id_str:
-            return {
-                "status": "error",
-                "type": "workspace",
-                "error_message": "Invalid token: could not extract user ID",
-            }
-
-        user_id = uuid.UUID(user_id_str)
         user = session.query(User).filter(User.id == user_id).first()
-        if not user:
-            return {
-                "status": "error",
-                "type": "workspace",
-                "error_message": "User not found",
-            }
 
         existing_workspace = (
             session.query(Workspace).filter(Workspace.user_id == user_id).first()

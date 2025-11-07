@@ -471,3 +471,120 @@ class InitiativeController:
             self.db.rollback()
             logger.error(f"Unexpected error moving initiative in group: {e}")
             raise InitiativeControllerError(f"Failed to move initiative in group: {e}")
+
+    def get_active_initiatives(
+        self, user_id: uuid.UUID, workspace_id: uuid.UUID
+    ) -> list[Initiative]:
+        """
+        Get all initiatives with IN_PROGRESS status for a user and workspace.
+
+        Args:
+            user_id: The user ID to filter by
+            workspace_id: The workspace ID to filter by
+
+        Returns:
+            List of Initiative objects with status IN_PROGRESS
+        """
+        try:
+            initiatives = (
+                self.db.query(Initiative)
+                .filter(
+                    Initiative.user_id == user_id,
+                    Initiative.workspace_id == workspace_id,
+                    Initiative.status == InitiativeStatus.IN_PROGRESS,
+                )
+                .all()
+            )
+
+            logger.info(
+                f"Retrieved {len(initiatives)} active initiatives for user {user_id}"
+            )
+            return initiatives
+
+        except Exception as e:
+            logger.error(f"Unexpected error getting active initiatives: {e}")
+            raise InitiativeControllerError(f"Failed to get active initiatives: {e}")
+
+    def search_initiatives(
+        self, user_id: uuid.UUID, workspace_id: uuid.UUID, query: str
+    ) -> list[Initiative]:
+        """
+        Search initiatives by title, description, and identifier using LIKE operator.
+
+        Args:
+            user_id: The user ID to filter by
+            workspace_id: The workspace ID to filter by
+            query: The search query string
+
+        Returns:
+            List of Initiative objects matching the query
+        """
+        try:
+            search_pattern = f"%{query}%"
+            initiatives = (
+                self.db.query(Initiative)
+                .filter(
+                    Initiative.user_id == user_id,
+                    Initiative.workspace_id == workspace_id,
+                )
+                .filter(
+                    (Initiative.title.ilike(search_pattern))
+                    | (Initiative.description.ilike(search_pattern))
+                    | (Initiative.identifier.ilike(search_pattern))
+                )
+                .all()
+            )
+
+            logger.info(
+                f"Found {len(initiatives)} initiatives matching query '{query}' for user {user_id}"
+            )
+            return initiatives
+
+        except Exception as e:
+            logger.error(f"Unexpected error searching initiatives: {e}")
+            raise InitiativeControllerError(f"Failed to search initiatives: {e}")
+
+    def get_initiative_details(
+        self, user_id: uuid.UUID, initiative_id: uuid.UUID
+    ) -> Optional[Initiative]:
+        """
+        Get initiative details with related tasks loaded.
+
+        Args:
+            user_id: The user ID to verify ownership
+            initiative_id: The initiative ID to retrieve
+
+        Returns:
+            Initiative object with tasks relationship loaded, or None if not found
+
+        Raises:
+            InitiativeNotFoundError: If initiative not found or doesn't belong to user
+        """
+        try:
+            initiative = (
+                self.db.query(Initiative)
+                .filter(
+                    Initiative.id == initiative_id,
+                    Initiative.user_id == user_id,
+                )
+                .first()
+            )
+
+            if not initiative:
+                raise InitiativeNotFoundError(
+                    f"Initiative {initiative_id} not found for user {user_id}"
+                )
+
+            # Access tasks to trigger lazy loading
+            _ = initiative.tasks
+
+            logger.info(
+                f"Retrieved initiative {initiative_id} with {len(initiative.tasks)} tasks for user {user_id}"
+            )
+            return initiative
+
+        except InitiativeNotFoundError as e:
+            raise e
+        except Exception as e:
+            logger.error(f"Unexpected error getting initiative details: {e}")
+            raise InitiativeControllerError(f"Failed to get initiative details: {e}")

@@ -20,6 +20,7 @@ from src.mcp_server.prompt_driven_tools.utils import (
     calculate_alignment_score,
     get_alignment_recommendation,
     get_user_id_from_request,
+    get_workspace_id_from_request,
     identify_alignment_issues,
     serialize_theme,
     validate_uuid,
@@ -38,27 +39,27 @@ logger = logging.getLogger(__name__)
 
 
 @mcp.tool()
-async def get_theme_exploration_framework(workspace_id: str) -> Dict[str, Any]:
+async def get_theme_exploration_framework() -> Dict[str, Any]:
     """Get comprehensive framework for defining a roadmap theme.
 
     Returns rich context to help Claude Code guide the user through
     defining a hypothesis-driven roadmap theme through collaborative refinement.
 
-    Args:
-        workspace_id: UUID of the workspace
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
 
     Returns:
         Framework dict with purpose, criteria, examples, questions, anti-patterns,
         current state (outcomes + themes), and coaching tips.
 
     Example:
-        >>> framework = await get_theme_exploration_framework(workspace_id)
+        >>> framework = await get_theme_exploration_framework()
         >>> print(framework["purpose"])
         "Identify a new strategic bet area to explore"
     """
     session = SessionLocal()
     try:
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
 
         # Get current outcomes and themes
         outcomes = strategic_controller.get_product_outcomes(workspace_uuid, session)
@@ -69,8 +70,6 @@ async def get_theme_exploration_framework(workspace_id: str) -> Dict[str, Any]:
         unprioritized_themes = roadmap_controller.get_unprioritized_themes(
             workspace_uuid, session
         )
-
-        prioritized_ids = {theme.id for theme in prioritized_themes}
 
         builder = FrameworkBuilder("theme")
 
@@ -199,7 +198,6 @@ async def get_theme_exploration_framework(workspace_id: str) -> Dict[str, Any]:
 
 @mcp.tool()
 async def submit_roadmap_theme(
-    workspace_id: str,
     name: str,
     problem_statement: str,
     hypothesis: Optional[str] = None,
@@ -212,8 +210,10 @@ async def submit_roadmap_theme(
     Called only when Claude Code and user have crafted a high-quality
     hypothesis-driven theme through dialogue.
 
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
     Args:
-        workspace_id: UUID of the workspace
         name: Theme name (1-100 characters, unique per workspace)
         problem_statement: Problem being solved (1-1500 characters, required)
         hypothesis: Expected outcome (max 1500 characters, optional)
@@ -226,7 +226,6 @@ async def submit_roadmap_theme(
 
     Example:
         >>> result = await submit_roadmap_theme(
-        ...     workspace_id="...",
         ...     name="First-Week Configuration Success",
         ...     problem_statement="Users abandon setup...",
         ...     hypothesis="Smart defaults will increase completion...",
@@ -237,7 +236,7 @@ async def submit_roadmap_theme(
     """
     session = SessionLocal()
     try:
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
         user_id = get_user_id_from_request()
 
         # Convert outcome_ids from strings to UUIDs
@@ -304,27 +303,27 @@ async def submit_roadmap_theme(
 
 
 @mcp.tool()
-async def get_prioritization_context(workspace_id: str) -> Dict[str, Any]:
+async def get_prioritization_context() -> Dict[str, Any]:
     """Get context for prioritizing themes (deciding what to commit to).
 
     Returns rich context including current roadmap state, prioritized themes,
     unprioritized themes with alignment scores, and prioritization guidance.
 
-    Args:
-        workspace_id: UUID of the workspace
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
 
     Returns:
         Framework dict with purpose, current roadmap state, questions to consider,
         prioritization guidance, and capacity check.
 
     Example:
-        >>> context = await get_prioritization_context(workspace_id)
+        >>> context = await get_prioritization_context()
         >>> print(len(context["current_roadmap"]["prioritized_themes"]))
         2
     """
     session = SessionLocal()
     try:
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
 
         # Get outcomes for alignment scoring
         all_outcomes = strategic_controller.get_product_outcomes(
@@ -436,14 +435,16 @@ async def get_prioritization_context(workspace_id: str) -> Dict[str, Any]:
 
 @mcp.tool()
 async def prioritize_workstream(
-    workspace_id: str, theme_id: str, priority_position: int
+    theme_id: str, priority_position: int
 ) -> Dict[str, Any]:
     """Add theme to prioritized roadmap at specified position.
 
     Commits to working on a theme by moving it from backlog to active roadmap.
 
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
     Args:
-        workspace_id: UUID of the workspace
         theme_id: UUID of the theme to prioritize
         priority_position: Position in priority list (0-indexed, 0 = highest priority)
 
@@ -452,14 +453,13 @@ async def prioritize_workstream(
 
     Example:
         >>> result = await prioritize_workstream(
-        ...     workspace_id="...",
         ...     theme_id="...",
         ...     priority_position=0
         ... )
     """
     session = SessionLocal()
     try:
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
         theme_uuid = validate_uuid(theme_id, "theme_id")
 
         # Get current prioritized count for capacity warning
@@ -511,22 +511,24 @@ async def prioritize_workstream(
 
 
 @mcp.tool()
-async def deprioritize_workstream(workspace_id: str, theme_id: str) -> Dict[str, Any]:
+async def deprioritize_workstream(theme_id: str) -> Dict[str, Any]:
     """Remove theme from prioritized roadmap (move back to backlog).
 
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
     Args:
-        workspace_id: UUID of the workspace
         theme_id: UUID of the theme to deprioritize
 
     Returns:
         Success response with theme data, or error response.
 
     Example:
-        >>> result = await deprioritize_workstream(workspace_id="...", theme_id="...")
+        >>> result = await deprioritize_workstream(theme_id="...")
     """
     session = SessionLocal()
     try:
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
         theme_uuid = validate_uuid(theme_id, "theme_id")
 
         # Deprioritize the theme
@@ -551,13 +553,13 @@ async def deprioritize_workstream(workspace_id: str, theme_id: str) -> Dict[str,
 
 
 @mcp.tool()
-async def organize_roadmap(
-    workspace_id: str, theme_order: Dict[str, int]
-) -> Dict[str, Any]:
+async def organize_roadmap(theme_order: Dict[str, int]) -> Dict[str, Any]:
     """Reorder prioritized themes.
 
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
     Args:
-        workspace_id: UUID of the workspace
         theme_order: Dict mapping theme_id (str) to new position (int).
                      Must include ALL prioritized themes.
 
@@ -566,13 +568,12 @@ async def organize_roadmap(
 
     Example:
         >>> result = await organize_roadmap(
-        ...     workspace_id="...",
         ...     theme_order={"theme-1": 0, "theme-2": 1, "theme-3": 2}
         ... )
     """
     session = SessionLocal()
     try:
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
 
         # Convert theme_order keys from strings to UUIDs
         theme_order_uuids = {}
@@ -610,12 +611,14 @@ async def organize_roadmap(
 
 @mcp.tool()
 async def connect_theme_to_outcomes(
-    workspace_id: str, theme_id: str, outcome_ids: List[str]
+    theme_id: str, outcome_ids: List[str]
 ) -> Dict[str, Any]:
     """Update outcome linkages for a theme.
 
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
     Args:
-        workspace_id: UUID of the workspace
         theme_id: UUID of the theme
         outcome_ids: List of outcome IDs to link to this theme
 
@@ -624,14 +627,13 @@ async def connect_theme_to_outcomes(
 
     Example:
         >>> result = await connect_theme_to_outcomes(
-        ...     workspace_id="...",
         ...     theme_id="...",
         ...     outcome_ids=["outcome-1", "outcome-2"]
         ... )
     """
     session = SessionLocal()
     try:
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
         theme_uuid = validate_uuid(theme_id, "theme_id")
 
         # Convert outcome_ids from strings to UUIDs

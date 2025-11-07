@@ -8,7 +8,6 @@ Pattern: Get Framework → Claude + User Collaborate → Submit Result
 """
 
 import logging
-import uuid
 from typing import Any, Dict, List, Optional
 
 from src.db import SessionLocal
@@ -18,6 +17,7 @@ from src.mcp_server.prompt_driven_tools.utils import (
     build_error_response,
     build_success_response,
     get_user_id_from_request,
+    get_workspace_id_from_request,
     serialize_outcome,
     serialize_pillar,
     serialize_vision,
@@ -36,30 +36,31 @@ logger = logging.getLogger(__name__)
 
 
 @mcp.tool()
-async def get_vision_definition_framework(workspace_id: str) -> Dict[str, Any]:
+async def get_vision_definition_framework() -> Dict[str, Any]:
     """Get comprehensive framework for defining a product vision.
 
     Returns rich context to help Claude Code guide the user through
     defining a high-quality product vision through collaborative refinement.
 
-    Args:
-        workspace_id: UUID of the workspace
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
 
     Returns:
         Framework dictionary with purpose, criteria, examples, questions,
         anti-patterns, current state, and coaching tips
 
     Example:
-        >>> framework = await get_vision_definition_framework(workspace_id)
+        >>> framework = await get_vision_definition_framework()
         >>> # Claude Code uses framework to guide user through refinement
         >>> # User and Claude iterate until vision is outcome-focused
-        >>> await submit_product_vision(workspace_id, refined_vision)
+        >>> await submit_product_vision(refined_vision)
     """
     session = SessionLocal()
     try:
-        logger.info(f"Getting vision definition framework for workspace {workspace_id}")
-
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
+        logger.info(
+            f"Getting vision definition framework for workspace {workspace_uuid}"
+        )
 
         # Get current vision if exists
         current_vision = strategic_controller.get_workspace_vision(
@@ -154,14 +155,16 @@ async def get_vision_definition_framework(workspace_id: str) -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def submit_product_vision(workspace_id: str, vision_text: str) -> Dict[str, Any]:
+async def submit_product_vision(vision_text: str) -> Dict[str, Any]:
     """Submit a refined product vision after collaborative definition.
 
     Called only when Claude Code and user have crafted a high-quality
     vision through dialogue using the framework guidance.
 
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
     Args:
-        workspace_id: UUID of the workspace
         vision_text: Refined vision statement (1-1000 characters)
 
     Returns:
@@ -170,7 +173,6 @@ async def submit_product_vision(workspace_id: str, vision_text: str) -> Dict[str
     Example:
         >>> # After collaborative refinement with Claude Code
         >>> result = await submit_product_vision(
-        ...     workspace_id="123e4567-e89b-12d3-a456-426614174000",
         ...     vision_text="Enable developers to manage tasks without leaving their IDE"
         ... )
         >>> print(result["status"])  # "success"
@@ -178,11 +180,9 @@ async def submit_product_vision(workspace_id: str, vision_text: str) -> Dict[str
     """
     session = SessionLocal()
     try:
-        logger.info(f"Submitting product vision for workspace {workspace_id}")
-
-        # Validate inputs
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
         user_id = get_user_id_from_request()
+        logger.info(f"Submitting product vision for workspace {workspace_uuid}")
 
         # Call controller to create/update vision
         vision = strategic_controller.upsert_workspace_vision(
@@ -225,29 +225,30 @@ async def submit_product_vision(workspace_id: str, vision_text: str) -> Dict[str
 
 
 @mcp.tool()
-async def get_pillar_definition_framework(workspace_id: str) -> Dict[str, Any]:
+async def get_pillar_definition_framework() -> Dict[str, Any]:
     """Get comprehensive framework for defining a strategic pillar.
 
     Returns rich context to help Claude Code guide the user through
     defining a high-quality strategic pillar through collaborative refinement.
 
-    Args:
-        workspace_id: UUID of the workspace
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
 
     Returns:
         Framework dictionary with purpose, criteria, examples, questions,
         anti-patterns, current state, and coaching tips
 
     Example:
-        >>> framework = await get_pillar_definition_framework(workspace_id)
+        >>> framework = await get_pillar_definition_framework()
         >>> # Claude Code uses framework to guide user through refinement
-        >>> await submit_strategic_pillar(workspace_id, name, description, anti_strategy)
+        >>> await submit_strategic_pillar(name, description, anti_strategy)
     """
     session = SessionLocal()
     try:
-        logger.info(f"Getting pillar definition framework for workspace {workspace_id}")
-
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
+        logger.info(
+            f"Getting pillar definition framework for workspace {workspace_uuid}"
+        )
 
         # Get current pillars
         current_pillars = strategic_controller.get_strategic_pillars(
@@ -365,7 +366,6 @@ async def get_pillar_definition_framework(workspace_id: str) -> Dict[str, Any]:
 
 @mcp.tool()
 async def submit_strategic_pillar(
-    workspace_id: str,
     name: str,
     description: Optional[str] = None,
     anti_strategy: Optional[str] = None,
@@ -375,8 +375,10 @@ async def submit_strategic_pillar(
     Called only when Claude Code and user have crafted a high-quality
     pillar through dialogue using the framework guidance.
 
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
     Args:
-        workspace_id: UUID of the workspace
         name: Pillar name (1-100 characters, unique per workspace)
         description: Optional pillar description (max 1000 characters)
         anti_strategy: Optional anti-strategy text (max 1000 characters)
@@ -386,7 +388,6 @@ async def submit_strategic_pillar(
 
     Example:
         >>> result = await submit_strategic_pillar(
-        ...     workspace_id="123e4567-e89b-12d3-a456-426614174000",
         ...     name="Deep IDE Integration",
         ...     description="Provide seamless experience within developer's existing workflow",
         ...     anti_strategy="No web-first experience, no mobile app"
@@ -394,11 +395,9 @@ async def submit_strategic_pillar(
     """
     session = SessionLocal()
     try:
-        logger.info(f"Submitting strategic pillar for workspace {workspace_id}")
-
-        # Validate inputs
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
         user_id = get_user_id_from_request()
+        logger.info(f"Submitting strategic pillar for workspace {workspace_uuid}")
 
         # Call controller to create pillar
         pillar = strategic_controller.create_strategic_pillar(
@@ -468,22 +467,21 @@ async def submit_strategic_pillar(
 
 
 @mcp.tool()
-async def get_outcome_definition_framework(workspace_id: str) -> Dict[str, Any]:
+async def get_outcome_definition_framework() -> Dict[str, Any]:
     """Get comprehensive framework for defining a product outcome.
 
-    Args:
-        workspace_id: UUID of the workspace
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
 
     Returns:
         Framework dictionary with guidance for defining measurable outcomes
     """
     session = SessionLocal()
     try:
+        workspace_uuid = get_workspace_id_from_request()
         logger.info(
-            f"Getting outcome definition framework for workspace {workspace_id}"
+            f"Getting outcome definition framework for workspace {workspace_uuid}"
         )
-
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
 
         # Get current outcomes and available pillars
         current_outcomes = strategic_controller.get_product_outcomes(
@@ -583,7 +581,6 @@ async def get_outcome_definition_framework(workspace_id: str) -> Dict[str, Any]:
 
 @mcp.tool()
 async def submit_product_outcome(
-    workspace_id: str,
     name: str,
     description: Optional[str] = None,
     metrics: Optional[str] = None,
@@ -592,8 +589,10 @@ async def submit_product_outcome(
 ) -> Dict[str, Any]:
     """Submit a refined product outcome after collaborative definition.
 
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
     Args:
-        workspace_id: UUID of the workspace
         name: Outcome name (1-150 characters)
         description: Optional outcome description (max 1500 characters)
         metrics: How to measure this outcome (max 1000 characters)
@@ -605,11 +604,9 @@ async def submit_product_outcome(
     """
     session = SessionLocal()
     try:
-        logger.info(f"Submitting product outcome for workspace {workspace_id}")
-
-        # Validate inputs
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
         user_id = get_user_id_from_request()
+        logger.info(f"Submitting product outcome for workspace {workspace_uuid}")
 
         # Convert pillar_ids to UUIDs
         pillar_uuids = []

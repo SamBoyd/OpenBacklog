@@ -1,17 +1,18 @@
 import logging
-import urllib.parse
-from re import L
+import uuid
 from typing import Any, Dict, List
 
-import requests
-import uvicorn
-from fastmcp.server import FastMCP
-from fastmcp.server.dependencies import get_http_request
-from mcp.server.fastmcp import Context
 from pydantic import BaseModel
-from starlette.requests import Request
+from sqlalchemy.orm import Session
 
-from src.config import settings
+from src.db import SessionLocal
+from src.initiative_management.task_controller import (
+    ChecklistItemData,
+    TaskController,
+    TaskControllerError,
+    TaskNotFoundError,
+)
+from src.mcp_server.auth_utils import extract_user_from_request
 from src.mcp_server.main import mcp
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,6 @@ class ChecklistItem(BaseModel):
 async def update_checklist(
     task_id: str,
     checklist_items: List[ChecklistItem],
-    ctx: Context = None,
 ) -> Dict[str, Any]:
     """
     Replace the entire checklist for a task with a new implementation plan.
@@ -34,11 +34,11 @@ async def update_checklist(
     Used during implementation planning to set the complete checklist of steps
     that need to be completed for the task.
 
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
     Args:
         - task_id: The UUID of the task to update checklist for
-        - checklist_items: List of checklist item objects with 'title' and optional 'order'
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+        - checklist_items: List of checklist item objects with 'title' and 'is_complete'
 
     Returns:
         - Confirmation of the checklist update with the new items
@@ -46,65 +46,41 @@ async def update_checklist(
     logger.info(
         f"Updating checklist for task {task_id} with {len(checklist_items)} items"
     )
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        if not authorization_header:
-            if ctx:
-                await ctx.error("No authorization header found")
+        user_id, error = extract_user_from_request(session)
+        if error:
             return {
                 "status": "error",
                 "type": "checklist_update",
-                "error_message": "No authorization header found",
+                "error_message": error,
             }
 
-        # First, delete existing checklist items for this task
-        delete_url = f"{settings.postgrest_domain}/checklist?task_id=eq.{task_id}"
+        task_uuid = uuid.UUID(task_id)
 
-        delete_response = requests.delete(
-            delete_url,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
-
-        if delete_response.status_code not in [200, 204]:
-            logger.warning(
-                f"Could not delete existing checklist items: {delete_response.status_code}"
+        # Convert ChecklistItem pydantic models to ChecklistItemData
+        items_data = [
+            ChecklistItemData(
+                title=item.title, is_complete=item.is_complete, order=index
             )
+            for index, item in enumerate(checklist_items)
+        ]
 
-        # Create new checklist items
-        created_items = []
-        for index, item in enumerate(checklist_items):
-            item_payload = {
-                "task_id": task_id,
+        # Use TaskController to update checklist
+        controller = TaskController(session)
+        task = controller.update_checklist(user_id, task_uuid, items_data)
+
+        # Get the updated checklist items from the task
+        created_items = [
+            {
+                "id": str(item.id),
                 "title": item.title,
-                "is_complete": False,
+                "is_complete": item.is_complete,
+                "order": item.order,
+                "task_id": str(item.task_id),
             }
-
-            create_url = f"{settings.postgrest_domain}/checklist"
-
-            create_response = requests.post(
-                create_url,
-                json=item_payload,
-                headers={
-                    "Authorization": authorization_header,
-                    "Content-Type": "application/json",
-                    "Prefer": "return=representation",
-                },
-                timeout=30,
-            )
-
-            if create_response.status_code in [200, 201]:
-                created_items.extend(create_response.json())
-            else:
-                logger.warning(
-                    f"Could not create checklist item {item.title}: {create_response.status_code}"
-                )
+            for item in task.checklist_items
+        ]
 
         logger.info(
             f"Successfully updated checklist for task {task_id} with {len(created_items)} items"
@@ -118,6 +94,30 @@ async def update_checklist(
             "created_items": created_items,
         }
 
+    except TaskNotFoundError as e:
+        logger.exception(f"Task not found: {str(e)}")
+        return {
+            "status": "error",
+            "type": "checklist_update",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
+    except TaskControllerError as e:
+        logger.exception(f"Controller error in update_checklist: {str(e)}")
+        return {
+            "status": "error",
+            "type": "checklist_update",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
+    except ValueError as e:
+        logger.exception(f"Invalid UUID format: {str(e)}")
+        return {
+            "status": "error",
+            "type": "checklist_update",
+            "error_message": f"Invalid task ID format: {str(e)}",
+            "error_type": "validation_error",
+        }
     except Exception as e:
         logger.exception(f"Error in update_checklist MCP tool: {str(e)}")
         return {
@@ -126,11 +126,13 @@ async def update_checklist(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()
 
 
 @mcp.tool()
 async def update_checklist_item(
-    task_id: str, item_id: str, is_complete: bool, ctx: Context = None
+    task_id: str, item_id: str, is_complete: bool
 ) -> Dict[str, Any]:
     """
     Mark a specific checklist item as complete or incomplete.
@@ -138,58 +140,43 @@ async def update_checklist_item(
     Used during implementation to track progress by updating individual
     checklist items as work is completed.
 
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
     Args:
         - task_id: The UUID of the task (for validation)
         - item_id: The UUID of the checklist item to update
         - is_complete: Whether the item should be marked as complete
 
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
-
     Returns:
         - Confirmation of the item status update
     """
     logger.info(f"Updating checklist item {item_id} to complete={is_complete}")
+    session: Session = SessionLocal()
     try:
-        request: Request = get_http_request()
-
-        # Access request data
-        authorization_header = request.headers.get("Authorization")
-        if not authorization_header:
-            if ctx:
-                await ctx.error("No authorization header found")
+        user_id, error = extract_user_from_request(session)
+        if error:
             return {
                 "status": "error",
                 "type": "checklist_item_update",
-                "error_message": "No authorization header found",
+                "error_message": error,
             }
 
-        # Update the checklist item
-        update_url = f"{settings.postgrest_domain}/checklist?id=eq.{item_id}&task_id=eq.{task_id}"
+        task_uuid = uuid.UUID(task_id)
+        item_uuid = uuid.UUID(item_id)
 
-        payload = {"is_complete": is_complete}
-
-        response = requests.patch(
-            update_url,
-            json=payload,
-            headers={
-                "Authorization": authorization_header,
-                "Content-Type": "application/json",
-                "Prefer": "return=representation",
-            },
-            timeout=30,
+        # Use TaskController to update checklist item
+        controller = TaskController(session)
+        checklist_item = controller.update_checklist_item(
+            user_id, task_uuid, item_uuid, is_complete
         )
 
-        if response.status_code not in [200, 204]:
-            logger.exception(
-                f"Error updating checklist item: {response.status_code} - {response.text}"
-            )
-            return {
-                "status": "error",
-                "type": "checklist_item_update",
-                "error_message": f"Server error: {response.status_code}",
-            }
-
-        updated_items = response.json() if response.content else []
+        updated_item = {
+            "id": str(checklist_item.id),
+            "title": checklist_item.title,
+            "is_complete": checklist_item.is_complete,
+            "order": checklist_item.order,
+            "task_id": str(checklist_item.task_id),
+        }
 
         logger.info(
             f"Successfully updated checklist item {item_id} to complete={is_complete}"
@@ -202,9 +189,33 @@ async def update_checklist_item(
             "task_id": task_id,
             "item_id": item_id,
             "is_complete": is_complete,
-            "updated_items": updated_items,
+            "updated_items": [updated_item],
         }
 
+    except TaskNotFoundError as e:
+        logger.exception(f"Task not found: {str(e)}")
+        return {
+            "status": "error",
+            "type": "checklist_item_update",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
+    except TaskControllerError as e:
+        logger.exception(f"Controller error in update_checklist_item: {str(e)}")
+        return {
+            "status": "error",
+            "type": "checklist_item_update",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
+    except ValueError as e:
+        logger.exception(f"Invalid UUID format: {str(e)}")
+        return {
+            "status": "error",
+            "type": "checklist_item_update",
+            "error_message": f"Invalid ID format: {str(e)}",
+            "error_type": "validation_error",
+        }
     except Exception as e:
         logger.exception(f"Error in update_checklist_item MCP tool: {str(e)}")
         return {
@@ -213,3 +224,5 @@ async def update_checklist_item(
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }
+    finally:
+        session.close()

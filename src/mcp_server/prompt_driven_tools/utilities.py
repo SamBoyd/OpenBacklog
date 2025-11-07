@@ -16,6 +16,7 @@ from src.mcp_server.prompt_driven_tools.utils import (
     build_error_response,
     build_success_response,
     get_user_id_from_request,
+    get_workspace_id_from_request,
     serialize_outcome,
     serialize_strategic_foundation,
     validate_uuid,
@@ -25,14 +26,14 @@ from src.strategic_planning.exceptions import DomainException
 
 
 @mcp.tool()
-async def review_strategic_foundation(workspace_id: str) -> Dict[str, Any]:
+async def review_strategic_foundation() -> Dict[str, Any]:
     """Get health check and gap analysis of strategic foundation.
 
     Analyzes the completeness and quality of workspace strategic foundation
     (vision, pillars, outcomes) and provides actionable recommendations.
 
-    Args:
-        workspace_id: UUID of the workspace to review
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
 
     Returns:
         Dict containing:
@@ -45,13 +46,13 @@ async def review_strategic_foundation(workspace_id: str) -> Dict[str, Any]:
         - summary: Human-readable health summary
 
     Example:
-        >>> result = await review_strategic_foundation("workspace-uuid")
+        >>> result = await review_strategic_foundation()
         >>> print(result["status"])  # "partial"
         >>> print(result["gaps"])    # ["Only 1 strategic pillar..."]
     """
     session = SessionLocal()
     try:
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
 
         # Fetch strategic foundation components
         vision = strategic_controller.get_workspace_vision(workspace_uuid, session)
@@ -74,7 +75,6 @@ async def review_strategic_foundation(workspace_id: str) -> Dict[str, Any]:
 
 @mcp.tool()
 async def connect_outcome_to_pillars(
-    workspace_id: str,
     outcome_id: str,
     pillar_ids: List[str],
 ) -> Dict[str, Any]:
@@ -83,8 +83,10 @@ async def connect_outcome_to_pillars(
     Outcomes should be linked to at least one pillar to validate that they
     support your strategic differentiation.
 
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
     Args:
-        workspace_id: UUID of the workspace
         outcome_id: UUID of the outcome to link
         pillar_ids: List of pillar UUIDs to link to this outcome
 
@@ -93,14 +95,13 @@ async def connect_outcome_to_pillars(
 
     Example:
         >>> result = await connect_outcome_to_pillars(
-        ...     workspace_id="workspace-uuid",
         ...     outcome_id="outcome-uuid",
         ...     pillar_ids=["pillar1-uuid", "pillar2-uuid"]
         ... )
     """
     session = SessionLocal()
     try:
-        workspace_uuid = validate_uuid(workspace_id, "workspace_id")
+        workspace_uuid = get_workspace_id_from_request()
         outcome_uuid = validate_uuid(outcome_id, "outcome_id")
         pillar_uuids = [
             validate_uuid(pid, f"pillar_ids[{i}]") for i, pid in enumerate(pillar_ids)

@@ -24,7 +24,6 @@ class TestGetActiveInitiatives:
         request = Mock(spec=Request)
         request.headers = {
             "Authorization": "Bearer valid_token",
-            "X-Workspace-Id": "workspace-123",
         }
         return request
 
@@ -32,7 +31,6 @@ class TestGetActiveInitiatives:
     def mock_request_no_auth(self):
         """Create a mock request without authorization header."""
         request = Mock(spec=Request)
-        request.headers = {"X-Workspace-Id": "workspace-123"}
         return request
 
     @pytest.fixture
@@ -109,7 +107,9 @@ class TestGetActiveInitiatives:
             result = await get_active_initiatives.fn()
 
             # Verify correct URL construction
-            expected_url = "https://api.test.com/initiative?status=eq.IN_PROGRESS&workspace_id=eq.workspace-123&select=*"
+            expected_url = (
+                "https://api.test.com/initiative?status=eq.IN_PROGRESS&select=*"
+            )
             mock_get.assert_called_once_with(
                 expected_url,
                 headers={
@@ -237,22 +237,6 @@ class TestGetActiveInitiatives:
             )
 
     @pytest.mark.asyncio
-    async def test_get_active_initiatives_missing_workspace_id(self, mock_settings):
-        """Test handling when workspace ID is missing from headers."""
-        request = Mock(spec=Request)
-        request.headers = {"Authorization": "Bearer valid_token"}
-
-        with patch(
-            "src.mcp_server.initiative_tools.get_http_request"
-        ) as mock_get_request:
-            mock_get_request.return_value = request
-
-            result = await get_active_initiatives.fn()
-
-            # Should still make request but with workspace_id=eq.None
-            assert_that(result["status"], equal_to("error"))
-
-    @pytest.mark.asyncio
     @pytest.mark.parametrize("status_code", [400, 401, 403, 404, 422])
     async def test_get_active_initiatives_client_errors(
         self, mock_request_with_auth, mock_settings, status_code
@@ -291,7 +275,6 @@ class TestSearchInitiatives:
         request = Mock(spec=Request)
         request.headers = {
             "Authorization": "Bearer valid_token",
-            "X-Workspace-Id": "workspace-123",
         }
         return request
 
@@ -299,7 +282,6 @@ class TestSearchInitiatives:
     def mock_request_no_auth(self):
         """Create a mock request without authorization header."""
         request = Mock(spec=Request)
-        request.headers = {"X-Workspace-Id": "workspace-123"}
         return request
 
     @pytest.fixture
@@ -377,7 +359,7 @@ class TestSearchInitiatives:
             mock_quote.assert_called_once_with("authentication")
 
             # Verify correct API call
-            expected_url = "https://api.test.com/initiative?or(title.plfts(authentication),description.plfts(authentication),identifier.plfts(authentication))&workspace_id=eq.workspace-123"
+            expected_url = "https://api.test.com/initiative?or(title.plfts(authentication),description.plfts(authentication),identifier.plfts(authentication))"
             mock_get.assert_called_once_with(
                 expected_url,
                 headers={
@@ -426,7 +408,7 @@ class TestSearchInitiatives:
             mock_quote.assert_called_once_with("oauth 2.0")
 
             # Verify encoded query was used in URL
-            expected_url = "https://api.test.com/initiative?or(title.plfts(oauth%202.0),description.plfts(oauth%202.0),identifier.plfts(oauth%202.0))&workspace_id=eq.workspace-123"
+            expected_url = "https://api.test.com/initiative?or(title.plfts(oauth%202.0),description.plfts(oauth%202.0),identifier.plfts(oauth%202.0))"
             assert mock_get.call_args[0][0] == expected_url
 
     @pytest.mark.asyncio
@@ -554,31 +536,6 @@ class TestSearchInitiatives:
             assert_that(result["status"], equal_to("success"))
 
     @pytest.mark.asyncio
-    async def test_search_initiatives_missing_workspace_id(self, mock_settings):
-        """Test handling when workspace ID is missing from headers."""
-        request = Mock(spec=Request)
-        request.headers = {"Authorization": "Bearer valid_token"}
-
-        with (
-            patch(
-                "src.mcp_server.initiative_tools.get_http_request"
-            ) as mock_get_request,
-            patch("src.mcp_server.initiative_tools.requests.get") as mock_get,
-        ):
-
-            mock_get_request.return_value = request
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = []
-            mock_get.return_value = mock_response
-
-            result = await search_initiatives.fn("test")
-
-            # Should still work but workspace filter will be None
-            expected_url = "https://api.test.com/initiative?or(title.plfts(test),description.plfts(test),identifier.plfts(test))&workspace_id=eq.None"
-            assert mock_get.call_args[0][0] == expected_url
-
-    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "query", ["test query", "special!@#$%", "unicode🚀test", "123456"]
     )
@@ -618,7 +575,6 @@ class TestGetInitiativeDetails:
         request = Mock(spec=Request)
         request.headers = {
             "Authorization": "Bearer valid_token",
-            "X-Workspace-Id": "workspace-123",
         }
         return request
 
@@ -626,7 +582,6 @@ class TestGetInitiativeDetails:
     def mock_request_no_auth(self):
         """Create a mock request without authorization header."""
         request = Mock(spec=Request)
-        request.headers = {"X-Workspace-Id": "workspace-123"}
         return request
 
     @pytest.fixture
@@ -727,12 +682,12 @@ class TestGetInitiativeDetails:
 
             # Verify initiative URL was called correctly
             assert mock_get.call_args_list[0][0][0] == (
-                "https://api.test.com/initiative?id=eq.initiative-123&workspace_id=eq.workspace-123&select=*"
+                "https://api.test.com/initiative?id=eq.initiative-123&select=*"
             )
 
             # Verify tasks URL was called correctly
             assert mock_get.call_args_list[1][0][0] == (
-                "https://api.test.com/task?initiative_id=eq.initiative-123&workspace_id=eq.workspace-123&select=*&order=status,identifier"
+                "https://api.test.com/task?initiative_id=eq.initiative-123&select=*&order=status,identifier"
             )
 
             # Verify successful result structure

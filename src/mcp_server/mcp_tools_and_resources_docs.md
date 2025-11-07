@@ -32,11 +32,18 @@ The OpenBacklog MCP server provides a comprehensive set of tools for managing in
 
 ## Authentication
 
-All tools (except `health_check`) require authentication headers:
+All tools require OAuth authentication handled by FastMCP's Auth0Provider.
 
-**Required Headers:**
-- `Authorization: Bearer <token>` - User authentication token
-- `X-Workspace-Id: <workspace_uuid>` - Target workspace identifier
+**Authentication Flow:**
+- Users authenticate via OAuth 2.0 / OpenID Connect (Auth0)
+- FastMCP middleware automatically extracts and validates access tokens from requests
+- The authenticated user's workspace is automatically derived (each user has one workspace)
+- No manual header management required in tool implementations
+
+**Client Configuration:**
+- MCP clients must send `Authorization: Bearer <token>` header
+- The workspace is automatically resolved from the authenticated user
+- FastMCP handles token validation and user extraction transparently
 
 ---
 
@@ -51,9 +58,10 @@ Verifies MCP server connectivity and authentication status.
 {
   "status": "success" | "error",
   "type": "health_check",
-  "message": "MCP server connectivity and authentication verified",
+  "message": "MCP server authentication and database connectivity verified",
+  "user_id": "<user_uuid>",
   "workspace_id": "<workspace_uuid>",
-  "api_endpoint": "<postgrest_domain>"
+  "workspace_name": "..."
 }
 ```
 
@@ -61,6 +69,7 @@ Verifies MCP server connectivity and authentication status.
 - Initial connection verification
 - Debugging authentication issues
 - Validating workspace access
+- Testing database connectivity
 
 ---
 
@@ -106,26 +115,27 @@ A workspace is a container for initiatives, tasks, and strategic planning. Creat
 ```json
 {
   "status": "success" | "error",
-  "type": "workspace",
-  "message": "Created workspace '{name}'",
-  "workspace": {
-    "id": "<uuid>",
-    "name": "...",
-    "description": "...",
-    "icon": null
+    "type": "workspace",
+    "message": "Created workspace '{name}'",
+    "workspace": {
+      "id": "<uuid>",
+      "name": "...",
+      "description": "...",
+      "icon": null
+    }
   }
-}
-```
+  ```
 
-**Use Cases:**
-- First-time user setup (onboarding)
-- Creating additional workspaces for different projects
-- Setting up workspace before creating initiatives
+  **Use Cases:**
+  - First-time user setup (onboarding)
+  - Setting up workspace before creating initiatives
 
-**Important Notes:**
-- This is typically the first step for new users
-- After creating a workspace, use its ID in the `X-Workspace-Id` header for all subsequent requests
-- Creating your first initiative after workspace creation will automatically complete onboarding
+  **Important Notes:**
+  - This is typically the first step for new users
+  - Each user can only have one workspace
+  - The workspace is automatically associated with the authenticated user
+  - Creating your first initiative after workspace creation will automatically complete onboarding
+  - Workspace ID is automatically resolved from the authenticated user in all subsequent requests
 
 **Example Usage:**
 ```
@@ -763,10 +773,11 @@ All tools return consistent error responses:
 ```
 
 **Common Error Types:**
-- `authentication_error`: Missing or invalid auth headers
-- `workspace_error`: Missing workspace ID
+- `auth_error`: Missing or invalid access token, or authentication failure
+- `workspace_error`: User has no workspace (create workspace first)
 - `validation_error`: Invalid input parameters
-- `server_error`: Backend API issues
+- `controller_error`: Business logic errors from controllers
+- `server_error`: Backend API or database issues
 
 ---
 
@@ -787,11 +798,13 @@ All tools return consistent error responses:
 ## Architecture Notes
 
 - **Transport:** HTTP on port 9000
-- **API Backend:** PostgREST for database access
-- **Authentication:** Bearer token + workspace ID headers
+- **Authentication:** OAuth 2.0 / OpenID Connect via FastMCP's Auth0Provider
+- **Token Handling:** FastMCP middleware automatically extracts and validates access tokens
+- **Workspace Resolution:** Automatically derived from authenticated user (one workspace per user)
 - **Pattern:** Prompt-driven collaboration for strategic planning
 - **Framework:** FastMCP for MCP server implementation
 - **Database:** PostgreSQL with full-text search support
+- **User Extraction:** OAuth account claims (`sub`) mapped to users via `OAuthAccount` table
 
 ---
 

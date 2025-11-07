@@ -29,7 +29,6 @@ class TestGetInitiativeTasks:
         request = Mock(spec=Request)
         request.headers = {
             "Authorization": "Bearer valid_token",
-            "X-Workspace-Id": "workspace-123",
         }
         return request
 
@@ -37,7 +36,6 @@ class TestGetInitiativeTasks:
     def mock_request_no_auth(self):
         """Create a mock request without authorization header."""
         request = Mock(spec=Request)
-        request.headers = {"X-Workspace-Id": "workspace-123"}
         return request
 
     @pytest.fixture
@@ -110,7 +108,9 @@ class TestGetInitiativeTasks:
             result = await get_initiative_tasks.fn("initiative-123")
 
             # Verify correct URL construction
-            expected_url = "https://api.test.com/task?initiative_id=eq.initiative-123&workspace_id=eq.workspace-123&select=*"
+            expected_url = (
+                "https://api.test.com/task?initiative_id=eq.initiative-123&select=*"
+            )
             mock_get.assert_called_once_with(
                 expected_url,
                 headers={
@@ -242,7 +242,6 @@ class TestGetTaskDetails:
         request = Mock(spec=Request)
         request.headers = {
             "Authorization": "Bearer valid_token",
-            "X-Workspace-Id": "workspace-123",
         }
         return request
 
@@ -250,7 +249,6 @@ class TestGetTaskDetails:
     def mock_request_no_auth(self):
         """Create a mock request without authorization header."""
         request = Mock(spec=Request)
-        request.headers = {"X-Workspace-Id": "workspace-123"}
         return request
 
     @pytest.fixture
@@ -403,7 +401,7 @@ class TestGetTaskDetails:
 
             # Verify task API call
             task_call = mock_get.call_args_list[0]
-            expected_task_url = "https://api.test.com/task?id=eq.task-123&workspace_id=eq.workspace-123&select=*"
+            expected_task_url = "https://api.test.com/task?id=eq.task-123&select=*"
             assert task_call[0][0] == expected_task_url
 
             # Verify checklist API call
@@ -413,12 +411,14 @@ class TestGetTaskDetails:
 
             # Verify initiative API call
             initiative_call = mock_get.call_args_list[2]
-            expected_initiative_url = "https://api.test.com/initiative?id=eq.initiative-123&workspace_id=eq.workspace-123&select=*"
+            expected_initiative_url = (
+                "https://api.test.com/initiative?id=eq.initiative-123&select=*"
+            )
             assert initiative_call[0][0] == expected_initiative_url
 
             # Verify related tasks API call
             related_tasks_call = mock_get.call_args_list[3]
-            expected_related_tasks_url = "https://api.test.com/task?initiative_id=eq.initiative-123&workspace_id=eq.workspace-123&id=neq.task-123&select=id,identifier,title,status,type&order=status,identifier"
+            expected_related_tasks_url = "https://api.test.com/task?initiative_id=eq.initiative-123&id=neq.task-123&select=id,identifier,title,status,type&order=status,identifier"
             assert related_tasks_call[0][0] == expected_related_tasks_url
 
             # Verify successful result
@@ -543,7 +543,6 @@ class TestSearchTasks:
         request = Mock(spec=Request)
         request.headers = {
             "Authorization": "Bearer valid_token",
-            "X-Workspace-Id": "workspace-123",
         }
         return request
 
@@ -551,7 +550,6 @@ class TestSearchTasks:
     def mock_request_no_auth(self):
         """Create a mock request without authorization header."""
         request = Mock(spec=Request)
-        request.headers = {"X-Workspace-Id": "workspace-123"}
         return request
 
     @pytest.fixture
@@ -625,7 +623,7 @@ class TestSearchTasks:
             mock_quote.assert_called_once_with("authentication")
 
             # Verify correct API call
-            expected_url = "https://api.test.com/task?or(title.plfts(authentication),description.plfts(authentication),identifier.plfts(authentication))&workspace_id=eq.workspace-123"
+            expected_url = "https://api.test.com/task?or(title.plfts(authentication),description.plfts(authentication),identifier.plfts(authentication))"
             mock_get.assert_called_once_with(
                 expected_url,
                 headers={
@@ -668,7 +666,7 @@ class TestSearchTasks:
             mock_quote.assert_called_once_with("oauth 2.0")
 
             # Verify encoded query was used in URL
-            expected_url = "https://api.test.com/task?or(title.plfts(oauth%202.0),description.plfts(oauth%202.0),identifier.plfts(oauth%202.0))&workspace_id=eq.workspace-123"
+            expected_url = "https://api.test.com/task?or(title.plfts(oauth%202.0),description.plfts(oauth%202.0),identifier.plfts(oauth%202.0))"
             assert mock_get.call_args[0][0] == expected_url
 
     @pytest.mark.asyncio
@@ -716,7 +714,6 @@ class TestUpdateTaskDescription:
         request = Mock(spec=Request)
         request.headers = {
             "Authorization": "Bearer valid_token",
-            "X-Workspace-Id": "workspace-123",
         }
         return request
 
@@ -724,7 +721,6 @@ class TestUpdateTaskDescription:
     def mock_request_no_auth(self):
         """Create a mock request without authorization header."""
         request = Mock(spec=Request)
-        request.headers = {"X-Workspace-Id": "workspace-123"}
         return request
 
     @pytest.fixture
@@ -774,9 +770,7 @@ class TestUpdateTaskDescription:
             result = await update_task_description.fn("task-123", "Updated description")
 
             # Verify patch was called correctly
-            expected_url = (
-                "https://api.test.com/task?id=eq.task-123&workspace_id=eq.workspace-123"
-            )
+            expected_url = "https://api.test.com/task?id=eq.task-123"
             mock_patch.assert_called_once_with(
                 expected_url,
                 json={"description": "Updated description"},
@@ -869,7 +863,6 @@ class TestValidateContext:
         request = Mock(spec=Request)
         request.headers = {
             "Authorization": "Bearer valid_token",
-            "X-Workspace-Id": "workspace-123",
         }
         return request
 
@@ -877,7 +870,6 @@ class TestValidateContext:
     def mock_request_no_auth(self):
         """Create a mock request without authorization header."""
         request = Mock(spec=Request)
-        request.headers = {"X-Workspace-Id": "workspace-123"}
         return request
 
     @pytest.fixture
@@ -1070,7 +1062,6 @@ class TestUpdateTaskStatusInProgress:
         request = Mock(spec=Request)
         request.headers = {
             "Authorization": "Bearer valid_token",
-            "X-Workspace-Id": "workspace-123",
         }
         return request
 
@@ -1078,7 +1069,6 @@ class TestUpdateTaskStatusInProgress:
     def mock_request_no_auth(self):
         """Create a mock request without authorization header."""
         request = Mock(spec=Request)
-        request.headers = {"X-Workspace-Id": "workspace-123"}
         return request
 
     @pytest.fixture
@@ -1128,9 +1118,7 @@ class TestUpdateTaskStatusInProgress:
             result = await update_task_status_inprogress.fn("task-123")
 
             # Verify patch was called correctly
-            expected_url = (
-                "https://api.test.com/task?id=eq.task-123&workspace_id=eq.workspace-123"
-            )
+            expected_url = "https://api.test.com/task?id=eq.task-123"
             mock_patch.assert_called_once_with(
                 expected_url,
                 json={"status": "IN_PROGRESS"},
@@ -1200,7 +1188,6 @@ class TestUpdateTaskStatusDone:
         request = Mock(spec=Request)
         request.headers = {
             "Authorization": "Bearer valid_token",
-            "X-Workspace-Id": "workspace-123",
         }
         return request
 
@@ -1208,7 +1195,6 @@ class TestUpdateTaskStatusDone:
     def mock_request_no_auth(self):
         """Create a mock request without authorization header."""
         request = Mock(spec=Request)
-        request.headers = {"X-Workspace-Id": "workspace-123"}
         return request
 
     @pytest.fixture
@@ -1258,9 +1244,7 @@ class TestUpdateTaskStatusDone:
             result = await update_task_status_done.fn("task-123")
 
             # Verify patch was called correctly
-            expected_url = (
-                "https://api.test.com/task?id=eq.task-123&workspace_id=eq.workspace-123"
-            )
+            expected_url = "https://api.test.com/task?id=eq.task-123"
             mock_patch.assert_called_once_with(
                 expected_url,
                 json={"status": "DONE"},
