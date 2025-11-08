@@ -1,13 +1,38 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
+import { useOnboardingPolling } from '#hooks/useOnboardingPolling';
 
 /**
  * Standalone MCP setup page for onboarding
  * Generates API token and provides MCP installation command
+ * Polls for workspace and initiative creation to unlock the web interface
  * @returns {React.ReactElement} The MCP setup page component
  */
 const MCPSetupPage: React.FC = () => {
   // Track which item was copied for visual feedback
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
+
+  // Navigation hook for redirect
+  const navigate = useNavigate();
+
+  // Poll for workspace and initiative creation
+  const { status, hasWorkspace, hasInitiatives, initiativeCount } = useOnboardingPolling();
+
+  // Redirect to initiatives page when onboarding is complete
+  useEffect(() => {
+    if (status === 'complete') {
+      // Wait 2 seconds to show success message before redirecting
+      const timer = setTimeout(() => {
+        navigate('/workspace/initiatives');
+      }, 2000);
+
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+    // Return undefined if not in complete state
+    return undefined;
+  }, [status, navigate]);
 
   // Get MCP server domain from current origin
   const mcpServerDomain = window.location.origin;
@@ -168,6 +193,20 @@ const MCPSetupPage: React.FC = () => {
                       copied={copiedItem === 'initiative'}
                     />
                   </div>
+                  {status === 'polling-workspace' && (
+                    <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      <span>Waiting for workspace creation...</span>
+                    </div>
+                  )}
+                  {hasWorkspace && (
+                    <div className="mt-4 flex items-center gap-2 text-sm text-success">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Workspace created successfully!</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -181,16 +220,40 @@ const MCPSetupPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-semibold text-foreground mb-3">
+                  <h2 className={`text-2xl font-semibold mb-3 ${
+                    status === 'polling-workspace' ? 'text-muted-foreground' : 'text-foreground'
+                  }`}>
                     Access Web UI
                   </h2>
-                  <span className="loading loading-dots loading-sm"></span>
-                  <p className="text-base text-muted-foreground">
+                  <p className={`text-base mb-4 ${
+                    status === 'polling-workspace' ? 'text-muted-foreground/70' : 'text-muted-foreground'
+                  }`}>
                     After creating your first initiative, the web interface unlocks automatically for visualizing your backlog and roadmap.
                   </p>
 
                   <div className="mt-5 border border-border/50 rounded-md flex items-center justify-center py-20">
-                    <span className="text-sm text-muted-foreground animate-pulse">Waiting for new initiatives...</span>
+                    {status === 'polling-workspace' && (
+                      <span className="text-sm text-muted-foreground">Waiting for workspace first...</span>
+                    )}
+                    {status === 'polling-initiatives' && (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span className="text-sm text-muted-foreground animate-pulse">Waiting for initiatives...</span>
+                      </div>
+                    )}
+                    {status === 'complete' && (
+                      <div className="flex flex-col items-center gap-3">
+                        <svg className="w-12 h-12 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <div className="text-center">
+                          <p className="text-base font-semibold text-success mb-1">
+                            {initiativeCount} {initiativeCount === 1 ? 'initiative' : 'initiatives'} detected!
+                          </p>
+                          <p className="text-sm text-muted-foreground">Redirecting to web interface...</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -269,6 +269,10 @@
       "storybook": "./hooks/useRoadmapWithInitiatives.mock.tsx",
       "default": "./hooks/useRoadmapWithInitiatives.tsx"
     },
+    "#hooks/useOnboardingPolling": {
+      "storybook": "./hooks/useOnboardingPolling.mock.tsx",
+      "default": "./hooks/useOnboardingPolling.tsx"
+    },
     "#styles": {
       "default": "./styles"
     },

@@ -12,6 +12,13 @@ import { UserAccountStatus } from '#constants/userAccountStatus';
 import { mockWorkspace, mockWorkspacesReturn } from '#stories/example_data';
 import { WorkspaceDto } from '#types';
 import { useOpenbacklogToken, mockUseOpenbacklogTokenGeneratedReturn } from '#hooks/useOpenbacklogToken.mock';
+import { useOnboardingPolling } from '#hooks/useOnboardingPolling';
+import {
+    mockUseOnboardingPolling,
+    mockPollingWorkspace,
+    mockPollingInitiatives,
+    mockComplete
+} from '#hooks/useOnboardingPolling.mock';
 
 const mockOnboardCustomer = async () => {
     await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -94,6 +101,7 @@ const meta = {
                 addWorkspace: mockAddWorkspace,
             })
             useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
+            useOnboardingPolling.mockReturnValue(mockPollingWorkspace);
             return <Story />;
         }
     ],
@@ -122,6 +130,70 @@ export const ExistingWorkspace: Story = {
             useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue(mockWorkspacesReturn)
             useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
+            useOnboardingPolling.mockReturnValue(mockPollingWorkspace);
+            return <Story />;
+        }
+    ],
+};
+
+/**
+ * MCP Setup page - Polling for workspace creation
+ * Shows the initial state where the user hasn't created a workspace yet via MCP.
+ */
+export const MCPSetupPollingWorkspace: Story = {
+    decorators: [
+        (Story) => {
+            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
+            useWorkspaces.mockReturnValue({
+                ...mockWorkspacesReturn,
+                workspaces: [],
+                currentWorkspace: null,
+                addWorkspace: mockAddWorkspace,
+            })
+            useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
+            useOnboardingPolling.mockReturnValue(mockPollingWorkspace);
+            return <Story />;
+        }
+    ],
+};
+
+/**
+ * MCP Setup page - Polling for initiative creation
+ * Shows the state after workspace is created and now waiting for first initiative.
+ */
+export const MCPSetupPollingInitiatives: Story = {
+    decorators: [
+        (Story) => {
+            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
+            useWorkspaces.mockReturnValue({
+                ...mockWorkspacesReturn,
+                workspaces: [],
+                currentWorkspace: null,
+                addWorkspace: mockAddWorkspace,
+            })
+            useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
+            useOnboardingPolling.mockReturnValue(mockPollingInitiatives);
+            return <Story />;
+        }
+    ],
+};
+
+/**
+ * MCP Setup page - Complete
+ * Shows the success state when initiatives have been detected and user will be redirected.
+ */
+export const MCPSetupComplete: Story = {
+    decorators: [
+        (Story) => {
+            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
+            useWorkspaces.mockReturnValue({
+                ...mockWorkspacesReturn,
+                workspaces: [],
+                currentWorkspace: null,
+                addWorkspace: mockAddWorkspace,
+            })
+            useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
+            useOnboardingPolling.mockReturnValue(mockComplete);
             return <Story />;
         }
     ],
