@@ -12,7 +12,7 @@ import { UserAccountStatus } from '#constants/userAccountStatus';
 import { mockWorkspace, mockWorkspacesReturn } from '#stories/example_data';
 import { WorkspaceDto } from '#types';
 import { useOpenbacklogToken, mockUseOpenbacklogTokenGeneratedReturn } from '#hooks/useOpenbacklogToken.mock';
-import { useOnboardingPolling } from '#hooks/useOnboardingPolling';
+import { useOnboardingPolling } from '#hooks/useOnboardingPolling.mock';
 import {
     mockUseOnboardingPolling,
     mockPollingWorkspace,
