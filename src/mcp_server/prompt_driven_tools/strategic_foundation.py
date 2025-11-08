@@ -8,15 +8,16 @@ Pattern: Get Framework → Claude + User Collaborate → Submit Result
 """
 
 import logging
+import uuid
 from typing import Any, Dict, List, Optional
 
+from mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.db import SessionLocal
 from src.mcp_server.main import mcp
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
     build_error_response,
     build_success_response,
-    get_user_id_from_request,
     get_workspace_id_from_request,
     serialize_outcome,
     serialize_pillar,
@@ -180,14 +181,13 @@ async def submit_product_vision(vision_text: str) -> Dict[str, Any]:
     """
     session = SessionLocal()
     try:
-        workspace_uuid = get_workspace_id_from_request()
-        user_id = get_user_id_from_request()
-        logger.info(f"Submitting product vision for workspace {workspace_uuid}")
+        user_id, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(f"Submitting product vision for workspace {workspace_id}")
 
         # Call controller to create/update vision
         vision = strategic_controller.upsert_workspace_vision(
-            workspace_id=workspace_uuid,
-            user_id=user_id,
+            workspace_id=uuid.UUID(workspace_id),
+            user_id=uuid.UUID(user_id),
             vision_text=vision_text,
             session=session,
         )
@@ -211,6 +211,8 @@ async def submit_product_vision(vision_text: str) -> Dict[str, Any]:
         return build_error_response("vision", str(e))
     except ValueError as e:
         logger.error(f"Validation error: {e}")
+        return build_error_response("vision", str(e))
+    except MCPContextError as e:
         return build_error_response("vision", str(e))
     except Exception as e:
         logger.exception(f"Error submitting vision: {e}")
@@ -395,14 +397,13 @@ async def submit_strategic_pillar(
     """
     session = SessionLocal()
     try:
-        workspace_uuid = get_workspace_id_from_request()
-        user_id = get_user_id_from_request()
-        logger.info(f"Submitting strategic pillar for workspace {workspace_uuid}")
+        user_id, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(f"Submitting strategic pillar for workspace {workspace_id}")
 
         # Call controller to create pillar
         pillar = strategic_controller.create_strategic_pillar(
-            workspace_id=workspace_uuid,
-            user_id=user_id,
+            workspace_id=uuid.UUID(workspace_id),
+            user_id=uuid.UUID(user_id),
             name=name,
             description=description,
             anti_strategy=anti_strategy,
@@ -411,7 +412,7 @@ async def submit_strategic_pillar(
 
         # Build success response with next steps
         all_pillars = strategic_controller.get_strategic_pillars(
-            workspace_uuid, session
+            uuid.UUID(workspace_id), session
         )
         current_pillar_count = len(all_pillars)
 
@@ -453,6 +454,8 @@ async def submit_strategic_pillar(
         return build_error_response("pillar", str(e))
     except ValueError as e:
         logger.error(f"Validation error: {e}")
+        return build_error_response("pillar", str(e))
+    except MCPContextError as e:
         return build_error_response("pillar", str(e))
     except Exception as e:
         logger.exception(f"Error submitting pillar: {e}")
@@ -604,9 +607,8 @@ async def submit_product_outcome(
     """
     session = SessionLocal()
     try:
-        workspace_uuid = get_workspace_id_from_request()
-        user_id = get_user_id_from_request()
-        logger.info(f"Submitting product outcome for workspace {workspace_uuid}")
+        user_id, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(f"Submitting product outcome for workspace {workspace_id}")
 
         # Convert pillar_ids to UUIDs
         pillar_uuids = []
@@ -616,8 +618,8 @@ async def submit_product_outcome(
 
         # Call controller to create outcome
         outcome = strategic_controller.create_product_outcome(
-            workspace_id=workspace_uuid,
-            user_id=user_id,
+            workspace_id=uuid.UUID(workspace_id),
+            user_id=uuid.UUID(user_id),
             name=name,
             description=description,
             metrics=metrics,
@@ -645,6 +647,8 @@ async def submit_product_outcome(
         return build_error_response("outcome", str(e))
     except ValueError as e:
         logger.error(f"Validation error: {e}")
+        return build_error_response("outcome", str(e))
+    except MCPContextError as e:
         return build_error_response("outcome", str(e))
     except Exception as e:
         logger.exception(f"Error submitting outcome: {e}")

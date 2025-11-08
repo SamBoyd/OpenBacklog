@@ -1,13 +1,13 @@
-import json
 import logging
+import uuid
 from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
 from src.db import SessionLocal
-from src.mcp_server.auth_utils import extract_user_from_request, get_user_workspace
+from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp  # type: ignore
-from src.models import Initiative
+from src.models import Initiative, Workspace
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,35 +30,22 @@ async def health_check() -> Dict[str, Any]:
     logger.info("Performing health check")
     session: Session = SessionLocal()
     try:
-        # Verify authentication
-        user_id, error = extract_user_from_request(session)
-        if error:
-            logger.warning(f"Health check failed: {error}")
-            return {
-                "status": "error",
-                "type": "health_check",
-                "error_message": error,
-                "error_type": "auth_error",
-            }
+        user_id_str, workspace_id_str = get_auth_context(
+            session, requires_workspace=True
+        )
+        user_id = uuid.UUID(user_id_str)
+        workspace_id = uuid.UUID(workspace_id_str) if workspace_id_str else None
 
-        if user_id is None:
-            return {
-                "status": "error",
-                "type": "health_check",
-                "error_message": "User ID not found",
-                "error_type": "auth_error",
-            }
-
-        # Verify workspace access
-        workspace, error = get_user_workspace(session, user_id)
-        if error:
-            logger.warning(f"Health check failed: {error}")
-            return {
-                "status": "error",
-                "type": "health_check",
-                "error_message": error,
-                "error_type": "workspace_error",
-            }
+        workspace = (
+            session.query(Workspace).filter(Workspace.id == workspace_id).first()
+            if workspace_id
+            else None
+        )
+        if workspace is None:
+            raise MCPContextError(
+                "Workspace not found for authenticated user",
+                error_type="workspace_error",
+            )
 
         # Test database connectivity with a simple query
         try:
@@ -89,6 +76,14 @@ async def health_check() -> Dict[str, Any]:
             "workspace_name": workspace.name,
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error during health check: {str(e)}")
+        return {
+            "status": "error",
+            "type": "health_check",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except Exception as e:
         logger.exception(f"Health check failed with exception: {str(e)}")
         return {

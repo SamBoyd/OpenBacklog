@@ -12,7 +12,7 @@ from src.initiative_management.task_controller import (
     TaskControllerError,
     TaskNotFoundError,
 )
-from src.mcp_server.auth_utils import extract_user_from_request
+from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
 
 logger = logging.getLogger(__name__)
@@ -48,13 +48,8 @@ async def update_checklist(
     )
     session: Session = SessionLocal()
     try:
-        user_id, error = extract_user_from_request(session)
-        if error:
-            return {
-                "status": "error",
-                "type": "checklist_update",
-                "error_message": error,
-            }
+        user_id_str, _ = get_auth_context(session, requires_workspace=True)
+        user_id = uuid.UUID(user_id_str)
 
         task_uuid = uuid.UUID(task_id)
 
@@ -94,6 +89,14 @@ async def update_checklist(
             "created_items": created_items,
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in update_checklist: {str(e)}")
+        return {
+            "status": "error",
+            "type": "checklist_update",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except TaskNotFoundError as e:
         logger.exception(f"Task not found: {str(e)}")
         return {
@@ -153,13 +156,8 @@ async def update_checklist_item(
     logger.info(f"Updating checklist item {item_id} to complete={is_complete}")
     session: Session = SessionLocal()
     try:
-        user_id, error = extract_user_from_request(session)
-        if error:
-            return {
-                "status": "error",
-                "type": "checklist_item_update",
-                "error_message": error,
-            }
+        user_id_str, _ = get_auth_context(session, requires_workspace=True)
+        user_id = uuid.UUID(user_id_str)
 
         task_uuid = uuid.UUID(task_id)
         item_uuid = uuid.UUID(item_id)
@@ -192,6 +190,14 @@ async def update_checklist_item(
             "updated_items": [updated_item],
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in update_checklist_item: {str(e)}")
+        return {
+            "status": "error",
+            "type": "checklist_item_update",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except TaskNotFoundError as e:
         logger.exception(f"Task not found: {str(e)}")
         return {

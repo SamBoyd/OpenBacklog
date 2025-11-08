@@ -5,6 +5,7 @@ from typing import Any, Dict
 from sqlalchemy.orm import Session
 
 from src.db import SessionLocal
+from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp  # type: ignore
 from src.models import User, Workspace
 
@@ -45,15 +46,8 @@ async def create_workspace(name: str, description: str = "") -> Dict[str, Any]:
     logger.info(f"Creating workspace with name: {name}")
     session: Session = SessionLocal()
     try:
-        from src.mcp_server.auth_utils import extract_user_from_request
-
-        user_id, error_message = extract_user_from_request(session)
-        if error_message or user_id is None:
-            return {
-                "status": "error",
-                "type": "workspace",
-                "error_message": error_message or "Could not extract user ID",
-            }
+        user_id_str, _ = get_auth_context(session, requires_workspace=False)
+        user_id = uuid.UUID(user_id_str)
 
         user = session.query(User).filter(User.id == user_id).first()
 
@@ -98,6 +92,14 @@ async def create_workspace(name: str, description: str = "") -> Dict[str, Any]:
             "workspace": workspace_data,
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in create_workspace: {str(e)}")
+        return {
+            "status": "error",
+            "type": "workspace",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except ValueError as e:
         logger.exception(f"Value error in create_workspace MCP tool: {str(e)}")
         return {

@@ -14,6 +14,19 @@ from src.models import OAuthAccount, User, Workspace
 logger = logging.getLogger(__name__)
 
 
+class MCPContextError(RuntimeError):
+    """
+    Raised when MCP tool context (user/workspace) resolution fails.
+
+    Attributes:
+        error_type: String identifier describing the error category.
+    """
+
+    def __init__(self, message: str, *, error_type: str = "context_error") -> None:
+        super().__init__(message)
+        self.error_type = error_type
+
+
 def extract_user_from_request(
     session: Session,
 ) -> Tuple[Optional[uuid.UUID], Optional[str]]:
@@ -87,3 +100,46 @@ def get_user_workspace(
     except Exception as e:
         logger.exception(f"Error fetching workspace: {str(e)}")
         return None, f"Error fetching workspace: {str(e)}"
+
+
+def get_auth_context(
+    session: Session,
+    requires_workspace: bool = False,
+) -> Tuple[str, Optional[str]]:
+    """
+    Consolidated helper to fetch authenticated user and optional workspace context.
+
+    Args:
+        session: SQLAlchemy database session.
+        requires_workspace: Whether a workspace is required for the caller.
+
+    Returns:
+        Tuple containing user_id and optional workspace_id as strings.
+
+    Raises:
+        MCPContextError: If the user or required workspace cannot be resolved.
+    """
+    user_id, error_message = extract_user_from_request(session)
+    if error_message or user_id is None:
+        message = error_message or "Authentication required."
+        logger.warning(f"Authentication failed in get_auth_context: {message}")
+        raise MCPContextError(message, error_type="auth_error")
+
+    workspace_id: Optional[str] = None
+    if requires_workspace:
+        workspace, workspace_error = get_user_workspace(session, user_id)
+        if workspace_error or workspace is None:
+            message = workspace_error or "Workspace not found."
+            logger.warning(f"Workspace lookup failed in get_auth_context: {message}")
+            raise MCPContextError(message, error_type="workspace_error")
+        workspace_id = str(workspace.id)
+    else:
+        workspace, workspace_error = get_user_workspace(session, user_id)
+        if workspace:
+            workspace_id = str(workspace.id)
+        elif workspace_error:
+            logger.info(
+                f"Workspace lookup returned error without requiring workspace: {workspace_error}"
+            )
+
+    return str(user_id), workspace_id

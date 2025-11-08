@@ -7,7 +7,11 @@ import uuid
 from typing import Optional
 
 from src.db import SessionLocal
-from src.mcp_server.auth_utils import extract_user_from_request, get_user_workspace
+from src.mcp_server.auth_utils import (
+    MCPContextError,
+    get_auth_context,
+    get_user_workspace,
+)
 
 __all__ = [
     "get_user_id_from_request",
@@ -30,10 +34,10 @@ def get_user_id_from_request() -> uuid.UUID:
     """
     session = SessionLocal()
     try:
-        user_id, error_message = extract_user_from_request(session)
-        if error_message or user_id is None:
-            raise ValueError(error_message or "Could not extract user ID")
-        return user_id
+        user_id_str, _ = get_auth_context(session, requires_workspace=False)
+        return uuid.UUID(user_id_str)
+    except MCPContextError as e:
+        raise ValueError(str(e)) from e
     finally:
         session.close()
 
@@ -72,10 +76,16 @@ def get_workspace_id_from_request() -> uuid.UUID:
     Raises:
         ValueError: If user not authenticated or has no workspace
     """
-    user_id = get_user_id_from_request()
-    workspace_id = get_workspace_id_from_user_id(user_id)
-
-    if not workspace_id:
-        raise ValueError("User has no workspace. Please create a workspace first.")
-
-    return workspace_id
+    session = SessionLocal()
+    try:
+        _, workspace_id_str = get_auth_context(session, requires_workspace=True)
+        if not workspace_id_str:
+            raise MCPContextError(
+                "User has no workspace. Please create a workspace first.",
+                error_type="workspace_error",
+            )
+        return uuid.UUID(workspace_id_str)
+    except MCPContextError as e:
+        raise ValueError(str(e)) from e
+    finally:
+        session.close()

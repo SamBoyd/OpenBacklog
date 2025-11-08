@@ -12,6 +12,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from src.db import SessionLocal
+from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
@@ -19,7 +20,6 @@ from src.mcp_server.prompt_driven_tools.utils import (
     build_success_response,
     calculate_alignment_score,
     get_alignment_recommendation,
-    get_user_id_from_request,
     get_workspace_id_from_request,
     identify_alignment_issues,
     serialize_theme,
@@ -236,8 +236,7 @@ async def submit_roadmap_theme(
     """
     session = SessionLocal()
     try:
-        workspace_uuid = get_workspace_id_from_request()
-        user_id = get_user_id_from_request()
+        user_id, workspace_id = get_auth_context(session, requires_workspace=True)
 
         # Convert outcome_ids from strings to UUIDs
         outcome_uuids = []
@@ -252,8 +251,8 @@ async def submit_roadmap_theme(
 
         # Create theme via controller
         theme = roadmap_controller.create_roadmap_theme(
-            workspace_id=workspace_uuid,
-            user_id=user_id,
+            workspace_id=uuid.UUID(workspace_id),
+            user_id=uuid.UUID(user_id),
             name=name,
             problem_statement=problem_statement,
             hypothesis=hypothesis,
@@ -292,6 +291,8 @@ async def submit_roadmap_theme(
     except DomainException as e:
         return build_error_response("theme", str(e))
     except ValueError as e:
+        return build_error_response("theme", str(e))
+    except MCPContextError as e:
         return build_error_response("theme", str(e))
     finally:
         session.close()

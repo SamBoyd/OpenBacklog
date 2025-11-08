@@ -10,6 +10,7 @@ from src.initiative_management.initiative_controller import (
     InitiativeControllerError,
     InitiativeNotFoundError,
 )
+from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp  # type: ignore
 
 logging.basicConfig(level=logging.INFO)
@@ -32,32 +33,20 @@ async def get_active_initiatives() -> Dict[str, Any]:
     logger.info("Fetching active initiatives")
     session: Session = SessionLocal()
     try:
-        from src.mcp_server.auth_utils import (
-            extract_user_from_request,
-            get_user_workspace,
+        user_id_str, workspace_id_str = get_auth_context(
+            session, requires_workspace=True
         )
+        if workspace_id_str is None:
+            raise MCPContextError(
+                "Workspace not found.",
+                error_type="workspace_error",
+            )
+        user_id = uuid.UUID(user_id_str)
+        workspace_id = uuid.UUID(workspace_id_str)
 
-        user_id, error_message = extract_user_from_request(session)
-        if error_message or user_id is None:
-            return {
-                "status": "error",
-                "type": "initiative",
-                "error_message": error_message or "Could not extract user ID",
-            }
-
-        workspace, workspace_error = get_user_workspace(session, user_id)
-        if workspace_error or workspace is None:
-            return {
-                "status": "error",
-                "type": "initiative",
-                "error_message": workspace_error or "Workspace not found",
-            }
-
-        # Use InitiativeController to get active initiatives
         controller = InitiativeController(session)
-        initiatives = controller.get_active_initiatives(user_id, workspace.id)
+        initiatives = controller.get_active_initiatives(user_id, workspace_id)
 
-        # Convert to dict format expected by MCP clients
         initiatives_data = [
             {
                 "id": str(initiative.id),
@@ -87,6 +76,14 @@ async def get_active_initiatives() -> Dict[str, Any]:
             "data": initiatives_data,
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in get_active_initiatives: {str(e)}")
+        return {
+            "status": "error",
+            "type": "initiative",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except InitiativeControllerError as e:
         logger.exception(f"Controller error in get_active_initiatives: {str(e)}")
         return {
@@ -125,32 +122,20 @@ async def search_initiatives(
     logger.info(f"Searching for initiatives with query {query}")
     session: Session = SessionLocal()
     try:
-        from src.mcp_server.auth_utils import (
-            extract_user_from_request,
-            get_user_workspace,
+        user_id_str, workspace_id_str = get_auth_context(
+            session, requires_workspace=True
         )
+        if workspace_id_str is None:
+            raise MCPContextError(
+                "Workspace not found.",
+                error_type="workspace_error",
+            )
+        user_id = uuid.UUID(user_id_str)
+        workspace_id = uuid.UUID(workspace_id_str)
 
-        user_id, error_message = extract_user_from_request(session)
-        if error_message or user_id is None:
-            return {
-                "status": "error",
-                "type": "initiative",
-                "error_message": error_message or "Could not extract user ID",
-            }
-
-        workspace, workspace_error = get_user_workspace(session, user_id)
-        if workspace_error or workspace is None:
-            return {
-                "status": "error",
-                "type": "initiative",
-                "error_message": workspace_error or "Workspace not found",
-            }
-
-        # Use InitiativeController to search initiatives
         controller = InitiativeController(session)
-        initiatives = controller.search_initiatives(user_id, workspace.id, query)
+        initiatives = controller.search_initiatives(user_id, workspace_id, query)
 
-        # Convert to dict format expected by MCP clients
         initiatives_data = [
             {
                 "id": str(initiative.id),
@@ -179,6 +164,14 @@ async def search_initiatives(
             "data": initiatives_data,
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in search_initiatives: {str(e)}")
+        return {
+            "status": "error",
+            "type": "initiative",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except InitiativeControllerError as e:
         logger.exception(f"Controller error in search_initiatives: {str(e)}")
         return {
@@ -220,19 +213,11 @@ async def get_initiative_details(
     logger.info(f"Fetching details for initiative {initiative_id}")
     session: Session = SessionLocal()
     try:
-        from src.mcp_server.auth_utils import extract_user_from_request
-
-        user_id, error_message = extract_user_from_request(session)
-        if error_message or user_id is None:
-            return {
-                "status": "error",
-                "type": "initiative_details",
-                "error_message": error_message or "Could not extract user ID",
-            }
+        user_id_str, _ = get_auth_context(session, requires_workspace=True)
+        user_id = uuid.UUID(user_id_str)
 
         initiative_uuid = uuid.UUID(initiative_id)
 
-        # Use InitiativeController to get initiative details
         controller = InitiativeController(session)
         initiative = controller.get_initiative_details(user_id, initiative_uuid)
 
@@ -291,6 +276,14 @@ async def get_initiative_details(
             "tasks": tasks_data,
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in get_initiative_details: {str(e)}")
+        return {
+            "status": "error",
+            "type": "initiative_details",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except InitiativeNotFoundError as e:
         logger.exception(f"Initiative not found: {str(e)}")
         return {

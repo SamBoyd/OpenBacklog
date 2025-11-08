@@ -11,7 +11,7 @@ from src.initiative_management.task_controller import (
     TaskControllerError,
     TaskNotFoundError,
 )
-from src.mcp_server.auth_utils import extract_user_from_request, get_user_workspace
+from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp  # type: ignore
 from src.models import Initiative, Task, TaskStatus
 
@@ -161,13 +161,8 @@ async def get_initiative_tasks(
     logger.info(f"Fetching tasks for initiative {initiative_id}")
     session: Session = SessionLocal()
     try:
-        user_id, error = extract_user_from_request(session)
-        if error:
-            return {
-                "status": "error",
-                "type": "task",
-                "error_message": error,
-            }
+        user_id_str, _ = get_auth_context(session, requires_workspace=True)
+        user_id = uuid.UUID(user_id_str)
 
         initiative_uuid = uuid.UUID(initiative_id)
 
@@ -188,6 +183,14 @@ async def get_initiative_tasks(
             "data": tasks_data,
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in get_initiative_tasks: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except TaskControllerError as e:
         logger.exception(f"Controller error in get_initiative_tasks: {str(e)}")
         return {
@@ -237,13 +240,8 @@ async def get_task_details(
     logger.info(f"Fetching details for task {task_id}")
     session: Session = SessionLocal()
     try:
-        user_id, error = extract_user_from_request(session)
-        if error:
-            return {
-                "status": "error",
-                "type": "task_details",
-                "error_message": error,
-            }
+        user_id_str, _ = get_auth_context(session, requires_workspace=True)
+        user_id = uuid.UUID(user_id_str)
 
         task_uuid = uuid.UUID(task_id)
 
@@ -326,6 +324,14 @@ async def get_task_details(
             "task_context": task_context,
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in get_task_details: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_details",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except TaskNotFoundError as e:
         logger.exception(f"Task not found: {str(e)}")
         return {
@@ -380,25 +386,20 @@ async def search_tasks(
     logger.info(f"Searching for tasks with query {query}")
     session: Session = SessionLocal()
     try:
-        user_id, error = extract_user_from_request(session)
-        if error:
-            return {
-                "status": "error",
-                "type": "task",
-                "error_message": error,
-            }
-
-        workspace, error = get_user_workspace(session, user_id)
-        if error:
-            return {
-                "status": "error",
-                "type": "task",
-                "error_message": error,
-            }
+        user_id_str, workspace_id_str = get_auth_context(
+            session, requires_workspace=True
+        )
+        if workspace_id_str is None:
+            raise MCPContextError(
+                "Workspace not found.",
+                error_type="workspace_error",
+            )
+        user_id = uuid.UUID(user_id_str)
+        workspace_id = uuid.UUID(workspace_id_str)
 
         # Use TaskController to search tasks
         controller = TaskController(session)
-        tasks = controller.search_tasks(user_id, workspace.id, query)
+        tasks = controller.search_tasks(user_id, workspace_id, query)
 
         # Convert to dict format
         tasks_data = [_task_to_dict(task) for task in tasks]
@@ -411,6 +412,14 @@ async def search_tasks(
             "data": tasks_data,
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in search_tasks: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except TaskControllerError as e:
         logger.exception(f"Controller error in search_tasks: {str(e)}")
         return {
@@ -454,13 +463,8 @@ async def update_task_description(
     logger.info(f"Updating description for task {task_id}")
     session: Session = SessionLocal()
     try:
-        user_id, error = extract_user_from_request(session)
-        if error:
-            return {
-                "status": "error",
-                "type": "task_update",
-                "error_message": error,
-            }
+        user_id_str, _ = get_auth_context(session, requires_workspace=True)
+        user_id = uuid.UUID(user_id_str)
 
         task_uuid = uuid.UUID(task_id)
 
@@ -478,6 +482,14 @@ async def update_task_description(
             "updated_description": description,
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in update_task_description: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_update",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except TaskNotFoundError as e:
         logger.exception(f"Task not found: {str(e)}")
         return {
@@ -536,13 +548,8 @@ async def validate_context(
     logger.info(f"Validating context for task {task_id}")
     session: Session = SessionLocal()
     try:
-        user_id, error = extract_user_from_request(session)
-        if error:
-            return {
-                "status": "error",
-                "type": "context_validation",
-                "error_message": error,
-            }
+        user_id_str, _ = get_auth_context(session, requires_workspace=True)
+        user_id = uuid.UUID(user_id_str)
 
         task_uuid = uuid.UUID(task_id)
 
@@ -587,6 +594,14 @@ async def validate_context(
             "validation_timestamp": "current",
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in validate_context: {str(e)}")
+        return {
+            "status": "error",
+            "type": "context_validation",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except TaskNotFoundError as e:
         logger.exception(f"Task not found: {str(e)}")
         return {
@@ -641,13 +656,8 @@ async def update_task_status_inprogress(
     logger.info(f"Updating task {task_id} status to IN_PROGRESS")
     session: Session = SessionLocal()
     try:
-        user_id, error = extract_user_from_request(session)
-        if error:
-            return {
-                "status": "error",
-                "type": "task_status_update",
-                "error_message": error,
-            }
+        user_id_str, _ = get_auth_context(session, requires_workspace=True)
+        user_id = uuid.UUID(user_id_str)
 
         task_uuid = uuid.UUID(task_id)
 
@@ -667,6 +677,16 @@ async def update_task_status_inprogress(
             "new_status": "IN_PROGRESS",
         }
 
+    except MCPContextError as e:
+        logger.warning(
+            f"Authorization error in update_task_status_inprogress: {str(e)}"
+        )
+        return {
+            "status": "error",
+            "type": "task_status_update",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except TaskNotFoundError as e:
         logger.exception(f"Task not found: {str(e)}")
         return {
@@ -721,13 +741,8 @@ async def update_task_status_done(
     logger.info(f"Updating task {task_id} status to DONE")
     session: Session = SessionLocal()
     try:
-        user_id, error = extract_user_from_request(session)
-        if error:
-            return {
-                "status": "error",
-                "type": "task_status_update",
-                "error_message": error,
-            }
+        user_id_str, _ = get_auth_context(session, requires_workspace=True)
+        user_id = uuid.UUID(user_id_str)
 
         task_uuid = uuid.UUID(task_id)
 
@@ -745,6 +760,14 @@ async def update_task_status_done(
             "new_status": "DONE",
         }
 
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in update_task_status_done: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task_status_update",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
     except TaskNotFoundError as e:
         logger.exception(f"Task not found: {str(e)}")
         return {
