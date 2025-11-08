@@ -20,8 +20,6 @@ class TestGetVisionDefinitionFramework:
     @pytest.mark.asyncio
     async def test_framework_returns_complete_structure(self):
         """Test that framework returns all required fields."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
         ) as mock_session_local:
@@ -34,7 +32,7 @@ class TestGetVisionDefinitionFramework:
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
-                result = await get_vision_definition_framework.fn(workspace_id)
+                result = await get_vision_definition_framework.fn()
 
         # Verify framework has required fields
         assert_that(result, has_key("entity_type"))
@@ -52,7 +50,6 @@ class TestGetVisionDefinitionFramework:
     @pytest.mark.asyncio
     async def test_framework_includes_existing_vision(self):
         """Test that framework includes current vision if exists."""
-        workspace_id = str(uuid.uuid4())
         existing_vision = "Enable developers to manage tasks without leaving their IDE"
 
         with patch(
@@ -71,7 +68,7 @@ class TestGetVisionDefinitionFramework:
             ) as mock_get_vision:
                 mock_get_vision.return_value = mock_vision
 
-                result = await get_vision_definition_framework.fn(workspace_id)
+                result = await get_vision_definition_framework.fn()
 
         # Verify current state shows existing vision
         assert_that(result["current_state"]["has_vision"], equal_to(True))
@@ -82,13 +79,20 @@ class TestGetVisionDefinitionFramework:
     @pytest.mark.asyncio
     async def test_framework_handles_invalid_uuid(self):
         """Test that framework handles invalid workspace_id."""
-        with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
-        ) as mock_session_local:
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.get_workspace_id_from_request"
+            ) as mock_get_workspace_id,
+        ):
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
+            # Mock get_workspace_id_from_request to raise ValueError
+            mock_get_workspace_id.side_effect = ValueError("Invalid workspace ID")
 
-            result = await get_vision_definition_framework.fn("not-a-uuid")
+            result = await get_vision_definition_framework.fn()
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "vision"}))
@@ -98,9 +102,8 @@ class TestSubmitProductVision:
     """Test suite for submit_product_vision tool."""
 
     @pytest.mark.asyncio
-    async def test_submit_creates_vision_successfully(self):
+    async def test_submit_creates_vision_successfully(self, workspace):
         """Test that submit successfully creates vision via controller."""
-        workspace_id = str(uuid.uuid4())
         vision_text = "Enable developers to manage tasks without leaving their IDE"
 
         with patch(
@@ -109,27 +112,20 @@ class TestSubmitProductVision:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
-            # Mock user ID
-            mock_user_id = uuid.uuid4()
+            # Mock controller upsert
+            mock_vision = MagicMock(spec=ProductVision)
+            mock_vision.id = uuid.uuid4()
+            mock_vision.workspace_id = workspace.id
+            mock_vision.vision_text = vision_text
+            mock_vision.created_at = None
+            mock_vision.updated_at = None
+
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.get_user_id_from_request"
-            ) as mock_get_user:
-                mock_get_user.return_value = mock_user_id
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.upsert_workspace_vision"
+            ) as mock_upsert:
+                mock_upsert.return_value = mock_vision
 
-                # Mock controller upsert
-                mock_vision = MagicMock(spec=ProductVision)
-                mock_vision.id = uuid.uuid4()
-                mock_vision.workspace_id = uuid.UUID(workspace_id)
-                mock_vision.vision_text = vision_text
-                mock_vision.created_at = None
-                mock_vision.updated_at = None
-
-                with patch(
-                    "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.upsert_workspace_vision"
-                ) as mock_upsert:
-                    mock_upsert.return_value = mock_vision
-
-                    result = await submit_product_vision.fn(workspace_id, vision_text)
+                result = await submit_product_vision.fn(vision_text)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "vision"}))
@@ -142,7 +138,6 @@ class TestSubmitProductVision:
     @pytest.mark.asyncio
     async def test_submit_handles_domain_exception(self):
         """Test that submit handles domain validation errors."""
-        workspace_id = str(uuid.uuid4())
         vision_text = ""  # Invalid: too short
 
         with patch(
@@ -151,21 +146,15 @@ class TestSubmitProductVision:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
-            mock_user_id = uuid.uuid4()
+            # Mock controller to raise DomainException
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.get_user_id_from_request"
-            ) as mock_get_user:
-                mock_get_user.return_value = mock_user_id
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.upsert_workspace_vision"
+            ) as mock_upsert:
+                mock_upsert.side_effect = DomainException(
+                    "Vision text must be 1-1000 characters"
+                )
 
-                # Mock controller to raise DomainException
-                with patch(
-                    "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.upsert_workspace_vision"
-                ) as mock_upsert:
-                    mock_upsert.side_effect = DomainException(
-                        "Vision text must be 1-1000 characters"
-                    )
-
-                    result = await submit_product_vision.fn(workspace_id, vision_text)
+                result = await submit_product_vision.fn(vision_text)
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "vision"}))
@@ -174,13 +163,20 @@ class TestSubmitProductVision:
     @pytest.mark.asyncio
     async def test_submit_handles_invalid_uuid(self):
         """Test that submit handles invalid workspace_id."""
-        with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
-        ) as mock_session_local:
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.get_workspace_id_from_request"
+            ) as mock_get_workspace_id,
+        ):
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
+            # Mock get_workspace_id_from_request to raise ValueError
+            mock_get_workspace_id.side_effect = ValueError("Invalid workspace ID")
 
-            result = await submit_product_vision.fn("not-a-uuid", "Some vision text")
+            result = await submit_product_vision.fn("Some vision text")
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "vision"}))

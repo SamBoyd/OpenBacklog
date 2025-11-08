@@ -26,8 +26,6 @@ class TestGetThemeExplorationFramework:
     @pytest.mark.asyncio
     async def test_framework_returns_complete_structure(self):
         """Test that framework returns all required fields."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
         ) as mock_session_local:
@@ -53,7 +51,7 @@ class TestGetThemeExplorationFramework:
                 mock_get_prioritized.return_value = []
                 mock_get_unprioritized.return_value = []
 
-                result = await get_theme_exploration_framework.fn(workspace_id)
+                result = await get_theme_exploration_framework.fn()
 
         # Verify framework structure
         assert_that(result, has_key("entity_type"))
@@ -71,8 +69,6 @@ class TestGetThemeExplorationFramework:
     @pytest.mark.asyncio
     async def test_framework_includes_existing_themes_and_outcomes(self):
         """Test that framework includes current themes and outcomes."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
         ) as mock_session_local:
@@ -111,7 +107,7 @@ class TestGetThemeExplorationFramework:
                 mock_get_prioritized.return_value = []
                 mock_get_unprioritized.return_value = [mock_theme]
 
-                result = await get_theme_exploration_framework.fn(workspace_id)
+                result = await get_theme_exploration_framework.fn()
 
         # Verify current state shows existing theme and outcome
         assert_that(result["current_state"]["theme_count"], equal_to(1))
@@ -127,9 +123,8 @@ class TestSubmitRoadmapTheme:
     """Test suite for submit_roadmap_theme tool."""
 
     @pytest.mark.asyncio
-    async def test_submit_creates_theme_successfully(self):
+    async def test_submit_creates_theme_successfully(self, workspace):
         """Test that submit successfully creates theme via controller."""
-        workspace_id = str(uuid.uuid4())
         name = "First-Week Configuration Success"
         problem_statement = "Users abandon initial configuration"
         hypothesis = "Smart defaults will increase completion"
@@ -143,40 +138,33 @@ class TestSubmitRoadmapTheme:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
-            mock_user_id = uuid.uuid4()
+            # Mock controller create
+            mock_theme = MagicMock(spec=RoadmapTheme)
+            mock_theme.id = uuid.uuid4()
+            mock_theme.workspace_id = workspace.id
+            mock_theme.name = name
+            mock_theme.problem_statement = problem_statement
+            mock_theme.hypothesis = hypothesis
+            mock_theme.indicative_metrics = indicative_metrics
+            mock_theme.time_horizon_months = time_horizon_months
+            mock_theme.outcomes = []
+            mock_theme.created_at = None
+            mock_theme.updated_at = None
+            mock_theme.display_order = 0
+
             with patch(
-                "src.mcp_server.prompt_driven_tools.roadmap_themes.get_user_id_from_request"
-            ) as mock_get_user:
-                mock_get_user.return_value = mock_user_id
+                "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.create_roadmap_theme"
+            ) as mock_create:
+                mock_create.return_value = mock_theme
 
-                # Mock controller create
-                mock_theme = MagicMock(spec=RoadmapTheme)
-                mock_theme.id = uuid.uuid4()
-                mock_theme.workspace_id = uuid.UUID(workspace_id)
-                mock_theme.name = name
-                mock_theme.problem_statement = problem_statement
-                mock_theme.hypothesis = hypothesis
-                mock_theme.indicative_metrics = indicative_metrics
-                mock_theme.time_horizon_months = time_horizon_months
-                mock_theme.outcomes = []
-                mock_theme.created_at = None
-                mock_theme.updated_at = None
-                mock_theme.display_order = 0
-
-                with patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.create_roadmap_theme"
-                ) as mock_create:
-                    mock_create.return_value = mock_theme
-
-                    result = await submit_roadmap_theme.fn(
-                        workspace_id,
-                        name,
-                        problem_statement,
-                        hypothesis,
-                        indicative_metrics,
-                        time_horizon_months,
-                        outcome_ids,
-                    )
+                result = await submit_roadmap_theme.fn(
+                    name,
+                    problem_statement,
+                    hypothesis,
+                    indicative_metrics,
+                    time_horizon_months,
+                    outcome_ids,
+                )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
@@ -186,46 +174,44 @@ class TestSubmitRoadmapTheme:
     @pytest.mark.asyncio
     async def test_submit_handles_domain_exception(self):
         """Test that submit handles domain validation errors."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
-            mock_user_id = uuid.uuid4()
             with patch(
-                "src.mcp_server.prompt_driven_tools.roadmap_themes.get_user_id_from_request"
-            ) as mock_get_user:
-                mock_get_user.return_value = mock_user_id
+                "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.create_roadmap_theme"
+            ) as mock_create:
+                mock_create.side_effect = DomainException(
+                    "Workspace has reached maximum of 5 active roadmap themes"
+                )
 
-                with patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.create_roadmap_theme"
-                ) as mock_create:
-                    mock_create.side_effect = DomainException(
-                        "Workspace has reached maximum of 5 active roadmap themes"
-                    )
-
-                    result = await submit_roadmap_theme.fn(
-                        workspace_id, "Theme Name", "Problem statement"
-                    )
+                result = await submit_roadmap_theme.fn(
+                    "Theme Name", "Problem statement"
+                )
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
 
     @pytest.mark.asyncio
-    async def test_submit_handles_invalid_uuid(self):
+    async def test_submit_handles_invalid_uuid(self, mock_get_auth_context):
         """Test that submit handles invalid workspace_id."""
+        # Override the conftest mock to raise ValueError for this test
+        # mock_get_auth_context[6] is the mock for roadmap_themes.get_auth_context
+        original_side_effect = mock_get_auth_context[6].side_effect
+        mock_get_auth_context[6].side_effect = ValueError("Invalid workspace ID")
+
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
-            result = await submit_roadmap_theme.fn(
-                "not-a-uuid", "Theme Name", "Problem statement"
-            )
+            result = await submit_roadmap_theme.fn("Theme Name", "Problem statement")
+
+        # Reset the mock for other tests
+        mock_get_auth_context[6].side_effect = original_side_effect
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
@@ -237,8 +223,6 @@ class TestGetPrioritizationContext:
     @pytest.mark.asyncio
     async def test_context_returns_complete_structure(self):
         """Test that context returns all required fields."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
         ) as mock_session_local:
@@ -264,7 +248,7 @@ class TestGetPrioritizationContext:
                 mock_get_prioritized.return_value = []
                 mock_get_unprioritized.return_value = []
 
-                result = await get_prioritization_context.fn(workspace_id)
+                result = await get_prioritization_context.fn()
 
         # Verify context structure
         assert_that(result, has_key("entity_type"))
@@ -276,8 +260,6 @@ class TestGetPrioritizationContext:
     @pytest.mark.asyncio
     async def test_context_includes_alignment_scores(self):
         """Test that context includes alignment scores for themes."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
         ) as mock_session_local:
@@ -318,7 +300,7 @@ class TestGetPrioritizationContext:
                 mock_get_prioritized.return_value = []
                 mock_get_unprioritized.return_value = [mock_theme]
 
-                result = await get_prioritization_context.fn(workspace_id)
+                result = await get_prioritization_context.fn()
 
         # Verify unprioritized theme has alignment score
         unprioritized = result["current_roadmap"]["unprioritized_themes"]
@@ -330,9 +312,8 @@ class TestPrioritizeWorkstream:
     """Test suite for prioritize_workstream tool."""
 
     @pytest.mark.asyncio
-    async def test_prioritize_succeeds_with_valid_input(self):
+    async def test_prioritize_succeeds_with_valid_input(self, workspace):
         """Test that prioritize successfully prioritizes theme."""
-        workspace_id = str(uuid.uuid4())
         theme_id = str(uuid.uuid4())
         priority_position = 0
 
@@ -345,7 +326,7 @@ class TestPrioritizeWorkstream:
             # Mock theme
             mock_theme = MagicMock(spec=RoadmapTheme)
             mock_theme.id = uuid.UUID(theme_id)
-            mock_theme.workspace_id = uuid.UUID(workspace_id)
+            mock_theme.workspace_id = workspace.id
             mock_theme.name = "Test Theme"
             mock_theme.problem_statement = "Test problem"
             mock_theme.outcomes = []
@@ -367,9 +348,7 @@ class TestPrioritizeWorkstream:
                 mock_get_prioritized.return_value = []
                 mock_prioritize.return_value = mock_theme
 
-                result = await prioritize_workstream.fn(
-                    workspace_id, theme_id, priority_position
-                )
+                result = await prioritize_workstream.fn(theme_id, priority_position)
 
         # Verify success response
         assert_that(
@@ -379,9 +358,8 @@ class TestPrioritizeWorkstream:
         assert_that(result, has_key("next_steps"))
 
     @pytest.mark.asyncio
-    async def test_prioritize_warns_on_capacity_exceeded(self):
+    async def test_prioritize_warns_on_capacity_exceeded(self, workspace):
         """Test that prioritize warns when capacity exceeded."""
-        workspace_id = str(uuid.uuid4())
         theme_id = str(uuid.uuid4())
         priority_position = 0
 
@@ -396,7 +374,7 @@ class TestPrioritizeWorkstream:
 
             mock_theme = MagicMock(spec=RoadmapTheme)
             mock_theme.id = uuid.UUID(theme_id)
-            mock_theme.workspace_id = uuid.UUID(workspace_id)
+            mock_theme.workspace_id = workspace.id
             mock_theme.name = "Test Theme"
             mock_theme.problem_statement = "Test problem"
             mock_theme.outcomes = []
@@ -418,9 +396,7 @@ class TestPrioritizeWorkstream:
                 mock_get_prioritized.return_value = existing_themes
                 mock_prioritize.return_value = mock_theme
 
-                result = await prioritize_workstream.fn(
-                    workspace_id, theme_id, priority_position
-                )
+                result = await prioritize_workstream.fn(theme_id, priority_position)
 
         # Verify warning in next_steps
         assert_that(result, has_key("next_steps"))
@@ -430,7 +406,6 @@ class TestPrioritizeWorkstream:
     @pytest.mark.asyncio
     async def test_prioritize_handles_domain_exception(self):
         """Test that prioritize handles domain validation errors."""
-        workspace_id = str(uuid.uuid4())
         theme_id = str(uuid.uuid4())
 
         with patch(
@@ -452,7 +427,7 @@ class TestPrioritizeWorkstream:
                     "Theme already prioritized"
                 )
 
-                result = await prioritize_workstream.fn(workspace_id, theme_id, 0)
+                result = await prioritize_workstream.fn(theme_id, 0)
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "prioritization"}))
@@ -462,9 +437,8 @@ class TestUtilityTools:
     """Test suite for utility tools (deprioritize, organize, connect)."""
 
     @pytest.mark.asyncio
-    async def test_deprioritize_removes_from_priority_list(self):
+    async def test_deprioritize_removes_from_priority_list(self, workspace):
         """Test that deprioritize successfully removes theme."""
-        workspace_id = str(uuid.uuid4())
         theme_id = str(uuid.uuid4())
 
         with patch(
@@ -475,7 +449,7 @@ class TestUtilityTools:
 
             mock_theme = MagicMock(spec=RoadmapTheme)
             mock_theme.id = uuid.UUID(theme_id)
-            mock_theme.workspace_id = uuid.UUID(workspace_id)
+            mock_theme.workspace_id = workspace.id
             mock_theme.name = "Test Theme"
             mock_theme.problem_statement = "Test problem"
             mock_theme.outcomes = []
@@ -491,7 +465,7 @@ class TestUtilityTools:
             ) as mock_deprioritize:
                 mock_deprioritize.return_value = mock_theme
 
-                result = await deprioritize_workstream.fn(workspace_id, theme_id)
+                result = await deprioritize_workstream.fn(theme_id)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
@@ -500,7 +474,6 @@ class TestUtilityTools:
     @pytest.mark.asyncio
     async def test_organize_reorders_themes_correctly(self):
         """Test that organize successfully reorders themes."""
-        workspace_id = str(uuid.uuid4())
         theme_id_1 = str(uuid.uuid4())
         theme_id_2 = str(uuid.uuid4())
         theme_order = {theme_id_1: 0, theme_id_2: 1}
@@ -526,7 +499,7 @@ class TestUtilityTools:
             ) as mock_reorder:
                 mock_reorder.return_value = mock_themes
 
-                result = await organize_roadmap.fn(workspace_id, theme_order)
+                result = await organize_roadmap.fn(theme_order)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "roadmap"}))
@@ -534,9 +507,8 @@ class TestUtilityTools:
         assert_that(result["data"]["count"], equal_to(2))
 
     @pytest.mark.asyncio
-    async def test_connect_updates_outcome_links(self):
+    async def test_connect_updates_outcome_links(self, workspace):
         """Test that connect successfully updates outcome links."""
-        workspace_id = str(uuid.uuid4())
         theme_id = str(uuid.uuid4())
         outcome_ids = [str(uuid.uuid4())]
 
@@ -552,7 +524,7 @@ class TestUtilityTools:
 
             mock_theme = MagicMock(spec=RoadmapTheme)
             mock_theme.id = uuid.UUID(theme_id)
-            mock_theme.workspace_id = uuid.UUID(workspace_id)
+            mock_theme.workspace_id = workspace.id
             mock_theme.name = "Test Theme"
             mock_theme.problem_statement = "Test problem"
             mock_theme.outcomes = [mock_outcome]
@@ -577,9 +549,7 @@ class TestUtilityTools:
                 mock_update.return_value = mock_theme
                 mock_get_outcomes.return_value = [mock_outcome]
 
-                result = await connect_theme_to_outcomes.fn(
-                    workspace_id, theme_id, outcome_ids
-                )
+                result = await connect_theme_to_outcomes.fn(theme_id, outcome_ids)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))

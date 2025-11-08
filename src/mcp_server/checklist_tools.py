@@ -74,7 +74,7 @@ async def update_checklist(
                 "order": item.order,
                 "task_id": str(item.task_id),
             }
-            for item in task.checklist_items
+            for item in task.checklist
         ]
 
         logger.info(

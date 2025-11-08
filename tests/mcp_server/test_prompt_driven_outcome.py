@@ -19,8 +19,6 @@ class TestGetOutcomeDefinitionFramework:
     @pytest.mark.asyncio
     async def test_framework_returns_complete_structure(self):
         """Test that framework returns all required fields."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
         ) as mock_session_local:
@@ -38,7 +36,7 @@ class TestGetOutcomeDefinitionFramework:
                 mock_get_outcomes.return_value = []
                 mock_get_pillars.return_value = []
 
-                result = await get_outcome_definition_framework.fn(workspace_id)
+                result = await get_outcome_definition_framework.fn()
 
         assert_that(result, has_key("entity_type"))
         assert_that(result, has_key("purpose"))
@@ -51,9 +49,8 @@ class TestSubmitProductOutcome:
     """Test suite for submit_product_outcome tool."""
 
     @pytest.mark.asyncio
-    async def test_submit_creates_outcome_successfully(self):
+    async def test_submit_creates_outcome_successfully(self, workspace):
         """Test that submit successfully creates outcome via controller."""
-        workspace_id = str(uuid.uuid4())
         name = "Developer Daily Adoption"
 
         with patch(
@@ -62,30 +59,24 @@ class TestSubmitProductOutcome:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
-            mock_user_id = uuid.uuid4()
+            mock_outcome = MagicMock(spec=ProductOutcome)
+            mock_outcome.id = uuid.uuid4()
+            mock_outcome.workspace_id = workspace.id
+            mock_outcome.name = name
+            mock_outcome.description = None
+            mock_outcome.metrics = None
+            mock_outcome.time_horizon_months = None
+            mock_outcome.display_order = 0
+            mock_outcome.pillars = []
+            mock_outcome.created_at = None
+            mock_outcome.updated_at = None
+
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.get_user_id_from_request"
-            ) as mock_get_user:
-                mock_get_user.return_value = mock_user_id
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.create_product_outcome"
+            ) as mock_create:
+                mock_create.return_value = mock_outcome
 
-                mock_outcome = MagicMock(spec=ProductOutcome)
-                mock_outcome.id = uuid.uuid4()
-                mock_outcome.workspace_id = uuid.UUID(workspace_id)
-                mock_outcome.name = name
-                mock_outcome.description = None
-                mock_outcome.metrics = None
-                mock_outcome.time_horizon_months = None
-                mock_outcome.display_order = 0
-                mock_outcome.pillars = []
-                mock_outcome.created_at = None
-                mock_outcome.updated_at = None
-
-                with patch(
-                    "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.create_product_outcome"
-                ) as mock_create:
-                    mock_create.return_value = mock_outcome
-
-                    result = await submit_product_outcome.fn(workspace_id, name)
+                result = await submit_product_outcome.fn(name)
 
         assert_that(result, has_entries({"status": "success", "type": "outcome"}))
         assert_that(result, has_key("data"))

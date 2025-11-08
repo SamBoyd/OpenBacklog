@@ -20,8 +20,6 @@ class TestGetPillarDefinitionFramework:
     @pytest.mark.asyncio
     async def test_framework_returns_complete_structure(self):
         """Test that framework returns all required fields."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
         ) as mock_session_local:
@@ -33,7 +31,7 @@ class TestGetPillarDefinitionFramework:
             ) as mock_get_pillars:
                 mock_get_pillars.return_value = []
 
-                result = await get_pillar_definition_framework.fn(workspace_id)
+                result = await get_pillar_definition_framework.fn()
 
         # Verify framework structure
         assert_that(result, has_key("entity_type"))
@@ -50,8 +48,6 @@ class TestGetPillarDefinitionFramework:
     @pytest.mark.asyncio
     async def test_framework_includes_existing_pillars(self):
         """Test that framework includes current pillars."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
         ) as mock_session_local:
@@ -70,7 +66,7 @@ class TestGetPillarDefinitionFramework:
             ) as mock_get_pillars:
                 mock_get_pillars.return_value = [mock_pillar]
 
-                result = await get_pillar_definition_framework.fn(workspace_id)
+                result = await get_pillar_definition_framework.fn()
 
         # Verify current state shows existing pillar
         assert_that(result["current_state"]["pillar_count"], equal_to(1))
@@ -82,9 +78,8 @@ class TestSubmitStrategicPillar:
     """Test suite for submit_strategic_pillar tool."""
 
     @pytest.mark.asyncio
-    async def test_submit_creates_pillar_successfully(self):
+    async def test_submit_creates_pillar_successfully(self, workspace):
         """Test that submit successfully creates pillar via controller."""
-        workspace_id = str(uuid.uuid4())
         name = "Deep IDE Integration"
         description = "Seamless IDE experience"
         anti_strategy = "No web-first"
@@ -95,38 +90,32 @@ class TestSubmitStrategicPillar:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
-            mock_user_id = uuid.uuid4()
+            # Mock controller create
+            mock_pillar = MagicMock(spec=StrategicPillar)
+            mock_pillar.id = uuid.uuid4()
+            mock_pillar.workspace_id = workspace.id
+            mock_pillar.name = name
+            mock_pillar.description = description
+            mock_pillar.anti_strategy = anti_strategy
+            mock_pillar.display_order = 0
+            mock_pillar.outcomes = []
+            mock_pillar.created_at = None
+            mock_pillar.updated_at = None
+
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.get_user_id_from_request"
-            ) as mock_get_user:
-                mock_get_user.return_value = mock_user_id
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.create_strategic_pillar"
+            ) as mock_create:
+                mock_create.return_value = mock_pillar
 
-                # Mock controller create
-                mock_pillar = MagicMock(spec=StrategicPillar)
-                mock_pillar.id = uuid.uuid4()
-                mock_pillar.workspace_id = uuid.UUID(workspace_id)
-                mock_pillar.name = name
-                mock_pillar.description = description
-                mock_pillar.anti_strategy = anti_strategy
-                mock_pillar.display_order = 0
-                mock_pillar.outcomes = []
-                mock_pillar.created_at = None
-                mock_pillar.updated_at = None
-
+                # Mock get_strategic_pillars for counting
                 with patch(
-                    "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.create_strategic_pillar"
-                ) as mock_create:
-                    mock_create.return_value = mock_pillar
+                    "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_strategic_pillars"
+                ) as mock_get_pillars:
+                    mock_get_pillars.return_value = [mock_pillar]
 
-                    # Mock get_strategic_pillars for counting
-                    with patch(
-                        "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_strategic_pillars"
-                    ) as mock_get_pillars:
-                        mock_get_pillars.return_value = [mock_pillar]
-
-                        result = await submit_strategic_pillar.fn(
-                            workspace_id, name, description, anti_strategy
-                        )
+                    result = await submit_strategic_pillar.fn(
+                        name, description, anti_strategy
+                    )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "pillar"}))
@@ -136,28 +125,18 @@ class TestSubmitStrategicPillar:
     @pytest.mark.asyncio
     async def test_submit_handles_domain_exception(self):
         """Test that submit handles domain validation errors."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
-            mock_user_id = uuid.uuid4()
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.get_user_id_from_request"
-            ) as mock_get_user:
-                mock_get_user.return_value = mock_user_id
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.create_strategic_pillar"
+            ) as mock_create:
+                mock_create.side_effect = DomainException("Pillar limit exceeded")
 
-                with patch(
-                    "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.create_strategic_pillar"
-                ) as mock_create:
-                    mock_create.side_effect = DomainException("Pillar limit exceeded")
-
-                    result = await submit_strategic_pillar.fn(
-                        workspace_id, "Pillar Name"
-                    )
+                result = await submit_strategic_pillar.fn("Pillar Name")
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "pillar"}))

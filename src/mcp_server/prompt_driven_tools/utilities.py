@@ -114,7 +114,7 @@ async def connect_outcome_to_pillars(
         if not outcome:
             return build_error_response(
                 "outcome_pillar_link",
-                f"Product outcome {outcome_id} not found in workspace {workspace_id}",
+                f"Product outcome {outcome_id} not found in workspace {workspace_uuid}",
             )
 
         # Link to pillars via controller

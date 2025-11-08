@@ -19,10 +19,8 @@ class TestReviewStrategicFoundation:
     """Test suite for review_strategic_foundation tool."""
 
     @pytest.mark.asyncio
-    async def test_review_foundation_healthy(self):
+    async def test_review_foundation_healthy(self, workspace):
         """Test that review returns healthy status when all elements present."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.utilities.SessionLocal"
         ) as mock_session_local:
@@ -32,7 +30,7 @@ class TestReviewStrategicFoundation:
             # Mock healthy foundation
             mock_vision = MagicMock(spec=ProductVision)
             mock_vision.id = uuid.uuid4()
-            mock_vision.workspace_id = uuid.UUID(workspace_id)
+            mock_vision.workspace_id = workspace.id
             mock_vision.vision_text = "Test vision"
             mock_vision.created_at = None
             mock_vision.updated_at = None
@@ -67,7 +65,7 @@ class TestReviewStrategicFoundation:
                 mock_get_pillars.return_value = [mock_pillar1, mock_pillar2]
                 mock_get_outcomes.return_value = [mock_outcome]
 
-                result = await review_strategic_foundation.fn(workspace_id)
+                result = await review_strategic_foundation.fn()
 
         # Verify healthy status
         assert_that(result, has_key("status"))
@@ -82,8 +80,6 @@ class TestReviewStrategicFoundation:
     @pytest.mark.asyncio
     async def test_review_foundation_partial(self):
         """Test that review identifies gaps in foundation."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.utilities.SessionLocal"
         ) as mock_session_local:
@@ -117,7 +113,7 @@ class TestReviewStrategicFoundation:
                 mock_get_pillars.return_value = [mock_pillar]
                 mock_get_outcomes.return_value = []
 
-                result = await review_strategic_foundation.fn(workspace_id)
+                result = await review_strategic_foundation.fn()
 
         # Verify partial status and gaps identified
         assert_that(result["status"], equal_to("partial"))
@@ -127,8 +123,6 @@ class TestReviewStrategicFoundation:
     @pytest.mark.asyncio
     async def test_review_foundation_missing(self):
         """Test that review returns missing status when nothing defined."""
-        workspace_id = str(uuid.uuid4())
-
         with patch(
             "src.mcp_server.prompt_driven_tools.utilities.SessionLocal"
         ) as mock_session_local:
@@ -150,7 +144,7 @@ class TestReviewStrategicFoundation:
                 mock_get_pillars.return_value = []
                 mock_get_outcomes.return_value = []
 
-                result = await review_strategic_foundation.fn(workspace_id)
+                result = await review_strategic_foundation.fn()
 
         # Verify missing status
         assert_that(result["status"], equal_to("missing"))
@@ -159,13 +153,20 @@ class TestReviewStrategicFoundation:
     @pytest.mark.asyncio
     async def test_review_handles_invalid_uuid(self):
         """Test that review handles invalid workspace_id."""
-        with patch(
-            "src.mcp_server.prompt_driven_tools.utilities.SessionLocal"
-        ) as mock_session_local:
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.utilities.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.utilities.get_workspace_id_from_request"
+            ) as mock_get_workspace_id,
+        ):
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
+            # Mock get_workspace_id_from_request to raise ValueError
+            mock_get_workspace_id.side_effect = ValueError("Invalid workspace ID")
 
-            result = await review_strategic_foundation.fn("not-a-uuid")
+            result = await review_strategic_foundation.fn()
 
         # Verify error response
         assert_that(
@@ -177,16 +178,12 @@ class TestReviewStrategicFoundation:
 class TestConnectOutcomeToPillars:
     """Test suite for connect_outcome_to_pillars tool."""
 
-    @patch("src.mcp_server.prompt_driven_tools.utilities.get_user_id_from_request")
     @pytest.mark.asyncio
-    async def test_connect_outcome_to_pillars_success(self, mock_get_user_id):
+    async def test_connect_outcome_to_pillars_success(self, workspace):
         """Test that connect successfully links outcome to pillars."""
-        workspace_id = str(uuid.uuid4())
         outcome_id = str(uuid.uuid4())
         pillar_id1 = str(uuid.uuid4())
         pillar_id2 = str(uuid.uuid4())
-
-        mock_get_user_id.return_value = uuid.uuid4()
 
         with patch(
             "src.mcp_server.prompt_driven_tools.utilities.SessionLocal"
@@ -212,7 +209,7 @@ class TestConnectOutcomeToPillars:
                 mock_get_outcomes.return_value = [mock_outcome]
 
                 result = await connect_outcome_to_pillars.fn(
-                    workspace_id, outcome_id, [pillar_id1, pillar_id2]
+                    outcome_id, [pillar_id1, pillar_id2]
                 )
 
         # Verify success response
@@ -226,7 +223,6 @@ class TestConnectOutcomeToPillars:
     @pytest.mark.asyncio
     async def test_connect_outcome_not_found(self):
         """Test that connect handles outcome not found error."""
-        workspace_id = str(uuid.uuid4())
         outcome_id = str(uuid.uuid4())
         pillar_id = str(uuid.uuid4())
 
@@ -241,9 +237,7 @@ class TestConnectOutcomeToPillars:
             ) as mock_get_outcomes:
                 mock_get_outcomes.return_value = []  # No outcomes
 
-                result = await connect_outcome_to_pillars.fn(
-                    workspace_id, outcome_id, [pillar_id]
-                )
+                result = await connect_outcome_to_pillars.fn(outcome_id, [pillar_id])
 
         # Verify error response
         assert_that(result, has_entries({"status": "error"}))
@@ -251,14 +245,21 @@ class TestConnectOutcomeToPillars:
     @pytest.mark.asyncio
     async def test_connect_outcome_handles_invalid_uuid(self):
         """Test that connect handles invalid UUIDs."""
-        with patch(
-            "src.mcp_server.prompt_driven_tools.utilities.SessionLocal"
-        ) as mock_session_local:
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.utilities.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.utilities.get_workspace_id_from_request"
+            ) as mock_get_workspace_id,
+        ):
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
+            # Mock get_workspace_id_from_request to raise ValueError
+            mock_get_workspace_id.side_effect = ValueError("Invalid workspace ID")
 
             result = await connect_outcome_to_pillars.fn(
-                "not-a-uuid", "also-not-uuid", ["still-not-uuid"]
+                "also-not-uuid", ["still-not-uuid"]
             )
 
         # Verify error response

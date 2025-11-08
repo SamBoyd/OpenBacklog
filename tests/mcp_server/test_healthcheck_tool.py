@@ -1,55 +1,24 @@
-from typing import Any, Dict
 from unittest.mock import Mock, patch
 
 import pytest
 
+from src.mcp_server.auth_utils import MCPContextError
 from src.mcp_server.healthcheck_tool import health_check
+from src.models import User, Workspace
 
 
 class TestHealthCheck:
     """Test suite for health_check MCP tool."""
 
-    @pytest.fixture
-    def mock_request_with_auth(self):
-        """Create a mock request with valid authorization header."""
-        request = Mock()
-        request.headers = {
-            "Authorization": "Bearer valid_token",
-        }
-        return request
-
-    @pytest.fixture
-    def mock_request_no_auth(self):
-        """Create a mock request without authorization header."""
-        request = Mock()
-        request.headers = {}
-        return request
-
-    @pytest.fixture
-    def mock_settings(self):
-        """Mock settings for testing."""
-        with patch("src.mcp_server.healthcheck_tool.settings") as mock_settings:
-            mock_settings.postgrest_domain = "https://api.test.com"
-            yield mock_settings
-
     @pytest.mark.asyncio
-    async def test_health_check_successful_api_response(
-        self, mock_request_with_auth, mock_settings
+    async def test_health_check_successful(
+        self, user: User, workspace: Workspace, session
     ):
-        """Test successful health check with valid API response."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-
-        with (
-            patch(
-                "src.mcp_server.healthcheck_tool.get_http_request"
-            ) as mock_get_request,
-            patch("src.mcp_server.healthcheck_tool.requests.get") as mock_get,
-            patch("src.mcp_server.healthcheck_tool.logger") as mock_logger,
-        ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = mock_response
+        """Test successful health check."""
+        with patch(
+            "src.mcp_server.healthcheck_tool.SessionLocal"
+        ) as mock_session_local:
+            mock_session_local.return_value = session
 
             result = await health_check.fn()
 
@@ -58,170 +27,70 @@ class TestHealthCheck:
             assert result["type"] == "health_check"
             assert (
                 result["message"]
-                == "MCP server OAuth authentication and PostgREST connectivity verified"
+                == "MCP server authentication and database connectivity verified"
             )
-            assert result["api_endpoint"] == "https://api.test.com"
-
-            # Verify API call was made correctly
-            expected_url = "https://api.test.com/initiative?limit=1"
-            mock_get.assert_called_once_with(
-                expected_url,
-                headers={
-                    "Authorization": "Bearer valid_token",
-                    "Content-Type": "application/json",
-                },
-                timeout=10,
-            )
-
-            # Verify logging
-            mock_logger.info.assert_any_call("Performing health check")
-            mock_logger.info.assert_any_call(
-                "Health check successful - OAuth and PostgREST connectivity verified"
-            )
+            assert result["user_id"] == str(user.id)
+            assert result["workspace_id"] == str(workspace.id)
+            assert result["workspace_name"] == workspace.name
 
     @pytest.mark.asyncio
-    async def test_health_check_api_error_response(
-        self, mock_request_with_auth, mock_settings
-    ):
-        """Test health check with API error response."""
-        mock_response = Mock()
-        mock_response.status_code = 401
-
+    async def test_health_check_workspace_not_found(self, user: User, session):
+        """Test health check when workspace is not found."""
+        # Mock get_auth_context to return None for workspace
         with (
-            patch(
-                "src.mcp_server.healthcheck_tool.get_http_request"
-            ) as mock_get_request,
-            patch("src.mcp_server.healthcheck_tool.requests.get") as mock_get,
-            patch("src.mcp_server.healthcheck_tool.logger") as mock_logger,
+            patch("src.mcp_server.healthcheck_tool.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.healthcheck_tool.get_auth_context") as mock_auth,
         ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = mock_response
-
-            result = await health_check.fn()
-
-            # Verify the result
-            assert result["status"] == "error"
-            assert result["type"] == "health_check"
-            assert result["error_type"] == "api_error"
-            assert result["error_message"] == "PostgREST API returned status 401"
-
-            # Verify logging
-            mock_logger.warning.assert_called_once_with(
-                "Health check failed with PostgREST status 401"
-            )
-
-    @pytest.mark.asyncio
-    async def test_health_check_api_500_error(
-        self, mock_request_with_auth, mock_settings
-    ):
-        """Test health check with API 500 error response."""
-        mock_response = Mock()
-        mock_response.status_code = 500
-
-        with (
-            patch(
-                "src.mcp_server.healthcheck_tool.get_http_request"
-            ) as mock_get_request,
-            patch("src.mcp_server.healthcheck_tool.requests.get") as mock_get,
-            patch("src.mcp_server.healthcheck_tool.logger") as mock_logger,
-        ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = mock_response
+            mock_session_local.return_value = session
+            mock_auth.return_value = (str(user.id), None)
 
             result = await health_check.fn()
 
             assert result["status"] == "error"
             assert result["type"] == "health_check"
-            assert result["error_type"] == "api_error"
-            assert result["error_message"] == "PostgREST API returned status 500"
+            assert result["error_type"] == "workspace_error"
 
     @pytest.mark.asyncio
-    async def test_health_check_requests_exception(
-        self, mock_request_with_auth, mock_settings
+    async def test_health_check_database_error(
+        self, user: User, workspace: Workspace, session
     ):
-        """Test health check with requests exception."""
+        """Test health check with database query error."""
         with (
-            patch(
-                "src.mcp_server.healthcheck_tool.get_http_request"
-            ) as mock_get_request,
-            patch("src.mcp_server.healthcheck_tool.requests.get") as mock_get,
-            patch("src.mcp_server.healthcheck_tool.logger") as mock_logger,
+            patch("src.mcp_server.healthcheck_tool.SessionLocal") as mock_session_local,
         ):
+            mock_session_local.return_value = session
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.side_effect = Exception("Connection timeout")
+            # Patch the session.query method to raise exception during count()
+            with patch.object(session, "query") as mock_query:
+                mock_chain = Mock()
+                mock_chain.filter.return_value.limit.return_value.count.side_effect = (
+                    Exception("Database query failed")
+                )
+                mock_query.return_value = mock_chain
+
+                result = await health_check.fn()
+
+                assert result["status"] == "error"
+                assert result["type"] == "health_check"
+                assert result["error_type"] == "database_error"
+                assert "Database connectivity test failed" in result["error_message"]
+
+    @pytest.mark.asyncio
+    async def test_health_check_auth_error(self):
+        """Test health check with authentication error."""
+        with (
+            patch("src.mcp_server.healthcheck_tool.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.healthcheck_tool.get_auth_context") as mock_auth,
+        ):
+            mock_session = Mock()
+            mock_session_local.return_value = mock_session
+            mock_auth.side_effect = MCPContextError(
+                "No access token found", error_type="auth_error"
+            )
 
             result = await health_check.fn()
 
-            # Verify the result
             assert result["status"] == "error"
             assert result["type"] == "health_check"
-            assert result["error_type"] == "server_error"
-            assert "Health check failed: Connection timeout" in result["error_message"]
-
-            # Verify logging
-            mock_logger.exception.assert_called_once_with(
-                "Health check failed with exception: Connection timeout"
-            )
-
-    @pytest.mark.asyncio
-    async def test_health_check_get_http_request_exception(self, mock_settings):
-        """Test health check when get_http_request raises exception."""
-        with (
-            patch(
-                "src.mcp_server.healthcheck_tool.get_http_request"
-            ) as mock_get_request,
-            patch("src.mcp_server.healthcheck_tool.logger") as mock_logger,
-        ):
-
-            mock_get_request.side_effect = Exception("Request context error")
-
-            result = await health_check.fn()
-
-            # Verify the result
-            assert result["status"] == "error"
-            assert result["type"] == "health_check"
-            assert result["error_type"] == "server_error"
-            assert (
-                "Health check failed: Request context error" in result["error_message"]
-            )
-
-            # Verify logging
-            mock_logger.exception.assert_called_once_with(
-                "Health check failed with exception: Request context error"
-            )
-
-    @pytest.mark.asyncio
-    async def test_health_check_headers_passed_correctly(
-        self, mock_request_with_auth, mock_settings
-    ):
-        """Test that headers are passed correctly to the API request."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-
-        # Test with different token
-        mock_request_with_auth.headers["Authorization"] = "Bearer custom-token-xyz"
-
-        with (
-            patch(
-                "src.mcp_server.healthcheck_tool.get_http_request"
-            ) as mock_get_request,
-            patch("src.mcp_server.healthcheck_tool.requests.get") as mock_get,
-        ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = mock_response
-
-            await health_check.fn()
-
-            # Verify headers
-            mock_get.assert_called_once_with(
-                "https://api.test.com/initiative?limit=1",
-                headers={
-                    "Authorization": "Bearer custom-token-xyz",
-                    "Content-Type": "application/json",
-                },
-                timeout=10,
-            )
+            assert result["error_type"] == "auth_error"
+            assert "No access token found" in result["error_message"]

@@ -1,15 +1,16 @@
-import json
-import urllib.parse
+"""Unit tests for task_tools MCP tools."""
+
 import uuid
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
-from hamcrest import assert_that, equal_to, has_entries, has_key, is_
-from starlette.requests import Request
+from hamcrest import assert_that, equal_to, has_entries, is_
 
+from src.initiative_management.task_controller import (
+    TaskControllerError,
+    TaskNotFoundError,
+)
 from src.mcp_server.task_tools import (
-    _generate_task_context,
     get_initiative_tasks,
     get_task_details,
     search_tasks,
@@ -18,106 +19,62 @@ from src.mcp_server.task_tools import (
     update_task_status_inprogress,
     validate_context,
 )
+from src.models import ChecklistItem, Initiative, Task, TaskStatus, User, Workspace
 
 
 class TestGetInitiativeTasks:
     """Test suite for get_initiative_tasks MCP tool."""
 
     @pytest.fixture
-    def mock_request_with_auth(self):
-        """Create a mock request with valid authorization header."""
-        request = Mock(spec=Request)
-        request.headers = {
-            "Authorization": "Bearer valid_token",
-        }
-        return request
-
-    @pytest.fixture
-    def mock_request_no_auth(self):
-        """Create a mock request without authorization header."""
-        request = Mock(spec=Request)
-        return request
-
-    @pytest.fixture
-    def mock_settings(self):
-        """Mock settings for testing."""
-        with patch("src.mcp_server.task_tools.settings") as mock_settings:
-            mock_settings.postgrest_domain = "https://api.test.com"
-            yield mock_settings
-
-    @pytest.fixture
-    def sample_tasks_data(self):
-        """Sample task data for testing."""
+    def sample_tasks(self, user: User, workspace: Workspace):
+        """Sample tasks for testing."""
+        initiative_id = uuid.uuid4()
         return [
-            {
-                "id": str(uuid.uuid4()),
-                "title": "Task 1",
-                "description": "Description 1",
-                "status": "TODO",
-                "initiative_id": "initiative-123",
-                "workspace_id": "workspace-123",
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "title": "Task 2",
-                "description": "Description 2",
-                "status": "IN_PROGRESS",
-                "initiative_id": "initiative-123",
-                "workspace_id": "workspace-123",
-            },
+            Task(
+                id=uuid.uuid4(),
+                title="Task 1",
+                description="Description 1",
+                status=TaskStatus.TO_DO,
+                initiative_id=initiative_id,
+                workspace_id=workspace.id,
+                user_id=user.id,
+                identifier="T-001",
+                type="CODING",
+            ),
+            Task(
+                id=uuid.uuid4(),
+                title="Task 2",
+                description="Description 2",
+                status=TaskStatus.IN_PROGRESS,
+                initiative_id=initiative_id,
+                workspace_id=workspace.id,
+                user_id=user.id,
+                identifier="T-002",
+                type="CODING",
+            ),
         ]
 
     @pytest.mark.asyncio
-    async def test_get_initiative_tasks_missing_authorization(
-        self, mock_request_no_auth, mock_settings
-    ):
-        """Test get_initiative_tasks with missing authorization header."""
-        with patch("src.mcp_server.task_tools.get_http_request") as mock_get_request:
-            mock_get_request.return_value = mock_request_no_auth
-
-            result = await get_initiative_tasks.fn("initiative-123")
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task",
-                        "error_message": "No authorization header found",
-                    }
-                ),
-            )
-
-    @pytest.mark.asyncio
     async def test_get_initiative_tasks_successful_retrieval(
-        self, mock_request_with_auth, sample_tasks_data, mock_settings
+        self, user: User, workspace: Workspace, session, sample_tasks
     ):
         """Test successful retrieval of initiative tasks."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = sample_tasks_data
+        initiative_id = str(sample_tasks[0].initiative_id)
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.get_initiative_tasks.return_value = sample_tasks
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = mock_response
+            result = await get_initiative_tasks.fn(initiative_id)
 
-            result = await get_initiative_tasks.fn("initiative-123")
-
-            # Verify correct URL construction
-            expected_url = (
-                "https://api.test.com/task?initiative_id=eq.initiative-123&select=*"
-            )
-            mock_get.assert_called_once_with(
-                expected_url,
-                headers={
-                    "Authorization": "Bearer valid_token",
-                    "Content-Type": "application/json",
-                },
-                timeout=30,
+            # Verify controller was called correctly
+            mock_controller.get_initiative_tasks.assert_called_once_with(
+                user.id, uuid.UUID(initiative_id)
             )
 
             # Verify successful result
@@ -127,98 +84,32 @@ class TestGetInitiativeTasks:
                     {
                         "status": "success",
                         "type": "task",
-                        "message": "Found 2 tasks for initiative initiative-123",
-                        "initiative_id": "initiative-123",
-                        "data": sample_tasks_data,
+                        "message": f"Found 2 tasks for initiative {initiative_id}",
+                        "initiative_id": initiative_id,
                     }
                 ),
             )
-
-    @pytest.mark.asyncio
-    async def test_get_initiative_tasks_server_error(
-        self, mock_request_with_auth, mock_settings
-    ):
-        """Test handling of server error responses."""
-        mock_response = Mock()
-        mock_response.status_code = 500
-        mock_response.json.return_value = {"error": "Internal server error"}
-
-        with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
-            patch("src.mcp_server.task_tools.logger") as mock_logger,
-        ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = mock_response
-
-            result = await get_initiative_tasks.fn("initiative-123")
-
-            # Should log the error
-            mock_logger.exception.assert_called_once()
-
-            # Should return error response
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task",
-                        "error_message": "Server error: 500",
-                    }
-                ),
-            )
-
-    @pytest.mark.asyncio
-    async def test_get_initiative_tasks_network_exception(
-        self, mock_request_with_auth, mock_settings
-    ):
-        """Test exception handling during HTTP request."""
-        with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
-            patch("src.mcp_server.task_tools.logger") as mock_logger,
-        ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.side_effect = Exception("Connection timeout")
-
-            result = await get_initiative_tasks.fn("initiative-123")
-
-            # Should log the exception
-            mock_logger.exception.assert_called_once()
-
-            # Should return error response
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task",
-                        "error_message": "Server error: Connection timeout",
-                        "error_type": "server_error",
-                    }
-                ),
-            )
+            assert len(result["data"]) == 2
+            assert result["data"][0]["title"] == "Task 1"
+            assert result["data"][1]["title"] == "Task 2"
 
     @pytest.mark.asyncio
     async def test_get_initiative_tasks_empty_response(
-        self, mock_request_with_auth, mock_settings
+        self, user: User, workspace: Workspace, session
     ):
         """Test handling of empty task list."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = []
+        initiative_id = str(uuid.uuid4())
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.get_initiative_tasks.return_value = []
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = mock_response
-
-            result = await get_initiative_tasks.fn("initiative-123")
+            result = await get_initiative_tasks.fn(initiative_id)
 
             assert_that(
                 result,
@@ -226,8 +117,61 @@ class TestGetInitiativeTasks:
                     {
                         "status": "success",
                         "type": "task",
-                        "message": "Found 0 tasks for initiative initiative-123",
+                        "message": f"Found 0 tasks for initiative {initiative_id}",
                         "data": [],
+                    }
+                ),
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_initiative_tasks_controller_error(
+        self, user: User, workspace: Workspace, session
+    ):
+        """Test handling of controller error."""
+        initiative_id = str(uuid.uuid4())
+
+        with (
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
+        ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.get_initiative_tasks.side_effect = TaskControllerError(
+                "Controller error"
+            )
+
+            result = await get_initiative_tasks.fn(initiative_id)
+
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "error",
+                        "type": "task",
+                        "error_message": "Controller error",
+                        "error_type": "controller_error",
+                    }
+                ),
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_initiative_tasks_invalid_uuid(
+        self, user: User, workspace: Workspace, session
+    ):
+        """Test handling of invalid UUID format."""
+        with patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local:
+            mock_session_local.return_value = session
+
+            result = await get_initiative_tasks.fn("invalid-uuid")
+
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "error",
+                        "type": "task",
+                        "error_type": "validation_error",
                     }
                 ),
             )
@@ -237,189 +181,74 @@ class TestGetTaskDetails:
     """Test suite for get_task_details MCP tool."""
 
     @pytest.fixture
-    def mock_request_with_auth(self):
-        """Create a mock request with valid authorization header."""
-        request = Mock(spec=Request)
-        request.headers = {
-            "Authorization": "Bearer valid_token",
-        }
-        return request
+    def sample_task(self, user: User, workspace: Workspace):
+        """Sample task for testing."""
+        initiative_id = uuid.uuid4()
+        task = Task(
+            id=uuid.uuid4(),
+            title="Test Task",
+            description="Test Description",
+            status=TaskStatus.TO_DO,
+            initiative_id=initiative_id,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            identifier="T-123",
+            type="CODING",
+        )
+        return task
 
     @pytest.fixture
-    def mock_request_no_auth(self):
-        """Create a mock request without authorization header."""
-        request = Mock(spec=Request)
-        return request
-
-    @pytest.fixture
-    def mock_settings(self):
-        """Mock settings for testing."""
-        with patch("src.mcp_server.task_tools.settings") as mock_settings:
-            mock_settings.postgrest_domain = "https://api.test.com"
-            yield mock_settings
-
-    @pytest.fixture
-    def sample_task_data(self):
-        """Sample task data for testing."""
-        return [
-            {
-                "id": "task-123",
-                "title": "Test Task",
-                "description": "Test Description",
-                "status": "TODO",
-                "initiative_id": "initiative-123",
-                "workspace_id": "workspace-123",
-            }
-        ]
-
-    @pytest.fixture
-    def sample_checklist_data(self):
-        """Sample checklist data for testing."""
-        return [
-            {
-                "id": "checklist-1",
-                "task_id": "task-123",
-                "title": "First item",
-                "is_complete": False,
-                "order": 1,
-            },
-            {
-                "id": "checklist-2",
-                "task_id": "task-123",
-                "title": "Second item",
-                "is_complete": True,
-                "order": 2,
-            },
-        ]
-
-    @pytest.fixture
-    def sample_initiative_data(self):
-        """Sample initiative data for testing."""
-        return [
-            {
-                "id": "initiative-123",
-                "identifier": "I-001",
-                "title": "User Authentication System",
-                "description": "Implement secure user authentication with OAuth, 2FA, and session management.",
-                "status": "IN_PROGRESS",
-                "type": "FEATURE",
-            }
-        ]
-
-    @pytest.fixture
-    def sample_related_tasks_data(self):
-        """Sample related tasks data for testing."""
-        return [
-            {
-                "id": "task-456",
-                "identifier": "T-001",
-                "title": "Session Management System",
-                "status": "TO_DO",
-                "type": "CODING",
-            },
-            {
-                "id": "task-789",
-                "identifier": "T-002",
-                "title": "Password Reset System",
-                "status": "DONE",
-                "type": "CODING",
-            },
-            {
-                "id": "task-321",
-                "identifier": "T-004",
-                "title": "Two-Factor Authentication",
-                "status": "BLOCKED",
-                "type": "CODING",
-            },
-        ]
-
-    @pytest.mark.asyncio
-    async def test_get_task_details_missing_authorization(
-        self, mock_request_no_auth, mock_settings
-    ):
-        """Test get_task_details with missing authorization header."""
-        with patch("src.mcp_server.task_tools.get_http_request") as mock_get_request:
-            mock_get_request.return_value = mock_request_no_auth
-
-            result = await get_task_details.fn("task-123")
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task_details",
-                        "error_message": "No authorization header found",
-                    }
-                ),
-            )
+    def sample_initiative(self, user: User, workspace: Workspace, sample_task):
+        """Sample initiative for testing."""
+        return Initiative(
+            id=sample_task.initiative_id,
+            title="User Authentication System",
+            description="Implement secure user authentication",
+            status=TaskStatus.IN_PROGRESS,
+            identifier="I-001",
+            user_id=user.id,
+            workspace_id=workspace.id,
+        )
 
     @pytest.mark.asyncio
     async def test_get_task_details_successful_retrieval(
-        self,
-        mock_request_with_auth,
-        sample_task_data,
-        sample_checklist_data,
-        sample_initiative_data,
-        sample_related_tasks_data,
-        mock_settings,
+        self, user: User, workspace: Workspace, session, sample_task, sample_initiative
     ):
-        """Test successful retrieval of task details with full context."""
-        task_response = Mock()
-        task_response.status_code = 200
-        task_response.json.return_value = sample_task_data
+        """Test successful retrieval of task details."""
+        task_id = str(sample_task.id)
+        user_id = user.id  # Cache user_id to avoid detached instance error
 
-        checklist_response = Mock()
-        checklist_response.status_code = 200
-        checklist_response.json.return_value = sample_checklist_data
-
-        initiative_response = Mock()
-        initiative_response.status_code = 200
-        initiative_response.json.return_value = sample_initiative_data
-
-        related_tasks_response = Mock()
-        related_tasks_response.status_code = 200
-        related_tasks_response.json.return_value = sample_related_tasks_data
+        # Add checklist items to the task
+        sample_task.checklist_items = [
+            ChecklistItem(
+                id=uuid.uuid4(),
+                task_id=sample_task.id,
+                title="First item",
+                is_complete=False,
+                order=1,
+            ),
+        ]
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.get_task_details.return_value = sample_task
+            mock_controller.get_initiative_tasks.return_value = [sample_task]
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.side_effect = [
-                task_response,
-                checklist_response,
-                initiative_response,
-                related_tasks_response,
-            ]
+            # Mock the Initiative query
+            session.add(sample_initiative)
+            session.commit()
 
-            result = await get_task_details.fn("task-123")
+            result = await get_task_details.fn(task_id)
 
-            # Verify four API calls were made (task, checklist, initiative, related_tasks)
-            assert mock_get.call_count == 4
-
-            # Verify task API call
-            task_call = mock_get.call_args_list[0]
-            expected_task_url = "https://api.test.com/task?id=eq.task-123&select=*"
-            assert task_call[0][0] == expected_task_url
-
-            # Verify checklist API call
-            checklist_call = mock_get.call_args_list[1]
-            expected_checklist_url = "https://api.test.com/checklist?task_id=eq.task-123&select=*&order=order"
-            assert checklist_call[0][0] == expected_checklist_url
-
-            # Verify initiative API call
-            initiative_call = mock_get.call_args_list[2]
-            expected_initiative_url = (
-                "https://api.test.com/initiative?id=eq.initiative-123&select=*"
+            # Verify controller was called correctly
+            mock_controller.get_task_details.assert_called_once_with(
+                user_id, uuid.UUID(task_id)
             )
-            assert initiative_call[0][0] == expected_initiative_url
-
-            # Verify related tasks API call
-            related_tasks_call = mock_get.call_args_list[3]
-            expected_related_tasks_url = "https://api.test.com/task?initiative_id=eq.initiative-123&id=neq.task-123&select=id,identifier,title,status,type&order=status,identifier"
-            assert related_tasks_call[0][0] == expected_related_tasks_url
 
             # Verify successful result
             assert_that(
@@ -428,39 +257,32 @@ class TestGetTaskDetails:
                     {
                         "status": "success",
                         "type": "task_details",
-                        "message": "Retrieved comprehensive task context for Test Task",
-                        "task": sample_task_data[0],
-                        "checklist_items": sample_checklist_data,
+                        "message": f"Retrieved comprehensive task context for {sample_task.title}",
                     }
                 ),
             )
-
-            # Verify task_context field exists and contains expected content
+            assert "task" in result
+            assert "checklist_items" in result
             assert "task_context" in result
-            task_context = result["task_context"]
-            assert "INITIATIVE CONTEXT:" in task_context
-            assert "User Authentication System" in task_context
-            assert "TASK SCOPE:" in task_context
-            assert "RELATED WORK IN THIS INITIATIVE:" in task_context
+            assert len(result["checklist_items"]) == 1
 
     @pytest.mark.asyncio
     async def test_get_task_details_task_not_found(
-        self, mock_request_with_auth, mock_settings
+        self, user: User, workspace: Workspace, session
     ):
         """Test handling when task is not found."""
-        task_response = Mock()
-        task_response.status_code = 200
-        task_response.json.return_value = []  # Empty array means not found
+        task_id = str(uuid.uuid4())
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.get_task_details.return_value = None
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = task_response
-
-            result = await get_task_details.fn("task-123")
+            result = await get_task_details.fn(task_id)
 
             assert_that(
                 result,
@@ -468,238 +290,143 @@ class TestGetTaskDetails:
                     {
                         "status": "error",
                         "type": "task_details",
-                        "error_message": "Task task-123 not found",
+                        "error_message": f"Task {task_id} not found",
                     }
                 ),
             )
 
     @pytest.mark.asyncio
-    async def test_get_task_details_checklist_fetch_fails(
-        self,
-        mock_request_with_auth,
-        sample_task_data,
-        sample_initiative_data,
-        sample_related_tasks_data,
-        mock_settings,
+    async def test_get_task_details_controller_error(
+        self, user: User, workspace: Workspace, session
     ):
-        """Test handling when checklist fetch fails but other calls succeed."""
-        task_response = Mock()
-        task_response.status_code = 200
-        task_response.json.return_value = sample_task_data
-
-        checklist_response = Mock()
-        checklist_response.status_code = 500
-
-        initiative_response = Mock()
-        initiative_response.status_code = 200
-        initiative_response.json.return_value = sample_initiative_data
-
-        related_tasks_response = Mock()
-        related_tasks_response.status_code = 200
-        related_tasks_response.json.return_value = sample_related_tasks_data
+        """Test handling of controller error."""
+        task_id = str(uuid.uuid4())
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
-            patch("src.mcp_server.task_tools.logger") as mock_logger,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.get_task_details.side_effect = TaskNotFoundError(
+                "Task not found"
+            )
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.side_effect = [
-                task_response,
-                checklist_response,
-                initiative_response,
-                related_tasks_response,
-            ]
+            result = await get_task_details.fn(task_id)
 
-            result = await get_task_details.fn("task-123")
-
-            # Should log warning about checklist fetch failure
-            mock_logger.warning.assert_called()
-
-            # Should still return success with empty checklist but with task_context
             assert_that(
                 result,
                 has_entries(
                     {
-                        "status": "success",
+                        "status": "error",
                         "type": "task_details",
-                        "task": sample_task_data[0],
-                        "checklist_items": [],
+                        "error_type": "not_found",
                     }
                 ),
             )
-
-            # Should still have task_context field
-            assert "task_context" in result
 
 
 class TestSearchTasks:
     """Test suite for search_tasks MCP tool."""
 
     @pytest.fixture
-    def mock_request_with_auth(self):
-        """Create a mock request with valid authorization header."""
-        request = Mock(spec=Request)
-        request.headers = {
-            "Authorization": "Bearer valid_token",
-        }
-        return request
-
-    @pytest.fixture
-    def mock_request_no_auth(self):
-        """Create a mock request without authorization header."""
-        request = Mock(spec=Request)
-        return request
-
-    @pytest.fixture
-    def mock_settings(self):
-        """Mock settings for testing."""
-        with patch("src.mcp_server.task_tools.settings") as mock_settings:
-            mock_settings.postgrest_domain = "https://api.test.com"
-            yield mock_settings
-
-    @pytest.fixture
-    def sample_search_results(self):
+    def sample_search_results(self, user: User, workspace: Workspace):
         """Sample search results for testing."""
         return [
-            {
-                "id": "task-1",
-                "title": "Fix authentication bug",
-                "description": "Authentication is not working correctly",
-                "identifier": "AUTH-123",
-            },
-            {
-                "id": "task-2",
-                "title": "Add user authentication",
-                "description": "Implement OAuth authentication",
-                "identifier": "AUTH-124",
-            },
+            Task(
+                id=uuid.uuid4(),
+                title="Fix authentication bug",
+                description="Authentication is not working correctly",
+                identifier="AUTH-123",
+                user_id=user.id,
+                workspace_id=workspace.id,
+                status=TaskStatus.TO_DO,
+                type="CODING",
+            ),
+            Task(
+                id=uuid.uuid4(),
+                title="Add user authentication",
+                description="Implement OAuth authentication",
+                identifier="AUTH-124",
+                user_id=user.id,
+                workspace_id=workspace.id,
+                status=TaskStatus.IN_PROGRESS,
+                type="CODING",
+            ),
         ]
 
     @pytest.mark.asyncio
-    async def test_search_tasks_missing_authorization(
-        self, mock_request_no_auth, mock_settings
-    ):
-        """Test search_tasks with missing authorization header."""
-        with patch("src.mcp_server.task_tools.get_http_request") as mock_get_request:
-            mock_get_request.return_value = mock_request_no_auth
-
-            result = await search_tasks.fn("authentication")
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task",
-                        "error_message": "No authorization header found",
-                    }
-                ),
-            )
-
-    @pytest.mark.asyncio
     async def test_search_tasks_successful_search(
-        self, mock_request_with_auth, sample_search_results, mock_settings
+        self, user: User, workspace: Workspace, session, sample_search_results
     ):
         """Test successful task search."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = sample_search_results
-
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
-            patch("src.mcp_server.task_tools.urllib.parse.quote") as mock_quote,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = mock_response
-            mock_quote.return_value = "authentication"
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.search_tasks.return_value = sample_search_results
 
             result = await search_tasks.fn("authentication")
 
-            # Verify URL encoding was called
-            mock_quote.assert_called_once_with("authentication")
-
-            # Verify correct API call
-            expected_url = "https://api.test.com/task?or(title.plfts(authentication),description.plfts(authentication),identifier.plfts(authentication))"
-            mock_get.assert_called_once_with(
-                expected_url,
-                headers={
-                    "Authorization": "Bearer valid_token",
-                    "Content-Type": "application/json",
-                },
-                timeout=30,
+            # Verify controller was called correctly
+            mock_controller.search_tasks.assert_called_once_with(
+                user.id, workspace.id, "authentication"
             )
 
             # Verify successful result
+            assert_that(result, has_entries({"status": "success", "type": "task"}))
+            assert len(result["data"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_search_tasks_empty_results(
+        self, user: User, workspace: Workspace, session
+    ):
+        """Test search with no results."""
+        with (
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
+        ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.search_tasks.return_value = []
+
+            result = await search_tasks.fn("nonexistent")
+
             assert_that(
                 result,
-                has_entries(
-                    {"status": "success", "type": "task", "data": sample_search_results}
-                ),
+                has_entries({"status": "success", "type": "task", "data": []}),
             )
 
     @pytest.mark.asyncio
-    async def test_search_tasks_with_special_characters(
-        self, mock_request_with_auth, mock_settings
+    async def test_search_tasks_controller_error(
+        self, user: User, workspace: Workspace, session
     ):
-        """Test search with special characters that need URL encoding."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = []
-
+        """Test handling of controller error during search."""
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
-            patch("src.mcp_server.task_tools.urllib.parse.quote") as mock_quote,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = mock_response
-            mock_quote.return_value = "oauth%202.0"
-
-            result = await search_tasks.fn("oauth 2.0")
-
-            # Verify URL encoding was called with special characters
-            mock_quote.assert_called_once_with("oauth 2.0")
-
-            # Verify encoded query was used in URL
-            expected_url = "https://api.test.com/task?or(title.plfts(oauth%202.0),description.plfts(oauth%202.0),identifier.plfts(oauth%202.0))"
-            assert mock_get.call_args[0][0] == expected_url
-
-    @pytest.mark.asyncio
-    async def test_search_tasks_server_error(
-        self, mock_request_with_auth, mock_settings
-    ):
-        """Test handling of server error during search."""
-        mock_response = Mock()
-        mock_response.status_code = 500
-        mock_response.json.return_value = {"error": "Internal server error"}
-
-        with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
-            patch("src.mcp_server.task_tools.logger") as mock_logger,
-        ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = mock_response
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.search_tasks.side_effect = TaskControllerError(
+                "Search failed"
+            )
 
             result = await search_tasks.fn("test")
 
-            # Should log the error
-            mock_logger.exception.assert_called_once()
-
-            # Should return error response
             assert_that(
                 result,
                 has_entries(
                     {
                         "status": "error",
                         "type": "task",
-                        "error_message": "Server error: 500",
+                        "error_type": "controller_error",
                     }
                 ),
             )
@@ -708,77 +435,29 @@ class TestSearchTasks:
 class TestUpdateTaskDescription:
     """Test suite for update_task_description MCP tool."""
 
-    @pytest.fixture
-    def mock_request_with_auth(self):
-        """Create a mock request with valid authorization header."""
-        request = Mock(spec=Request)
-        request.headers = {
-            "Authorization": "Bearer valid_token",
-        }
-        return request
-
-    @pytest.fixture
-    def mock_request_no_auth(self):
-        """Create a mock request without authorization header."""
-        request = Mock(spec=Request)
-        return request
-
-    @pytest.fixture
-    def mock_settings(self):
-        """Mock settings for testing."""
-        with patch("src.mcp_server.task_tools.settings") as mock_settings:
-            mock_settings.postgrest_domain = "https://api.test.com"
-            yield mock_settings
-
-    @pytest.mark.asyncio
-    async def test_update_task_description_missing_authorization(
-        self, mock_request_no_auth, mock_settings
-    ):
-        """Test update_task_description with missing authorization header."""
-        with patch("src.mcp_server.task_tools.get_http_request") as mock_get_request:
-            mock_get_request.return_value = mock_request_no_auth
-
-            result = await update_task_description.fn("task-123", "New description")
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task_update",
-                        "error_message": "No authorization header found",
-                    }
-                ),
-            )
-
     @pytest.mark.asyncio
     async def test_update_task_description_successful_update(
-        self, mock_request_with_auth, mock_settings
+        self, user: User, workspace: Workspace, session
     ):
         """Test successful task description update."""
-        mock_response = Mock()
-        mock_response.status_code = 200
+        task_id = str(uuid.uuid4())
+        description = "Updated description"
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.patch") as mock_patch,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_task = Mock()
+            mock_controller.update_task_description.return_value = mock_task
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_patch.return_value = mock_response
+            result = await update_task_description.fn(task_id, description)
 
-            result = await update_task_description.fn("task-123", "Updated description")
-
-            # Verify patch was called correctly
-            expected_url = "https://api.test.com/task?id=eq.task-123"
-            mock_patch.assert_called_once_with(
-                expected_url,
-                json={"description": "Updated description"},
-                headers={
-                    "Authorization": "Bearer valid_token",
-                    "Content-Type": "application/json",
-                },
-                timeout=30,
+            # Verify controller was called correctly
+            mock_controller.update_task_description.assert_called_once_with(
+                user.id, uuid.UUID(task_id), description
             )
 
             # Verify successful result
@@ -789,68 +468,41 @@ class TestUpdateTaskDescription:
                         "status": "success",
                         "type": "task_update",
                         "message": "Successfully updated task description",
-                        "task_id": "task-123",
-                        "updated_description": "Updated description",
+                        "task_id": task_id,
+                        "updated_description": description,
                     }
                 ),
             )
 
     @pytest.mark.asyncio
-    async def test_update_task_description_server_error(
-        self, mock_request_with_auth, mock_settings
+    async def test_update_task_description_task_not_found(
+        self, user: User, workspace: Workspace, session
     ):
-        """Test handling of server error during update."""
-        mock_response = Mock()
-        mock_response.status_code = 500
-        mock_response.text = "Internal server error"
+        """Test handling when task is not found."""
+        task_id = str(uuid.uuid4())
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.patch") as mock_patch,
-            patch("src.mcp_server.task_tools.logger") as mock_logger,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.update_task_description.side_effect = TaskNotFoundError(
+                "Task not found"
+            )
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_patch.return_value = mock_response
+            result = await update_task_description.fn(task_id, "New description")
 
-            result = await update_task_description.fn("task-123", "New description")
-
-            # Should log the error
-            mock_logger.exception.assert_called_once()
-
-            # Should return error response
             assert_that(
                 result,
                 has_entries(
                     {
                         "status": "error",
                         "type": "task_update",
-                        "error_message": "Server error: 500",
+                        "error_type": "not_found",
                     }
                 ),
-            )
-
-    @pytest.mark.asyncio
-    async def test_update_task_description_status_204(
-        self, mock_request_with_auth, mock_settings
-    ):
-        """Test successful update with 204 No Content response."""
-        mock_response = Mock()
-        mock_response.status_code = 204
-
-        with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.patch") as mock_patch,
-        ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_patch.return_value = mock_response
-
-            result = await update_task_description.fn("task-123", "New description")
-
-            # Should still return success for 204
-            assert_that(
-                result, has_entries({"status": "success", "type": "task_update"})
             )
 
 
@@ -858,99 +510,65 @@ class TestValidateContext:
     """Test suite for validate_context MCP tool."""
 
     @pytest.fixture
-    def mock_request_with_auth(self):
-        """Create a mock request with valid authorization header."""
-        request = Mock(spec=Request)
-        request.headers = {
-            "Authorization": "Bearer valid_token",
-        }
-        return request
-
-    @pytest.fixture
-    def mock_request_no_auth(self):
-        """Create a mock request without authorization header."""
-        request = Mock(spec=Request)
-        return request
-
-    @pytest.fixture
-    def mock_settings(self):
-        """Mock settings for testing."""
-        with patch("src.mcp_server.task_tools.settings") as mock_settings:
-            mock_settings.postgrest_domain = "https://api.test.com"
-            yield mock_settings
-
-    @pytest.fixture
-    def sample_task_data(self):
-        """Sample task data for testing."""
-        return [
-            {
-                "id": "task-123",
-                "title": "Test Task",
-                "description": "Test Description",
-                "status": "IN_PROGRESS",
-                "updated_at": "2024-01-01T00:00:00Z",
-            }
+    def sample_task_with_checklist(self, user: User, workspace: Workspace):
+        """Sample task with checklist for testing."""
+        task = Task(
+            id=uuid.uuid4(),
+            title="Test Task",
+            description="Test Description",
+            status=TaskStatus.IN_PROGRESS,
+            user_id=user.id,
+            workspace_id=workspace.id,
+            identifier="T-123",
+            type="CODING",
+        )
+        task.checklist_items = [
+            ChecklistItem(
+                id=uuid.uuid4(),
+                task_id=task.id,
+                title="Item 1",
+                is_complete=True,
+                order=1,
+            ),
+            ChecklistItem(
+                id=uuid.uuid4(),
+                task_id=task.id,
+                title="Item 2",
+                is_complete=False,
+                order=2,
+            ),
+            ChecklistItem(
+                id=uuid.uuid4(),
+                task_id=task.id,
+                title="Item 3",
+                is_complete=True,
+                order=3,
+            ),
         ]
-
-    @pytest.fixture
-    def sample_checklist_data(self):
-        """Sample checklist data for testing."""
-        return [
-            {"id": "item-1", "is_complete": True},
-            {"id": "item-2", "is_complete": False},
-            {"id": "item-3", "is_complete": True},
-        ]
-
-    @pytest.mark.asyncio
-    async def test_validate_context_missing_authorization(
-        self, mock_request_no_auth, mock_settings
-    ):
-        """Test validate_context with missing authorization header."""
-        with patch("src.mcp_server.task_tools.get_http_request") as mock_get_request:
-            mock_get_request.return_value = mock_request_no_auth
-
-            result = await validate_context.fn("task-123")
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "context_validation",
-                        "error_message": "No authorization header found",
-                    }
-                ),
-            )
+        return task
 
     @pytest.mark.asyncio
     async def test_validate_context_successful_validation(
-        self,
-        mock_request_with_auth,
-        sample_task_data,
-        sample_checklist_data,
-        mock_settings,
+        self, user: User, workspace: Workspace, session, sample_task_with_checklist
     ):
-        """Test successful context validation with checklist progress calculation."""
-        task_response = Mock()
-        task_response.status_code = 200
-        task_response.json.return_value = sample_task_data
-
-        checklist_response = Mock()
-        checklist_response.status_code = 200
-        checklist_response.json.return_value = sample_checklist_data
+        """Test successful context validation with checklist progress."""
+        task_id = str(sample_task_with_checklist.id)
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.get_task_details.return_value = sample_task_with_checklist
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.side_effect = [task_response, checklist_response]
+            result = await validate_context.fn(task_id)
 
-            result = await validate_context.fn("task-123")
-
-            # Verify two API calls were made
-            assert mock_get.call_count == 2
+            # Verify controller was called correctly
+            mock_controller.get_task_details.assert_called_once_with(
+                user.id, uuid.UUID(task_id)
+            )
 
             # Verify successful result with progress calculation
             assert_that(
@@ -960,46 +578,34 @@ class TestValidateContext:
                         "status": "success",
                         "type": "context_validation",
                         "message": "Task context is valid and up-to-date",
-                        "task_id": "task-123",
-                        "task": has_entries(
-                            {
-                                "id": "task-123",
-                                "title": "Test Task",
-                                "description": "Test Description",
-                                "status": "IN_PROGRESS",
-                            }
-                        ),
-                        "checklist_summary": has_entries(
-                            {"total_items": 3, "completed_items": 2}
-                        ),
+                        "task_id": task_id,
                     }
                 ),
             )
 
-            # Check completion percentage separately due to floating point precision
+            # Check checklist summary
+            assert result["checklist_summary"]["total_items"] == 3
+            assert result["checklist_summary"]["completed_items"] == 2
             completion_percentage = result["checklist_summary"]["completion_percentage"]
-            assert (
-                66.6 < completion_percentage < 66.7
-            )  # More lenient floating point check
+            assert 66.6 < completion_percentage < 66.7
 
     @pytest.mark.asyncio
     async def test_validate_context_task_not_found(
-        self, mock_request_with_auth, mock_settings
+        self, user: User, workspace: Workspace, session
     ):
         """Test validation when task is not found."""
-        task_response = Mock()
-        task_response.status_code = 200
-        task_response.json.return_value = []  # Empty array means not found
+        task_id = str(uuid.uuid4())
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.get_task_details.return_value = None
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.return_value = task_response
-
-            result = await validate_context.fn("task-123")
+            result = await validate_context.fn(task_id)
 
             assert_that(
                 result,
@@ -1007,33 +613,39 @@ class TestValidateContext:
                     {
                         "status": "error",
                         "type": "context_validation",
-                        "error_message": "Task task-123 not found or access denied",
+                        "error_message": f"Task {task_id} not found or access denied",
                     }
                 ),
             )
 
     @pytest.mark.asyncio
     async def test_validate_context_empty_checklist(
-        self, mock_request_with_auth, sample_task_data, mock_settings
+        self, user: User, workspace: Workspace, session
     ):
         """Test validation with empty checklist (0% completion)."""
-        task_response = Mock()
-        task_response.status_code = 200
-        task_response.json.return_value = sample_task_data
-
-        checklist_response = Mock()
-        checklist_response.status_code = 200
-        checklist_response.json.return_value = []
+        task = Task(
+            id=uuid.uuid4(),
+            title="Test Task",
+            description="Test Description",
+            status=TaskStatus.IN_PROGRESS,
+            user_id=user.id,
+            workspace_id=workspace.id,
+            identifier="T-123",
+            type="CODING",
+        )
+        task.checklist_items = []
+        task_id = str(task.id)
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.get") as mock_get,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.get_task_details.return_value = task
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_get.side_effect = [task_response, checklist_response]
-
-            result = await validate_context.fn("task-123")
+            result = await validate_context.fn(task_id)
 
             # Should handle empty checklist with 0% completion
             assert_that(
@@ -1056,77 +668,28 @@ class TestValidateContext:
 class TestUpdateTaskStatusInProgress:
     """Test suite for update_task_status_inprogress MCP tool."""
 
-    @pytest.fixture
-    def mock_request_with_auth(self):
-        """Create a mock request with valid authorization header."""
-        request = Mock(spec=Request)
-        request.headers = {
-            "Authorization": "Bearer valid_token",
-        }
-        return request
-
-    @pytest.fixture
-    def mock_request_no_auth(self):
-        """Create a mock request without authorization header."""
-        request = Mock(spec=Request)
-        return request
-
-    @pytest.fixture
-    def mock_settings(self):
-        """Mock settings for testing."""
-        with patch("src.mcp_server.task_tools.settings") as mock_settings:
-            mock_settings.postgrest_domain = "https://api.test.com"
-            yield mock_settings
-
-    @pytest.mark.asyncio
-    async def test_update_task_status_inprogress_missing_authorization(
-        self, mock_request_no_auth, mock_settings
-    ):
-        """Test update_task_status_inprogress with missing authorization header."""
-        with patch("src.mcp_server.task_tools.get_http_request") as mock_get_request:
-            mock_get_request.return_value = mock_request_no_auth
-
-            result = await update_task_status_inprogress.fn("task-123")
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task_status_update",
-                        "error_message": "No authorization header found",
-                    }
-                ),
-            )
-
     @pytest.mark.asyncio
     async def test_update_task_status_inprogress_successful_update(
-        self, mock_request_with_auth, mock_settings
+        self, user: User, workspace: Workspace, session
     ):
         """Test successful task status update to IN_PROGRESS."""
-        mock_response = Mock()
-        mock_response.status_code = 200
+        task_id = str(uuid.uuid4())
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.patch") as mock_patch,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_task = Mock()
+            mock_controller.move_task_to_status.return_value = mock_task
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_patch.return_value = mock_response
+            result = await update_task_status_inprogress.fn(task_id)
 
-            result = await update_task_status_inprogress.fn("task-123")
-
-            # Verify patch was called correctly
-            expected_url = "https://api.test.com/task?id=eq.task-123"
-            mock_patch.assert_called_once_with(
-                expected_url,
-                json={"status": "IN_PROGRESS"},
-                headers={
-                    "Authorization": "Bearer valid_token",
-                    "Content-Type": "application/json",
-                },
-                timeout=30,
+            # Verify controller was called correctly
+            mock_controller.move_task_to_status.assert_called_once_with(
+                user.id, uuid.UUID(task_id), TaskStatus.IN_PROGRESS
             )
 
             # Verify successful result
@@ -1137,43 +700,39 @@ class TestUpdateTaskStatusInProgress:
                         "status": "success",
                         "type": "task_status_update",
                         "message": "Successfully updated task status to IN_PROGRESS",
-                        "task_id": "task-123",
+                        "task_id": task_id,
                         "new_status": "IN_PROGRESS",
                     }
                 ),
             )
 
     @pytest.mark.asyncio
-    async def test_update_task_status_inprogress_server_error(
-        self, mock_request_with_auth, mock_settings
+    async def test_update_task_status_inprogress_task_not_found(
+        self, user: User, workspace: Workspace, session
     ):
-        """Test handling of server error during status update."""
-        mock_response = Mock()
-        mock_response.status_code = 500
-        mock_response.text = "Internal server error"
+        """Test handling when task is not found."""
+        task_id = str(uuid.uuid4())
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.patch") as mock_patch,
-            patch("src.mcp_server.task_tools.logger") as mock_logger,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.move_task_to_status.side_effect = TaskNotFoundError(
+                "Task not found"
+            )
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_patch.return_value = mock_response
+            result = await update_task_status_inprogress.fn(task_id)
 
-            result = await update_task_status_inprogress.fn("task-123")
-
-            # Should log the error
-            mock_logger.exception.assert_called_once()
-
-            # Should return error response
             assert_that(
                 result,
                 has_entries(
                     {
                         "status": "error",
                         "type": "task_status_update",
-                        "error_message": "Server error: 500",
+                        "error_type": "not_found",
                     }
                 ),
             )
@@ -1182,77 +741,28 @@ class TestUpdateTaskStatusInProgress:
 class TestUpdateTaskStatusDone:
     """Test suite for update_task_status_done MCP tool."""
 
-    @pytest.fixture
-    def mock_request_with_auth(self):
-        """Create a mock request with valid authorization header."""
-        request = Mock(spec=Request)
-        request.headers = {
-            "Authorization": "Bearer valid_token",
-        }
-        return request
-
-    @pytest.fixture
-    def mock_request_no_auth(self):
-        """Create a mock request without authorization header."""
-        request = Mock(spec=Request)
-        return request
-
-    @pytest.fixture
-    def mock_settings(self):
-        """Mock settings for testing."""
-        with patch("src.mcp_server.task_tools.settings") as mock_settings:
-            mock_settings.postgrest_domain = "https://api.test.com"
-            yield mock_settings
-
-    @pytest.mark.asyncio
-    async def test_update_task_status_done_missing_authorization(
-        self, mock_request_no_auth, mock_settings
-    ):
-        """Test update_task_status_done with missing authorization header."""
-        with patch("src.mcp_server.task_tools.get_http_request") as mock_get_request:
-            mock_get_request.return_value = mock_request_no_auth
-
-            result = await update_task_status_done.fn("task-123")
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task_status_update",
-                        "error_message": "No authorization header found",
-                    }
-                ),
-            )
-
     @pytest.mark.asyncio
     async def test_update_task_status_done_successful_update(
-        self, mock_request_with_auth, mock_settings
+        self, user: User, workspace: Workspace, session
     ):
         """Test successful task status update to DONE."""
-        mock_response = Mock()
-        mock_response.status_code = 200
+        task_id = str(uuid.uuid4())
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.patch") as mock_patch,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_task = Mock()
+            mock_controller.move_task_to_status.return_value = mock_task
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_patch.return_value = mock_response
+            result = await update_task_status_done.fn(task_id)
 
-            result = await update_task_status_done.fn("task-123")
-
-            # Verify patch was called correctly
-            expected_url = "https://api.test.com/task?id=eq.task-123"
-            mock_patch.assert_called_once_with(
-                expected_url,
-                json={"status": "DONE"},
-                headers={
-                    "Authorization": "Bearer valid_token",
-                    "Content-Type": "application/json",
-                },
-                timeout=30,
+            # Verify controller was called correctly
+            mock_controller.move_task_to_status.assert_called_once_with(
+                user.id, uuid.UUID(task_id), TaskStatus.DONE
             )
 
             # Verify successful result
@@ -1263,97 +773,61 @@ class TestUpdateTaskStatusDone:
                         "status": "success",
                         "type": "task_status_update",
                         "message": "Successfully updated task status to DONE",
-                        "task_id": "task-123",
+                        "task_id": task_id,
                         "new_status": "DONE",
                     }
                 ),
             )
 
     @pytest.mark.asyncio
-    async def test_update_task_status_done_status_204(
-        self, mock_request_with_auth, mock_settings
+    async def test_update_task_status_done_controller_error(
+        self, user: User, workspace: Workspace, session
     ):
-        """Test successful update with 204 No Content response."""
-        mock_response = Mock()
-        mock_response.status_code = 204
+        """Test handling of controller error."""
+        task_id = str(uuid.uuid4())
 
         with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.patch") as mock_patch,
+            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
+            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
         ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_patch.return_value = mock_response
-
-            result = await update_task_status_done.fn("task-123")
-
-            # Should still return success for 204
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "success",
-                        "type": "task_status_update",
-                        "new_status": "DONE",
-                    }
-                ),
+            mock_session_local.return_value = session
+            mock_controller = Mock()
+            mock_controller_class.return_value = mock_controller
+            mock_controller.move_task_to_status.side_effect = TaskControllerError(
+                "Cannot update status"
             )
 
-    @pytest.mark.asyncio
-    async def test_update_task_status_done_network_exception(
-        self, mock_request_with_auth, mock_settings
-    ):
-        """Test exception handling during HTTP request."""
-        with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.patch") as mock_patch,
-            patch("src.mcp_server.task_tools.logger") as mock_logger,
-        ):
+            result = await update_task_status_done.fn(task_id)
 
-            mock_get_request.return_value = mock_request_with_auth
-            mock_patch.side_effect = Exception("Connection timeout")
-
-            result = await update_task_status_done.fn("task-123")
-
-            # Should log the exception
-            mock_logger.exception.assert_called_once()
-
-            # Should return error response
             assert_that(
                 result,
                 has_entries(
                     {
                         "status": "error",
                         "type": "task_status_update",
-                        "error_message": "Server error: Connection timeout",
-                        "error_type": "server_error",
+                        "error_type": "controller_error",
                     }
                 ),
             )
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("status_code", [400, 401, 403, 404, 422])
-    async def test_update_task_status_done_client_errors(
-        self, mock_request_with_auth, mock_settings, status_code
+    @pytest.mark.parametrize("invalid_id", ["invalid-uuid", "123", ""])
+    async def test_update_task_status_done_invalid_uuid(
+        self, user: User, workspace: Workspace, session, invalid_id
     ):
-        """Test handling of various client error status codes."""
-        mock_response = Mock()
-        mock_response.status_code = status_code
-        mock_response.text = f"Client error {status_code}"
+        """Test handling of invalid UUID formats."""
+        with patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local:
+            mock_session_local.return_value = session
 
-        with (
-            patch("src.mcp_server.task_tools.get_http_request") as mock_get_request,
-            patch("src.mcp_server.task_tools.requests.patch") as mock_patch,
-        ):
-
-            mock_get_request.return_value = mock_request_with_auth
-            mock_patch.return_value = mock_response
-
-            result = await update_task_status_done.fn("task-123")
+            result = await update_task_status_done.fn(invalid_id)
 
             assert_that(
                 result,
                 has_entries(
-                    {"status": "error", "error_message": f"Server error: {status_code}"}
+                    {
+                        "status": "error",
+                        "type": "task_status_update",
+                        "error_type": "validation_error",
+                    }
                 ),
             )

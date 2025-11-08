@@ -11,8 +11,8 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.db import SessionLocal
+from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
