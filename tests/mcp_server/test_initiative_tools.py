@@ -11,6 +11,7 @@ from src.initiative_management.initiative_controller import (
     InitiativeNotFoundError,
 )
 from src.mcp_server.initiative_tools import (
+    create_initiative,
     get_active_initiatives,
     get_initiative_details,
     search_initiatives,
@@ -645,6 +646,110 @@ class TestGetInitiativeDetails:
                         "type": "initiative_details",
                         "error_message": "Server error: Unexpected error",
                         "error_type": "server_error",
+                    }
+                ),
+            )
+
+
+class TestCreateInitiative:
+    """Test suite for create_initiative MCP tool."""
+
+    @pytest.mark.asyncio
+    async def test_create_initiative_successful_creation(
+        self,
+        session,
+        user: User,
+        workspace: Workspace,
+    ):
+        """Test successful creation of an initiative."""
+        initiative = Initiative(
+            id=uuid.uuid4(),
+            title="New Initiative",
+            description="A brand new initiative",
+            status=InitiativeStatus.IN_PROGRESS,
+            identifier="INIT-123",
+            workspace_id=workspace.id,
+            user_id=user.id,
+        )
+
+        mock_controller = Mock()
+        mock_controller.create_initiative.return_value = initiative
+        mock_controller.complete_onboarding_if_first_initiative = Mock()
+
+        with (
+            patch("src.mcp_server.initiative_tools.SessionLocal") as mock_session_local,
+            patch(
+                "src.mcp_server.initiative_tools.InitiativeController"
+            ) as mock_controller_class,
+        ):
+            mock_session_local.return_value = session
+            mock_controller_class.return_value = mock_controller
+
+            result = await create_initiative.fn(
+                "New Initiative",
+                "A brand new initiative",
+                "IN_PROGRESS",
+            )
+
+            mock_controller.create_initiative.assert_called_once_with(
+                title="New Initiative",
+                description="A brand new initiative",
+                user_id=user.id,
+                workspace_id=workspace.id,
+                status=InitiativeStatus.IN_PROGRESS,
+            )
+            mock_controller.complete_onboarding_if_first_initiative.assert_called_once_with(
+                user.id
+            )
+
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "success",
+                        "type": "initiative",
+                        "message": "Created initiative 'New Initiative'",
+                    }
+                ),
+            )
+            assert_that(result["initiative"]["title"], equal_to("New Initiative"))
+
+    @pytest.mark.asyncio
+    async def test_create_initiative_controller_error(
+        self,
+        session,
+        user: User,
+        workspace: Workspace,
+    ):
+        """Test handling of controller errors during creation."""
+        mock_controller = Mock()
+        mock_controller.create_initiative.side_effect = InitiativeControllerError(
+            "Database error"
+        )
+
+        with (
+            patch("src.mcp_server.initiative_tools.SessionLocal") as mock_session_local,
+            patch(
+                "src.mcp_server.initiative_tools.InitiativeController"
+            ) as mock_controller_class,
+        ):
+            mock_session_local.return_value = session
+            mock_controller_class.return_value = mock_controller
+
+            result = await create_initiative.fn(
+                "Failing Initiative",
+                "Description",
+                "BACKLOG",
+            )
+
+            assert_that(
+                result,
+                has_entries(
+                    {
+                        "status": "error",
+                        "type": "initiative",
+                        "error_message": "Database error",
+                        "error_type": "controller_error",
                     }
                 ),
             )
