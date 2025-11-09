@@ -63,6 +63,14 @@ class Settings(BaseSettings):
         default="auth0_refresh_token"
     )
 
+    # MCP OAuth storage encryption settings
+    mcp_oauth_storage_encryption_key: str = Field(
+        default="test-encryption-key-for-development-only-not-secure-12345678901234567890123456789012"
+    )
+    mcp_oauth_jwt_signing_key: str = Field(
+        default="test-jwt-signing-key-for-development-only-not-secure"
+    )
+
     postgrest_authenticator__role: str
     postgrest_authenticator__password: str
     postgrest_anonymous__role: str

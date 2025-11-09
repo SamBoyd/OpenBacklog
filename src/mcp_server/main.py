@@ -17,12 +17,27 @@ if settings.environment == "test":
     auth_provider = None  # No auth in test mode
     well_known_routes = {}
 else:
+    from cryptography.fernet import Fernet
     from fastmcp.server.auth.providers.auth0 import Auth0Provider
+    from key_value.aio.wrappers.encryption import FernetEncryptionWrapper
+
+    from src.db import async_session_maker
+    from src.mcp_server.storage import PostgreSQLMCPStorage
+
+    # Initialize PostgreSQL storage backend for OAuth tokens
+    postgres_storage = PostgreSQLMCPStorage(async_session_maker)
+
+    # Wrap storage with encryption for security
+    client_storage = FernetEncryptionWrapper(
+        key_value=postgres_storage,
+        fernet=Fernet(settings.mcp_oauth_storage_encryption_key.encode()),
+    )
 
     # Configure Auth0 OAuth authentication
     # Users authenticate via browser redirect to Auth0 login page
     # Client credentials are stored server-side only (never distributed to users)
     # After initial login, tokens are cached locally on the user's machine
+    # Tokens are persisted in PostgreSQL with encryption for security
     auth_provider = Auth0Provider(
         config_url=f"https://{settings.mcp_server_auth0_domain}/.well-known/openid-configuration",
         client_id=settings.mcp_server_auth0_client_id,
@@ -30,7 +45,8 @@ else:
         audience=settings.mcp_server_auth0_audience,
         base_url=f"{settings.mcp_server_domain}/mcp",
         issuer_url=f"{settings.mcp_server_domain}",
-        jwt_signing_key="test-hardcoded-jwt-signing-key-for-debugging-purposes-12345",
+        jwt_signing_key=settings.mcp_oauth_jwt_signing_key,
+        client_storage=client_storage,
     )
 
     well_known_routes = auth_provider.get_well_known_routes(mcp_path="/mcp")

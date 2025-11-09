@@ -5,9 +5,9 @@ import logging
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeMeta, Session, declarative_base, sessionmaker
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from src.config import settings
 
@@ -40,8 +40,15 @@ def get_db():  # type: ignore
 # Annotated version for type-hinting in your FastAPI endpoints
 SessionDep = Annotated[Session, Depends(get_db)]  # pragma: no mutate
 
-# Create async engine and session maker
-async_engine = create_async_engine(settings.async_database_url, echo=False)
+# Create async engine and session maker with connection pooling
+async_engine = create_async_engine(
+    settings.async_database_url,
+    echo=False,
+    pool_size=10,  # Max persistent connections
+    max_overflow=20,  # Additional burst connections
+    pool_pre_ping=True,  # Verify connections before use
+    pool_recycle=3600,  # Recycle connections after 1 hour
+)
 async_session_maker = async_sessionmaker(async_engine, expire_on_commit=False)
 
 
