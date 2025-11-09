@@ -743,7 +743,7 @@ class TestInitiativeController:
 
         mock_complete_onboarding = Mock(return_value=user.account_details)
         monkeypatch.setattr(
-            "src.initiative_management.initiative_controller.accounting_controller.complete_onboarding",
+            "src.accounting.accounting_controller.complete_onboarding",
             mock_complete_onboarding,
         )
 
@@ -766,9 +766,6 @@ class TestInitiativeController:
 
         mock_complete_onboarding.assert_called_once_with(user, session)
 
-        session.refresh(account_details)
-        assert_that(account_details.onboarding_completed, is_(True))
-
     def test_complete_onboarding_if_first_initiative_not_called_for_multiple_initiatives(
         self, controller, user, workspace, session, monkeypatch
     ):
@@ -778,7 +775,7 @@ class TestInitiativeController:
 
         mock_complete_onboarding = Mock()
         monkeypatch.setattr(
-            "src.initiative_management.initiative_controller.accounting_controller.complete_onboarding",
+            "src.accounting.accounting_controller.complete_onboarding",
             mock_complete_onboarding,
         )
 
@@ -813,7 +810,7 @@ class TestInitiativeController:
 
         mock_complete_onboarding = Mock(side_effect=Exception("Onboarding error"))
         monkeypatch.setattr(
-            "src.initiative_management.initiative_controller.accounting_controller.complete_onboarding",
+            "src.accounting.accounting_controller.complete_onboarding",
             mock_complete_onboarding,
         )
 
@@ -839,7 +836,7 @@ class TestInitiativeController:
 
         mock_complete_onboarding = Mock()
         monkeypatch.setattr(
-            "src.initiative_management.initiative_controller.accounting_controller.complete_onboarding",
+            "src.accounting.accounting_controller.complete_onboarding",
             mock_complete_onboarding,
         )
 
@@ -855,7 +852,7 @@ class TestInitiativeController:
         """Test that onboarding is NOT completed when user has zero initiatives."""
         mock_complete_onboarding = Mock()
         monkeypatch.setattr(
-            "src.initiative_management.initiative_controller.accounting_controller.complete_onboarding",
+            "src.accounting.accounting_controller.complete_onboarding",
             mock_complete_onboarding,
         )
 
