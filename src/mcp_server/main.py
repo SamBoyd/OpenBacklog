@@ -4,6 +4,7 @@ import os
 from unittest.mock import MagicMock
 
 from fastmcp.server import FastMCP
+from mcp.server.fastmcp import Icon
 
 from src.config import ENV_FILE, settings
 
@@ -52,7 +53,18 @@ else:
     well_known_routes = auth_provider.get_well_known_routes(mcp_path="/mcp")
 
 # Initialize FastMCP with OAuth authentication
-mcp = FastMCP(name="OpenBacklog MCP server", auth=auth_provider)  # type: ignore
+mcp = FastMCP(
+    name="OpenBacklog MCP server",
+    auth=auth_provider,
+    website_url="https://openbacklog.ai",
+    icons=[
+        Icon(
+            src="https://www.openbacklog.ai/assets/ob_v2_64x64.png",
+            mimeType="image/png",
+            sizes=["64x64"],
+        ),
+    ],
+)
 
 from src.mcp_server.checklist_tools import *
 from src.mcp_server.healthcheck_tool import *
