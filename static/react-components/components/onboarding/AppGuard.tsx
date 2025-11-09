@@ -28,6 +28,7 @@ const AppGuard: React.FC<AppGuardProps> = ({ children }) => {
     error: workspaceError,
     addWorkspace
   } = useWorkspaces();
+  const { initiativesData, shouldShowSkeleton } = useInitiativesContext();
 
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
 
@@ -115,7 +116,6 @@ const AppGuard: React.FC<AppGuardProps> = ({ children }) => {
   }
 
   // Stage 6: Check if user has created first initiative via MCP
-  const { initiativesData, shouldShowSkeleton } = useInitiativesContext();
   const hasInitiatives = initiativesData && initiativesData.length > 0;
 
   if (!hasInitiatives && !shouldShowSkeleton) {
