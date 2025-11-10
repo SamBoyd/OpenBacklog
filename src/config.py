@@ -89,12 +89,18 @@ class Settings(BaseSettings):
     github_webhook_secret: str
 
     tavily_api_key: str
+
+    # Vault settings
+    vault_type: str = Field(default="hashicorp")  # "hashicorp" or "file"
     vault_url: str
     vault_cert_path: str
     vault_cert_key_path: str
     vault_role_id_path: str
     vault_secret_id_path: str
     vault_verify_cert: bool
+
+    # File vault settings
+    secrets_dir: str = Field(default="/app/secrets")
 
     sentry_url: str
 

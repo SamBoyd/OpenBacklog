@@ -49,14 +49,14 @@ mcp_app = mcp.http_app(path="/")
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
-        from src.key_vault import initialize_vault_client
+        from src.secrets import get_vault
 
-        initialize_vault_client()
-        logging.info("Vault client successfully initialized at startup")
+        vault = get_vault()
+        logging.info("Vault successfully initialized at startup")
     except Exception as e:
-        logging.error(f"Failed to initialize Vault client at startup: {e}")
+        logging.error(f"Failed to initialize Vault at startup: {e}")
         # Continue application startup even if Vault initialization fails
-        # The application will attempt to initialize the client again when needed
+        # The application will attempt to initialize the vault again when needed
 
     if settings.sentry_url != "":
         logging.info("Sentry URL is provided, initializing Sentry SDK")

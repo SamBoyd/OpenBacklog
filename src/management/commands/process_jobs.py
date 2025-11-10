@@ -13,7 +13,7 @@ from src.background_service import (
     process_job,
 )
 from src.db import get_db
-from src.key_vault import initialize_vault_client
+from src.secrets import get_vault
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ async def execute(interval: int, single_run: bool) -> int:
 
     signal.signal(signal.SIGINT, handle_sigint)
 
-    initialize_vault_client()
+    vault = get_vault()
 
     try:
         while True:

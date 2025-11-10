@@ -1,3 +1,17 @@
+"""
+DEPRECATED: This module is deprecated and will be removed in a future release.
+
+Please use src.secrets.vault_factory.get_vault() instead to access the vault instance.
+The vault abstraction layer in src.secrets now supports both HashiCorp Vault and
+file-based storage for development environments.
+
+Migration guide:
+    Old: from src.key_vault import initialize_vault_client, retrieve_api_key_from_vault
+    New: from src.secrets import get_vault
+         vault = get_vault()
+         api_key = vault.retrieve_api_key_from_vault(path)
+"""
+
 import base64
 import logging
 import os
@@ -22,6 +36,9 @@ from src.monitoring.sentry_helpers import (
 # This is a valid Fernet key generated with Fernet.generate_key() and decoded to string
 
 logger = logging.getLogger(__name__)
+logger.warning(
+    "src.key_vault is deprecated. Use src.secrets.vault_factory.get_vault() instead."
+)
 
 # Store client, expiry timestamp (UTC), and renewable status
 _vault_client_details: Optional[Tuple[hvac.Client, float, bool]] = None
