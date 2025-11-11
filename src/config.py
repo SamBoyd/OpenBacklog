@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     static_site_url: str
     static_site_domain: str
 
-    app_domain: str
+    app_domain: str = Field(default="")
     app_url: str
 
     postgrest_domain: str
