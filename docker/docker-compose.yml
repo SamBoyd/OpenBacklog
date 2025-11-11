@@ -375,19 +375,34 @@ volumes:
   #   - agent-2-postgres-data (agent cluster 2)
   #   - etc.
   #
+  # Data volumes (postgres, litellm) are declared for all supported clusters.
   # Secrets volumes are pre-defined for each cluster to ensure file permissions
   # and isolation. Applications mount these volumes at /app/secrets.
   # ============================================================================
 
-  # Postgres data volumes (dynamically created per cluster)
-  # Format: ${CLUSTER_NAME}-postgres-data
-  postgres_data:
-  postgres_data_memory:
-  postgres_data_litellm:
+  # Primary "dev" cluster data volumes
+  dev-postgres-data:
+  dev-postgres-data-memory:
+  dev-postgres-data-litellm:
+  dev-litellm-data:
 
-  # LiteLLM data volume (dynamically created per cluster)
-  # Format: ${CLUSTER_NAME}-litellm-data
-  litellm_data:
+  # Agent cluster 1 data volumes
+  agent-1-postgres-data:
+  agent-1-postgres-data-memory:
+  agent-1-postgres-data-litellm:
+  agent-1-litellm-data:
+
+  # Agent cluster 2 data volumes
+  agent-2-postgres-data:
+  agent-2-postgres-data-memory:
+  agent-2-postgres-data-litellm:
+  agent-2-litellm-data:
+
+  # Agent cluster 3 data volumes
+  agent-3-postgres-data:
+  agent-3-postgres-data-memory:
+  agent-3-postgres-data-litellm:
+  agent-3-litellm-data:
 
   # Secrets volumes (pre-defined for each cluster)
   # These store encrypted credentials and API keys
