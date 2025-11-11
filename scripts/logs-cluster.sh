@@ -105,19 +105,19 @@ validate_cluster() {
 is_cluster_running() {
   local cluster_name=$1
 
-  docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -q " Up " || return 1
+  CLUSTER_NAME="$cluster_name" docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -q " Up " || return 1
 }
 
 service_exists() {
   local cluster_name=$1
   local service_name=$2
 
-  docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -q "^${cluster_name}-${service_name}" || return 1
+  CLUSTER_NAME="$cluster_name" docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -q "^${cluster_name}-${service_name}" || return 1
 }
 
 list_services() {
   local cluster_name=$1
-  docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps --services 2>/dev/null || true
+  CLUSTER_NAME="$cluster_name" docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps --services 2>/dev/null || true
 }
 
 ##############################################################################
@@ -189,9 +189,9 @@ main() {
   # Run docker-compose logs with service name (if provided) and any additional options
   set +e  # Don't exit on Ctrl+C
   if [ -n "$service_name" ]; then
-    docker-compose --env-file "$env_file" -p "$cluster_name" logs -f "$service_name" "$@"
+    CLUSTER_NAME="$cluster_name" docker-compose --env-file "$env_file" -p "$cluster_name" logs -f "$service_name" "$@"
   else
-    docker-compose --env-file "$env_file" -p "$cluster_name" logs -f "$@"
+    CLUSTER_NAME="$cluster_name" docker-compose --env-file "$env_file" -p "$cluster_name" logs -f "$@"
   fi
   local exit_code=$?
   set -e

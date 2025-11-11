@@ -99,7 +99,7 @@ wait_for_health() {
 
   while [ $attempt -lt $max_attempts ]; do
     # Check if key services are running
-    local running=$(docker-compose -f docker/docker-compose.yml --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -c " Up " || true)
+    local running=$(CLUSTER_NAME="$cluster_name" docker-compose -f docker/docker-compose.yml --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -c " Up " || true)
 
     if [ "$running" -gt 0 ]; then
       print_success "Cluster is running"
@@ -175,7 +175,7 @@ main() {
 
   # Start the cluster
   cd "$PROJECT_ROOT"
-  if docker-compose -f docker/docker-compose.yml --env-file "$env_file" -p "$cluster_name" up --build -d; then
+  if CLUSTER_NAME="$cluster_name" docker-compose -f docker/docker-compose.yml --env-file "$env_file" -p "$cluster_name" up --build -d; then
     print_success "Docker Compose started successfully"
   else
     print_error "Failed to start cluster with docker-compose"

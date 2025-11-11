@@ -110,7 +110,7 @@ services:
       - OPENMETER_API_ENDPOINT=${OPENMETER_API_ENDPOINT}
       - OPENMETER_API_KEY=${OPENMETER_API_KEY}
     volumes:
-      - litellm_data:/app/data
+      - ${CLUSTER_NAME:-dev}-litellm-data:/app/data
       - ../config/litellm:/app/config:ro
     depends_on:
       postgres_litellm:
@@ -296,7 +296,7 @@ services:
       - "${POSTGRES_PORT}:5432"
     shm_size: 128mb
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${CLUSTER_NAME:-dev}-postgres-data:/var/lib/postgresql/data
       - ./postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql
     environment:
       # Use variables sourced from .env
@@ -321,7 +321,7 @@ services:
       - "${POSTGRES_MEMORY_PORT}:5432"
     shm_size: 128mb
     volumes:
-      - postgres_data_memory:/tmp/memory_db
+      - ${CLUSTER_NAME:-dev}-postgres-data-memory:/tmp/memory_db
     environment:
       # Use variables sourced from .env
       - POSTGRES_USER=${POSTGRES_MEMORY_USER}
@@ -341,7 +341,7 @@ services:
       - "${POSTGRES_LITELLM_PORT}:5432"
     shm_size: 128mb
     volumes:
-      - postgres_data_litellm:/tmp/litellm_db
+      - ${CLUSTER_NAME:-dev}-postgres-data-litellm:/tmp/litellm_db
     environment:
       # Use variables sourced from .env
       - POSTGRES_USER=${POSTGRES_LITELLM_USER}
@@ -363,10 +363,34 @@ services:
     profiles: ["dev"] # Only run when dev profile is active
 
 volumes:
+  # ============================================================================
+  # Multi-Cluster Volume Strategy
+  # ============================================================================
+  # Each service volume is dynamically named using ${CLUSTER_NAME:-dev}
+  # This enables complete isolation between clusters.
+  #
+  # Volume naming conventions:
+  #   - dev-postgres-data (primary cluster)
+  #   - agent-1-postgres-data (agent cluster 1)
+  #   - agent-2-postgres-data (agent cluster 2)
+  #   - etc.
+  #
+  # Secrets volumes are pre-defined for each cluster to ensure file permissions
+  # and isolation. Applications mount these volumes at /app/secrets.
+  # ============================================================================
+
+  # Postgres data volumes (dynamically created per cluster)
+  # Format: ${CLUSTER_NAME}-postgres-data
   postgres_data:
   postgres_data_memory:
   postgres_data_litellm:
+
+  # LiteLLM data volume (dynamically created per cluster)
+  # Format: ${CLUSTER_NAME}-litellm-data
   litellm_data:
+
+  # Secrets volumes (pre-defined for each cluster)
+  # These store encrypted credentials and API keys
   dev-secrets:
   agent-1-secrets:
   agent-2-secrets:

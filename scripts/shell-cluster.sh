@@ -93,21 +93,21 @@ validate_cluster() {
 is_cluster_running() {
   local cluster_name=$1
 
-  docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -q " Up " || return 1
+  CLUSTER_NAME="$cluster_name" docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -q " Up " || return 1
 }
 
 service_exists() {
   local cluster_name=$1
   local service_name=$2
 
-  docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -q "^${cluster_name}-${service_name}" || return 1
+  CLUSTER_NAME="$cluster_name" docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -q "^${cluster_name}-${service_name}" || return 1
 }
 
 get_container_id() {
   local cluster_name=$1
   local service_name=$2
 
-  docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps -q "$service_name" 2>/dev/null || echo ""
+  CLUSTER_NAME="$cluster_name" docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps -q "$service_name" 2>/dev/null || echo ""
 }
 
 ##############################################################################
@@ -152,7 +152,7 @@ main() {
     print_error "Service '$service_name' not found in cluster '$cluster_name'"
     echo ""
     print_info "Available services in cluster '$cluster_name':"
-    docker-compose --env-file "$env_file" -p "$cluster_name" ps --services | sed 's/^/  - /'
+    CLUSTER_NAME="$cluster_name" docker-compose --env-file "$env_file" -p "$cluster_name" ps --services | sed 's/^/  - /'
     exit 1
   fi
 
@@ -162,9 +162,9 @@ main() {
   cd "$PROJECT_ROOT"
 
   # Try to execute bash, fall back to sh if not available
-  if docker-compose --env-file "$env_file" -p "$cluster_name" exec "$service_name" bash 2>/dev/null; then
+  if CLUSTER_NAME="$cluster_name" docker-compose --env-file "$env_file" -p "$cluster_name" exec "$service_name" bash 2>/dev/null; then
     :
-  elif docker-compose --env-file "$env_file" -p "$cluster_name" exec "$service_name" sh 2>/dev/null; then
+  elif CLUSTER_NAME="$cluster_name" docker-compose --env-file "$env_file" -p "$cluster_name" exec "$service_name" sh 2>/dev/null; then
     :
   else
     print_error "Failed to open shell in service '$service_name'"

@@ -90,7 +90,7 @@ is_cluster_running() {
   local cluster_name=$1
 
   # Try to check if cluster has any running services
-  docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -q " Up " || return 1
+  CLUSTER_NAME="$cluster_name" docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -q " Up " || return 1
 }
 
 confirm_action() {
@@ -180,14 +180,14 @@ main() {
 
   local compose_args="--env-file $env_file -p $cluster_name"
   if [ "$remove_volumes" = true ]; then
-    if docker-compose $compose_args down -v; then
+    if CLUSTER_NAME="$cluster_name" docker-compose $compose_args down -v; then
       print_success "Cluster stopped and volumes removed"
     else
       print_error "Failed to stop cluster and remove volumes"
       exit 1
     fi
   else
-    if docker-compose $compose_args down; then
+    if CLUSTER_NAME="$cluster_name" docker-compose $compose_args down; then
       print_success "Cluster stopped (data preserved)"
     else
       print_error "Failed to stop cluster"

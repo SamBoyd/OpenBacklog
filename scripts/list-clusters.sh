@@ -73,9 +73,9 @@ get_value_from_env() {
 is_cluster_running() {
   local cluster_name=$1
 
-  if docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps --services > /dev/null 2>&1; then
+  if CLUSTER_NAME="$cluster_name" docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps --services > /dev/null 2>&1; then
     # Check if any services are running
-    local running=$(docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -c " Up " || true)
+    local running=$(CLUSTER_NAME="$cluster_name" docker-compose --env-file ".env.cluster-${cluster_name}" -p "${cluster_name}" ps 2>/dev/null | grep -c " Up " || true)
     [ "$running" -gt 0 ]
   else
     return 1
