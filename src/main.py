@@ -49,7 +49,7 @@ mcp_app = mcp.http_app(path="/")
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
-        from src.secrets import get_vault
+        from src.secrets.vault_factory import get_vault
 
         vault = get_vault()
         logging.info("Vault successfully initialized at startup")

@@ -18,15 +18,18 @@ from src.models import APIProvider, UserKey
 class TestCreateOpenBacklogToken:
     """Test suite for create_openbacklog_token function."""
 
-    @patch("src.controller.store_api_key_in_vault")
+    @patch("src.controller.get_vault")
     @patch("src.auth.jwt_utils.create_unified_jwt")
     def test_creates_new_openbacklog_token(
-        self, mock_create_jwt, mock_store_in_vault, session, user
+        self, mock_create_jwt, mock_get_vault, session, user
     ):
         """Test successful creation of a new OpenBacklog token."""
         # Setup
         mock_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
         mock_create_jwt.return_value = mock_token
+        mock_vault = MagicMock()
+        mock_vault.store_api_key_in_vault.return_value = "vault/path"
+        mock_get_vault.return_value = mock_vault
 
         # Execute
         result = create_openbacklog_token(user, session)
@@ -59,7 +62,9 @@ class TestCreateOpenBacklogToken:
         )  # Verify full token is stored
 
         # Verify token was stored in Vault
-        mock_store_in_vault.assert_called_once_with(user_key.vault_path, mock_token)
+        mock_vault.store_api_key_in_vault.assert_called_once_with(
+            user_key.vault_path, mock_token
+        )
 
         # Verify return value
         assert_that(
@@ -70,10 +75,10 @@ class TestCreateOpenBacklogToken:
         assert_that(result["redacted_key"], equal_to("eyJ***7HgQ"))
         assert_that("created_at" in result, equal_to(True))
 
-    @patch("src.controller.store_api_key_in_vault")
+    @patch("src.controller.get_vault")
     @patch("src.auth.jwt_utils.create_unified_jwt")
     def test_handles_multiple_tokens_for_same_user(
-        self, mock_create_jwt, mock_store_in_vault, session, user
+        self, mock_create_jwt, mock_get_vault, session, user
     ):
         """Test that multiple tokens can be created for the same user."""
         # Setup
@@ -81,6 +86,9 @@ class TestCreateOpenBacklogToken:
         mock_token2 = "token2_eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
 
         mock_create_jwt.side_effect = [mock_token1, mock_token2]
+        mock_vault = MagicMock()
+        mock_vault.store_api_key_in_vault.return_value = "vault/path"
+        mock_get_vault.return_value = mock_vault
 
         # Execute - create first token
         result1 = create_openbacklog_token(user, session)
@@ -116,15 +124,18 @@ class TestCreateOpenBacklogToken:
             str(exc_info.value.detail), contains_string("Failed to create token")
         )
 
-    @patch("src.controller.store_api_key_in_vault")
+    @patch("src.controller.get_vault")
     @patch("src.auth.jwt_utils.create_unified_jwt")
     def test_jwt_includes_key_id_for_tracking(
-        self, mock_create_jwt, mock_store_in_vault, session, user
+        self, mock_create_jwt, mock_get_vault, session, user
     ):
         """Test that the JWT token includes the key_id for proper tracking."""
         # Setup
         mock_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwia2V5X2lkIjoiYWJjZC0xMjM0In0.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
         mock_create_jwt.return_value = mock_token
+        mock_vault = MagicMock()
+        mock_vault.store_api_key_in_vault.return_value = "vault/path"
+        mock_get_vault.return_value = mock_vault
 
         # Execute
         create_openbacklog_token(user, session)

@@ -15,7 +15,6 @@ from src import storage_service
 from src.ai.openai_service import _validate_openai_key
 from src.config import settings
 from src.github_app.github_service import GitHubService
-from src.key_vault import retrieve_api_key_from_vault, store_api_key_in_vault
 from src.litellm_service import (
     create_litellm_user,
     get_litellm_user_info,
@@ -23,6 +22,7 @@ from src.litellm_service import (
 )
 from src.main import templates
 from src.models import APIProvider, GitHubInstallation, User, UserKey, Workspace
+from src.secrets.vault_factory import get_vault
 
 if TYPE_CHECKING:
     from src.api import WorkspaceUpdate
@@ -378,7 +378,8 @@ def update_openai_key(key: str, user: User, db: Session):
 
         # Store in Vault
         vault_path = user_key.vault_path
-        stored_path = store_api_key_in_vault(vault_path, key)
+        vault = get_vault()
+        stored_path = vault.store_api_key_in_vault(vault_path, key)
         if stored_path is None:
             logger.warning(
                 f"Vault unavailable, OpenAI key for user {user.id} stored in DB but not in vault"
@@ -422,7 +423,8 @@ def get_openai_key_from_vault(user: User, db: Session) -> str:
     if not user_key:
         raise RuntimeError("User does not have an OpenAI key")
 
-    api_key = retrieve_api_key_from_vault(user_key.vault_path)
+    vault = get_vault()
+    api_key = vault.retrieve_api_key_from_vault(user_key.vault_path)
     if api_key is None:
         raise RuntimeError("Could not retrieve OpenAI key - vault service unavailable")
 
@@ -497,7 +499,8 @@ def create_litellm_user_and_key(user: User, db: Session):
 
     # Store in Vault
     vault_path = user_key.vault_path
-    stored_path = store_api_key_in_vault(vault_path, key)
+    vault = get_vault()
+    stored_path = vault.store_api_key_in_vault(vault_path, key)
     if stored_path is None:
         logger.warning(
             f"Vault unavailable, LiteLLM key for user {user.id} stored in DB but not in vault"
@@ -561,7 +564,8 @@ def create_openbacklog_token(user: User, db: Session) -> dict:
 
         # Store full token in Vault for future retrieval if needed
         vault_path = user_key.vault_path
-        stored_path = store_api_key_in_vault(vault_path, token)
+        vault = get_vault()
+        stored_path = vault.store_api_key_in_vault(vault_path, token)
         if stored_path is None:
             logger.warning(
                 f"Vault unavailable, OpenBacklog token for user {user.id} stored in DB but not in vault"

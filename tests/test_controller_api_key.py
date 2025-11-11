@@ -10,10 +10,13 @@ from src.controller import get_openai_key_from_vault, update_openai_key
 from src.models import APIProvider, UserKey
 
 
+@patch("src.controller.get_vault")
 @patch("src.controller._validate_openai_key", MagicMock())
-@patch("src.controller.store_api_key_in_vault")
-def test_update_openai_key_creates_new_user_key(mock_store_in_vault, session, user):
+def test_update_openai_key_creates_new_user_key(mock_get_vault, session, user):
     api_key = "sk-abcdefghijklmnopqrstuvwxyz1234"
+    mock_vault = MagicMock()
+    mock_vault.store_api_key_in_vault.return_value = "vault/path"
+    mock_get_vault.return_value = mock_vault
 
     # Execute
     result = update_openai_key(api_key, user, session)
@@ -31,7 +34,9 @@ def test_update_openai_key_creates_new_user_key(mock_store_in_vault, session, us
     assert_that(user_key.redacted_key, equal_to("sk-***1234"))
 
     # Check that the key was stored in Vault
-    mock_store_in_vault.assert_called_once_with(user_key.vault_path, api_key)
+    mock_vault.store_api_key_in_vault.assert_called_once_with(
+        user_key.vault_path, api_key
+    )
 
     # Check the return message
     assert_that(
@@ -39,11 +44,9 @@ def test_update_openai_key_creates_new_user_key(mock_store_in_vault, session, us
     )
 
 
+@patch("src.controller.get_vault")
 @patch("src.controller._validate_openai_key", MagicMock())
-@patch("src.controller.store_api_key_in_vault")
-def test_update_openai_key_updates_existing_user_key(
-    mock_store_in_vault, session, user
-):
+def test_update_openai_key_updates_existing_user_key(mock_get_vault, session, user):
     # Create existing UserKey
     user_key = UserKey(
         user_id=user.id,
@@ -57,6 +60,9 @@ def test_update_openai_key_updates_existing_user_key(
     session.refresh(user_key)
 
     api_key = "sk-abcdefghijklmnopqrstuvwxyz1234"
+    mock_vault = MagicMock()
+    mock_vault.store_api_key_in_vault.return_value = "vault/path"
+    mock_get_vault.return_value = mock_vault
 
     # Execute
     result = update_openai_key(api_key, user, session)
@@ -74,7 +80,9 @@ def test_update_openai_key_updates_existing_user_key(
     assert_that(user_key.redacted_key, equal_to("sk-***1234"))
 
     # Check that the key was stored in Vault
-    mock_store_in_vault.assert_called_once_with(user_key.vault_path, api_key)
+    mock_vault.store_api_key_in_vault.assert_called_once_with(
+        user_key.vault_path, api_key
+    )
 
     # Check the return message
     assert_that(
@@ -82,9 +90,9 @@ def test_update_openai_key_updates_existing_user_key(
     )
 
 
+@patch("src.controller.get_vault")
 @patch("src.controller._validate_openai_key", MagicMock())
-@patch("src.controller.store_api_key_in_vault")
-def test_update_openai_key_handles_vault_error(mock_store_in_vault, session, user):
+def test_update_openai_key_handles_vault_error(mock_get_vault, session, user):
     # Create existing UserKey
     user_key = UserKey(
         user_id=user.id,
@@ -98,7 +106,11 @@ def test_update_openai_key_handles_vault_error(mock_store_in_vault, session, use
     session.refresh(user_key)
 
     api_key = "sk-abcdefghijklmnopqrstuvwxyz1234"
-    mock_store_in_vault.side_effect = RuntimeError("Vault connection failed")
+    mock_vault = MagicMock()
+    mock_vault.store_api_key_in_vault.side_effect = RuntimeError(
+        "Vault connection failed"
+    )
+    mock_get_vault.return_value = mock_vault
 
     # Execute and verify
     with pytest.raises(RuntimeError) as excinfo:
@@ -111,9 +123,9 @@ def test_update_openai_key_handles_vault_error(mock_store_in_vault, session, use
     assert_that(user_key.redacted_key, equal_to("sk-***7890"))
 
 
+@patch("src.controller.get_vault")
 @patch("src.controller._validate_openai_key", MagicMock())
-@patch("src.controller.retrieve_api_key_from_vault")
-def test_can_get_users_openai_key(mock_retrieve_api_key_from_vault, user, session):
+def test_can_get_users_openai_key(mock_get_vault, user, session):
     user_key = UserKey(
         user=user,
         provider=APIProvider.OPENAI,
@@ -124,7 +136,11 @@ def test_can_get_users_openai_key(mock_retrieve_api_key_from_vault, user, sessio
     session.add(user_key)
     session.commit()
 
-    mock_retrieve_api_key_from_vault.return_value = "sk-abcdefghijklmnopqrstuvwxyz1234"
+    mock_vault = MagicMock()
+    mock_vault.retrieve_api_key_from_vault.return_value = (
+        "sk-abcdefghijklmnopqrstuvwxyz1234"
+    )
+    mock_get_vault.return_value = mock_vault
 
     response = get_openai_key_from_vault(user, session)
     assert response == "sk-abcdefghijklmnopqrstuvwxyz1234"
@@ -137,10 +153,13 @@ def test_can_get_users_openai_key_when_no_key(user, session):
     pass
 
 
-@patch("src.controller.store_api_key_in_vault", MagicMock())
+@patch("src.controller.get_vault")
 @patch("src.controller._validate_openai_key")
-def test_validates_the_key(mock_validate_openai_key, session, user):
+def test_validates_the_key(mock_validate_openai_key, mock_get_vault, session, user):
     api_key = "sk-abcdefghijklmnopqrstuvwxyz1234"
+    mock_vault = MagicMock()
+    mock_vault.store_api_key_in_vault.return_value = "vault/path"
+    mock_get_vault.return_value = mock_vault
 
     # Execute
     update_openai_key(api_key, user, session)

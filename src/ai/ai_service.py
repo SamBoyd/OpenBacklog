@@ -32,7 +32,6 @@ from src.ai.prompt import (
 )
 from src.config import settings
 from src.db import Session, get_db
-from src.key_vault import retrieve_api_key_from_vault
 from src.models import (
     APIProvider,
     BalanceWarning,
@@ -52,6 +51,7 @@ from src.monitoring.sentry_helpers import (
     set_user_context,
     track_ai_metrics,
 )
+from src.secrets.vault_factory import get_vault
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +199,8 @@ def get_user_api_key(user_id: uuid.UUID, db: Session) -> str:
         raise VaultError(f"API key for user {user_id} is marked as not valid")
 
     try:
-        api_key = retrieve_api_key_from_vault(user_key.vault_path)
+        vault = get_vault()
+        api_key = vault.retrieve_api_key_from_vault(user_key.vault_path)
         if api_key is None:
             raise VaultError(
                 "Vault service is currently unavailable. Please try again later or contact support."

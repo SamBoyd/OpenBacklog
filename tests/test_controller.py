@@ -458,14 +458,17 @@ def test_delete_workspace(user, session):
     )
 
 
+@patch("src.controller.get_vault")
 @patch("src.controller._validate_openai_key")
-@patch("src.controller.store_api_key_in_vault")
-def test_update_openai_key_with_validation(mock_store_key, mock_validate_key, user):
+def test_update_openai_key_with_validation(mock_validate_key, mock_get_vault, user):
     """Test that update_openai_key calls validation and handles success properly."""
     # Arrange
     from src.controller import update_openai_key
 
     mock_validate_key.return_value = True
+    mock_vault = MagicMock()
+    mock_vault.store_api_key_in_vault.return_value = "vault/path"
+    mock_get_vault.return_value = mock_vault
     mock_db = MagicMock()
     mock_db.query.return_value.filter.return_value.first.return_value = None
 
@@ -476,13 +479,13 @@ def test_update_openai_key_with_validation(mock_store_key, mock_validate_key, us
     mock_validate_key.assert_called_once_with("test_key")
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called()
-    mock_store_key.assert_called_once()
+    mock_vault.store_api_key_in_vault.assert_called_once()
     assert_that(result["message"], contains_string("validated successfully"))
 
 
+@patch("src.secrets.vault_factory.get_vault")
 @patch("src.controller._validate_openai_key")
-@patch("src.controller.store_api_key_in_vault")
-def test_update_openai_key_validation_error(mock_store_key, mock_validate_key, user):
+def test_update_openai_key_validation_error(mock_validate_key, mock_get_vault, user):
     """Test that update_openai_key handles validation errors properly."""
     # Arrange
     from fastapi import HTTPException
@@ -490,6 +493,8 @@ def test_update_openai_key_validation_error(mock_store_key, mock_validate_key, u
     from src.controller import update_openai_key
 
     mock_validate_key.return_value = False
+    mock_vault = MagicMock()
+    mock_get_vault.return_value = mock_vault
     mock_db = MagicMock()
 
     # Act & Assert
@@ -502,18 +507,18 @@ def test_update_openai_key_validation_error(mock_store_key, mock_validate_key, u
     # Verify no DB or Vault operations happened
     mock_db.add.assert_not_called()
     mock_db.commit.assert_not_called()
-    mock_store_key.assert_not_called()
+    mock_vault.store_api_key_in_vault.assert_not_called()
 
 
+@patch("src.controller.get_vault")
 @patch("src.controller.retrieve_litellm_master_key")
 @patch("src.controller.get_litellm_user_info")
 @patch("src.controller.create_litellm_user")
-@patch("src.controller.store_api_key_in_vault")
 def test_create_litellm_user_and_key_success(
-    mock_store_key,
     mock_create_user,
     mock_get_user_info,
     mock_retrieve_master_key,
+    mock_get_vault,
     user,
     session,
 ):
@@ -524,6 +529,9 @@ def test_create_litellm_user_and_key_success(
     mock_retrieve_master_key.return_value = "master_key"
     mock_get_user_info.return_value = {"keys": []}  # No existing keys
     mock_create_user.return_value = "new_litellm_key"
+    mock_vault = MagicMock()
+    mock_vault.store_api_key_in_vault.return_value = "vault/path"
+    mock_get_vault.return_value = mock_vault
 
     # Act
     result = create_litellm_user_and_key(user, session)
@@ -532,7 +540,7 @@ def test_create_litellm_user_and_key_success(
     mock_retrieve_master_key.assert_called_once()
     mock_get_user_info.assert_called_once_with(user, "master_key")
     mock_create_user.assert_called_once_with(user, "master_key")
-    mock_store_key.assert_called_once()
+    mock_vault.store_api_key_in_vault.assert_called_once()
 
     # Verify UserKey was created correctly
     user_key = (

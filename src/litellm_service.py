@@ -6,8 +6,8 @@ import requests
 from sqlalchemy.orm import Session
 
 from src.config import settings
-from src.key_vault import retrieve_api_key_from_vault, store_api_key_in_vault
 from src.models import APIProvider, User, UserKey
+from src.secrets.vault_factory import get_vault
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,10 @@ def regenerate_litellm_master_key():
     new_key = f"sk-proj-{uuid.uuid4()}"
 
     # Try to store in vault, but continue even if vault is unavailable
-    vault_path = store_api_key_in_vault(settings.litellm_master_key_vault_path, new_key)
+    vault = get_vault()
+    vault_path = vault.store_api_key_in_vault(
+        settings.litellm_master_key_vault_path, new_key
+    )
     if vault_path:
         logger.info(f"LiteLLM master key stored in Vault at path: {vault_path}")
     else:
@@ -56,7 +59,8 @@ def retrieve_litellm_key_for_user(user: User, db: Session) -> Optional[str]:
     )
 
     if user_key:
-        api_key = retrieve_api_key_from_vault(user_key.vault_path)
+        vault = get_vault()
+        api_key = vault.retrieve_api_key_from_vault(user_key.vault_path)
         if api_key is None:
             logger.warning(
                 f"Could not retrieve LiteLLM key for user {user.id} - vault unavailable"

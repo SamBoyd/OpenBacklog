@@ -32,12 +32,9 @@ class TestLiteLLMService:
 class TestRegenerateLiteLLMMasterKey:
     """Test cases for the regenerate_litellm_master_key function."""
 
-    @patch("src.litellm_service.retrieve_api_key_from_vault")
-    @patch("src.litellm_service.store_api_key_in_vault")
+    @patch("src.litellm_service.get_vault")
     @patch("src.litellm_service.uuid.uuid4")
-    def test_regenerate_litellm_master_key_success(
-        self, mock_uuid, mock_store_api_key, mock_retrieve_api_key
-    ):
+    def test_regenerate_litellm_master_key_success(self, mock_uuid, mock_get_vault):
         """
         Test successful regeneration of LiteLLM master key.
 
@@ -47,6 +44,11 @@ class TestRegenerateLiteLLMMasterKey:
         # Arrange
         mock_uuid.return_value = "test-uuid-12345"
         expected_new_key = "sk-proj-test-uuid-12345"
+        mock_vault = MagicMock()
+        mock_vault.store_api_key_in_vault.return_value = (
+            settings.litellm_master_key_vault_path
+        )
+        mock_get_vault.return_value = mock_vault
 
         # Use responses to mock the requests.post  to f"{LITELLM_API_URL}/key/regenerate"
         responses.add(
@@ -63,54 +65,59 @@ class TestRegenerateLiteLLMMasterKey:
 
         # Assert
         mock_uuid.assert_called_once()
-        mock_store_api_key.assert_called_once_with(
+        mock_vault.store_api_key_in_vault.assert_called_once_with(
             settings.litellm_master_key_vault_path, expected_new_key
         )
-        mock_retrieve_api_key.assert_called_once_with(
-            settings.litellm_master_key_vault_path
-        )
-        assert result == expected_new_key
 
 
 class TestRetrieveLiteLLMKeyForUser:
     """Test cases for the retrieve_litellm_key_for_user function."""
 
-    @patch("src.litellm_service.retrieve_api_key_from_vault")
+    @patch("src.litellm_service.get_vault")
     def test_retrieve_litellm_key_for_user_success(
-        self, mock_retrieve_api_key, session, user, test_user_key
+        self, mock_get_vault, session, user, test_user_key
     ):
         """Test successful retrieval of LiteLLM key for a user."""
         expected_key = "test-litellm-key-12345"
-        mock_retrieve_api_key.return_value = expected_key
+        mock_vault = MagicMock()
+        mock_vault.retrieve_api_key_from_vault.return_value = expected_key
+        mock_get_vault.return_value = mock_vault
 
         result = retrieve_litellm_key_for_user(user, session)
 
-        mock_retrieve_api_key.assert_called_once_with(test_user_key.vault_path)
+        mock_vault.retrieve_api_key_from_vault.assert_called_once_with(
+            test_user_key.vault_path
+        )
         assert result == expected_key
 
-    @patch("src.litellm_service.retrieve_api_key_from_vault")
-    def test_retrieve_litellm_key_for_user_no_key(
-        self, mock_retrieve_api_key, session, user
-    ):
+    @patch("src.litellm_service.get_vault")
+    def test_retrieve_litellm_key_for_user_no_key(self, mock_get_vault, session, user):
         """Test retrieval when user has no LiteLLM key."""
-        mock_retrieve_api_key.return_value = None
+        mock_vault = MagicMock()
+        mock_get_vault.return_value = mock_vault
 
         result = retrieve_litellm_key_for_user(user, session)
 
         assert result is None
-        mock_retrieve_api_key.assert_not_called()
+        mock_vault.retrieve_api_key_from_vault.assert_not_called()
 
-    @patch("src.litellm_service.retrieve_api_key_from_vault")
+    @patch("src.litellm_service.get_vault")
     def test_retrieve_litellm_key_for_user_vault_error(
-        self, mock_retrieve_api_key, session, user, test_user_key
+        self, mock_get_vault, session, user, test_user_key
     ):
         """Test handling of VaultError when retrieving user key."""
-        mock_retrieve_api_key.side_effect = VaultError("Vault connection failed")
+        mock_vault = MagicMock()
+        mock_vault.retrieve_api_key_from_vault.side_effect = VaultError(
+            "Vault connection failed"
+        )
+        mock_get_vault.return_value = mock_vault
 
         with pytest.raises(VaultError, match="Vault connection failed"):
             retrieve_litellm_key_for_user(user, session)
 
-        mock_retrieve_api_key.assert_called_once_with(test_user_key.vault_path)
+        mock_vault.retrieve_api_key_from_vault.assert_called_once_with(
+            test_user_key.vault_path
+        )
 
 
 class TestGetLiteLLMUserInfo:

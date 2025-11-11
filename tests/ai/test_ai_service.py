@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
-from unittest.mock import ANY, AsyncMock, Mock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from freezegun import freeze_time
@@ -134,20 +134,22 @@ def context_document(session, user, workspace) -> ContextDocument:
 class TestGetUserApiKey:
     """Test suite for get_user_api_key function."""
 
-    @patch("src.ai.ai_service.retrieve_api_key_from_vault")
-    def test_successful_retrieval(
-        self, mock_retrieve_vault, session, user, valid_user_key
-    ):
+    @patch("src.ai.ai_service.get_vault")
+    def test_successful_retrieval(self, mock_get_vault, session, user, valid_user_key):
         """Test successful API key retrieval."""
         # Setup
-        mock_retrieve_vault.return_value = "test_api_key_123"
+        mock_vault = MagicMock()
+        mock_vault.retrieve_api_key_from_vault.return_value = "test_api_key_123"
+        mock_get_vault.return_value = mock_vault
 
         # Execute
         api_key = get_user_api_key(user.id, session)
 
         # Verify
         assert_that(api_key, equal_to("test_api_key_123"))
-        mock_retrieve_vault.assert_called_once_with(valid_user_key.vault_path)
+        mock_vault.retrieve_api_key_from_vault.assert_called_once_with(
+            valid_user_key.vault_path
+        )
 
     def test_litellm_master_key_returned_for_all_NEW_users(self, session, user):
         """Test when the UserKey for the user and provider is not found."""
@@ -198,13 +200,15 @@ class TestGetUserApiKey:
             contains_string(f"API key for user {user.id} is marked as not valid"),
         )
 
-    @patch("src.ai.ai_service.retrieve_api_key_from_vault")
-    def test_vault_retrieval_fails(
-        self, mock_retrieve_vault, session, user, valid_user_key
-    ):
+    @patch("src.ai.ai_service.get_vault")
+    def test_vault_retrieval_fails(self, mock_get_vault, session, user, valid_user_key):
         """Test when retrieving the key from Vault fails."""
         # Setup
-        mock_retrieve_vault.side_effect = Exception("Vault connection error")
+        mock_vault = MagicMock()
+        mock_vault.retrieve_api_key_from_vault.side_effect = Exception(
+            "Vault connection error"
+        )
+        mock_get_vault.return_value = mock_vault
 
         # Execute & Verify
         with pytest.raises(VaultError) as excinfo:

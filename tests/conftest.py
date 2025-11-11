@@ -24,6 +24,7 @@ from src.accounting.models import UserAccountDetails, UserAccountStatus
 from src.config import settings
 from src.db import Base, SessionLocal, get_db
 from src.main import app, auth_module
+from src.secrets.vault_factory import reset_vault
 from src.services.ordering_service import OrderingService
 
 
@@ -63,6 +64,17 @@ from src.views import dependency_to_override
 logger = logging.getLogger(__name__)
 
 sync_engine = create_engine(settings.database_url, echo=False)
+
+
+@pytest.fixture(autouse=True)
+def reset_vault_for_tests(request):
+    """Reset vault singleton before each test to ensure clean state."""
+    # Skip reset for tests that explicitly mock get_vault
+    if "mock_get_vault" not in request.fixturenames:
+        reset_vault()
+    yield
+    if "mock_get_vault" not in request.fixturenames:
+        reset_vault()
 
 
 @pytest.fixture(scope="function")

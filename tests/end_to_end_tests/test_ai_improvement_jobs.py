@@ -27,7 +27,6 @@ from src.background_service import process_job
 
 # Use session fixture from conftest
 # from src.db import SessionLocal # No longer needed here
-from src.key_vault import retrieve_api_key_from_vault  # We will mock this
 from src.models import Lens  # Model needed for type hint
 from src.models import User  # Model needed for type hint
 from src.models import UserKey  # Model needed for type hint
@@ -49,10 +48,10 @@ from src.models import (
 
 @pytest.mark.end2end  # Mark as end-to-end test
 class TestInitiativeImprovementsE2E:
-    @patch("src.ai.ai_service.retrieve_api_key_from_vault")  # Patch where it's used
+    @patch("src.secrets.vault_factory.get_vault")  # Patch where it's used
     def test_process_initiative_improvement_job_e2e(
         self,
-        mock_retrieve_key,
+        mock_get_vault,
         # Use fixtures from conftest.py
         session: Session,
         user: User,
@@ -70,9 +69,11 @@ class TestInitiativeImprovementsE2E:
         expected_vault_path = (
             f"secret/data/{user.id}/api_keys/{APIProvider.OPENAI.value}"
         )
-        mock_retrieve_key.side_effect = lambda vault_path: (
+        mock_vault = MagicMock()
+        mock_vault.retrieve_api_key_from_vault.side_effect = lambda vault_path: (
             openai_api_key if vault_path == expected_vault_path else None
         )
+        mock_get_vault.return_value = mock_vault
 
         test_tasks: List[Task] = [
             Task(
@@ -194,10 +195,10 @@ class TestInitiativeImprovementsE2E:
 
 @pytest.mark.end2end  # Mark as end-to-end test
 class TestTaskImprovementsE2E:
-    @patch("src.ai.ai_service.retrieve_api_key_from_vault")
+    @patch("src.secrets.vault_factory.get_vault")
     def test_create_new_task(
         self,
-        mock_retrieve_key,
+        mock_get_vault,
         session: Session,
         user: User,
         test_task: Task,
@@ -208,9 +209,11 @@ class TestTaskImprovementsE2E:
         expected_vault_path = (
             f"secret/data/{user.id}/api_keys/{APIProvider.OPENAI.value}"
         )
-        mock_retrieve_key.side_effect = lambda vault_path: (
+        mock_vault = MagicMock()
+        mock_vault.retrieve_api_key_from_vault.side_effect = lambda vault_path: (
             openai_api_key if vault_path == expected_vault_path else None
         )
+        mock_get_vault.return_value = mock_vault
 
         from src.ai.prompt import ManagedEntityAction, ManagedTaskModel, TaskLLMResponse
 
@@ -278,10 +281,11 @@ class TestTaskImprovementsE2E:
         assert_that(updated_job.message, equal_to("This is a test message"))
 
     @patch("src.ai.prompt.call_llm_api")
-    @patch("src.ai.ai_service.retrieve_api_key_from_vault")
+    @patch("src.secrets.vault_factory.get_vault")
     def test_delete_task(
         self,
-        mock_retrieve_key,
+        mock_get_vault,
+        mock_call_llm,
         session: Session,
         user: User,
         test_task: Task,
@@ -292,9 +296,11 @@ class TestTaskImprovementsE2E:
         expected_vault_path = (
             f"secret/data/{user.id}/api_keys/{APIProvider.OPENAI.value}"
         )
-        mock_retrieve_key.side_effect = lambda vault_path: (
+        mock_vault = MagicMock()
+        mock_vault.retrieve_api_key_from_vault.side_effect = lambda vault_path: (
             openai_api_key if vault_path == expected_vault_path else None
         )
+        mock_get_vault.return_value = mock_vault
 
         from src.ai.prompt import ManagedEntityAction, ManagedTaskModel, TaskLLMResponse
 
