@@ -179,23 +179,6 @@ generate_cluster_env() {
     sed -i.bak "s|^static_site_url=.*|static_site_url=$static_site_url|" "$output_file"
     sed -i.bak "s|^static_site_domain=.*|static_site_domain=$static_site_domain|" "$output_file"
 
-    # Update database connection strings with new ports
-    local new_database_url="postgresql://taskmanager_user:securepassword123@postgres/$cluster_name-db"
-    local new_async_database_url="postgresql+asyncpg://taskmanager_user:securepassword123@postgres/$cluster_name-db"
-    local new_memory_database_url="postgresql://memory_user:securepassword123@postgres_memory/${cluster_name}-memory_db"
-    local new_litellm_database_url="postgresql://litellm_user:securepassword123@postgres_litellm:5432/${cluster_name}-litellm_db"
-
-    sed -i.bak "s|^database_url=.*|database_url=$new_database_url|" "$output_file"
-    sed -i.bak "s|^async_database_url=.*|async_database_url=$new_async_database_url|" "$output_file"
-    sed -i.bak "s|^memory_database_url=.*|memory_database_url=$new_memory_database_url|" "$output_file"
-    sed -i.bak "s|^LITELLM_DATABASE_URL=.*|LITELLM_DATABASE_URL=$new_litellm_database_url|" "$output_file"
-
-    # Update database names
-    sed -i.bak "s/^database_name=.*/database_name=${cluster_name}-db/" "$output_file"
-    sed -i.bak "s/^POSTGRES_DB=.*/POSTGRES_DB=${cluster_name}-db/" "$output_file"
-    sed -i.bak "s/^POSTGRES_MEMORY_DB=.*/POSTGRES_MEMORY_DB=${cluster_name}-memory_db/" "$output_file"
-    sed -i.bak "s/^POSTGRES_LITELLM_DB=.*/POSTGRES_LITELLM_DB=${cluster_name}-litellm_db/" "$output_file"
-
     # Remove backup files
     rm -f "$output_file.bak"
 }
