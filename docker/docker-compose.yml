@@ -366,7 +366,6 @@ volumes:
   postgres_data_memory:
   postgres_data_litellm:
   litellm_data:
-  redis_data:
   dev-secrets:
   agent-1-secrets:
   agent-2-secrets:
