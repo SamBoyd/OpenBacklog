@@ -1,0 +1,91 @@
+# Configure access and error logs to use the JSON format and output to stdout/stderr
+log_format custom_combined '$remote_addr - $remote_user [$time_local] "$request" '
+                  '$status $body_bytes_sent "$http_referer" '
+                  '"$http_user_agent" "$http_x_forwarded_for"';
+access_log /dev/stdout custom_combined;
+error_log /dev/stderr warn;
+
+# Configure rate limiting for the FastAPI backend
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=postgrest_limit:10m rate=20r/s;
+
+# Cache configuration for static files
+proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=STATIC:10m max_size=1g inactive=60m use_temp_path=off;
+
+# Define the upstream FastAPI service
+upstream backend {
+    # Service name and port defined in docker-compose or Kubernetes
+    server @CLUSTER_NAME@-fastapi-1:8000;
+}
+
+# Define the upstream PostgREST service
+upstream postgrest {
+    # Service name and port defined in docker-compose or Kubernetes
+    server @CLUSTER_NAME@-postgrest-1:3000;
+}
+
+# Define the upstream Landing Page service
+upstream landing_page {
+    # Service name and port defined in docker-compose
+    server @CLUSTER_NAME@-landing-page-1:7777;
+}
+
+# Configure the server block for the main app domain (e.g., dev.openbacklog.ai)
+# This block listens on port 80 and handles HTTP requests
+server {
+    listen 80;
+    server_name @APP_DOMAIN@;
+
+    # Location block for FastAPI backend API requests
+    location / {
+        limit_req zone=api_limit burst=20 nodelay;
+        proxy_pass http://backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s; # Increase timeout for potentially long AI operations
+        proxy_connect_timeout 75s;
+    }
+
+    # Health check endpoint
+    location /healthcheck {
+        access_log off;
+        return 200 "OK";
+        add_header Content-Type text/plain;
+    }
+
+    location /rest/ {
+        default_type  application/json;
+        proxy_hide_header Content-Location;
+        add_header Content-Location  /rest/$upstream_http_content_location;
+        proxy_set_header  Connection "";
+        proxy_http_version 1.1;
+        proxy_pass http://postgrest/;
+    }
+}
+
+# Configure the landing page server block for the www subdomain (e.g., www.dev.openbacklog.ai)
+# This block handles requests to the landing page
+server {
+    listen 80;
+    server_name @LANDING_PAGE_DOMAIN@;
+
+    # Location block for landing page requests
+    location / {
+        proxy_pass http://landing_page;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;
+        proxy_connect_timeout 75s;
+    }
+
+    # Health check endpoint for landing page
+    location /healthcheck {
+        access_log off;
+        return 200 "Landing Page OK";
+        add_header Content-Type text/plain;
+    }
+}

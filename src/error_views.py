@@ -4,6 +4,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.responses import Response as StarletteResponse
 
+from src.config import settings
 from src.main import app, templates
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,28 @@ async def auth_exception_handler(request: Request, exc: HTTPException):
         # For API routes, return JSON error responses
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
-    logger.error(f"handling auth exception: {exc}")
+    if settings.environment == "development":
+        client_host = request.client.host if request.client else "unknown"
+        logger.info(
+            "Auth exception handler triggered",
+        )
+        logger.info(
+            "Request context method=%s path=%s client=%s query=%s",
+            request.method,
+            request.url.path,
+            client_host,
+            dict(request.query_params),
+        )
+        logger.info(
+            "Exception detail status=%s detail=%s",
+            exc.status_code,
+            exc.detail,
+        )
+        logger.info(
+            f"request made with auth cookie: {request.cookies.get('access_token')}"
+        )
+
+    logger.exception(f"handling auth exception: {exc}")
 
     # For non-API routes, apply the original HTML error handling
     redirect_error_codes = [401, 403, 404]
