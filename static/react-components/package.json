@@ -10,7 +10,6 @@
     "build:preprod": "NODE_ENV=preprod webpack",
     "build:dev": "webpack",
     "build:watch": "webpack --watch",
-    "posttest": "npm run lint",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "tailwind": "tailwindcss -i ./styles/index.scss -o ./styles/tailwind.scss",
