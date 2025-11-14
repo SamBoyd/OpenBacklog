@@ -27,7 +27,7 @@ jobs:
       
       - name: Install dependencies
         working-directory: ./static/react-components
-        run: npm ci
+        run: npm install
       
       - name: Build css
         working-directory: ./static/react-components
@@ -37,7 +37,7 @@ jobs:
       
       - name: Run TypeScript compilation
         working-directory: ./static/react-components
-        run: npm run compile
+        run: npm run build
       
       - name: Run tests
         working-directory: ./static/react-components
