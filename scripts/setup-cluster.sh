@@ -145,6 +145,9 @@ generate_cluster_env() {
     # Read ports
     read -r nginx_port fastapi_port postgrest_port postgres_port postgres_memory_port postgres_litellm_port litellm_port landing_page_port <<< "$(calculate_ports "$cluster_number")"
 
+    # Calculate PostgREST URL for Docker builds (used by Dockerfile as build arg)
+    local postgrest_url="http://localhost:${postgrest_port}/rest"
+
     # Determine app_domain and related settings
     local docker_network_name="${cluster_name}-net"
 
@@ -170,6 +173,7 @@ generate_cluster_env() {
     sed -i.bak "s/^NGINX_PORT=.*/NGINX_PORT=$nginx_port/" "$output_file"
     sed -i.bak "s/^FASTAPI_PORT=.*/FASTAPI_PORT=$fastapi_port/" "$output_file"
     sed -i.bak "s/^POSTGREST_PORT=.*/POSTGREST_PORT=$postgrest_port/" "$output_file"
+    sed -i.bak "s|^POSTGREST_URL=.*|POSTGREST_URL=$postgrest_url|" "$output_file"
     sed -i.bak "s/^POSTGRES_PORT=.*/POSTGRES_PORT=$postgres_port/" "$output_file"
     sed -i.bak "s/^POSTGRES_MEMORY_PORT=.*/POSTGRES_MEMORY_PORT=$postgres_memory_port/" "$output_file"
     sed -i.bak "s/^POSTGRES_LITELLM_PORT=.*/POSTGRES_LITELLM_PORT=$postgres_litellm_port/" "$output_file"
@@ -187,6 +191,32 @@ generate_cluster_env() {
 
     # Remove backup files
     rm -f "$output_file.bak"
+}
+
+# ============================================================================
+# React Component Environment Generation
+# ============================================================================
+
+generate_react_cluster_env() {
+    local cluster_name="$1"
+    local cluster_number="$2"
+    local react_env_file="$PROJECT_ROOT/static/react-components/.env.cluster-$cluster_name"
+    local react_template="$PROJECT_ROOT/static/react-components/.env.cluster-template"
+
+    # Calculate PostgREST URL for React components
+    local postgrest_port=$((3000 + cluster_number))
+    local postgrest_url="http://localhost:${postgrest_port}/rest"
+
+    # Copy template and replace cluster-specific variables
+    cp "$react_template" "$react_env_file"
+
+    # Replace cluster-specific variables
+    sed -i.bak "s|^POSTGREST_URL=.*|POSTGREST_URL=$postgrest_url|" "$react_env_file"
+
+    # Remove backup file
+    rm -f "$react_env_file.bak"
+
+    print_success "Generated React cluster config: $react_env_file"
 }
 
 # ============================================================================
@@ -395,6 +425,9 @@ main() {
     print_header "Generating Environment Configuration"
     generate_cluster_env "$cluster_name" "$cluster_type" "$cluster_number" "$env_file"
     print_success "Created: $env_file"
+
+    # Generate React cluster environment file
+    generate_react_cluster_env "$cluster_name" "$cluster_number"
 
     # Check /etc/hosts for primary cluster
     check_hosts_entries "$cluster_name"

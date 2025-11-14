@@ -1,0 +1,68 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm
+.yarn
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.env.local
+.env.*.local
+
+# Docker
+.dockerignore
+Dockerfile*
+docker-compose*.yml
+docker/
+
+# Misc
+README.md
+LICENSE
+.editorconfig
+.env
+.env.template
+MULTI_CLUSTER_PLAN.md
+CLAUDE.md
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Documentation
+docs/
+documentation/
+content-design-system/

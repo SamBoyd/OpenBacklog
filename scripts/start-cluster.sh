@@ -173,9 +173,19 @@ main() {
   print_info "Using environment: $env_file"
   echo ""
 
-  # Start the cluster
+  # Build the Docker image with cluster-specific POSTGREST_URL from .env
+  print_info "Building Docker image for cluster: $cluster_name..."
+  if ! "$SCRIPT_DIR/build_static_files.sh" "$cluster_name"; then
+    print_error "Failed to build Docker image for cluster"
+    exit 1
+  fi
+  echo ""
+
+  # Start the cluster (image is already built)
+  print_info "Starting Docker Compose services..."
   cd "$PROJECT_ROOT"
-  if CLUSTER_NAME="$cluster_name" docker-compose -f docker/docker-compose.yml --env-file "$env_file" -p "$cluster_name" up --build -d; then
+  echo "CLUSTER_NAME=$cluster_name"
+  if CLUSTER_NAME="$cluster_name" docker-compose -f docker/docker-compose.yml --env-file "$env_file" -p "$cluster_name" up -d; then
     print_success "Docker Compose started successfully"
   else
     print_error "Failed to start cluster with docker-compose"

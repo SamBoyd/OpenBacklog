@@ -56,6 +56,8 @@ services:
     build:
       context: ..
       dockerfile: docker/fastapi.Dockerfile
+      args:
+        - CLUSTER_NAME=${CLUSTER_NAME}
     ports:
       - "${FASTAPI_PORT}:8000"
     environment:
@@ -121,6 +123,8 @@ services:
     volumes:
       - ${CLUSTER_NAME:-dev}-secrets:/app/secrets
       - ../:/app
+      # Preserve build artifacts from Docker image (more specific mounts take precedence)
+      - /app/static/react-components
     depends_on:
       litellm_proxy:
         condition: service_healthy
