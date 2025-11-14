@@ -71,6 +71,12 @@ class Settings(BaseSettings):
         default="test-jwt-signing-key-for-development-only-not-secure"
     )
 
+    # MCP server authentication mode
+    mcp_auth_mode: str = Field(
+        default="dev",
+        description="Authentication mode for MCP server: 'dev', 'auth0', or 'test'",
+    )
+
     postgrest_authenticator__role: str
     postgrest_authenticator__password: str
     postgrest_anonymous__role: str

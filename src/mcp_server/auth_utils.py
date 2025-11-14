@@ -6,71 +6,64 @@ import logging
 import uuid
 from typing import Optional, Tuple
 
-from fastmcp.server.dependencies import get_access_token
 from sqlalchemy.orm import Session
 
-from src.models import OAuthAccount, User, Workspace
+from src.mcp_server.providers.base import MCPAuthProvider, MCPContextError
+from src.models import User, Workspace
 
 logger = logging.getLogger(__name__)
 
 
-class MCPContextError(RuntimeError):
-    """
-    Raised when MCP tool context (user/workspace) resolution fails.
-
-    Attributes:
-        error_type: String identifier describing the error category.
-    """
-
-    def __init__(self, message: str, *, error_type: str = "context_error") -> None:
-        super().__init__(message)
-        self.error_type = error_type
-
-
-def extract_user_from_request(
+def get_auth_context(
     session: Session,
-) -> Tuple[Optional[uuid.UUID], Optional[str]]:
+    requires_workspace: bool = False,
+) -> Tuple[str, Optional[str]]:
     """
-    Extract and validate user ID from the access token claims.
+    Consolidated helper to fetch authenticated user and optional workspace context.
+
+    Uses the MCP auth provider configured by the MCPAuthFactory to extract user context
+    based on the current authentication mode (dev, auth0, or test).
 
     Args:
-        session: SQLAlchemy database session
+        session: SQLAlchemy database session.
+        requires_workspace: Whether a workspace is required for the caller.
 
     Returns:
-        Tuple of (user_id, error_message)
-        - If successful: (uuid.UUID, None)
-        - If error: (None, error_message)
+        Tuple containing user_id and optional workspace_id as strings.
+
+    Raises:
+        MCPContextError: If the user or required workspace cannot be resolved.
     """
-    try:
-        token = get_access_token()
-        if not token:
-            return None, "No access token found"
+    from src.mcp_server.auth_factory import get_mcp_auth_factory
 
-        claims = token.claims
-        if not claims:
-            return None, "Token has no claims"
+    factory = get_mcp_auth_factory()
+    mcp_auth_context_provider = factory.get_mcp_auth_context_provider()
 
-        sub = claims.get("sub")
-        if not sub:
-            return None, "Token claims missing 'sub' field"
-
-        oauth_account = (
-            session.query(OAuthAccount).filter(OAuthAccount.account_id == sub).first()
+    if mcp_auth_context_provider is None:
+        raise MCPContextError(
+            "MCP auth provider not configured",
+            error_type="server_error",
         )
-        if not oauth_account:
-            return None, f"No OAuth account found for sub: {sub}"
 
-        user_id = oauth_account.user_id
+    try:
+        user_id, workspace_id = mcp_auth_context_provider.get_user_context(session)
 
-        user = session.query(User).filter(User.id == user_id).first()
-        if not user:
-            return None, "User not found"
+        if requires_workspace and workspace_id is None:
+            raise MCPContextError(
+                "Workspace required but not found",
+                error_type="workspace_error",
+            )
 
-        return user_id, None
+        return str(user_id), str(workspace_id) if workspace_id else None
 
+    except MCPContextError:
+        raise
     except Exception as e:
-        logger.exception(f"Error extracting user from request: {str(e)}")
-        return None, f"Authentication error: {str(e)}"
+        logger.exception(f"Error getting auth context: {str(e)}")
+        raise MCPContextError(
+            f"Failed to get auth context: {str(e)}",
+            error_type="server_error",
+        )
 
 
 def get_user_workspace(
@@ -100,46 +93,3 @@ def get_user_workspace(
     except Exception as e:
         logger.exception(f"Error fetching workspace: {str(e)}")
         return None, f"Error fetching workspace: {str(e)}"
-
-
-def get_auth_context(
-    session: Session,
-    requires_workspace: bool = False,
-) -> Tuple[str, Optional[str]]:
-    """
-    Consolidated helper to fetch authenticated user and optional workspace context.
-
-    Args:
-        session: SQLAlchemy database session.
-        requires_workspace: Whether a workspace is required for the caller.
-
-    Returns:
-        Tuple containing user_id and optional workspace_id as strings.
-
-    Raises:
-        MCPContextError: If the user or required workspace cannot be resolved.
-    """
-    user_id, error_message = extract_user_from_request(session)
-    if error_message or user_id is None:
-        message = error_message or "Authentication required."
-        logger.warning(f"Authentication failed in get_auth_context: {message}")
-        raise MCPContextError(message, error_type="auth_error")
-
-    workspace_id: Optional[str] = None
-    if requires_workspace:
-        workspace, workspace_error = get_user_workspace(session, user_id)
-        if workspace_error or workspace is None:
-            message = workspace_error or "Workspace not found."
-            logger.warning(f"Workspace lookup failed in get_auth_context: {message}")
-            raise MCPContextError(message, error_type="workspace_error")
-        workspace_id = str(workspace.id)
-    else:
-        workspace, workspace_error = get_user_workspace(session, user_id)
-        if workspace:
-            workspace_id = str(workspace.id)
-        elif workspace_error:
-            logger.info(
-                f"Workspace lookup returned error without requiring workspace: {workspace_error}"
-            )
-
-    return str(user_id), workspace_id

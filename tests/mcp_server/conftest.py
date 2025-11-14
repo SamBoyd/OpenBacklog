@@ -3,6 +3,23 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+
+@pytest.fixture
+def mock_mcp_auth_provider(user, workspace):
+    """
+    Mock MCP auth provider that returns test user and workspace.
+
+    Useful for testing auth_utils and provider logic in isolation.
+    """
+    from src.mcp_server.providers.base import MCPAuthProvider
+
+    provider = MagicMock(spec=MCPAuthProvider)
+    provider.get_user_context.return_value = (user.id, workspace.id)
+    provider.get_provider_name.return_value = "Mock"
+
+    return provider
+
+
 # Override the clean_tables fixture to prevent database operations for tests that don't need it
 # @pytest.fixture(autouse=True)
 # def clean_tables():
