@@ -122,7 +122,6 @@ services:
       - static_site_domain=${static_site_domain}
     volumes:
       - ${CLUSTER_NAME:-dev}-secrets:/app/secrets
-      - ../:/app
       # Preserve build artifacts from Docker image (more specific mounts take precedence)
       - /app/static/react-components
     depends_on:

@@ -46,7 +46,6 @@ coverage.xml
 .dockerignore
 Dockerfile*
 docker-compose*.yml
-docker/
 
 # Misc
 README.md

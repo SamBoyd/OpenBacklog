@@ -69,6 +69,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application (excluding items in .dockerignore)
 COPY . .
 
+# Build argument for cluster name (used to load .env.cluster-{name})
+ARG CLUSTER_NAME=dev
+ENV CLUSTER_NAME=$CLUSTER_NAME
+COPY .env.cluster-${CLUSTER_NAME} .env
+
 # Copy React build artifacts from Stage 1
 # We copy specific build artifacts to ensure they're properly included
 COPY --from=react-builder /app/static/react-components/build/ ./static/react-components/build/
