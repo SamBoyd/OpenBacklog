@@ -1,0 +1,409 @@
+"""Unit tests for Villain aggregate.
+
+Tests verify that Villain aggregate enforces business rules,
+validates input, enforces invariants, and emits domain events correctly.
+"""
+
+import uuid
+from unittest.mock import MagicMock
+
+import pytest
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from src.models import Workspace
+from src.narrative.aggregates.villain import Villain, VillainType
+from src.narrative.exceptions import DomainException
+from src.strategic_planning.services.event_publisher import EventPublisher
+
+
+class TestVillain:
+    """Unit tests for Villain aggregate."""
+
+    @pytest.fixture
+    def workspace(self, user, session: Session):
+        """Create a workspace for testing."""
+        workspace = Workspace(
+            id=uuid.uuid4(),
+            name="Test Workspace",
+            description="A test workspace",
+            user_id=user.id,
+        )
+        session.add(workspace)
+        session.commit()
+        session.refresh(workspace)
+        return workspace
+
+    @pytest.fixture
+    def mock_publisher(self):
+        """Mock EventPublisher for testing."""
+        return MagicMock(spec=EventPublisher)
+
+    @pytest.fixture
+    def villain(
+        self, workspace: Workspace, user, session: Session, mock_publisher: MagicMock
+    ):
+        """Create a Villain instance for testing."""
+        villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Context Switching",
+            villain_type=VillainType.WORKFLOW,
+            description="Jumping between tools breaks flow state.",
+            severity=5,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(villain)
+        return villain
+
+    def test_define_villain_success(
+        self,
+        workspace: Workspace,
+        user,
+        session: Session,
+        mock_publisher: MagicMock,
+    ):
+        """Test that define_villain() creates villain successfully."""
+        name = "Context Switching"
+        villain_type = VillainType.WORKFLOW
+        description = "Jumping between tools breaks flow state."
+        severity = 5
+
+        villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name=name,
+            villain_type=villain_type,
+            description=description,
+            severity=severity,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.refresh(villain)
+
+        assert villain.id is not None
+        assert villain.identifier is not None
+        assert villain.identifier.startswith("V-")
+        assert villain.name == name
+        assert villain.villain_type == villain_type.value
+        assert villain.description == description
+        assert villain.severity == severity
+        assert villain.is_defeated is False
+        assert villain.workspace_id == workspace.id
+
+    def test_define_villain_name_validation_empty(
+        self,
+        workspace: Workspace,
+        user,
+        session: Session,
+        mock_publisher: MagicMock,
+    ):
+        """Test that define_villain() raises exception for empty name."""
+        with pytest.raises(DomainException) as exc_info:
+            Villain.define_villain(
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name="",
+                villain_type=VillainType.WORKFLOW,
+                description="Some description",
+                severity=3,
+                session=session,
+                publisher=mock_publisher,
+            )
+
+        assert "at least 1 character" in str(exc_info.value)
+
+    def test_define_villain_name_validation_too_long(
+        self,
+        workspace: Workspace,
+        user,
+        session: Session,
+        mock_publisher: MagicMock,
+    ):
+        """Test that define_villain() raises exception for name > 100 chars."""
+        long_name = "x" * 101
+
+        with pytest.raises(DomainException) as exc_info:
+            Villain.define_villain(
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name=long_name,
+                villain_type=VillainType.WORKFLOW,
+                description="Some description",
+                severity=3,
+                session=session,
+                publisher=mock_publisher,
+            )
+
+        assert "100 characters or less" in str(exc_info.value)
+        assert "101" in str(exc_info.value)
+
+    def test_define_villain_description_validation_empty(
+        self,
+        workspace: Workspace,
+        user,
+        session: Session,
+        mock_publisher: MagicMock,
+    ):
+        """Test that define_villain() raises exception for empty description."""
+        with pytest.raises(DomainException) as exc_info:
+            Villain.define_villain(
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name="Valid Name",
+                villain_type=VillainType.WORKFLOW,
+                description="",
+                severity=3,
+                session=session,
+                publisher=mock_publisher,
+            )
+
+        assert "at least 1 character" in str(exc_info.value)
+
+    def test_define_villain_description_validation_too_long(
+        self,
+        workspace: Workspace,
+        user,
+        session: Session,
+        mock_publisher: MagicMock,
+    ):
+        """Test that define_villain() raises exception for description > 2000 chars."""
+        long_description = "x" * 2001
+
+        with pytest.raises(DomainException) as exc_info:
+            Villain.define_villain(
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name="Valid Name",
+                villain_type=VillainType.WORKFLOW,
+                description=long_description,
+                severity=3,
+                session=session,
+                publisher=mock_publisher,
+            )
+
+        assert "2000 characters or less" in str(exc_info.value)
+        assert "2001" in str(exc_info.value)
+
+    def test_define_villain_severity_validation_low(
+        self,
+        workspace: Workspace,
+        user,
+        session: Session,
+        mock_publisher: MagicMock,
+    ):
+        """Test that define_villain() raises exception for severity < 1."""
+        with pytest.raises(DomainException) as exc_info:
+            Villain.define_villain(
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name="Valid Name",
+                villain_type=VillainType.WORKFLOW,
+                description="Valid description",
+                severity=0,
+                session=session,
+                publisher=mock_publisher,
+            )
+
+        assert "between 1-5" in str(exc_info.value)
+
+    def test_define_villain_severity_validation_high(
+        self,
+        workspace: Workspace,
+        user,
+        session: Session,
+        mock_publisher: MagicMock,
+    ):
+        """Test that define_villain() raises exception for severity > 5."""
+        with pytest.raises(DomainException) as exc_info:
+            Villain.define_villain(
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name="Valid Name",
+                villain_type=VillainType.WORKFLOW,
+                description="Valid description",
+                severity=6,
+                session=session,
+                publisher=mock_publisher,
+            )
+
+        assert "between 1-5" in str(exc_info.value)
+
+    def test_define_villain_emits_villain_identified_event(
+        self,
+        workspace: Workspace,
+        user,
+        session: Session,
+        mock_publisher: MagicMock,
+    ):
+        """Test that define_villain() emits VillainIdentified event."""
+        name = "Context Switching"
+        villain_type = VillainType.WORKFLOW
+        description = "Jumping between tools breaks flow state."
+        severity = 5
+
+        mock_publisher.reset_mock()
+
+        villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name=name,
+            villain_type=villain_type,
+            description=description,
+            severity=severity,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.refresh(villain)
+
+        mock_publisher.publish.assert_called_once()
+        event = mock_publisher.publish.call_args[0][0]
+        workspace_id_arg = mock_publisher.publish.call_args[1]["workspace_id"]
+
+        assert event.event_type == "VillainIdentified"
+        assert event.aggregate_id == villain.id
+        assert event.payload["name"] == name
+        assert event.payload["villain_type"] == villain_type.value
+        assert event.payload["description"] == description
+        assert event.payload["severity"] == severity
+        assert event.payload["workspace_id"] == str(workspace.id)
+        assert workspace_id_arg == str(workspace.id)
+
+    def test_mark_defeated_sets_flag(
+        self,
+        villain: Villain,
+        mock_publisher: MagicMock,
+    ):
+        """Test that mark_defeated() sets is_defeated flag."""
+        assert villain.is_defeated is False
+
+        villain.mark_defeated(mock_publisher)
+
+        assert villain.is_defeated is True
+
+    def test_mark_defeated_emits_villain_defeated_event(
+        self,
+        villain: Villain,
+        mock_publisher: MagicMock,
+    ):
+        """Test that mark_defeated() emits VillainDefeated event."""
+        mock_publisher.reset_mock()
+
+        villain.mark_defeated(mock_publisher)
+
+        mock_publisher.publish.assert_called_once()
+        event = mock_publisher.publish.call_args[0][0]
+        workspace_id_arg = mock_publisher.publish.call_args[1]["workspace_id"]
+
+        assert event.event_type == "VillainDefeated"
+        assert event.aggregate_id == villain.id
+        assert event.payload["workspace_id"] == str(villain.workspace_id)
+        assert event.payload["villain_id"] == str(villain.id)
+        assert workspace_id_arg == str(villain.workspace_id)
+
+    def test_unique_constraint_enforced_for_workspace_name(
+        self,
+        workspace: Workspace,
+        user,
+        session: Session,
+        mock_publisher: MagicMock,
+    ):
+        """Test that (workspace_id, name) unique constraint is enforced."""
+        villain1 = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Context Switching",
+            villain_type=VillainType.WORKFLOW,
+            description="Description 1",
+            severity=5,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(villain1)
+
+        villain2 = Villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            identifier="V-0002",
+            name="Context Switching",
+            villain_type=VillainType.WORKFLOW.value,
+            description="Description 2",
+            severity=3,
+        )
+        session.add(villain2)
+
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+    def test_unique_constraint_enforced_for_workspace_identifier(
+        self,
+        workspace: Workspace,
+        user,
+        session: Session,
+        mock_publisher: MagicMock,
+    ):
+        """Test that (workspace_id, identifier) unique constraint is enforced."""
+        villain1 = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Villain 1",
+            villain_type=VillainType.WORKFLOW,
+            description="Description 1",
+            severity=5,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(villain1)
+
+        villain2 = Villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            identifier=villain1.identifier,
+            name="Villain 2",
+            villain_type=VillainType.WORKFLOW.value,
+            description="Description 2",
+            severity=3,
+        )
+        session.add(villain2)
+
+        with pytest.raises(IntegrityError):
+            session.commit()
+
+    def test_villain_stores_correctly_in_database(
+        self,
+        workspace: Workspace,
+        user,
+        mock_publisher: MagicMock,
+        session: Session,
+    ):
+        """Test that villain is stored correctly in database."""
+        name = "Context Switching"
+        villain_type = VillainType.WORKFLOW
+        description = "Jumping between tools breaks flow state."
+        severity = 5
+
+        villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name=name,
+            villain_type=villain_type,
+            description=description,
+            severity=severity,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(villain)
+
+        saved_villain = session.query(Villain).filter(Villain.id == villain.id).first()
+
+        assert saved_villain is not None
+        assert saved_villain.name == name
+        assert saved_villain.villain_type == villain_type.value
+        assert saved_villain.description == description
+        assert saved_villain.severity == severity
+        assert saved_villain.workspace_id == workspace.id
