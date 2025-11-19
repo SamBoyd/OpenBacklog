@@ -16,13 +16,17 @@ from src.mcp_server.prompt_driven_tools.utils.response_builder import (
     build_success_response,
 )
 from src.mcp_server.prompt_driven_tools.utils.serializers import (
+    serialize_conflict,
     serialize_datetime,
+    serialize_hero,
     serialize_outcome,
     serialize_pillar,
     serialize_strategic_foundation,
     serialize_strategic_initiative,
     serialize_theme,
+    serialize_turning_point,
     serialize_uuid,
+    serialize_villain,
     serialize_vision,
 )
 from src.mcp_server.prompt_driven_tools.utils.validators import (
@@ -50,4 +54,8 @@ __all__ = [
     "serialize_theme",
     "serialize_strategic_initiative",
     "serialize_strategic_foundation",
+    "serialize_hero",
+    "serialize_villain",
+    "serialize_conflict",
+    "serialize_turning_point",
 ]

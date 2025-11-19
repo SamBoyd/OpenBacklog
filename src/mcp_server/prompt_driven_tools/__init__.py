@@ -7,6 +7,10 @@ than rigid wizards or CRUD operations.
 Pattern: Get Framework → Claude + User Collaborate → Submit Result
 """
 
+from src.mcp_server.prompt_driven_tools.narrative_conflicts import *
+from src.mcp_server.prompt_driven_tools.narrative_heroes import *
+from src.mcp_server.prompt_driven_tools.narrative_recap import *
+from src.mcp_server.prompt_driven_tools.narrative_villains import *
 from src.mcp_server.prompt_driven_tools.roadmap_themes import *
 from src.mcp_server.prompt_driven_tools.strategic_foundation import *
 from src.mcp_server.prompt_driven_tools.utilities import *
@@ -27,6 +31,24 @@ __all__ = [
     "deprioritize_workstream",
     "organize_roadmap",
     "connect_theme_to_outcomes",
+    "link_theme_to_hero",
+    "link_theme_to_villain",
+    # Narrative Layer (Phase 1)
+    "get_hero_definition_framework",
+    "submit_hero",
+    "get_heroes",
+    "get_hero_details",
+    "get_villain_definition_framework",
+    "submit_villain",
+    "get_villains",
+    "mark_villain_defeated",
+    "get_conflict_creation_framework",
+    "create_conflict",
+    "get_conflicts",
+    "mark_conflict_resolved",
+    "get_recent_turning_points",
+    "generate_previously_on",
+    "get_story_bible",
     # Utility Tools (Phase 3)
     "review_strategic_foundation",
     "connect_outcome_to_pillars",

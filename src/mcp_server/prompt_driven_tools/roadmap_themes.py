@@ -204,6 +204,8 @@ async def submit_roadmap_theme(
     indicative_metrics: Optional[str] = None,
     time_horizon_months: Optional[int] = None,
     outcome_ids: Optional[List[str]] = None,
+    hero_identifier: Optional[str] = None,
+    primary_villain_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Submit a refined roadmap theme after collaborative definition.
 
@@ -220,6 +222,8 @@ async def submit_roadmap_theme(
         indicative_metrics: Success metrics (max 1000 characters, optional)
         time_horizon_months: Time horizon in months (0-12, optional)
         outcome_ids: List of outcome IDs to link (optional but recommended)
+        hero_identifier: Optional human-readable hero identifier (e.g., "H-2003")
+        primary_villain_identifier: Optional human-readable villain identifier (e.g., "V-2003")
 
     Returns:
         Success response with theme data and next steps, or error response.
@@ -249,6 +253,29 @@ async def submit_roadmap_theme(
                         "theme", f"Invalid outcome_id format: {outcome_id}"
                     )
 
+        # Resolve hero and villain identifiers if provided
+        hero_uuid = None
+        villain_uuid = None
+        if hero_identifier:
+            from src.narrative.services.hero_service import HeroService
+
+            publisher = EventPublisher(session)
+            hero_service = HeroService(session, publisher)
+            hero = hero_service.get_hero_by_identifier(
+                hero_identifier, uuid.UUID(workspace_id)
+            )
+            hero_uuid = hero.id
+
+        if primary_villain_identifier:
+            from src.narrative.services.villain_service import VillainService
+
+            publisher = EventPublisher(session)
+            villain_service = VillainService(session, publisher)
+            villain = villain_service.get_villain_by_identifier(
+                primary_villain_identifier, uuid.UUID(workspace_id)
+            )
+            villain_uuid = villain.id
+
         # Create theme via controller
         theme = roadmap_controller.create_roadmap_theme(
             workspace_id=uuid.UUID(workspace_id),
@@ -261,6 +288,13 @@ async def submit_roadmap_theme(
             outcome_ids=outcome_uuids,
             session=session,
         )
+
+        # Link hero and villain if provided
+        if hero_uuid or villain_uuid:
+            theme.hero_id = hero_uuid
+            theme.primary_villain_id = villain_uuid
+            session.commit()
+            session.refresh(theme)
 
         # Build next steps
         next_steps = [
@@ -276,6 +310,11 @@ async def submit_roadmap_theme(
             next_steps.append(
                 f"Theme linked to {len(outcome_uuids)} outcome(s) - good strategic alignment"
             )
+
+        if hero_identifier:
+            next_steps.append(f"Theme linked to hero {hero_identifier}")
+        if primary_villain_identifier:
+            next_steps.append(f"Theme linked to villain {primary_villain_identifier}")
 
         next_steps.append(
             "When ready to commit to this theme, use prioritize_workstream() to move to active roadmap"
@@ -688,6 +727,114 @@ async def connect_theme_to_outcomes(
             message="Theme outcome links updated successfully",
             data=serialize_theme(theme),
             next_steps=next_steps,
+        )
+
+    except DomainException as e:
+        return build_error_response("theme", str(e))
+    except ValueError as e:
+        return build_error_response("theme", str(e))
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def link_theme_to_hero(theme_id: str, hero_identifier: str) -> Dict[str, Any]:
+    """Links a roadmap theme to a hero.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        theme_id: UUID of roadmap theme
+        hero_identifier: Human-readable hero identifier (e.g., "H-2003")
+
+    Returns:
+        Success response with updated theme
+    """
+    session = SessionLocal()
+    try:
+        workspace_uuid = get_workspace_id_from_request()
+        theme_uuid = validate_uuid(theme_id, "theme_id")
+
+        from src.narrative.services.hero_service import HeroService
+
+        publisher = EventPublisher(session)
+        hero_service = HeroService(session, publisher)
+        hero = hero_service.get_hero_by_identifier(hero_identifier, workspace_uuid)
+
+        theme = (
+            session.query(roadmap_controller.RoadmapTheme)
+            .filter_by(id=theme_uuid, workspace_id=workspace_uuid)
+            .first()
+        )
+
+        if not theme:
+            return build_error_response("theme", "Theme not found")
+
+        theme.hero_id = hero.id
+        session.commit()
+        session.refresh(theme)
+
+        return build_success_response(
+            entity_type="theme",
+            message=f"Theme '{theme.name}' linked to hero '{hero.name}' ({hero_identifier})",
+            data=serialize_theme(theme),
+        )
+
+    except DomainException as e:
+        return build_error_response("theme", str(e))
+    except ValueError as e:
+        return build_error_response("theme", str(e))
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def link_theme_to_villain(
+    theme_id: str, villain_identifier: str
+) -> Dict[str, Any]:
+    """Links a roadmap theme to a villain.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        theme_id: UUID of roadmap theme
+        villain_identifier: Human-readable villain identifier (e.g., "V-2003")
+
+    Returns:
+        Success response with updated theme
+    """
+    session = SessionLocal()
+    try:
+        workspace_uuid = get_workspace_id_from_request()
+        theme_uuid = validate_uuid(theme_id, "theme_id")
+
+        from src.narrative.services.villain_service import VillainService
+
+        publisher = EventPublisher(session)
+        villain_service = VillainService(session, publisher)
+        villain = villain_service.get_villain_by_identifier(
+            villain_identifier, workspace_uuid
+        )
+
+        theme = (
+            session.query(roadmap_controller.RoadmapTheme)
+            .filter_by(id=theme_uuid, workspace_id=workspace_uuid)
+            .first()
+        )
+
+        if not theme:
+            return build_error_response("theme", "Theme not found")
+
+        theme.primary_villain_id = villain.id
+        session.commit()
+        session.refresh(theme)
+
+        return build_success_response(
+            entity_type="theme",
+            message=f"Theme '{theme.name}' linked to villain '{villain.name}' ({villain_identifier})",
+            data=serialize_theme(theme),
         )
 
     except DomainException as e:

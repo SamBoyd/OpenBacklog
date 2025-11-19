@@ -808,6 +808,254 @@ All tools return consistent error responses:
 
 ---
 
+## Narrative Layer Tools
+
+Narrative layer tools follow the **prompt-driven collaboration pattern**:
+**Get Framework → Claude + User Collaborate → Submit Result**
+
+### Hero Management
+
+#### `get_hero_definition_framework()`
+
+Returns comprehensive framework for defining a hero (user persona) through collaborative refinement.
+
+**Returns:**
+Framework dict with purpose, criteria, examples, questions, anti-patterns, current state (existing heroes), and coaching tips.
+
+**Criteria:**
+- Specific person with a name, not a broad segment
+- Real motivations that drive behavior
+- Observable pains and frustrations
+- Clear context where they operate
+- Jobs to be done that your product helps with
+
+---
+
+#### `submit_hero(name: str, description: str | None, is_primary: bool)`
+
+Submits refined hero (user persona) to workspace.
+
+**Parameters:**
+- `name`: Hero name (e.g., "Sarah, The Solo Builder")
+- `description`: Rich description including who they are, motivations, jobs-to-be-done, pains, desired gains, and context
+- `is_primary`: Whether this is the primary hero
+
+**Returns:**
+Success response with created hero (including identifier like "H-2003") and next steps.
+
+---
+
+#### `get_heroes()`
+
+Retrieves all heroes for a workspace.
+
+**Returns:**
+List of heroes with full details including identifier, name, description, is_primary status.
+
+---
+
+#### `get_hero_details(hero_identifier: str)`
+
+Retrieves full hero details including journey summary.
+
+**Parameters:**
+- `hero_identifier`: Human-readable identifier (e.g., "H-2003")
+
+**Returns:**
+Hero details + journey summary (active arcs, open conflicts).
+
+---
+
+### Villain Management
+
+#### `get_villain_definition_framework()`
+
+Returns comprehensive framework for defining a villain (problem/obstacle).
+
+**Returns:**
+Framework dict with purpose, criteria, examples, questions, anti-patterns, current state (existing villains), and coaching tips.
+
+**Villain Types:**
+- `EXTERNAL`: Competitor products, market forces
+- `INTERNAL`: Cognitive overload, lack of knowledge
+- `TECHNICAL`: Bugs, system limitations, tech debt
+- `WORKFLOW`: Difficult processes, tool switching
+- `OTHER`: Other obstacles
+
+---
+
+#### `submit_villain(name: str, villain_type: str, description: str, severity: int)`
+
+Submits refined villain to workspace.
+
+**Parameters:**
+- `name`: Villain name (e.g., "Context Switching")
+- `villain_type`: Type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER)
+- `description`: Rich description including how it manifests, impact, and evidence
+- `severity`: How big a threat (1-5)
+
+**Returns:**
+Success response with created villain (including identifier like "V-2003") and next steps.
+
+---
+
+#### `get_villains()`
+
+Retrieves all villains for a workspace.
+
+**Returns:**
+List of villains with full details including identifier, name, villain_type, severity, is_defeated status.
+
+---
+
+#### `mark_villain_defeated(villain_identifier: str)`
+
+Marks a villain as defeated.
+
+**Parameters:**
+- `villain_identifier`: Human-readable identifier (e.g., "V-2003")
+
+**Returns:**
+Success response with updated villain.
+
+---
+
+### Conflict Management
+
+#### `get_conflict_creation_framework()`
+
+Returns framework for creating conflicts between heroes and villains.
+
+**Returns:**
+Framework dict with purpose, criteria, examples, questions, anti-patterns, current state (available heroes/villains), and coaching tips.
+
+---
+
+#### `create_conflict(hero_identifier: str, villain_identifier: str, description: str, story_arc_id: str | None)`
+
+Creates a new conflict between a hero and villain.
+
+**Parameters:**
+- `hero_identifier`: Human-readable hero identifier (e.g., "H-2003")
+- `villain_identifier`: Human-readable villain identifier (e.g., "V-2003")
+- `description`: Rich description including conflict statement, impact, and stakes
+- `story_arc_id`: Optional UUID of story arc addressing this conflict
+
+**Returns:**
+Success response with created conflict (including identifier like "C-2003").
+
+---
+
+#### `get_conflicts(status: str | None, hero_identifier: str | None, villain_identifier: str | None)`
+
+Retrieves conflicts with optional filtering.
+
+**Parameters:**
+- `status`: Optional filter by status (OPEN, ESCALATING, RESOLVING, RESOLVED)
+- `hero_identifier`: Optional filter by hero identifier (e.g., "H-2003")
+- `villain_identifier`: Optional filter by villain identifier (e.g., "V-2003")
+
+**Returns:**
+List of conflicts matching filters.
+
+---
+
+#### `mark_conflict_resolved(conflict_identifier: str, resolved_by_initiative_id: str)`
+
+Marks a conflict as resolved by an initiative.
+
+**Parameters:**
+- `conflict_identifier`: Human-readable conflict identifier (e.g., "C-2003")
+- `resolved_by_initiative_id`: UUID of initiative that resolved it
+
+**Returns:**
+Success response with updated conflict.
+
+---
+
+### Narrative Recap Tools
+
+#### `get_recent_turning_points(limit: int = 10)`
+
+Retrieves recent turning points for narrative recap.
+
+**Parameters:**
+- `limit`: Maximum number of turning points to return (default 10)
+
+**Returns:**
+List of recent turning points ordered by created_at DESC.
+
+---
+
+#### `generate_previously_on()`
+
+Generates 'Previously on...' narrative recap.
+
+This is the key MCP tool that enables narrative-aware development. It generates a story-style summary of recent progress.
+
+**Returns:**
+Narrative recap including:
+- `recap_text`: Story-style summary
+- `primary_hero`: Primary hero details
+- `active_arcs`: Active story arcs with narrative context
+- `recent_turning_points`: Recent turning points
+- `open_conflicts`: Open conflicts
+- `suggested_next_tasks`: Suggested next tasks (placeholder)
+
+---
+
+#### `get_story_bible()`
+
+Retrieves complete story bible for workspace.
+
+**Returns:**
+Complete story bible including:
+- `heroes`: All heroes
+- `villains`: All villains
+- `story_arcs`: All roadmap themes with narrative context
+- `conflicts`: All conflicts
+- `turning_points`: Recent turning points
+
+---
+
+### Enhanced Roadmap Theme Tools
+
+#### `submit_roadmap_theme(..., hero_identifier: str | None, primary_villain_identifier: str | None)`
+
+Updated to accept optional hero and villain identifiers for narrative linking.
+
+**New Parameters:**
+- `hero_identifier`: Optional human-readable hero identifier (e.g., "H-2003")
+- `primary_villain_identifier`: Optional human-readable villain identifier (e.g., "V-2003")
+
+---
+
+#### `link_theme_to_hero(theme_id: str, hero_identifier: str)`
+
+Links a roadmap theme to a hero.
+
+**Parameters:**
+- `theme_id`: UUID of roadmap theme
+- `hero_identifier`: Human-readable hero identifier (e.g., "H-2003")
+
+**Returns:**
+Success response with updated theme.
+
+---
+
+#### `link_theme_to_villain(theme_id: str, villain_identifier: str)`
+
+Links a roadmap theme to a villain.
+
+**Parameters:**
+- `theme_id`: UUID of roadmap theme
+- `villain_identifier`: Human-readable villain identifier (e.g., "V-2003")
+
+**Returns:**
+Success response with updated theme.
+
+---
+
 ## Related Documentation
 
 - Main server: `src/mcp_server/main.py`
@@ -818,5 +1066,9 @@ All tools return consistent error responses:
 - Workflow: `src/mcp_server/start_openbacklog_workflow.py`
 - Strategic foundation: `src/mcp_server/prompt_driven_tools/strategic_foundation.py`
 - Roadmap themes: `src/mcp_server/prompt_driven_tools/roadmap_themes.py`
+- Narrative heroes: `src/mcp_server/prompt_driven_tools/narrative_heroes.py`
+- Narrative villains: `src/mcp_server/prompt_driven_tools/narrative_villains.py`
+- Narrative conflicts: `src/mcp_server/prompt_driven_tools/narrative_conflicts.py`
+- Narrative recap: `src/mcp_server/prompt_driven_tools/narrative_recap.py`
 - Utilities: `src/mcp_server/prompt_driven_tools/utilities.py`
 - Prompts: `src/mcp_server/slash_commands.py`

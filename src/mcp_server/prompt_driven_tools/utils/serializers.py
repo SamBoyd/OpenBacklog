@@ -11,6 +11,10 @@ from typing import Any, Dict, List, Optional
 from src.initiative_management.aggregates.strategic_initiative import (
     StrategicInitiative,
 )
+from src.narrative.aggregates.conflict import Conflict
+from src.narrative.aggregates.hero import Hero
+from src.narrative.aggregates.turning_point import TurningPoint
+from src.narrative.aggregates.villain import Villain
 from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
 from src.strategic_planning.aggregates.product_vision import ProductVision
@@ -112,6 +116,70 @@ def serialize_strategic_initiative(si: StrategicInitiative) -> Dict[str, Any]:
     }
 
 
+def serialize_hero(hero: Hero) -> Dict[str, Any]:
+    """Serialize Hero to JSON-serializable dict."""
+    return {
+        "id": serialize_uuid(hero.id),
+        "identifier": hero.identifier,
+        "workspace_id": serialize_uuid(hero.workspace_id),
+        "name": hero.name,
+        "description": hero.description,
+        "is_primary": hero.is_primary,
+        "created_at": serialize_datetime(hero.created_at),
+        "updated_at": serialize_datetime(hero.updated_at),
+    }
+
+
+def serialize_villain(villain: Villain) -> Dict[str, Any]:
+    """Serialize Villain to JSON-serializable dict."""
+    return {
+        "id": serialize_uuid(villain.id),
+        "identifier": villain.identifier,
+        "workspace_id": serialize_uuid(villain.workspace_id),
+        "name": villain.name,
+        "villain_type": villain.villain_type,
+        "description": villain.description,
+        "severity": villain.severity,
+        "is_defeated": villain.is_defeated,
+        "created_at": serialize_datetime(villain.created_at),
+        "updated_at": serialize_datetime(villain.updated_at),
+    }
+
+
+def serialize_conflict(conflict: Conflict) -> Dict[str, Any]:
+    """Serialize Conflict to JSON-serializable dict."""
+    return {
+        "id": serialize_uuid(conflict.id),
+        "identifier": conflict.identifier,
+        "workspace_id": serialize_uuid(conflict.workspace_id),
+        "hero_id": serialize_uuid(conflict.hero_id),
+        "villain_id": serialize_uuid(conflict.villain_id),
+        "description": conflict.description,
+        "status": conflict.status,
+        "story_arc_id": serialize_uuid(conflict.story_arc_id),
+        "resolved_at": serialize_datetime(conflict.resolved_at),
+        "resolved_by_initiative_id": serialize_uuid(conflict.resolved_by_initiative_id),
+        "created_at": serialize_datetime(conflict.created_at),
+        "updated_at": serialize_datetime(conflict.updated_at),
+    }
+
+
+def serialize_turning_point(turning_point: TurningPoint) -> Dict[str, Any]:
+    """Serialize TurningPoint to JSON-serializable dict."""
+    return {
+        "id": serialize_uuid(turning_point.id),
+        "identifier": turning_point.identifier,
+        "workspace_id": serialize_uuid(turning_point.workspace_id),
+        "domain_event_id": serialize_uuid(turning_point.domain_event_id),
+        "narrative_description": turning_point.narrative_description,
+        "significance": turning_point.significance,
+        "story_arc_id": serialize_uuid(turning_point.story_arc_id),
+        "initiative_id": serialize_uuid(turning_point.initiative_id),
+        "task_id": serialize_uuid(turning_point.task_id),
+        "created_at": serialize_datetime(turning_point.created_at),
+    }
+
+
 __all__ = [
     "serialize_datetime",
     "serialize_uuid",
@@ -121,6 +189,10 @@ __all__ = [
     "serialize_theme",
     "serialize_strategic_initiative",
     "serialize_strategic_foundation",
+    "serialize_hero",
+    "serialize_villain",
+    "serialize_conflict",
+    "serialize_turning_point",
 ]
 
 
