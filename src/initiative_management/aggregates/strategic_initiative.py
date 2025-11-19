@@ -18,6 +18,9 @@ from src.strategic_planning.models import DomainEvent
 
 if TYPE_CHECKING:
     from src.models import Initiative, Workspace
+    from src.narrative.aggregates.conflict import Conflict
+    from src.narrative.aggregates.hero import Hero
+    from src.narrative.aggregates.villain import Villain
     from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
     from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
     from src.strategic_planning.services.event_publisher import EventPublisher
@@ -45,12 +48,19 @@ class StrategicInitiative(Base):
         connection_to_vision: How this connects to workspace vision (max 1000 chars)
         success_criteria: What success looks like (max 1000 chars)
         out_of_scope: What is explicitly NOT being done (max 1000 chars)
+        hero_id: Optional foreign key to hero (user persona)
+        villain_id: Optional foreign key to villain (problem)
+        conflict_id: Optional foreign key to conflict
+        narrative_intent: Optional text describing why this initiative matters narratively
         created_at: Timestamp when context was created
         updated_at: Timestamp when context was last modified
         initiative: Relationship to Initiative entity
         workspace: Relationship to Workspace entity
         strategic_pillar: Relationship to StrategicPillar entity
         roadmap_theme: Relationship to RoadmapTheme entity
+        hero: Relationship to Hero entity
+        villain: Relationship to Villain entity
+        conflict: Relationship to Conflict entity
     """
 
     __tablename__ = "strategic_initiatives"
@@ -120,6 +130,29 @@ class StrategicInitiative(Base):
         nullable=True,
     )
 
+    hero_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("dev.heroes.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    villain_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("dev.villains.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    conflict_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("dev.conflicts.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    narrative_intent: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -154,6 +187,21 @@ class StrategicInitiative(Base):
     roadmap_theme: Mapped["RoadmapTheme | None"] = relationship(
         "RoadmapTheme",
         back_populates="strategic_initiatives",
+    )
+
+    hero: Mapped["Hero | None"] = relationship(
+        "Hero",
+        foreign_keys=[hero_id],
+    )
+
+    villain: Mapped["Villain | None"] = relationship(
+        "Villain",
+        foreign_keys=[villain_id],
+    )
+
+    conflict: Mapped["Conflict | None"] = relationship(
+        "Conflict",
+        foreign_keys=[conflict_id],
     )
 
     @staticmethod

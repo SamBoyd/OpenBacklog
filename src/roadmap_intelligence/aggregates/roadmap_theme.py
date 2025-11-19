@@ -29,6 +29,8 @@ if TYPE_CHECKING:
         StrategicInitiative,
     )
     from src.models import Workspace
+    from src.narrative.aggregates.hero import Hero
+    from src.narrative.aggregates.villain import Villain
     from src.strategic_planning.aggregates.product_outcome import ProductOutcome
     from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
     from src.strategic_planning.services.event_publisher import EventPublisher
@@ -49,11 +51,15 @@ class RoadmapTheme(Base):
         hypothesis: Expected outcome (max 1500 characters)
         indicative_metrics: Success metrics (max 1000 characters)
         time_horizon_months: Time horizon in months (0-12)
+        hero_id: Optional foreign key to hero (user persona)
+        primary_villain_id: Optional foreign key to primary villain (problem)
         created_at: Timestamp when theme was created
         updated_at: Timestamp when theme was last modified
         workspace: Relationship to Workspace entity
         outcomes: Relationship to ProductOutcome entities (many-to-many)
         initiatives: Relationship to Initiative entities (one-to-many)
+        hero: Relationship to Hero entity
+        primary_villain: Relationship to Villain entity
     """
 
     __tablename__ = "roadmap_themes"
@@ -111,6 +117,18 @@ class RoadmapTheme(Base):
         nullable=True,
     )
 
+    hero_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("dev.heroes.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    primary_villain_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("dev.villains.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -140,6 +158,16 @@ class RoadmapTheme(Base):
     strategic_initiatives: Mapped[List["StrategicInitiative"]] = relationship(
         "StrategicInitiative",
         back_populates="roadmap_theme",
+    )
+
+    hero: Mapped["Hero | None"] = relationship(
+        "Hero",
+        foreign_keys=[hero_id],
+    )
+
+    primary_villain: Mapped["Villain | None"] = relationship(
+        "Villain",
+        foreign_keys=[primary_villain_id],
     )
 
     @staticmethod
