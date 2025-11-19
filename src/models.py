@@ -40,6 +40,10 @@ if TYPE_CHECKING:
     from src.initiative_management.aggregates.strategic_initiative import (
         StrategicInitiative,
     )
+    from src.narrative.aggregates.conflict import Conflict
+    from src.narrative.aggregates.hero import Hero
+    from src.narrative.aggregates.turning_point import TurningPoint
+    from src.narrative.aggregates.villain import Villain
     from src.roadmap_intelligence.aggregates.prioritized_roadmap import (
         PrioritizedRoadmap,
     )
@@ -335,6 +339,26 @@ class Workspace(PublicBase, Base):
     )
     strategic_initiatives: Mapped[List["StrategicInitiative"]] = relationship(
         "StrategicInitiative",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+    heroes: Mapped[List["Hero"]] = relationship(
+        "Hero",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+    villains: Mapped[List["Villain"]] = relationship(
+        "Villain",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+    conflicts: Mapped[List["Conflict"]] = relationship(
+        "Conflict",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+    turning_points: Mapped[List["TurningPoint"]] = relationship(
+        "TurningPoint",
         back_populates="workspace",
         cascade="all, delete-orphan",
     )
