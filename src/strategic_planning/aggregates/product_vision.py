@@ -25,13 +25,13 @@ class ProductVision(Base):
     """ProductVision aggregate for workspace vision lifecycle.
 
     This aggregate encapsulates the business logic for creating and refining
-    a workspace's product vision. It enforces the 1-1000 character limit
-    and emits domain events for all vision changes.
+    a workspace's product vision. It requires non-empty vision text and emits
+    domain events for all vision changes.
 
     Attributes:
         id: Unique identifier for the vision
         workspace_id: Foreign key to workspace (1:1 relationship)
-        vision_text: The product vision text (1-1000 characters)
+        vision_text: The product vision text (must be non-empty)
         created_at: Timestamp when vision was first created
         updated_at: Timestamp when vision was last modified
         workspace: Relationship to Workspace entity
@@ -87,20 +87,16 @@ class ProductVision(Base):
 
     @staticmethod
     def _validate_vision_text(vision_text: str) -> None:
-        """Validate vision text meets character limit requirements.
+        """Validate vision text is non-empty.
 
         Args:
             vision_text: The vision text to validate
 
         Raises:
-            DomainException: If vision text is not between 1-1000 characters
+            DomainException: If vision text is empty
         """
         if not vision_text or len(vision_text) < 1:
             raise DomainException("Vision text must be at least 1 character")
-        if len(vision_text) > 1000:
-            raise DomainException(
-                f"Vision text must be 1000 characters or less (got {len(vision_text)})"
-            )
 
     def refine_vision(self, refined_text: str, publisher: "EventPublisher") -> None:
         """Refine the existing product vision with updated text.
@@ -109,11 +105,11 @@ class ProductVision(Base):
         domain event.
 
         Args:
-            refined_text: The refined product vision text (1-1000 characters)
+            refined_text: The refined product vision text (must be non-empty)
             publisher: EventPublisher instance for emitting domain events
 
         Raises:
-            DomainException: If refined_text violates character limits
+            DomainException: If refined_text is empty
 
         Example:
             >>> vision.refine_vision("Build the best product for developers", publisher)

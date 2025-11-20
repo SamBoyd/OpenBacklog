@@ -44,8 +44,7 @@ class StrategicPillar(Base):
         id: Unique identifier for the pillar
         workspace_id: Foreign key to workspace
         name: Pillar name (1-100 characters, unique per workspace)
-        description: Optional pillar description (max 1000 characters)
-        anti_strategy: Optional anti-strategy text (max 1000 characters)
+        description: Optional pillar description (1-3000 characters)
         display_order: Display order for pillar list (0-4)
         created_at: Timestamp when pillar was created
         updated_at: Timestamp when pillar was last modified
@@ -92,11 +91,6 @@ class StrategicPillar(Base):
         nullable=True,
     )
 
-    anti_strategy: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
     display_order: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
@@ -105,16 +99,16 @@ class StrategicPillar(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
         server_default=text("CURRENT_TIMESTAMP"),
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
         server_default=text("CURRENT_TIMESTAMP"),
-        onupdate=datetime.utcnow,
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
     workspace: Mapped["Workspace"] = relationship(
@@ -172,20 +166,24 @@ class StrategicPillar(Base):
             )
 
     @staticmethod
-    def _validate_text_field(field_name: str, text: str | None) -> None:
-        """Validate text field meets character limit requirements.
+    def _validate_description(description: str | None) -> None:
+        """Validate description field meets character limit requirements.
 
         Args:
-            field_name: Name of the field being validated (for error messages)
-            text: The text to validate
+            description: The description text to validate
 
         Raises:
-            DomainException: If text exceeds 1000 characters
+            DomainException: If description is not between 1-3000 characters when provided
         """
-        if text is not None and len(text) > 1000:
-            raise DomainException(
-                f"{field_name} must be 1000 characters or less (got {len(text)})"
-            )
+        if description is not None:
+            if len(description) < 1:
+                raise DomainException(
+                    "Description must be at least 1 character when provided"
+                )
+            if len(description) > 3000:
+                raise DomainException(
+                    f"Description must be 3000 characters or less (got {len(description)})"
+                )
 
     @staticmethod
     def _validate_display_order(display_order: int) -> None:
@@ -208,7 +206,6 @@ class StrategicPillar(Base):
         user_id: uuid.UUID,
         name: str,
         description: str | None,
-        anti_strategy: str | None,
         display_order: int,
         session: Session,
         publisher: "EventPublisher",
@@ -222,8 +219,7 @@ class StrategicPillar(Base):
             workspace_id: UUID of the workspace
             user_id: UUID of the user creating the pillar
             name: Pillar name (1-100 characters, unique per workspace)
-            description: Optional pillar description (max 1000 characters)
-            anti_strategy: Optional anti-strategy text (max 1000 characters)
+            description: Optional pillar description (1-3000 characters)
             display_order: Display order for pillar list (0-4)
             session: Database session for persistence
             publisher: EventPublisher instance for emitting domain events
@@ -240,7 +236,6 @@ class StrategicPillar(Base):
             ...     user_id=user.id,
             ...     name="Developer Experience",
             ...     description="Make developers love our product",
-            ...     anti_strategy="Not enterprise features",
             ...     display_order=0,
             ...     session=session,
             ...     publisher=publisher
@@ -248,8 +243,7 @@ class StrategicPillar(Base):
         """
         # Validate all inputs
         StrategicPillar._validate_name(name)
-        StrategicPillar._validate_text_field("Description", description)
-        StrategicPillar._validate_text_field("Anti-strategy", anti_strategy)
+        StrategicPillar._validate_description(description)
         StrategicPillar._validate_display_order(display_order)
 
         # Create fully-initialized instance
@@ -258,7 +252,6 @@ class StrategicPillar(Base):
             user_id=user_id,
             name=name,
             description=description,
-            anti_strategy=anti_strategy,
             display_order=display_order,
         )
 
@@ -275,7 +268,6 @@ class StrategicPillar(Base):
                 "workspace_id": str(workspace_id),
                 "name": name,
                 "description": description,
-                "anti_strategy": anti_strategy,
                 "display_order": display_order,
             },
         )
@@ -287,7 +279,6 @@ class StrategicPillar(Base):
         self,
         name: str,
         description: str | None,
-        anti_strategy: str | None,
         publisher: "EventPublisher",
     ) -> None:
         """Update an existing strategic pillar.
@@ -297,8 +288,7 @@ class StrategicPillar(Base):
 
         Args:
             name: Updated pillar name (1-100 characters, unique per workspace)
-            description: Updated pillar description (max 1000 characters)
-            anti_strategy: Updated anti-strategy text (max 1000 characters)
+            description: Updated pillar description (1-3000 characters)
             publisher: EventPublisher instance for emitting domain events
 
         Raises:
@@ -308,18 +298,15 @@ class StrategicPillar(Base):
             >>> pillar.update_pillar(
             ...     name="Developer Experience",
             ...     description="Updated description",
-            ...     anti_strategy="Updated anti-strategy",
             ...     publisher=publisher
             ... )
         """
         self._validate_name(name)
-        self._validate_text_field("Description", description)
-        self._validate_text_field("Anti-strategy", anti_strategy)
+        self._validate_description(description)
 
         self.name = name
         self.description = description
-        self.anti_strategy = anti_strategy
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         event = DomainEvent(
             user_id=uuid.uuid4(),
@@ -329,7 +316,6 @@ class StrategicPillar(Base):
                 "workspace_id": str(self.workspace_id),
                 "name": name,
                 "description": description,
-                "anti_strategy": anti_strategy,
             },
         )
         publisher.publish(event, workspace_id=str(self.workspace_id))
@@ -354,7 +340,7 @@ class StrategicPillar(Base):
 
         old_order = self.display_order
         self.display_order = new_order
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         event = DomainEvent(
             user_id=uuid.uuid4(),

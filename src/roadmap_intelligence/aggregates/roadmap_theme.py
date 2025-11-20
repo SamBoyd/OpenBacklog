@@ -8,15 +8,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List
 
-from sqlalchemy import (
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-    text,
-)
+from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
@@ -48,10 +40,7 @@ class RoadmapTheme(Base):
         id: Unique identifier for the theme
         workspace_id: Foreign key to workspace
         name: Theme name (1-100 characters, unique per workspace)
-        problem_statement: Problem being solved (1-1500 characters, required)
-        hypothesis: Expected outcome (max 1500 characters)
-        indicative_metrics: Success metrics (max 1000 characters)
-        time_horizon_months: Time horizon in months (0-12)
+        description: Theme description (1-4000 characters, required)
         created_at: Timestamp when theme was created
         updated_at: Timestamp when theme was last modified
         workspace: Relationship to Workspace entity
@@ -96,24 +85,9 @@ class RoadmapTheme(Base):
         nullable=False,
     )
 
-    problem_statement: Mapped[str] = mapped_column(
+    description: Mapped[str] = mapped_column(
         Text,
         nullable=False,
-    )
-
-    hypothesis: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    indicative_metrics: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    time_horizon_months: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -204,56 +178,20 @@ class RoadmapTheme(Base):
             )
 
     @staticmethod
-    def _validate_problem_statement(problem_statement: str) -> None:
-        """Validate problem statement meets character limit requirements.
+    def _validate_description(description: str) -> None:
+        """Validate description meets character limit requirements.
 
         Args:
-            problem_statement: The problem statement to validate
+            description: The description to validate
 
         Raises:
-            DomainException: If problem_statement is not between 1-1500 characters
+            DomainException: If description is not between 1-4000 characters
         """
-        if not problem_statement or len(problem_statement) < 1:
-            raise DomainException("Problem statement must be at least 1 character")
-        if len(problem_statement) > 1500:
+        if not description or len(description) < 1:
+            raise DomainException("Description must be at least 1 character")
+        if len(description) > 4000:
             raise DomainException(
-                f"Problem statement must be 1500 characters or less (got {len(problem_statement)})"
-            )
-
-    @staticmethod
-    def _validate_text_field(
-        field_name: str, text: str | None, max_length: int
-    ) -> None:
-        """Validate text field meets character limit requirements.
-
-        Args:
-            field_name: Name of the field being validated (for error messages)
-            text: The text to validate
-            max_length: Maximum allowed length
-
-        Raises:
-            DomainException: If text exceeds max_length
-        """
-        if text is not None and len(text) > max_length:
-            raise DomainException(
-                f"{field_name} must be {max_length} characters or less (got {len(text)})"
-            )
-
-    @staticmethod
-    def _validate_time_horizon(time_horizon_months: int | None) -> None:
-        """Validate time horizon is within valid range.
-
-        Args:
-            time_horizon_months: The time horizon to validate
-
-        Raises:
-            DomainException: If time_horizon_months is not between 0-12
-        """
-        if time_horizon_months is not None and (
-            time_horizon_months < 0 or time_horizon_months > 12
-        ):
-            raise DomainException(
-                f"Time horizon must be between 0-12 months (got {time_horizon_months})"
+                f"Description must be 4000 characters or less (got {len(description)})"
             )
 
     @staticmethod
@@ -261,10 +199,7 @@ class RoadmapTheme(Base):
         workspace_id: uuid.UUID,
         user_id: uuid.UUID,
         name: str,
-        problem_statement: str,
-        hypothesis: str | None,
-        indicative_metrics: str | None,
-        time_horizon_months: int | None,
+        description: str,
         session: Session,
         publisher: "EventPublisher",
         hero_ids: List[uuid.UUID] | None = None,
@@ -279,10 +214,7 @@ class RoadmapTheme(Base):
             workspace_id: UUID of the workspace
             user_id: UUID of the user creating the theme
             name: Theme name (1-100 characters, unique per workspace)
-            problem_statement: Problem being solved (1-1500 characters, required)
-            hypothesis: Expected outcome (max 1500 characters)
-            indicative_metrics: Success metrics (max 1000 characters)
-            time_horizon_months: Time horizon in months (0-12)
+            description: Theme description (1-4000 characters, required)
             hero_ids: Optional list of hero UUIDs this theme concerns
             villain_ids: Optional list of villain UUIDs this theme opposes
             session: SQLAlchemy database session
@@ -299,30 +231,19 @@ class RoadmapTheme(Base):
             ...     workspace_id=workspace.id,
             ...     user_id=user.id,
             ...     name="First Week Magic",
-            ...     problem_statement="Users fail to integrate in first week",
-            ...     hypothesis="Quick wins drive adoption",
-            ...     indicative_metrics="% users active in week 1",
-            ...     time_horizon_months=6,
+            ...     description="Users fail to integrate in first week...",
             ...     session=session,
             ...     publisher=publisher
             ... )
         """
         RoadmapTheme._validate_name(name)
-        RoadmapTheme._validate_problem_statement(problem_statement)
-        RoadmapTheme._validate_text_field("Hypothesis", hypothesis, 1500)
-        RoadmapTheme._validate_text_field(
-            "Indicative metrics", indicative_metrics, 1000
-        )
-        RoadmapTheme._validate_time_horizon(time_horizon_months)
+        RoadmapTheme._validate_description(description)
 
         theme = RoadmapTheme(
             user_id=user_id,
             workspace_id=workspace_id,
             name=name,
-            problem_statement=problem_statement,
-            hypothesis=hypothesis,
-            indicative_metrics=indicative_metrics,
-            time_horizon_months=time_horizon_months,
+            description=description,
         )
 
         session.add(theme)
@@ -341,10 +262,7 @@ class RoadmapTheme(Base):
             payload={
                 "workspace_id": str(workspace_id),
                 "name": name,
-                "problem_statement": problem_statement,
-                "hypothesis": hypothesis,
-                "indicative_metrics": indicative_metrics,
-                "time_horizon_months": time_horizon_months,
+                "description": description,
             },
         )
         publisher.publish(event, workspace_id=str(workspace_id))
@@ -354,10 +272,7 @@ class RoadmapTheme(Base):
     def update_theme(
         self,
         name: str,
-        problem_statement: str,
-        hypothesis: str | None,
-        indicative_metrics: str | None,
-        time_horizon_months: int | None,
+        description: str,
         publisher: "EventPublisher",
         hero_ids: List[uuid.UUID] | None = None,
         villain_ids: List[uuid.UUID] | None = None,
@@ -370,10 +285,7 @@ class RoadmapTheme(Base):
 
         Args:
             name: Updated theme name (1-100 characters, unique per workspace)
-            problem_statement: Updated problem statement (1-1500 characters)
-            hypothesis: Updated hypothesis (max 1500 characters)
-            indicative_metrics: Updated metrics (max 1000 characters)
-            time_horizon_months: Updated time horizon (0-12 months)
+            description: Updated theme description (1-4000 characters)
             hero_ids: Optional list of hero UUIDs to replace existing links
             villain_ids: Optional list of villain UUIDs to replace existing links
             session: Database session (required if hero_ids or villain_ids provided)
@@ -385,24 +297,15 @@ class RoadmapTheme(Base):
         Example:
             >>> theme.update_theme(
             ...     name="Updated theme",
-            ...     problem_statement="Updated problem",
-            ...     hypothesis="Updated hypothesis",
-            ...     indicative_metrics="Updated metrics",
-            ...     time_horizon_months=9,
+            ...     description="Updated description",
             ...     publisher=publisher
             ... )
         """
         self._validate_name(name)
-        self._validate_problem_statement(problem_statement)
-        self._validate_text_field("Hypothesis", hypothesis, 1500)
-        self._validate_text_field("Indicative metrics", indicative_metrics, 1000)
-        self._validate_time_horizon(time_horizon_months)
+        self._validate_description(description)
 
         self.name = name
-        self.problem_statement = problem_statement
-        self.hypothesis = hypothesis
-        self.indicative_metrics = indicative_metrics
-        self.time_horizon_months = time_horizon_months
+        self.description = description
         self.updated_at = datetime.now(timezone.utc)
 
         # Update many-to-many relationships if provided
@@ -418,10 +321,7 @@ class RoadmapTheme(Base):
             payload={
                 "workspace_id": str(self.workspace_id),
                 "name": name,
-                "problem_statement": problem_statement,
-                "hypothesis": hypothesis,
-                "indicative_metrics": indicative_metrics,
-                "time_horizon_months": time_horizon_months,
+                "description": description,
             },
         )
         publisher.publish(event, workspace_id=str(self.workspace_id))

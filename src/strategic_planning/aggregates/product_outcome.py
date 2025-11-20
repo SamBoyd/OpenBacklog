@@ -42,9 +42,7 @@ class ProductOutcome(Base):
         id: Unique identifier for the outcome
         workspace_id: Foreign key to workspace
         name: Outcome name (1-150 characters, unique per workspace)
-        description: Optional outcome description (max 1500 characters)
-        metrics: How to measure this outcome (max 1000 characters)
-        time_horizon_months: Time horizon in months (6-36)
+        description: Optional outcome description (1-3000 characters)
         display_order: Display order within workspace
         created_at: Timestamp when outcome was created
         updated_at: Timestamp when outcome was last modified
@@ -90,16 +88,6 @@ class ProductOutcome(Base):
 
     description: Mapped[str | None] = mapped_column(
         Text,
-        nullable=True,
-    )
-
-    metrics: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    time_horizon_months: Mapped[int | None] = mapped_column(
-        Integer,
         nullable=True,
     )
 
@@ -179,40 +167,24 @@ class ProductOutcome(Base):
             )
 
     @staticmethod
-    def _validate_text_field(
-        field_name: str, text: str | None, max_length: int
-    ) -> None:
-        """Validate text field meets character limit requirements.
+    def _validate_description(description: str | None) -> None:
+        """Validate description field meets character limit requirements.
 
         Args:
-            field_name: Name of the field being validated (for error messages)
-            text: The text to validate
-            max_length: Maximum allowed length
+            description: The description text to validate
 
         Raises:
-            DomainException: If text exceeds max_length
+            DomainException: If description is not between 1-3000 characters when provided
         """
-        if text is not None and len(text) > max_length:
-            raise DomainException(
-                f"{field_name} must be {max_length} characters or less (got {len(text)})"
-            )
-
-    @staticmethod
-    def _validate_time_horizon(time_horizon_months: int | None) -> None:
-        """Validate time horizon is within valid range.
-
-        Args:
-            time_horizon_months: The time horizon to validate
-
-        Raises:
-            DomainException: If time_horizon_months is not between 6-36
-        """
-        if time_horizon_months is not None and (
-            time_horizon_months < 6 or time_horizon_months > 36
-        ):
-            raise DomainException(
-                f"Time horizon must be between 6-36 months (got {time_horizon_months})"
-            )
+        if description is not None:
+            if len(description) < 1:
+                raise DomainException(
+                    "Description must be at least 1 character when provided"
+                )
+            if len(description) > 3000:
+                raise DomainException(
+                    f"Description must be 3000 characters or less (got {len(description)})"
+                )
 
     @staticmethod
     def map_outcome(
@@ -220,8 +192,6 @@ class ProductOutcome(Base):
         user_id: uuid.UUID,
         name: str,
         description: str | None,
-        metrics: str | None,
-        time_horizon_months: int | None,
         display_order: int,
         session: Session,
         publisher: "EventPublisher",
@@ -235,9 +205,7 @@ class ProductOutcome(Base):
             workspace_id: UUID of the workspace
             user_id: UUID of the user creating the outcome
             name: Outcome name (1-150 characters, unique per workspace)
-            description: Optional outcome description (max 1500 characters)
-            metrics: How to measure this outcome (max 1000 characters)
-            time_horizon_months: Time horizon in months (6-36)
+            description: Optional outcome description (1-3000 characters)
             display_order: Display order within workspace
             session: SQLAlchemy database session
             publisher: EventPublisher instance for emitting domain events
@@ -254,25 +222,19 @@ class ProductOutcome(Base):
             ...     user_id=user.id,
             ...     name="80% of users use AI weekly",
             ...     description="Measure AI adoption",
-            ...     metrics="Weekly AI usage %",
-            ...     time_horizon_months=12,
             ...     display_order=0,
             ...     session=session,
             ...     publisher=publisher
             ... )
         """
         ProductOutcome._validate_name(name)
-        ProductOutcome._validate_text_field("Description", description, 1500)
-        ProductOutcome._validate_text_field("Metrics", metrics, 1000)
-        ProductOutcome._validate_time_horizon(time_horizon_months)
+        ProductOutcome._validate_description(description)
 
         outcome = ProductOutcome(
             user_id=user_id,
             workspace_id=workspace_id,
             name=name,
             description=description,
-            metrics=metrics,
-            time_horizon_months=time_horizon_months,
             display_order=display_order,
         )
 
@@ -287,8 +249,6 @@ class ProductOutcome(Base):
                 "workspace_id": str(workspace_id),
                 "name": name,
                 "description": description,
-                "metrics": metrics,
-                "time_horizon_months": time_horizon_months,
                 "display_order": display_order,
             },
         )
@@ -300,8 +260,6 @@ class ProductOutcome(Base):
         self,
         name: str,
         description: str | None,
-        metrics: str | None,
-        time_horizon_months: int | None,
         publisher: "EventPublisher",
     ) -> None:
         """Update an existing product outcome.
@@ -311,9 +269,7 @@ class ProductOutcome(Base):
 
         Args:
             name: Updated outcome name (1-150 characters, unique per workspace)
-            description: Updated outcome description (max 1500 characters)
-            metrics: Updated metrics (max 1000 characters)
-            time_horizon_months: Updated time horizon (6-36 months)
+            description: Updated outcome description (1-3000 characters)
             publisher: EventPublisher instance for emitting domain events
 
         Raises:
@@ -323,20 +279,14 @@ class ProductOutcome(Base):
             >>> outcome.update_outcome(
             ...     name="Updated outcome",
             ...     description="Updated description",
-            ...     metrics="Updated metrics",
-            ...     time_horizon_months=18,
             ...     publisher=publisher
             ... )
         """
         self._validate_name(name)
-        self._validate_text_field("Description", description, 1500)
-        self._validate_text_field("Metrics", metrics, 1000)
-        self._validate_time_horizon(time_horizon_months)
+        self._validate_description(description)
 
         self.name = name
         self.description = description
-        self.metrics = metrics
-        self.time_horizon_months = time_horizon_months
         self.updated_at = datetime.now(timezone.utc)
 
         event = DomainEvent(
@@ -347,8 +297,6 @@ class ProductOutcome(Base):
                 "workspace_id": str(self.workspace_id),
                 "name": name,
                 "description": description,
-                "metrics": metrics,
-                "time_horizon_months": time_horizon_months,
             },
         )
         publisher.publish(event, workspace_id=str(self.workspace_id))
