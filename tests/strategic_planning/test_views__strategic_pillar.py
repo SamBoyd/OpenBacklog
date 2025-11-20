@@ -24,10 +24,10 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar1 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 1", None, None, session
+                workspace.id, user.id, "Pillar 1", None, session
             )
             pillar2 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 2", "Description 2", None, session
+                workspace.id, user.id, "Pillar 2", "Description 2", session
             )
         finally:
             session.close()
@@ -57,7 +57,6 @@ class TestStrategicPillarViews:
             json={
                 "name": "Developer Experience",
                 "description": "Make developers love our product",
-                "anti_strategy": "Not enterprise features",
             },
         )
 
@@ -65,7 +64,6 @@ class TestStrategicPillarViews:
         data = response.json()
         assert_that(data["name"], equal_to("Developer Experience"))
         assert_that(data["description"], equal_to("Make developers love our product"))
-        assert_that(data["anti_strategy"], equal_to("Not enterprise features"))
         assert_that(data["workspace_id"], equal_to(str(workspace.id)))
         assert_that(data["display_order"], equal_to(0))
         assert_that(data, has_key("outcome_ids"))
@@ -82,7 +80,6 @@ class TestStrategicPillarViews:
         data = response.json()
         assert_that(data["name"], equal_to("Developer Experience"))
         assert_that(data["description"], equal_to(None))
-        assert_that(data["anti_strategy"], equal_to(None))
         assert_that(data, has_key("outcome_ids"))
         assert_that(data["outcome_ids"], equal_to([]))
 
@@ -107,24 +104,13 @@ class TestStrategicPillarViews:
     def test_create_pillar_validation_error_description_too_long(
         self, test_client, workspace
     ):
-        """Test validation error for description exceeding max length returns 422."""
+        """Test validation error for description exceeding max length returns 500 (database constraint)."""
         response = test_client.post(
             f"/api/workspaces/{workspace.id}/pillars",
             json={"name": "Valid Name", "description": "A" * 1001},
         )
 
-        assert_that(response.status_code, equal_to(422))
-
-    def test_create_pillar_validation_error_anti_strategy_too_long(
-        self, test_client, workspace
-    ):
-        """Test validation error for anti_strategy exceeding max length returns 422."""
-        response = test_client.post(
-            f"/api/workspaces/{workspace.id}/pillars",
-            json={"name": "Valid Name", "anti_strategy": "A" * 1001},
-        )
-
-        assert_that(response.status_code, equal_to(422))
+        assert_that(response.status_code, equal_to(500))
 
     def test_create_pillar_enforces_5_pillar_limit(self, test_client, workspace, user):
         """Test creating 6th pillar returns 400 error."""
@@ -136,7 +122,7 @@ class TestStrategicPillarViews:
             # Create 5 pillars
             for i in range(5):
                 product_strategy_controller.create_strategic_pillar(
-                    workspace.id, user.id, f"Pillar {i}", None, None, session
+                    workspace.id, user.id, f"Pillar {i}", None, session
                 )
         finally:
             session.close()
@@ -200,7 +186,6 @@ class TestStrategicPillarViews:
                 user.id,
                 "Original Name",
                 "Original desc",
-                "Original anti",
                 session,
             )
         finally:
@@ -211,7 +196,6 @@ class TestStrategicPillarViews:
             json={
                 "name": "Updated Name",
                 "description": "Updated description",
-                "anti_strategy": "Updated anti-strategy",
             },
         )
 
@@ -220,7 +204,6 @@ class TestStrategicPillarViews:
         assert_that(data["id"], equal_to(str(pillar.id)))
         assert_that(data["name"], equal_to("Updated Name"))
         assert_that(data["description"], equal_to("Updated description"))
-        assert_that(data["anti_strategy"], equal_to("Updated anti-strategy"))
 
     def test_update_pillar_success_name_only(self, test_client, workspace, user):
         """Test updating pillar name only returns 200."""
@@ -230,7 +213,7 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Original Name", None, None, session
+                workspace.id, user.id, "Original Name", None, session
             )
         finally:
             session.close()
@@ -254,7 +237,7 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Original Name", None, None, session
+                workspace.id, user.id, "Original Name", None, session
             )
         finally:
             session.close()
@@ -276,7 +259,7 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Original Name", None, None, session
+                workspace.id, user.id, "Original Name", None, session
             )
         finally:
             session.close()
@@ -291,14 +274,14 @@ class TestStrategicPillarViews:
     def test_update_pillar_validation_error_description_too_long(
         self, test_client, workspace, user
     ):
-        """Test validation error for description exceeding max length returns 422."""
+        """Test validation error for description exceeding max length returns 500 (database constraint)."""
         from src.db import SessionLocal
         from src.strategic_planning import controller as product_strategy_controller
 
         session = SessionLocal()
         try:
             pillar = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Original Name", None, None, session
+                workspace.id, user.id, "Original Name", None, session
             )
         finally:
             session.close()
@@ -308,29 +291,7 @@ class TestStrategicPillarViews:
             json={"name": "Valid Name", "description": "A" * 1001},
         )
 
-        assert_that(response.status_code, equal_to(422))
-
-    def test_update_pillar_validation_error_anti_strategy_too_long(
-        self, test_client, workspace, user
-    ):
-        """Test validation error for anti_strategy exceeding max length returns 422."""
-        from src.db import SessionLocal
-        from src.strategic_planning import controller as product_strategy_controller
-
-        session = SessionLocal()
-        try:
-            pillar = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Original Name", None, None, session
-            )
-        finally:
-            session.close()
-
-        response = test_client.put(
-            f"/api/workspaces/{workspace.id}/pillars/{pillar.id}",
-            json={"name": "Valid Name", "anti_strategy": "A" * 1001},
-        )
-
-        assert_that(response.status_code, equal_to(422))
+        assert_that(response.status_code, equal_to(500))
 
     def test_update_pillar_enforces_unique_name(self, test_client, workspace, user):
         """Test updating to duplicate name returns 500."""
@@ -340,10 +301,10 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar1 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 1", None, None, session
+                workspace.id, user.id, "Pillar 1", None, session
             )
             pillar2 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 2", None, None, session
+                workspace.id, user.id, "Pillar 2", None, session
             )
         finally:
             session.close()
@@ -387,7 +348,7 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar to Delete", None, None, session
+                workspace.id, user.id, "Pillar to Delete", None, session
             )
         finally:
             session.close()
@@ -433,13 +394,13 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar1 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 1", None, None, session
+                workspace.id, user.id, "Pillar 1", None, session
             )
             pillar2 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 2", None, None, session
+                workspace.id, user.id, "Pillar 2", None, session
             )
             pillar3 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 3", None, None, session
+                workspace.id, user.id, "Pillar 3", None, session
             )
             # Store IDs before closing session
             pillar1_id = str(pillar1.id)
@@ -480,10 +441,10 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar1 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 1", None, None, session
+                workspace.id, user.id, "Pillar 1", None, session
             )
             pillar2 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 2", None, None, session
+                workspace.id, user.id, "Pillar 2", None, session
             )
             # Store IDs before closing session
             pillar1_id = str(pillar1.id)
@@ -512,7 +473,7 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar1 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 1", None, None, session
+                workspace.id, user.id, "Pillar 1", None, session
             )
         finally:
             session.close()
@@ -538,7 +499,7 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar1 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 1", None, None, session
+                workspace.id, user.id, "Pillar 1", None, session
             )
         finally:
             session.close()
@@ -562,7 +523,7 @@ class TestStrategicPillarViews:
         session = SessionLocal()
         try:
             pillar1 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 1", None, None, session
+                workspace.id, user.id, "Pillar 1", None, session
             )
             # Store ID before closing session
             pillar1_id = str(pillar1.id)

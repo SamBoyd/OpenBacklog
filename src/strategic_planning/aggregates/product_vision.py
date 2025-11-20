@@ -87,16 +87,20 @@ class ProductVision(Base):
 
     @staticmethod
     def _validate_vision_text(vision_text: str) -> None:
-        """Validate vision text is non-empty.
+        """Validate vision text meets character limit requirements.
 
         Args:
             vision_text: The vision text to validate
 
         Raises:
-            DomainException: If vision text is empty
+            DomainException: If vision text is empty or exceeds 1000 characters
         """
         if not vision_text or len(vision_text) < 1:
             raise DomainException("Vision text must be at least 1 character")
+        if len(vision_text) > 1000:
+            raise DomainException(
+                f"Vision text must be 1000 characters or less (got {len(vision_text)})"
+            )
 
     def refine_vision(self, refined_text: str, publisher: "EventPublisher") -> None:
         """Refine the existing product vision with updated text.

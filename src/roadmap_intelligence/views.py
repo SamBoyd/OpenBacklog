@@ -26,20 +26,14 @@ class ThemeCreateRequest(BaseModel):
         json_schema_extra={
             "example": {
                 "name": "First Week Magic",
-                "problem_statement": "Users fail to integrate in first week",
-                "hypothesis": "Quick wins drive adoption",
-                "indicative_metrics": "% users active in week 1",
-                "time_horizon_months": 6,
+                "description": "Users fail to integrate in first week. Quick wins drive adoption. % users active in week 1",
                 "outcome_ids": ["123e4567-e89b-12d3-a456-426614174000"],
             }
         }
     )
 
     name: str = Field(min_length=1, max_length=100)
-    problem_statement: str = Field(min_length=1, max_length=1500)
-    hypothesis: Optional[str] = Field(default=None, max_length=1500)
-    indicative_metrics: Optional[str] = Field(default=None, max_length=1000)
-    time_horizon_months: Optional[int] = Field(default=None, ge=0, le=12)
+    description: str = Field(min_length=1)
     outcome_ids: List[uuid.UUID] = Field(default_factory=list)
 
 
@@ -53,10 +47,7 @@ class ThemeResponse(BaseModel):
     id: uuid.UUID
     workspace_id: uuid.UUID
     name: str
-    problem_statement: str
-    hypothesis: Optional[str]
-    indicative_metrics: Optional[str]
-    time_horizon_months: Optional[int]
+    description: str
     outcome_ids: List[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
@@ -80,10 +71,7 @@ async def get_workspace_themes(
                 id=theme.id,
                 workspace_id=theme.workspace_id,
                 name=theme.name,
-                problem_statement=theme.problem_statement,
-                hypothesis=theme.hypothesis,
-                indicative_metrics=theme.indicative_metrics,
-                time_horizon_months=theme.time_horizon_months,
+                description=theme.description,
                 outcome_ids=[outcome.id for outcome in theme.outcomes],
                 created_at=theme.created_at,
                 updated_at=theme.updated_at,
@@ -113,10 +101,7 @@ async def create_roadmap_theme(
             workspace_id,
             user.id,
             request.name,
-            request.problem_statement,
-            request.hypothesis,
-            request.indicative_metrics,
-            request.time_horizon_months,
+            request.description,
             request.outcome_ids,
             session,
         )
@@ -125,10 +110,7 @@ async def create_roadmap_theme(
             id=theme.id,
             workspace_id=theme.workspace_id,
             name=theme.name,
-            problem_statement=theme.problem_statement,
-            hypothesis=theme.hypothesis,
-            indicative_metrics=theme.indicative_metrics,
-            time_horizon_months=theme.time_horizon_months,
+            description=theme.description,
             outcome_ids=[outcome.id for outcome in theme.outcomes],
             created_at=theme.created_at,
             updated_at=theme.updated_at,
@@ -210,10 +192,7 @@ async def reorder_roadmap_themes(
                 id=theme.id,
                 workspace_id=theme.workspace_id,
                 name=theme.name,
-                problem_statement=theme.problem_statement,
-                hypothesis=theme.hypothesis,
-                indicative_metrics=theme.indicative_metrics,
-                time_horizon_months=theme.time_horizon_months,
+                description=theme.description,
                 outcome_ids=[outcome.id for outcome in theme.outcomes],
                 created_at=theme.created_at,
                 updated_at=theme.updated_at,
@@ -237,20 +216,14 @@ class ThemeUpdateRequest(BaseModel):
         json_schema_extra={
             "example": {
                 "name": "Updated theme name",
-                "problem_statement": "Updated problem statement",
-                "hypothesis": "Updated hypothesis",
-                "indicative_metrics": "Updated metrics",
-                "time_horizon_months": 9,
+                "description": "Updated description",
                 "outcome_ids": ["123e4567-e89b-12d3-a456-426614174000"],
             }
         }
     )
 
     name: str = Field(min_length=1, max_length=100)
-    problem_statement: str = Field(min_length=1, max_length=1500)
-    hypothesis: Optional[str] = Field(default=None, max_length=1500)
-    indicative_metrics: Optional[str] = Field(default=None, max_length=1000)
-    time_horizon_months: Optional[int] = Field(default=None, ge=0, le=12)
+    description: str = Field(min_length=1)
     outcome_ids: List[uuid.UUID] = Field(default_factory=list)
 
 
@@ -272,10 +245,7 @@ async def update_roadmap_theme(
             theme_id,
             workspace_id,
             request.name,
-            request.problem_statement,
-            request.hypothesis,
-            request.indicative_metrics,
-            request.time_horizon_months,
+            request.description,
             request.outcome_ids,
             session,
         )
@@ -284,10 +254,7 @@ async def update_roadmap_theme(
             id=theme.id,
             workspace_id=theme.workspace_id,
             name=theme.name,
-            problem_statement=theme.problem_statement,
-            hypothesis=theme.hypothesis,
-            indicative_metrics=theme.indicative_metrics,
-            time_horizon_months=theme.time_horizon_months,
+            description=theme.description,
             outcome_ids=[outcome.id for outcome in theme.outcomes],
             created_at=theme.created_at,
             updated_at=theme.updated_at,
@@ -353,10 +320,7 @@ async def get_prioritized_themes(
                 id=theme.id,
                 workspace_id=theme.workspace_id,
                 name=theme.name,
-                problem_statement=theme.problem_statement,
-                hypothesis=theme.hypothesis,
-                indicative_metrics=theme.indicative_metrics,
-                time_horizon_months=theme.time_horizon_months,
+                description=theme.description,
                 outcome_ids=[outcome.id for outcome in theme.outcomes],
                 created_at=theme.created_at,
                 updated_at=theme.updated_at,
@@ -389,10 +353,7 @@ async def get_unprioritized_themes(
                 id=theme.id,
                 workspace_id=theme.workspace_id,
                 name=theme.name,
-                problem_statement=theme.problem_statement,
-                hypothesis=theme.hypothesis,
-                indicative_metrics=theme.indicative_metrics,
-                time_horizon_months=theme.time_horizon_months,
+                description=theme.description,
                 outcome_ids=[outcome.id for outcome in theme.outcomes],
                 created_at=theme.created_at,
                 updated_at=theme.updated_at,
@@ -448,10 +409,7 @@ async def prioritize_theme(
             id=theme.id,
             workspace_id=theme.workspace_id,
             name=theme.name,
-            problem_statement=theme.problem_statement,
-            hypothesis=theme.hypothesis,
-            indicative_metrics=theme.indicative_metrics,
-            time_horizon_months=theme.time_horizon_months,
+            description=theme.description,
             outcome_ids=[outcome.id for outcome in theme.outcomes],
             created_at=theme.created_at,
             updated_at=theme.updated_at,
@@ -491,10 +449,7 @@ async def deprioritize_theme(
             id=theme.id,
             workspace_id=theme.workspace_id,
             name=theme.name,
-            problem_statement=theme.problem_statement,
-            hypothesis=theme.hypothesis,
-            indicative_metrics=theme.indicative_metrics,
-            time_horizon_months=theme.time_horizon_months,
+            description=theme.description,
             outcome_ids=[outcome.id for outcome in theme.outcomes],
             created_at=theme.created_at,
             updated_at=theme.updated_at,

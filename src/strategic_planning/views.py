@@ -110,15 +110,13 @@ class PillarCreateRequest(BaseModel):
         json_schema_extra={
             "example": {
                 "name": "Developer Experience",
-                "description": "Make developers love our product",
-                "anti_strategy": "Not enterprise features",
+                "description": "Make developers love our product. Not enterprise features.",
             }
         }
     )
 
     name: str = Field(min_length=1, max_length=100)
-    description: Optional[str] = Field(default=None, max_length=1000)
-    anti_strategy: Optional[str] = Field(default=None, max_length=1000)
+    description: Optional[str] = Field(default=None)
 
 
 class PillarResponse(BaseModel):
@@ -132,7 +130,6 @@ class PillarResponse(BaseModel):
     workspace_id: uuid.UUID
     name: str
     description: Optional[str]
-    anti_strategy: Optional[str]
     display_order: int
     outcome_ids: List[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
@@ -160,7 +157,6 @@ async def get_workspace_pillars(
                 workspace_id=pillar.workspace_id,
                 name=pillar.name,
                 description=pillar.description,
-                anti_strategy=pillar.anti_strategy,
                 display_order=pillar.display_order,
                 outcome_ids=[outcome.id for outcome in pillar.outcomes],
                 created_at=pillar.created_at,
@@ -192,7 +188,6 @@ async def create_strategic_pillar(
             user.id,
             request.name,
             request.description,
-            request.anti_strategy,
             session,
         )
 
@@ -201,7 +196,6 @@ async def create_strategic_pillar(
             workspace_id=pillar.workspace_id,
             name=pillar.name,
             description=pillar.description,
-            anti_strategy=pillar.anti_strategy,
             display_order=pillar.display_order,
             outcome_ids=[outcome.id for outcome in pillar.outcomes],
             created_at=pillar.created_at,
@@ -281,7 +275,6 @@ async def reorder_strategic_pillars(
                 workspace_id=pillar.workspace_id,
                 name=pillar.name,
                 description=pillar.description,
-                anti_strategy=pillar.anti_strategy,
                 display_order=pillar.display_order,
                 outcome_ids=[outcome.id for outcome in pillar.outcomes],
                 created_at=pillar.created_at,
@@ -307,14 +300,12 @@ class PillarUpdateRequest(BaseModel):
             "example": {
                 "name": "Updated Pillar Name",
                 "description": "Updated description",
-                "anti_strategy": "Updated anti-strategy",
             }
         }
     )
 
     name: str = Field(min_length=1, max_length=100)
-    description: Optional[str] = Field(default=None, max_length=1000)
-    anti_strategy: Optional[str] = Field(default=None, max_length=1000)
+    description: Optional[str] = Field(default=None)
 
 
 @app.put(
@@ -336,7 +327,6 @@ async def update_strategic_pillar(
             workspace_id,
             request.name,
             request.description,
-            request.anti_strategy,
             session,
         )
 
@@ -345,7 +335,6 @@ async def update_strategic_pillar(
             workspace_id=pillar.workspace_id,
             name=pillar.name,
             description=pillar.description,
-            anti_strategy=pillar.anti_strategy,
             display_order=pillar.display_order,
             outcome_ids=[outcome.id for outcome in pillar.outcomes],
             created_at=pillar.created_at,
@@ -408,8 +397,6 @@ class OutcomeCreateRequest(BaseModel):
 
     name: str = Field(min_length=1, max_length=150)
     description: Optional[str] = Field(default=None, max_length=1500)
-    metrics: Optional[str] = Field(default=None, max_length=1000)
-    time_horizon_months: Optional[int] = Field(default=None, ge=6, le=36)
     pillar_ids: List[uuid.UUID] = Field(default_factory=list)
 
 
@@ -424,8 +411,6 @@ class OutcomeResponse(BaseModel):
     workspace_id: uuid.UUID
     name: str
     description: Optional[str]
-    metrics: Optional[str]
-    time_horizon_months: Optional[int]
     display_order: int
     pillar_ids: List[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
@@ -453,8 +438,6 @@ async def get_workspace_outcomes(
                 workspace_id=outcome.workspace_id,
                 name=outcome.name,
                 description=outcome.description,
-                metrics=outcome.metrics,
-                time_horizon_months=outcome.time_horizon_months,
                 display_order=outcome.display_order,
                 pillar_ids=[pillar.id for pillar in outcome.pillars],
                 created_at=outcome.created_at,
@@ -486,8 +469,6 @@ async def create_product_outcome(
             user.id,
             request.name,
             request.description,
-            request.metrics,
-            request.time_horizon_months,
             request.pillar_ids,
             session,
         )
@@ -497,8 +478,6 @@ async def create_product_outcome(
             workspace_id=outcome.workspace_id,
             name=outcome.name,
             description=outcome.description,
-            metrics=outcome.metrics,
-            time_horizon_months=outcome.time_horizon_months,
             display_order=outcome.display_order,
             pillar_ids=[pillar.id for pillar in outcome.pillars],
             created_at=outcome.created_at,
@@ -578,8 +557,6 @@ async def reorder_product_outcomes(
                 workspace_id=outcome.workspace_id,
                 name=outcome.name,
                 description=outcome.description,
-                metrics=outcome.metrics,
-                time_horizon_months=outcome.time_horizon_months,
                 display_order=outcome.display_order,
                 pillar_ids=[pillar.id for pillar in outcome.pillars],
                 created_at=outcome.created_at,
@@ -605,8 +582,6 @@ class OutcomeUpdateRequest(BaseModel):
             "example": {
                 "name": "Updated outcome name",
                 "description": "Updated description",
-                "metrics": "Updated metrics",
-                "time_horizon_months": 18,
                 "pillar_ids": ["123e4567-e89b-12d3-a456-426614174000"],
             }
         }
@@ -614,8 +589,6 @@ class OutcomeUpdateRequest(BaseModel):
 
     name: str = Field(min_length=1, max_length=150)
     description: Optional[str] = Field(default=None, max_length=1500)
-    metrics: Optional[str] = Field(default=None, max_length=1000)
-    time_horizon_months: Optional[int] = Field(default=None, ge=6, le=36)
     pillar_ids: List[uuid.UUID] = Field(default_factory=list)
 
 
@@ -638,8 +611,6 @@ async def update_product_outcome(
             workspace_id,
             request.name,
             request.description,
-            request.metrics,
-            request.time_horizon_months,
             request.pillar_ids,
             session,
         )
@@ -649,8 +620,6 @@ async def update_product_outcome(
             workspace_id=outcome.workspace_id,
             name=outcome.name,
             description=outcome.description,
-            metrics=outcome.metrics,
-            time_horizon_months=outcome.time_horizon_months,
             display_order=outcome.display_order,
             pillar_ids=[pillar.id for pillar in outcome.pillars],
             created_at=outcome.created_at,

@@ -289,20 +289,16 @@ class StrategicInitiativeCreateRequest(BaseModel):
             "example": {
                 "pillar_id": "123e4567-e89b-12d3-a456-426614174000",
                 "theme_id": "223e4567-e89b-12d3-a456-426614174001",
-                "user_need": "Solo developers need AI-powered assistance",
-                "connection_to_vision": "Enables productive AI-assisted development",
-                "success_criteria": "80% of users use AI weekly",
-                "out_of_scope": "Team collaboration features",
+                "description": "Solo developers need AI-powered assistance. This enables productive AI-assisted development. Success: 80% of users use AI weekly. Out of scope: Team collaboration features",
+                "narrative_intent": "We want to help developers be more productive by providing AI-powered assistance. We want to help developers be more productive by providing AI-powered assistance.",
             }
         }
     )
 
     pillar_id: Optional[uuid.UUID] = Field(default=None)
     theme_id: Optional[uuid.UUID] = Field(default=None)
-    user_need: Optional[str] = Field(default=None, max_length=1000)
-    connection_to_vision: Optional[str] = Field(default=None, max_length=1000)
-    success_criteria: Optional[str] = Field(default=None, max_length=1000)
-    out_of_scope: Optional[str] = Field(default=None, max_length=1000)
+    description: Optional[str] = Field(default=None)
+    narrative_intent: Optional[str] = Field(default=None)
 
 
 class StrategicInitiativeResponse(BaseModel):
@@ -317,10 +313,8 @@ class StrategicInitiativeResponse(BaseModel):
     workspace_id: uuid.UUID
     pillar_id: Optional[uuid.UUID]
     theme_id: Optional[uuid.UUID]
-    user_need: Optional[str]
-    connection_to_vision: Optional[str]
-    success_criteria: Optional[str]
-    out_of_scope: Optional[str]
+    description: Optional[str]
+    narrative_intent: Optional[str]
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
@@ -382,10 +376,8 @@ async def create_initiative_strategic_context(
             user_id=user.id,
             pillar_id=request.pillar_id,
             theme_id=request.theme_id,
-            user_need=request.user_need,
-            connection_to_vision=request.connection_to_vision,
-            success_criteria=request.success_criteria,
-            out_of_scope=request.out_of_scope,
+            description=request.description,
+            narrative_intent=request.narrative_intent,
             session=session,
         )
 
@@ -409,20 +401,16 @@ class StrategicInitiativeUpdateRequest(BaseModel):
             "example": {
                 "pillar_id": "123e4567-e89b-12d3-a456-426614174000",
                 "theme_id": "223e4567-e89b-12d3-a456-426614174001",
-                "user_need": "Updated user need",
-                "connection_to_vision": "Updated vision connection",
-                "success_criteria": "Updated success criteria",
-                "out_of_scope": "Updated out of scope",
+                "description": "Updated strategic context description",
+                "narrative_intent": "Updated narrative intent",
             }
         }
     )
 
     pillar_id: Optional[uuid.UUID] = Field(default=None)
     theme_id: Optional[uuid.UUID] = Field(default=None)
-    user_need: Optional[str] = Field(default=None, max_length=1000)
-    connection_to_vision: Optional[str] = Field(default=None, max_length=1000)
-    success_criteria: Optional[str] = Field(default=None, max_length=1000)
-    out_of_scope: Optional[str] = Field(default=None, max_length=1000)
+    description: Optional[str] = Field(default=None)
+    narrative_intent: Optional[str] = Field(default=None)
 
 
 @app.put(
@@ -442,10 +430,8 @@ async def update_initiative_strategic_context(
             initiative_id=initiative_id,
             pillar_id=request.pillar_id,
             theme_id=request.theme_id,
-            user_need=request.user_need,
-            connection_to_vision=request.connection_to_vision,
-            success_criteria=request.success_criteria,
-            out_of_scope=request.out_of_scope,
+            description=request.description,
+            narrative_intent=request.narrative_intent,
             session=session,
         )
 

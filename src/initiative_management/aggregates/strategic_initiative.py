@@ -44,8 +44,8 @@ class StrategicInitiative(Base):
         workspace_id: Foreign key to workspace
         pillar_id: Optional foreign key to strategic pillar
         theme_id: Optional foreign key to roadmap theme
-        description: Strategic context description (1-3000 chars)
-        narrative_intent: Optional text describing why this initiative matters narratively
+        description: Strategic context description (1-4000 chars)
+        narrative_intent: Optional text describing why this initiative matters narratively (1-1000 chars)
         created_at: Timestamp when context was created
         updated_at: Timestamp when context was last modified
         initiative: Relationship to Initiative entity
@@ -170,22 +170,42 @@ class StrategicInitiative(Base):
 
     @staticmethod
     def _validate_description(description: str | None) -> None:
-        """Validate description field meets character limit requirements.
+        """Validate description field (User need) meets character limit requirements.
 
         Args:
-            description: The description text to validate
+            description: The description text to validate (User need)
 
         Raises:
-            DomainException: If description is not between 1-3000 characters when provided
+            DomainException: If description is not between 1-4000 characters when provided
         """
         if description is not None:
             if len(description) < 1:
                 raise DomainException(
-                    "Description must be at least 1 character when provided"
+                    "User need must be at least 1 character when provided"
                 )
-            if len(description) > 3000:
+            if len(description) > 4000:
                 raise DomainException(
-                    f"Description must be 3000 characters or less (got {len(description)})"
+                    f"User need must be 4000 characters or less (got {len(description)})"
+                )
+
+    @staticmethod
+    def _validate_narrative_intent(narrative_intent: str | None) -> None:
+        """Validate narrative_intent field meets character limit requirements.
+
+        Args:
+            narrative_intent: The narrative intent text to validate
+
+        Raises:
+            DomainException: If narrative_intent is not between 1-1000 characters when provided
+        """
+        if narrative_intent is not None:
+            if len(narrative_intent) < 1:
+                raise DomainException(
+                    "Narrative intent must be at least 1 character when provided"
+                )
+            if len(narrative_intent) > 1000:
+                raise DomainException(
+                    f"Narrative intent must be 1000 characters or less (got {len(narrative_intent)})"
                 )
 
     @staticmethod
@@ -215,8 +235,8 @@ class StrategicInitiative(Base):
             user_id: UUID of the user creating the context
             pillar_id: Optional UUID of the strategic pillar
             theme_id: Optional UUID of the roadmap theme
-            description: Strategic context description (1-3000 chars)
-            narrative_intent: Narrative intent (1-3000 chars)
+            description: Strategic context description (1-1000 chars)
+            narrative_intent: Narrative intent (1-1000 chars)
             hero_ids: Optional list of hero UUIDs this initiative serves
             villain_ids: Optional list of villain UUIDs this initiative confronts
             conflict_ids: Optional list of conflict UUIDs this initiative addresses
@@ -242,8 +262,9 @@ class StrategicInitiative(Base):
             ...     publisher=publisher
             ... )
         """
-        # Validate description
+        # Validate description and narrative_intent
         StrategicInitiative._validate_description(description)
+        StrategicInitiative._validate_narrative_intent(narrative_intent)
 
         # Create fully-initialized instance
         strategic_initiative = StrategicInitiative(
@@ -306,8 +327,8 @@ class StrategicInitiative(Base):
             publisher: EventPublisher instance for emitting domain events
             pillar_id: Optional UUID of the strategic pillar
             theme_id: Optional UUID of the roadmap theme
-            description: Updated strategic context description (1-3000 chars)
-            narrative_intent: Updated narrative intent (1-3000 chars)
+            description: Updated strategic context description (1-1000 chars)
+            narrative_intent: Updated narrative intent (1-1000 chars)
             hero_ids: Optional list of hero UUIDs to replace existing links
             villain_ids: Optional list of villain UUIDs to replace existing links
             conflict_ids: Optional list of conflict UUIDs to replace existing links
@@ -324,8 +345,9 @@ class StrategicInitiative(Base):
             ...     description="Updated strategic context...",
             ... )
         """
-        # Validate description
+        # Validate description and narrative_intent
         self._validate_description(description)
+        self._validate_narrative_intent(narrative_intent)
 
         # Update fields
         self.pillar_id = pillar_id

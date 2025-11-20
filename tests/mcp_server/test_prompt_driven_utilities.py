@@ -10,6 +10,7 @@ from src.mcp_server.prompt_driven_tools.utilities import (
     connect_outcome_to_pillars,
     review_strategic_foundation,
 )
+from src.models import Workspace
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
 from src.strategic_planning.aggregates.product_vision import ProductVision
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
@@ -19,7 +20,7 @@ class TestReviewStrategicFoundation:
     """Test suite for review_strategic_foundation tool."""
 
     @pytest.mark.asyncio
-    async def test_review_foundation_healthy(self, workspace):
+    async def test_review_foundation_healthy(self, workspace: Workspace):
         """Test that review returns healthy status when all elements present."""
         with patch(
             "src.mcp_server.prompt_driven_tools.utilities.SessionLocal"
@@ -179,7 +180,7 @@ class TestConnectOutcomeToPillars:
     """Test suite for connect_outcome_to_pillars tool."""
 
     @pytest.mark.asyncio
-    async def test_connect_outcome_to_pillars_success(self, workspace):
+    async def test_connect_outcome_to_pillars_success(self, workspace: Workspace):
         """Test that connect successfully links outcome to pillars."""
         outcome_id = str(uuid.uuid4())
         pillar_id1 = str(uuid.uuid4())

@@ -5,27 +5,21 @@ import os
 import random
 import sys
 import uuid  # Add uuid import
-from mimetypes import init
-from time import sleep
 from typing import Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-from fastapi import Depends
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
-from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session  # Add Session import
-from sqlalchemy.schema import DropTable
 
-from alembic import command
-from alembic.config import Config
 from src.accounting.models import UserAccountDetails, UserAccountStatus
 from src.config import settings
-from src.db import Base, SessionLocal, get_db
-from src.main import app, auth_module
+from src.db import SessionLocal
+from src.main import app
 from src.secrets.vault_factory import reset_vault
 from src.services.ordering_service import OrderingService
+from src.strategic_planning.aggregates.product_vision import ProductVision
 
 
 def pytest_configure_node(node: pytest.Config) -> None:
@@ -50,10 +44,8 @@ def pytest_configure_node(node: pytest.Config) -> None:
 from src.models import (
     APIProvider,
     ContextType,
-    EntityType,
     Initiative,
     OAuthAccount,
-    Ordering,
     Task,
     User,
     UserKey,
@@ -67,7 +59,7 @@ sync_engine = create_engine(settings.database_url, echo=False)
 
 
 @pytest.fixture(autouse=True)
-def reset_vault_for_tests(request):
+def reset_vault_for_tests(request: pytest.FixtureRequest):
     """Reset vault singleton before each test to ensure clean state."""
     # Skip reset for tests that explicitly mock get_vault
     if "mock_get_vault" not in request.fixturenames:
@@ -332,12 +324,12 @@ def test_user_key(
 
 
 @pytest.fixture(scope="function")
-def product_vision(session: Session, user: User, workspace: Workspace) -> Generator:
+def product_vision(
+    session: Session, user: User, workspace: Workspace
+) -> Generator[ProductVision, None, None]:
     """Creates a test product vision for use in tests."""
-    from src.strategic_planning.aggregates.product_vision import ProductVision
-
     vision: ProductVision = workspace.vision
-    vision.vision_text = ("Build the best product for developers",)
+    vision.description = "Build the best product for developers"
     session.add(vision)
     session.commit()
     session.refresh(vision)
@@ -346,7 +338,7 @@ def product_vision(session: Session, user: User, workspace: Workspace) -> Genera
 
 
 @pytest.fixture
-def test_client(user):
+def test_client(user: User):
     app.dependency_overrides[dependency_to_override] = lambda: user
     client = TestClient(app)
     yield client

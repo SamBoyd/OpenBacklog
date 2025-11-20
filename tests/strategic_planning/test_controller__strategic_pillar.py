@@ -3,31 +3,35 @@
 import uuid
 
 import pytest
-from hamcrest import assert_that, equal_to, has_entries, has_length, not_none
+from hamcrest import assert_that, equal_to, has_length
+from sqlalchemy.orm import Session
 
+from src.models import User, Workspace
 from src.strategic_planning import controller as product_strategy_controller
 from src.strategic_planning.exceptions import DomainException
 
 
 class TestStrategicPillar:
-    def test_get_strategic_pillars_empty(self, workspace, session):
+    def test_get_strategic_pillars_empty(self, workspace: Workspace, session: Session):
         """Test getting pillars for workspace with no pillars."""
         pillars = product_strategy_controller.get_strategic_pillars(
             workspace.id, session
         )
         assert_that(pillars, has_length(0))
 
-    def test_get_strategic_pillars_returns_ordered_list(self, user, workspace, session):
+    def test_get_strategic_pillars_returns_ordered_list(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test getting pillars returns list ordered by display_order."""
         # Create 3 pillars
         pillar1 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 1", None, None, session
+            workspace.id, user.id, "Pillar 1", None, session
         )
         pillar2 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 2", None, None, session
+            workspace.id, user.id, "Pillar 2", None, session
         )
         pillar3 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 3", None, None, session
+            workspace.id, user.id, "Pillar 3", None, session
         )
 
         pillars = product_strategy_controller.get_strategic_pillars(
@@ -39,286 +43,365 @@ class TestStrategicPillar:
         assert_that(pillars[1].id, equal_to(pillar2.id))
         assert_that(pillars[2].id, equal_to(pillar3.id))
 
-    def test_create_strategic_pillar_with_all_fields(self, user, workspace, session):
+    def test_create_strategic_pillar_with_all_fields(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test creating pillar with all fields."""
         name = "Developer Experience"
         description = "Make developers love our product"
-        anti_strategy = "Not enterprise features"
 
         pillar = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, name, description, anti_strategy, session
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name=name,
+            description=description,
+            session=session,
         )
 
         assert_that(pillar.name, equal_to(name))
         assert_that(pillar.description, equal_to(description))
-        assert_that(pillar.anti_strategy, equal_to(anti_strategy))
         assert_that(pillar.workspace_id, equal_to(workspace.id))
         assert_that(pillar.display_order, equal_to(0))
 
-    def test_create_strategic_pillar_with_only_name(self, user, workspace, session):
+    def test_create_strategic_pillar_with_only_name(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test creating pillar with only required name field."""
         name = "Developer Experience"
 
         pillar = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, name, None, None, session
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name=name,
+            description=None,
+            session=session,
         )
 
         assert_that(pillar.name, equal_to(name))
         assert_that(pillar.description, equal_to(None))
-        assert_that(pillar.anti_strategy, equal_to(None))
 
     def test_create_strategic_pillar_assigns_display_order(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test that display_order is assigned based on existing pillar count."""
         pillar1 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 1", None, None, session
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Pillar 1",
+            description=None,
+            session=session,
         )
         pillar2 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 2", None, None, session
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Pillar 2",
+            description=None,
+            session=session,
         )
 
         assert_that(pillar1.display_order, equal_to(0))
         assert_that(pillar2.display_order, equal_to(1))
 
     def test_create_strategic_pillar_validates_name_empty(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test validation of empty pillar name."""
         with pytest.raises(DomainException, match="at least 1 character"):
             product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "", None, None, session
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name="",
+                description=None,
+                session=session,
             )
 
     def test_create_strategic_pillar_validates_name_too_long(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test validation of pillar name exceeding max length."""
         long_name = "x" * 101
         with pytest.raises(DomainException, match="100 characters or less"):
             product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, long_name, None, None, session
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name=long_name,
+                description=None,
+                session=session,
             )
 
     def test_create_strategic_pillar_validates_description_too_long(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test validation of description exceeding max length."""
-        long_description = "x" * 1001
-        with pytest.raises(DomainException, match="1000 characters or less"):
+        long_description = "x" * 3001
+        with pytest.raises(DomainException, match="3000 characters or less"):
             product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Valid Name", long_description, None, session
-            )
-
-    def test_create_strategic_pillar_validates_anti_strategy_too_long(
-        self, user, workspace, session
-    ):
-        """Test validation of anti_strategy exceeding max length."""
-        long_anti_strategy = "x" * 1001
-        with pytest.raises(DomainException, match="1000 characters or less"):
-            product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Valid Name", None, long_anti_strategy, session
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name="Valid Name",
+                description=long_description,
+                session=session,
             )
 
     def test_create_strategic_pillar_enforces_5_pillar_limit(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test that creating 6th pillar raises DomainException."""
         # Create 5 pillars
         for i in range(5):
             product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, f"Pillar {i}", None, None, session
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name=f"Pillar {i}",
+                description=None,
+                session=session,
             )
 
         # Attempt to create 6th pillar
         with pytest.raises(DomainException, match="maximum of 5 strategic pillars"):
             product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 6", None, None, session
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name="Pillar 6",
+                description=None,
+                session=session,
             )
 
     def test_create_strategic_pillar_enforces_unique_name_per_workspace(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test that duplicate pillar names in same workspace raise IntegrityError."""
         from sqlalchemy.exc import IntegrityError
 
         product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Developer Experience", None, None, session
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Developer Experience",
+            description=None,
+            session=session,
         )
 
         with pytest.raises(IntegrityError):
             product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Developer Experience", None, None, session
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name="Developer Experience",
+                description=None,
+                session=session,
             )
 
-    def test_create_strategic_pillar_workspace_not_found(self, user, session):
+    def test_create_strategic_pillar_workspace_not_found(
+        self, user: User, session: Session
+    ):
         """Test creating pillar for non-existent workspace raises IntegrityError."""
         from sqlalchemy.exc import IntegrityError
 
         fake_workspace_id = uuid.uuid4()
         with pytest.raises(IntegrityError):
             product_strategy_controller.create_strategic_pillar(
-                fake_workspace_id, user.id, "Some pillar", None, None, session
+                workspace_id=fake_workspace_id,
+                user_id=user.id,
+                name="Some pillar",
+                description=None,
+                session=session,
             )
 
     # Update Strategic Pillar Tests
 
-    def test_update_strategic_pillar_with_all_fields(self, user, workspace, session):
+    def test_update_strategic_pillar_with_all_fields(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test updating pillar with all fields."""
         pillar = product_strategy_controller.create_strategic_pillar(
-            workspace.id,
-            user.id,
-            "Original Name",
-            "Original desc",
-            "Original anti",
-            session,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Original Name",
+            description="Original desc",
+            session=session,
         )
 
         updated_name = "Updated Name"
         updated_description = "Updated description"
-        updated_anti_strategy = "Updated anti-strategy"
 
         updated_pillar = product_strategy_controller.update_strategic_pillar(
-            pillar.id,
-            workspace.id,
-            updated_name,
-            updated_description,
-            updated_anti_strategy,
-            session,
+            pillar_id=pillar.id,
+            workspace_id=workspace.id,
+            name=updated_name,
+            description=updated_description,
+            session=session,
         )
 
         assert_that(updated_pillar.id, equal_to(pillar.id))
         assert_that(updated_pillar.name, equal_to(updated_name))
         assert_that(updated_pillar.description, equal_to(updated_description))
-        assert_that(updated_pillar.anti_strategy, equal_to(updated_anti_strategy))
 
-    def test_update_strategic_pillar_name_only(self, user, workspace, session):
+    def test_update_strategic_pillar_name_only(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test updating only pillar name."""
         pillar = product_strategy_controller.create_strategic_pillar(
-            workspace.id,
-            user.id,
-            "Original Name",
-            "Original desc",
-            "Original anti",
-            session,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Original Name",
+            description="Original desc",
+            session=session,
         )
 
         updated_name = "Updated Name"
 
         updated_pillar = product_strategy_controller.update_strategic_pillar(
-            pillar.id,
-            workspace.id,
-            updated_name,
-            pillar.description,
-            pillar.anti_strategy,
-            session,
+            pillar_id=pillar.id,
+            workspace_id=workspace.id,
+            name=updated_name,
+            description=pillar.description,
+            session=session,
         )
 
         assert_that(updated_pillar.name, equal_to(updated_name))
         assert_that(updated_pillar.description, equal_to(pillar.description))
-        assert_that(updated_pillar.anti_strategy, equal_to(pillar.anti_strategy))
 
     def test_update_strategic_pillar_validates_name_empty(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test validation of empty name when updating."""
         pillar = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Original Name", None, None, session
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Original Name",
+            description=None,
+            session=session,
         )
 
         with pytest.raises(DomainException, match="at least 1 character"):
             product_strategy_controller.update_strategic_pillar(
-                pillar.id, workspace.id, "", None, None, session
+                pillar_id=pillar.id,
+                workspace_id=workspace.id,
+                name="",
+                description=None,
+                session=session,
             )
 
     def test_update_strategic_pillar_validates_name_too_long(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test validation of name exceeding max length when updating."""
         pillar = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Original Name", None, None, session
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Original Name",
+            description=None,
+            session=session,
         )
 
         long_name = "x" * 101
         with pytest.raises(DomainException, match="100 characters or less"):
             product_strategy_controller.update_strategic_pillar(
-                pillar.id, workspace.id, long_name, None, None, session
+                pillar_id=pillar.id,
+                workspace_id=workspace.id,
+                name=long_name,
+                description=None,
+                session=session,
             )
 
     def test_update_strategic_pillar_validates_description_too_long(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test validation of description exceeding max length when updating."""
         pillar = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Original Name", None, None, session
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Original Name",
+            description=None,
+            session=session,
         )
 
-        long_description = "x" * 1001
-        with pytest.raises(DomainException, match="1000 characters or less"):
+        long_description = "x" * 3001
+        with pytest.raises(DomainException, match="3000 characters or less"):
             product_strategy_controller.update_strategic_pillar(
-                pillar.id, workspace.id, "Valid Name", long_description, None, session
-            )
-
-    def test_update_strategic_pillar_validates_anti_strategy_too_long(
-        self, user, workspace, session
-    ):
-        """Test validation of anti_strategy exceeding max length when updating."""
-        pillar = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Original Name", None, None, session
-        )
-
-        long_anti_strategy = "x" * 1001
-        with pytest.raises(DomainException, match="1000 characters or less"):
-            product_strategy_controller.update_strategic_pillar(
-                pillar.id, workspace.id, "Valid Name", None, long_anti_strategy, session
+                pillar_id=pillar.id,
+                workspace_id=workspace.id,
+                name="Valid Name",
+                description=long_description,
+                session=session,
             )
 
     def test_update_strategic_pillar_enforces_unique_name(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test that updating to duplicate name raises IntegrityError."""
         from sqlalchemy.exc import IntegrityError
 
-        pillar1 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 1", None, None, session
+        # Create 2 pillars
+        product_strategy_controller.create_strategic_pillar(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Pillar 1",
+            description=None,
+            session=session,
         )
         pillar2 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 2", None, None, session
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Pillar 2",
+            description=None,
+            session=session,
         )
 
         with pytest.raises(IntegrityError):
             product_strategy_controller.update_strategic_pillar(
-                pillar2.id, workspace.id, "Pillar 1", None, None, session
+                pillar_id=pillar2.id,
+                workspace_id=workspace.id,
+                name="Pillar 1",
+                description=None,
+                session=session,
             )
 
-    def test_update_strategic_pillar_not_found(self, user, workspace, session):
+    def test_update_strategic_pillar_not_found(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test updating non-existent pillar raises DomainException."""
         fake_pillar_id = uuid.uuid4()
 
         with pytest.raises(DomainException, match="not found"):
             product_strategy_controller.update_strategic_pillar(
-                fake_pillar_id, workspace.id, "Some name", None, None, session
+                pillar_id=fake_pillar_id,
+                workspace_id=workspace.id,
+                name="Some name",
+                description=None,
+                session=session,
             )
 
     # Delete Strategic Pillar Tests
 
-    def test_delete_strategic_pillar_success(self, user, workspace, session):
+    def test_delete_strategic_pillar_success(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test successfully deleting a pillar."""
         pillar = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar to Delete", None, None, session
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Pillar to Delete",
+            description=None,
+            session=session,
         )
 
         product_strategy_controller.delete_strategic_pillar(
-            pillar.id, workspace.id, user.id, session
+            pillar_id=pillar.id,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            session=session,
         )
 
         # Verify pillar is deleted
         pillars = product_strategy_controller.get_strategic_pillars(
-            workspace.id, session
+            workspace_id=workspace.id,
+            session=session,
         )
         assert_that(pillars, has_length(0))
 
-    def test_delete_strategic_pillar_not_found(self, user, workspace, session):
+    def test_delete_strategic_pillar_not_found(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test deleting non-existent pillar raises DomainException."""
         fake_pillar_id = uuid.uuid4()
 
@@ -329,17 +412,19 @@ class TestStrategicPillar:
 
     # Reorder Strategic Pillars Tests
 
-    def test_reorder_strategic_pillars_success(self, user, workspace, session):
+    def test_reorder_strategic_pillars_success(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test successfully reordering pillars."""
         # Create 3 pillars (display_order will be 0, 1, 2)
         pillar1 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 1", None, None, session
+            workspace.id, user.id, "Pillar 1", None, session
         )
         pillar2 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 2", None, None, session
+            workspace.id, user.id, "Pillar 2", None, session
         )
         pillar3 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 3", None, None, session
+            workspace.id, user.id, "Pillar 3", None, session
         )
 
         # Reorder: swap pillar1 and pillar3 (0 -> 2, 2 -> 0)
@@ -363,18 +448,19 @@ class TestStrategicPillar:
         assert_that(result[2].display_order, equal_to(2))
 
     def test_reorder_strategic_pillars_requires_all_pillars(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test that partial reordering (not including all pillars) raises error."""
         # Create 3 pillars
         pillar1 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 1", None, None, session
+            workspace.id, user.id, "Pillar 1", None, session
         )
         pillar2 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 2", None, None, session
+            workspace.id, user.id, "Pillar 2", None, session
         )
-        pillar3 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 3", None, None, session
+        # Create 3rd pillar
+        product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 3", None, session
         )
 
         # Try to reorder only pillar1 and pillar2 (missing pillar3)
@@ -391,17 +477,17 @@ class TestStrategicPillar:
             )
 
     def test_reorder_strategic_pillars_validates_incomplete_sequence(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test that display orders must form complete sequence [0,1,2,...]."""
         pillar1 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 1", None, None, session
+            workspace.id, user.id, "Pillar 1", None, session
         )
         pillar2 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 2", None, None, session
+            workspace.id, user.id, "Pillar 2", None, session
         )
         pillar3 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 3", None, None, session
+            workspace.id, user.id, "Pillar 3", None, session
         )
 
         # Try to set display orders with gaps: [0, 1, 5]
@@ -417,17 +503,17 @@ class TestStrategicPillar:
             )
 
     def test_reorder_strategic_pillars_validates_duplicate_display_order(
-        self, user, workspace, session
+        self, user: User, workspace: Workspace, session: Session
     ):
         """Test that duplicate display_order values raise DomainException."""
         pillar1 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 1", None, None, session
+            workspace.id, user.id, "Pillar 1", None, session
         )
         pillar2 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 2", None, None, session
+            workspace.id, user.id, "Pillar 2", None, session
         )
         pillar3 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 3", None, None, session
+            workspace.id, user.id, "Pillar 3", None, session
         )
 
         # Try to set two pillars to same display_order
@@ -442,13 +528,16 @@ class TestStrategicPillar:
                 workspace.id, pillar_orders, session
             )
 
-    def test_reorder_strategic_pillars_missing_pillar(self, user, workspace, session):
+    def test_reorder_strategic_pillars_missing_pillar(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test that missing a pillar raises DomainException."""
         pillar1 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 1", None, None, session
+            workspace.id, user.id, "Pillar 1", None, session
         )
-        pillar2 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 2", None, None, session
+        # Create 2nd pillar
+        product_strategy_controller.create_strategic_pillar(
+            workspace.id, user.id, "Pillar 2", None, session
         )
 
         # Only include pillar1, missing pillar2
@@ -463,14 +552,16 @@ class TestStrategicPillar:
                 workspace.id, pillar_orders, session
             )
 
-    def test_reorder_strategic_pillars_unknown_pillar(self, user, workspace, session):
+    def test_reorder_strategic_pillars_unknown_pillar(
+        self, user: User, workspace: Workspace, session: Session
+    ):
         """Test that unknown pillar ID raises DomainException."""
         pillar1 = product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 1", None, None, session
+            workspace.id, user.id, "Pillar 1", None, session
         )
 
         product_strategy_controller.create_strategic_pillar(
-            workspace.id, user.id, "Pillar 2", None, None, session
+            workspace.id, user.id, "Pillar 2", None, session
         )
 
         fake_pillar_id = uuid.uuid4()

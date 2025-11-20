@@ -79,7 +79,7 @@ class TestStrategicInitiative:
             user_id=user.id,
             workspace_id=workspace.id,
             name="First Week Magic",
-            problem_statement="Users fail to integrate in first week",
+            description="Users fail to integrate in first week",
         )
         session.add(theme)
         session.commit()
@@ -90,123 +90,6 @@ class TestStrategicInitiative:
     def mock_publisher(self):
         """Mock EventPublisher for testing."""
         return MagicMock(spec=EventPublisher)
-
-    def test_define_strategic_context_validates_user_need_length(
-        self,
-        initiative: Initiative,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that define_strategic_context() raises exception for user_need > 1000 chars."""
-        long_user_need = "x" * 1001
-
-        with pytest.raises(DomainException) as exc_info:
-            StrategicInitiative.define_strategic_context(
-                session=session,
-                publisher=mock_publisher,
-                initiative_id=initiative.id,
-                workspace_id=workspace.id,
-                user_id=user.id,  # type: ignore
-                pillar_id=None,
-                theme_id=None,
-                user_need=long_user_need,
-                connection_to_vision=None,
-                success_criteria=None,
-                out_of_scope=None,
-            )
-
-        assert "1000 characters or less" in str(exc_info.value)
-        assert "User need" in str(exc_info.value)
-        assert "1001" in str(exc_info.value)
-
-    def test_define_strategic_context_validates_connection_to_vision_length(
-        self,
-        initiative: Initiative,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that define_strategic_context() raises exception for connection_to_vision > 1000 chars."""
-        long_connection = "x" * 1001
-
-        with pytest.raises(DomainException) as exc_info:
-            StrategicInitiative.define_strategic_context(
-                initiative_id=initiative.id,
-                workspace_id=workspace.id,
-                user_id=user.id,
-                pillar_id=None,
-                theme_id=None,
-                user_need=None,
-                connection_to_vision=long_connection,
-                success_criteria=None,
-                out_of_scope=None,
-                session=session,
-                publisher=mock_publisher,
-            )
-
-        assert "1000 characters or less" in str(exc_info.value)
-        assert "Connection to vision" in str(exc_info.value)
-
-    def test_define_strategic_context_validates_success_criteria_length(
-        self,
-        initiative: Initiative,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that define_strategic_context() raises exception for success_criteria > 1000 chars."""
-        long_criteria = "x" * 1001
-
-        with pytest.raises(DomainException) as exc_info:
-            StrategicInitiative.define_strategic_context(
-                initiative_id=initiative.id,
-                workspace_id=workspace.id,
-                user_id=user.id,
-                pillar_id=None,
-                theme_id=None,
-                user_need=None,
-                connection_to_vision=None,
-                success_criteria=long_criteria,
-                out_of_scope=None,
-                session=session,
-                publisher=mock_publisher,
-            )
-
-        assert "1000 characters or less" in str(exc_info.value)
-        assert "Success criteria" in str(exc_info.value)
-
-    def test_define_strategic_context_validates_out_of_scope_length(
-        self,
-        initiative: Initiative,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that define_strategic_context() raises exception for out_of_scope > 1000 chars."""
-        long_out_of_scope = "x" * 1001
-
-        with pytest.raises(DomainException) as exc_info:
-            StrategicInitiative.define_strategic_context(
-                initiative_id=initiative.id,
-                workspace_id=workspace.id,
-                user_id=user.id,
-                pillar_id=None,
-                theme_id=None,
-                user_need=None,
-                connection_to_vision=None,
-                success_criteria=None,
-                out_of_scope=long_out_of_scope,
-                session=session,
-                publisher=mock_publisher,
-            )
-
-        assert "1000 characters or less" in str(exc_info.value)
-        assert "Out of scope" in str(exc_info.value)
 
     def test_define_strategic_context_accepts_valid_input(
         self,
@@ -219,10 +102,8 @@ class TestStrategicInitiative:
         mock_publisher: MagicMock,
     ):
         """Test that define_strategic_context() accepts valid input."""
-        user_need = "Users need to track their work efficiently"
-        connection_to_vision = "Enables productive solo development"
-        success_criteria = "80% adoption within 30 days"
-        out_of_scope = "Team collaboration features"
+        description = "Users need to track their work efficiently. Enables productive solo development. Success: 80% adoption within 30 days. Out of scope: Team collaboration features"
+        narrative_intent = "We want to help developers be more productive"
 
         strategic_init = StrategicInitiative.define_strategic_context(
             initiative_id=initiative.id,
@@ -230,10 +111,8 @@ class TestStrategicInitiative:
             user_id=user.id,
             pillar_id=strategic_pillar.id,
             theme_id=roadmap_theme.id,
-            user_need=user_need,
-            connection_to_vision=connection_to_vision,
-            success_criteria=success_criteria,
-            out_of_scope=out_of_scope,
+            description=description,
+            narrative_intent=narrative_intent,
             session=session,
             publisher=mock_publisher,
         )
@@ -242,10 +121,8 @@ class TestStrategicInitiative:
         assert strategic_init.workspace_id == workspace.id
         assert strategic_init.pillar_id == strategic_pillar.id
         assert strategic_init.theme_id == roadmap_theme.id
-        assert strategic_init.user_need == user_need
-        assert strategic_init.connection_to_vision == connection_to_vision
-        assert strategic_init.success_criteria == success_criteria
-        assert strategic_init.out_of_scope == out_of_scope
+        assert strategic_init.description == description
+        assert strategic_init.narrative_intent == narrative_intent
 
     def test_define_strategic_context_accepts_none_for_optional_fields(
         self,
@@ -262,20 +139,16 @@ class TestStrategicInitiative:
             user_id=user.id,
             pillar_id=None,
             theme_id=None,
-            user_need=None,
-            connection_to_vision=None,
-            success_criteria=None,
-            out_of_scope=None,
+            description=None,
+            narrative_intent=None,
             session=session,
             publisher=mock_publisher,
         )
 
         assert strategic_init.pillar_id is None
         assert strategic_init.theme_id is None
-        assert strategic_init.user_need is None
-        assert strategic_init.connection_to_vision is None
-        assert strategic_init.success_criteria is None
-        assert strategic_init.out_of_scope is None
+        assert strategic_init.description is None
+        assert strategic_init.narrative_intent is None
 
     def test_define_strategic_context_emits_strategic_context_completed_event(
         self,
@@ -287,8 +160,8 @@ class TestStrategicInitiative:
         mock_publisher: MagicMock,
     ):
         """Test that define_strategic_context() emits StrategicContextCompleted event."""
-        user_need = "Users need to track their work"
-        connection_to_vision = "Enables productive development"
+        description = "Users need to track their work. Enables productive development"
+        narrative_intent = "We want to help developers be more productive"
 
         strategic_init = StrategicInitiative.define_strategic_context(
             initiative_id=initiative.id,
@@ -296,10 +169,8 @@ class TestStrategicInitiative:
             user_id=user.id,
             pillar_id=strategic_pillar.id,
             theme_id=None,
-            user_need=user_need,
-            connection_to_vision=connection_to_vision,
-            success_criteria=None,
-            out_of_scope=None,
+            description=description,
+            narrative_intent=narrative_intent,
             session=session,
             publisher=mock_publisher,
         )
@@ -314,44 +185,8 @@ class TestStrategicInitiative:
         assert event.payload["initiative_id"] == str(initiative.id)
         assert event.payload["pillar_id"] == str(strategic_pillar.id)
         assert event.payload["theme_id"] is None
-        assert event.payload["user_need"] == user_need
-        assert event.payload["connection_to_vision"] == connection_to_vision
+        assert event.payload["description"] == description
         assert workspace_id_arg == str(workspace.id)
-
-    def test_update_strategic_context_validates_fields(
-        self,
-        initiative: Initiative,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that update_strategic_context() validates field lengths."""
-        strategic_init = StrategicInitiative.define_strategic_context(
-            initiative_id=initiative.id,
-            workspace_id=workspace.id,
-            user_id=user.id,
-            pillar_id=None,
-            theme_id=None,
-            user_need="Valid",
-            connection_to_vision=None,
-            success_criteria=None,
-            out_of_scope=None,
-            session=session,
-            publisher=mock_publisher,
-        )
-
-        # Test user_need validation
-        with pytest.raises(DomainException):
-            strategic_init.update_strategic_context(
-                publisher=mock_publisher,
-                pillar_id=None,
-                theme_id=None,
-                user_need="x" * 1001,
-                connection_to_vision=None,
-                success_criteria=None,
-                out_of_scope=None,
-            )
 
     def test_update_strategic_context_updates_fields_correctly(
         self,
@@ -370,10 +205,8 @@ class TestStrategicInitiative:
             user_id=user.id,
             pillar_id=None,
             theme_id=None,
-            user_need="Original need",
-            connection_to_vision=None,
-            success_criteria=None,
-            out_of_scope=None,
+            description="Original description",
+            narrative_intent=None,
             session=session,
             publisher=mock_publisher,
         )
@@ -381,27 +214,21 @@ class TestStrategicInitiative:
         # Reset mock to clear the creation event
         mock_publisher.reset_mock()
 
-        new_user_need = "Updated user need"
-        new_connection = "Updated connection to vision"
-        new_criteria = "Updated success criteria"
-        new_out_of_scope = "Updated out of scope"
+        new_description = "Updated description"
+        new_narrative_intent = "Updated narrative intent"
 
         strategic_init.update_strategic_context(
             publisher=mock_publisher,
             pillar_id=strategic_pillar.id,
             theme_id=roadmap_theme.id,
-            user_need=new_user_need,
-            connection_to_vision=new_connection,
-            success_criteria=new_criteria,
-            out_of_scope=new_out_of_scope,
+            description=new_description,
+            narrative_intent=new_narrative_intent,
         )
 
         assert strategic_init.pillar_id == strategic_pillar.id
         assert strategic_init.theme_id == roadmap_theme.id
-        assert strategic_init.user_need == new_user_need
-        assert strategic_init.connection_to_vision == new_connection
-        assert strategic_init.success_criteria == new_criteria
-        assert strategic_init.out_of_scope == new_out_of_scope
+        assert strategic_init.description == new_description
+        assert strategic_init.narrative_intent == new_narrative_intent
 
     def test_update_strategic_context_emits_strategic_context_updated_event(
         self,
@@ -418,10 +245,8 @@ class TestStrategicInitiative:
             user_id=user.id,
             pillar_id=None,
             theme_id=None,
-            user_need="Original",
-            connection_to_vision=None,
-            success_criteria=None,
-            out_of_scope=None,
+            description="Original description",
+            narrative_intent=None,
             session=session,
             publisher=mock_publisher,
         )
@@ -429,16 +254,14 @@ class TestStrategicInitiative:
         # Reset mock to clear the creation event
         mock_publisher.reset_mock()
 
-        new_user_need = "Updated user need"
+        new_description = "Updated description"
 
         strategic_init.update_strategic_context(
             publisher=mock_publisher,
             pillar_id=None,
             theme_id=None,
-            user_need=new_user_need,
-            connection_to_vision=None,
-            success_criteria=None,
-            out_of_scope=None,
+            description=new_description,
+            narrative_intent=None,
         )
 
         mock_publisher.publish.assert_called_once()
@@ -446,7 +269,7 @@ class TestStrategicInitiative:
 
         assert event.event_type == "StrategicContextUpdated"
         assert event.aggregate_id == strategic_init.id
-        assert event.payload["user_need"] == new_user_need
+        assert event.payload["description"] == new_description
 
     def test_unique_constraint_enforced_for_initiative_id(
         self,
@@ -488,10 +311,8 @@ class TestStrategicInitiative:
         mock_publisher: MagicMock,
     ):
         """Test that strategic context is stored correctly in database."""
-        user_need = "Users need to track their work"
-        connection_to_vision = "Enables productive solo development"
-        success_criteria = "80% adoption within 30 days"
-        out_of_scope = "Team collaboration features"
+        description = "Users need to track their work. Enables productive solo development. Success: 80% adoption within 30 days. Out of scope: Team collaboration features"
+        narrative_intent = "We want to help developers be more productive"
 
         strategic_init = StrategicInitiative.define_strategic_context(
             initiative_id=initiative.id,
@@ -499,10 +320,8 @@ class TestStrategicInitiative:
             user_id=user.id,
             pillar_id=strategic_pillar.id,
             theme_id=None,
-            user_need=user_need,
-            connection_to_vision=connection_to_vision,
-            success_criteria=success_criteria,
-            out_of_scope=out_of_scope,
+            description=description,
+            narrative_intent=narrative_intent,
             session=session,
             publisher=mock_publisher,
         )
@@ -518,10 +337,8 @@ class TestStrategicInitiative:
         assert saved_strategic_init.initiative_id == initiative.id
         assert saved_strategic_init.workspace_id == workspace.id
         assert saved_strategic_init.pillar_id == strategic_pillar.id
-        assert saved_strategic_init.user_need == user_need
-        assert saved_strategic_init.connection_to_vision == connection_to_vision
-        assert saved_strategic_init.success_criteria == success_criteria
-        assert saved_strategic_init.out_of_scope == out_of_scope
+        assert saved_strategic_init.description == description
+        assert saved_strategic_init.narrative_intent == narrative_intent
 
     def test_cascade_delete_when_initiative_deleted(
         self,
@@ -538,10 +355,8 @@ class TestStrategicInitiative:
             user_id=user.id,
             pillar_id=None,
             theme_id=None,
-            user_need="Test need",
-            connection_to_vision=None,
-            success_criteria=None,
-            out_of_scope=None,
+            description="Test description",
+            narrative_intent=None,
             session=session,
             publisher=mock_publisher,
         )
@@ -578,10 +393,8 @@ class TestStrategicInitiative:
             user_id=user.id,
             pillar_id=strategic_pillar.id,
             theme_id=None,
-            user_need="Test need",
-            connection_to_vision=None,
-            success_criteria=None,
-            out_of_scope=None,
+            description="Test description",
+            narrative_intent=None,
             session=session,
             publisher=mock_publisher,
         )
@@ -619,10 +432,8 @@ class TestStrategicInitiative:
             user_id=user.id,
             pillar_id=None,
             theme_id=roadmap_theme.id,
-            user_need="Test need",
-            connection_to_vision=None,
-            success_criteria=None,
-            out_of_scope=None,
+            description="Test description",
+            narrative_intent=None,
             session=session,
             publisher=mock_publisher,
         )

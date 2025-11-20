@@ -49,8 +49,6 @@ class TestProductOutcome:
             workspace_id=workspace.id,
             name="80% weekly AI usage",
             description="Measure AI adoption as a leading indicator",
-            metrics="% of weekly active users who use AI features",
-            time_horizon_months=12,
             display_order=0,
         )
 
@@ -109,8 +107,6 @@ class TestProductOutcome:
                 user_id=user.id,
                 name="",
                 description="Some description",
-                metrics=None,
-                time_horizon_months=12,
                 display_order=0,
                 session=session,
                 publisher=mock_publisher,
@@ -134,8 +130,6 @@ class TestProductOutcome:
                 user_id=user.id,
                 name=long_name,
                 description="Some description",
-                metrics=None,
-                time_horizon_months=12,
                 display_order=0,
                 session=session,
                 publisher=mock_publisher,
@@ -151,8 +145,8 @@ class TestProductOutcome:
         session: Session,
         mock_publisher: MagicMock,
     ):
-        """Test that map_outcome() raises exception for description > 1500 chars."""
-        long_description = "x" * 1501
+        """Test that map_outcome() raises exception for description > 3000 chars."""
+        long_description = "x" * 3001
 
         with pytest.raises(DomainException) as exc_info:
             ProductOutcome.map_outcome(
@@ -160,89 +154,13 @@ class TestProductOutcome:
                 user_id=user.id,
                 name="Valid Name",
                 description=long_description,
-                metrics=None,
-                time_horizon_months=12,
                 display_order=0,
                 session=session,
                 publisher=mock_publisher,
             )
 
-        assert "1500 characters or less" in str(exc_info.value)
+        assert "3000 characters or less" in str(exc_info.value)
         assert "Description" in str(exc_info.value)
-
-    def test_map_outcome_validates_metrics_maximum_length(
-        self,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that map_outcome() raises exception for metrics > 1000 chars."""
-        long_metrics = "x" * 1001
-
-        with pytest.raises(DomainException) as exc_info:
-            ProductOutcome.map_outcome(
-                workspace_id=workspace.id,
-                user_id=user.id,
-                name="Valid Name",
-                description="Valid description",
-                metrics=long_metrics,
-                time_horizon_months=12,
-                display_order=0,
-                session=session,
-                publisher=mock_publisher,
-            )
-
-        assert "1000 characters or less" in str(exc_info.value)
-        assert "Metrics" in str(exc_info.value)
-
-    def test_map_outcome_validates_time_horizon_minimum(
-        self,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that map_outcome() raises exception for time_horizon < 6."""
-        with pytest.raises(DomainException) as exc_info:
-            ProductOutcome.map_outcome(
-                workspace_id=workspace.id,
-                user_id=user.id,
-                name="Valid Name",
-                description="Valid description",
-                metrics=None,
-                time_horizon_months=5,
-                display_order=0,
-                session=session,
-                publisher=mock_publisher,
-            )
-
-        assert "between 6-36 months" in str(exc_info.value)
-        assert "5" in str(exc_info.value)
-
-    def test_map_outcome_validates_time_horizon_maximum(
-        self,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that map_outcome() raises exception for time_horizon > 36."""
-        with pytest.raises(DomainException) as exc_info:
-            ProductOutcome.map_outcome(
-                workspace_id=workspace.id,
-                user_id=user.id,
-                name="Valid Name",
-                description="Valid description",
-                metrics=None,
-                time_horizon_months=37,
-                display_order=0,
-                session=session,
-                publisher=mock_publisher,
-            )
-
-        assert "between 6-36 months" in str(exc_info.value)
-        assert "37" in str(exc_info.value)
 
     def test_map_outcome_accepts_valid_input(
         self,
@@ -254,8 +172,6 @@ class TestProductOutcome:
         """Test that map_outcome() accepts valid input."""
         name = "80% weekly AI usage"
         description = "Measure AI adoption as a leading indicator"
-        metrics = "% of weekly active users who use AI features"
-        time_horizon_months = 12
         display_order = 2
 
         outcome = ProductOutcome.map_outcome(
@@ -263,8 +179,6 @@ class TestProductOutcome:
             user_id=user.id,
             name=name,
             description=description,
-            metrics=metrics,
-            time_horizon_months=time_horizon_months,
             display_order=display_order,
             session=session,
             publisher=mock_publisher,
@@ -272,8 +186,6 @@ class TestProductOutcome:
 
         assert outcome.name == name
         assert outcome.description == description
-        assert outcome.metrics == metrics
-        assert outcome.time_horizon_months == time_horizon_months
         assert outcome.display_order == display_order
 
     def test_map_outcome_accepts_none_for_optional_fields(
@@ -291,8 +203,6 @@ class TestProductOutcome:
             user_id=user.id,
             name=name,
             description=None,
-            metrics=None,
-            time_horizon_months=None,
             display_order=0,
             session=session,
             publisher=mock_publisher,
@@ -300,8 +210,6 @@ class TestProductOutcome:
 
         assert outcome.name == name
         assert outcome.description is None
-        assert outcome.metrics is None
-        assert outcome.time_horizon_months is None
 
     def test_map_outcome_emits_outcome_mapped_event(
         self,
@@ -313,8 +221,6 @@ class TestProductOutcome:
         """Test that map_outcome() emits OutcomeMapped event."""
         name = "80% weekly AI usage"
         description = "Measure AI adoption as a leading indicator"
-        metrics = "% of weekly active users who use AI features"
-        time_horizon_months = 12
         display_order = 1
 
         outcome = ProductOutcome.map_outcome(
@@ -322,8 +228,6 @@ class TestProductOutcome:
             user_id=user.id,
             name=name,
             description=description,
-            metrics=metrics,
-            time_horizon_months=time_horizon_months,
             display_order=display_order,
             session=session,
             publisher=mock_publisher,
@@ -337,8 +241,6 @@ class TestProductOutcome:
         assert event.aggregate_id == outcome.id
         assert event.payload["name"] == name
         assert event.payload["description"] == description
-        assert event.payload["metrics"] == metrics
-        assert event.payload["time_horizon_months"] == time_horizon_months
         assert event.payload["display_order"] == display_order
         assert event.payload["workspace_id"] == str(workspace.id)
         assert workspace_id_arg == str(workspace.id)
@@ -353,8 +255,6 @@ class TestProductOutcome:
             product_outcome.update_outcome(
                 name="x" * 151,
                 description="Valid",
-                metrics=None,
-                time_horizon_months=12,
                 publisher=mock_publisher,
             )
 
@@ -366,21 +266,15 @@ class TestProductOutcome:
         """Test that update_outcome() updates fields correctly."""
         new_name = "Updated Name"
         new_description = "Updated description"
-        new_metrics = "Updated metrics"
-        new_time_horizon = 24
 
         product_outcome.update_outcome(
             name=new_name,
             description=new_description,
-            metrics=new_metrics,
-            time_horizon_months=new_time_horizon,
             publisher=mock_publisher,
         )
 
         assert product_outcome.name == new_name
         assert product_outcome.description == new_description
-        assert product_outcome.metrics == new_metrics
-        assert product_outcome.time_horizon_months == new_time_horizon
 
     def test_update_outcome_emits_outcome_updated_event(
         self,
@@ -393,8 +287,6 @@ class TestProductOutcome:
         product_outcome.update_outcome(
             name=new_name,
             description=None,
-            metrics=None,
-            time_horizon_months=None,
             publisher=mock_publisher,
         )
 
@@ -587,8 +479,6 @@ class TestProductOutcome:
         """Test that outcome is stored correctly in database."""
         name = "80% weekly AI usage"
         description = "Measure AI adoption as a leading indicator"
-        metrics = "% of weekly active users who use AI features"
-        time_horizon_months = 12
         display_order = 1
 
         outcome = ProductOutcome.map_outcome(
@@ -596,8 +486,6 @@ class TestProductOutcome:
             user_id=user.id,
             name=name,
             description=description,
-            metrics=metrics,
-            time_horizon_months=time_horizon_months,
             display_order=display_order,
             session=session,
             publisher=mock_publisher,
@@ -613,7 +501,5 @@ class TestProductOutcome:
         assert saved_outcome is not None
         assert saved_outcome.name == name
         assert saved_outcome.description == description
-        assert saved_outcome.metrics == metrics
-        assert saved_outcome.time_horizon_months == time_horizon_months
         assert saved_outcome.display_order == display_order
         assert saved_outcome.workspace_id == workspace.id

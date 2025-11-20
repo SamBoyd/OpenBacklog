@@ -40,10 +40,8 @@ def create_strategic_initiative(
     user_id: uuid.UUID,
     pillar_id: Optional[uuid.UUID],
     theme_id: Optional[uuid.UUID],
-    user_need: Optional[str],
-    connection_to_vision: Optional[str],
-    success_criteria: Optional[str],
-    out_of_scope: Optional[str],
+    description: Optional[str],
+    narrative_intent: Optional[str],
     session: Session,
     hero_ids: Optional[list[uuid.UUID]] = None,
     villain_ids: Optional[list[uuid.UUID]] = None,
@@ -57,10 +55,8 @@ def create_strategic_initiative(
         user_id: UUID of the user creating the context
         pillar_id: Optional UUID of the strategic pillar
         theme_id: Optional UUID of the roadmap theme
-        user_need: What user need or problem this addresses (max 1000 chars)
-        connection_to_vision: How this connects to vision (max 1000 chars)
-        success_criteria: What success looks like (max 1000 chars)
-        out_of_scope: What is explicitly NOT being done (max 1000 chars)
+        description: Strategic context description (no length limit)
+        narrative_intent: Narrative intent (no length limit)
         hero_ids: Optional list of hero UUIDs this initiative serves
         villain_ids: Optional list of villain UUIDs this initiative confronts
         conflict_ids: Optional list of conflict UUIDs this initiative addresses
@@ -81,10 +77,8 @@ def create_strategic_initiative(
         user_id=user_id,
         pillar_id=pillar_id,
         theme_id=theme_id,
-        user_need=user_need,
-        connection_to_vision=connection_to_vision,
-        success_criteria=success_criteria,
-        out_of_scope=out_of_scope,
+        description=description,
+        narrative_intent=narrative_intent,
         hero_ids=hero_ids,
         villain_ids=villain_ids,
         conflict_ids=conflict_ids,
@@ -99,10 +93,8 @@ def update_strategic_initiative(
     initiative_id: uuid.UUID,
     pillar_id: Optional[uuid.UUID],
     theme_id: Optional[uuid.UUID],
-    user_need: Optional[str],
-    connection_to_vision: Optional[str],
-    success_criteria: Optional[str],
-    out_of_scope: Optional[str],
+    description: Optional[str],
+    narrative_intent: Optional[str],
     session: Session,
     hero_ids: Optional[list[uuid.UUID]] = None,
     villain_ids: Optional[list[uuid.UUID]] = None,
@@ -114,10 +106,8 @@ def update_strategic_initiative(
         initiative_id: UUID of the initiative
         pillar_id: Optional UUID of the strategic pillar
         theme_id: Optional UUID of the roadmap theme
-        user_need: Updated user need (max 1000 chars)
-        connection_to_vision: Updated vision connection (max 1000 chars)
-        success_criteria: Updated success criteria (max 1000 chars)
-        out_of_scope: Updated out of scope (max 1000 chars)
+        description: Updated strategic context description (no length limit)
+        narrative_intent: Updated narrative intent (no length limit)
         hero_ids: Optional list of hero UUIDs to replace existing links
         villain_ids: Optional list of villain UUIDs to replace existing links
         conflict_ids: Optional list of conflict UUIDs to replace existing links
@@ -141,10 +131,8 @@ def update_strategic_initiative(
         publisher=publisher,
         pillar_id=pillar_id,
         theme_id=theme_id,
-        user_need=user_need,
-        connection_to_vision=connection_to_vision,
-        success_criteria=success_criteria,
-        out_of_scope=out_of_scope,
+        description=description,
+        narrative_intent=narrative_intent,
         hero_ids=hero_ids,
         villain_ids=villain_ids,
         conflict_ids=conflict_ids,

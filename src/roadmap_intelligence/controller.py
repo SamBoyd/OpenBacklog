@@ -33,10 +33,7 @@ def create_roadmap_theme(
     workspace_id: uuid.UUID,
     user_id: uuid.UUID,
     name: str,
-    problem_statement: str,
-    hypothesis: Optional[str],
-    indicative_metrics: Optional[str],
-    time_horizon_months: Optional[int],
+    description: str,
     outcome_ids: List[uuid.UUID],
     session: Session,
 ) -> RoadmapTheme:
@@ -46,10 +43,7 @@ def create_roadmap_theme(
         workspace_id: UUID of the workspace
         user_id: UUID of the user creating the theme
         name: Theme name (1-100 characters, unique per workspace)
-        problem_statement: Problem being solved (1-1500 characters, required)
-        hypothesis: Expected outcome (max 1500 characters)
-        indicative_metrics: Success metrics (max 1000 characters)
-        time_horizon_months: Time horizon in months (0-12)
+        description: Theme description (required, no length limit)
         outcome_ids: List of outcome IDs to link to this theme
         session: Database session
 
@@ -66,10 +60,7 @@ def create_roadmap_theme(
         workspace_id=workspace_id,
         user_id=user_id,
         name=name,
-        problem_statement=problem_statement,
-        hypothesis=hypothesis,
-        indicative_metrics=indicative_metrics,
-        time_horizon_months=time_horizon_months,
+        description=description,
         session=session,
         publisher=publisher,
     )
@@ -86,10 +77,7 @@ def update_roadmap_theme(
     theme_id: uuid.UUID,
     workspace_id: uuid.UUID,
     name: str,
-    problem_statement: str,
-    hypothesis: Optional[str],
-    indicative_metrics: Optional[str],
-    time_horizon_months: Optional[int],
+    description: str,
     outcome_ids: List[uuid.UUID],
     session: Session,
 ) -> RoadmapTheme:
@@ -99,10 +87,7 @@ def update_roadmap_theme(
         theme_id: UUID of the theme to update
         workspace_id: UUID of the workspace (for verification)
         name: Updated theme name (1-100 characters, unique per workspace)
-        problem_statement: Updated problem statement (1-1500 characters)
-        hypothesis: Updated hypothesis (max 1500 characters)
-        indicative_metrics: Updated metrics (max 1000 characters)
-        time_horizon_months: Updated time horizon (0-12 months)
+        description: Updated theme description (required, no length limit)
         outcome_ids: List of outcome IDs to link to this theme
         session: Database session
 
@@ -128,10 +113,7 @@ def update_roadmap_theme(
     publisher = EventPublisher(session)
     theme.update_theme(
         name=name,
-        problem_statement=problem_statement,
-        hypothesis=hypothesis,
-        indicative_metrics=indicative_metrics,
-        time_horizon_months=time_horizon_months,
+        description=description,
         publisher=publisher,
     )
 

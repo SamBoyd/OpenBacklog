@@ -23,10 +23,7 @@ class TestThemeViews:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Test Theme",
-            problem_statement="Test problem statement",
-            hypothesis="Test hypothesis",
-            indicative_metrics="Test metrics",
-            time_horizon_months=6,
+            description="Test description",
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
@@ -52,10 +49,7 @@ class TestThemeViews:
                     "id": str(mock_theme.id),
                     "workspace_id": str(workspace.id),
                     "name": "Test Theme",
-                    "problem_statement": "Test problem statement",
-                    "hypothesis": "Test hypothesis",
-                    "indicative_metrics": "Test metrics",
-                    "time_horizon_months": 6,
+                    "description": "Test description",
                     "outcome_ids": [],
                 }
             ),
@@ -92,10 +86,7 @@ class TestThemeViews:
 
         payload = {
             "name": "Test Theme",
-            "problem_statement": "Test problem statement",
-            "hypothesis": "Test hypothesis",
-            "indicative_metrics": "Test metrics",
-            "time_horizon_months": 6,
+            "description": "Test description",
             "outcome_ids": [],
         }
 
@@ -110,10 +101,7 @@ class TestThemeViews:
             has_entries(
                 {
                     "name": "Test Theme",
-                    "problem_statement": "Test problem statement",
-                    "hypothesis": "Test hypothesis",
-                    "indicative_metrics": "Test metrics",
-                    "time_horizon_months": 6,
+                    "description": "Test description",
                 }
             ),
         )
@@ -125,14 +113,11 @@ class TestThemeViews:
     ):
         """Test creating theme with minimal fields returns 201."""
         minimal_theme = mock_theme
-        minimal_theme.hypothesis = None
-        minimal_theme.indicative_metrics = None
-        minimal_theme.time_horizon_months = None
         mock_create.return_value = minimal_theme
 
         payload = {
             "name": "Test Theme",
-            "problem_statement": "Test problem statement",
+            "description": "Test description",
         }
 
         response = test_client.post(
@@ -142,15 +127,13 @@ class TestThemeViews:
         assert_that(response.status_code, equal_to(201))
         data = response.json()
         assert_that(data["name"], equal_to("Test Theme"))
-        assert_that(data["hypothesis"], equal_to(None))
-        assert_that(data["indicative_metrics"], equal_to(None))
-        assert_that(data["time_horizon_months"], equal_to(None))
+        assert_that(data["description"], equal_to("Test description"))
 
     def test_create_roadmap_theme_validation_empty_name(self, test_client, workspace):
         """Test validation error for empty name returns 422."""
         payload = {
             "name": "",
-            "problem_statement": "Test problem statement",
+            "description": "Test description",
         }
 
         response = test_client.post(
@@ -165,7 +148,7 @@ class TestThemeViews:
         """Test validation error for name exceeding max length returns 422."""
         payload = {
             "name": "A" * 101,
-            "problem_statement": "Test problem statement",
+            "description": "Test description",
         }
 
         response = test_client.post(
@@ -174,20 +157,20 @@ class TestThemeViews:
 
         assert_that(response.status_code, equal_to(422))
 
-    def test_create_roadmap_theme_validation_problem_too_long(
+    def test_create_roadmap_theme_validation_description_too_long(
         self, test_client, workspace
     ):
-        """Test validation error for problem_statement exceeding max length returns 422."""
+        """Test validation error for description exceeding max length returns 400."""
         payload = {
             "name": "Valid Name",
-            "problem_statement": "A" * 1501,
+            "description": "A" * 4001,
         }
 
         response = test_client.post(
             f"/api/workspaces/{workspace.id}/themes", json=payload
         )
 
-        assert_that(response.status_code, equal_to(422))
+        assert_that(response.status_code, equal_to(400))
 
     @patch("src.roadmap_intelligence.views.controller.create_roadmap_theme")
     def test_create_roadmap_theme_limit_exceeded(
@@ -200,7 +183,7 @@ class TestThemeViews:
 
         payload = {
             "name": "Theme 6",
-            "problem_statement": "Test problem statement",
+            "description": "Test description",
         }
 
         response = test_client.post(
@@ -224,10 +207,7 @@ class TestThemeViews:
 
         payload = {
             "name": "Updated Theme",
-            "problem_statement": "Updated problem",
-            "hypothesis": "Updated hypothesis",
-            "indicative_metrics": "Updated metrics",
-            "time_horizon_months": 9,
+            "description": "Updated description",
             "outcome_ids": [],
         }
 
@@ -252,7 +232,7 @@ class TestThemeViews:
 
         payload = {
             "name": "Updated Name",
-            "problem_statement": "Test problem statement",
+            "description": "Test description",
         }
 
         response = test_client.put(
@@ -271,7 +251,7 @@ class TestThemeViews:
 
         payload = {
             "name": "Updated Name",
-            "problem_statement": "Test problem",
+            "description": "Test description",
         }
 
         response = test_client.put(
@@ -285,7 +265,7 @@ class TestThemeViews:
         fake_id = uuid.uuid4()
         payload = {
             "name": "",
-            "problem_statement": "Test problem",
+            "description": "Test description",
         }
 
         response = test_client.put(
@@ -419,10 +399,7 @@ class TestThemePrioritizationViews:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Test Theme",
-            problem_statement="Test problem statement",
-            hypothesis="Test hypothesis",
-            indicative_metrics="Test metrics",
-            time_horizon_months=6,
+            description="Test description",
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )

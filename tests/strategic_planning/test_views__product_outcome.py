@@ -26,8 +26,6 @@ class TestProductOutcomeViews:
                 user.id,
                 "Outcome 1",
                 "Description 1",
-                None,
-                12,
                 [],
                 session,
             )
@@ -35,8 +33,6 @@ class TestProductOutcomeViews:
                 workspace.id,
                 user.id,
                 "Outcome 2",
-                None,
-                "Metrics 2",
                 None,
                 [],
                 session,
@@ -54,10 +50,8 @@ class TestProductOutcomeViews:
         assert_that(data[0]["id"], equal_to(outcome1_id))
         assert_that(data[0]["name"], equal_to("Outcome 1"))
         assert_that(data[0]["description"], equal_to("Description 1"))
-        assert_that(data[0]["time_horizon_months"], equal_to(12))
         assert_that(data[1]["id"], equal_to(outcome2_id))
         assert_that(data[1]["name"], equal_to("Outcome 2"))
-        assert_that(data[1]["metrics"], equal_to("Metrics 2"))
         assert_that(data[0], has_key("pillar_ids"))
         assert_that(data[0]["pillar_ids"], equal_to([]))
         assert_that(data[1]["pillar_ids"], equal_to([]))
@@ -79,8 +73,6 @@ class TestProductOutcomeViews:
         assert_that(data["name"], equal_to("80% weekly AI usage"))
         assert_that(data["workspace_id"], equal_to(str(workspace.id)))
         assert_that(data["description"], equal_to(None))
-        assert_that(data["metrics"], equal_to(None))
-        assert_that(data["time_horizon_months"], equal_to(None))
         assert_that(data["display_order"], equal_to(0))
         assert_that(data, has_key("id"))
         assert_that(data, has_key("created_at"))
@@ -93,8 +85,6 @@ class TestProductOutcomeViews:
             json={
                 "name": "80% weekly AI usage",
                 "description": "Measure AI adoption as a leading indicator",
-                "metrics": "% of weekly active users who use AI features",
-                "time_horizon_months": 12,
                 "pillar_ids": [],
             },
         )
@@ -105,10 +95,6 @@ class TestProductOutcomeViews:
         assert_that(
             data["description"], equal_to("Measure AI adoption as a leading indicator")
         )
-        assert_that(
-            data["metrics"], equal_to("% of weekly active users who use AI features")
-        )
-        assert_that(data["time_horizon_months"], equal_to(12))
 
     def test_create_outcome_with_pillar_links(self, test_client, workspace, user):
         """Test creating outcome linked to pillars returns 201."""
@@ -118,10 +104,10 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             pillar1 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 1", None, None, session
+                workspace.id, user.id, "Pillar 1", None, session
             )
             pillar2 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 2", None, None, session
+                workspace.id, user.id, "Pillar 2", None, session
             )
             pillar1_id = str(pillar1.id)
             pillar2_id = str(pillar2.id)
@@ -176,48 +162,6 @@ class TestProductOutcomeViews:
 
         assert_that(response.status_code, equal_to(422))
 
-    def test_create_outcome_validation_error_metrics_too_long(
-        self, test_client, workspace
-    ):
-        """Test validation error for metrics exceeding max length returns 422."""
-        response = test_client.post(
-            f"/api/workspaces/{workspace.id}/outcomes",
-            json={
-                "name": "Valid name",
-                "metrics": "M" * 1001,
-            },
-        )
-
-        assert_that(response.status_code, equal_to(422))
-
-    def test_create_outcome_validation_error_time_horizon_too_low(
-        self, test_client, workspace
-    ):
-        """Test validation error for time horizon below minimum returns 422."""
-        response = test_client.post(
-            f"/api/workspaces/{workspace.id}/outcomes",
-            json={
-                "name": "Valid name",
-                "time_horizon_months": 5,
-            },
-        )
-
-        assert_that(response.status_code, equal_to(422))
-
-    def test_create_outcome_validation_error_time_horizon_too_high(
-        self, test_client, workspace
-    ):
-        """Test validation error for time horizon above maximum returns 422."""
-        response = test_client.post(
-            f"/api/workspaces/{workspace.id}/outcomes",
-            json={
-                "name": "Valid name",
-                "time_horizon_months": 37,
-            },
-        )
-
-        assert_that(response.status_code, equal_to(422))
-
     def test_create_outcome_max_limit_exceeded(self, test_client, workspace, user):
         """Test creating outcome when limit reached returns 400."""
         from src.db import SessionLocal
@@ -230,8 +174,6 @@ class TestProductOutcomeViews:
                     workspace.id,
                     user.id,
                     f"Outcome {i}",
-                    None,
-                    None,
                     None,
                     [],
                     session,
@@ -270,18 +212,16 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             pillar1 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 1", None, None, session
+                workspace.id, user.id, "Pillar 1", None, session
             )
             pillar2 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 2", None, None, session
+                workspace.id, user.id, "Pillar 2", None, session
             )
             outcome = product_strategy_controller.create_product_outcome(
                 workspace.id,
                 user.id,
                 "Original Name",
                 "Original desc",
-                "Original metrics",
-                12,
                 [],
                 session,
             )
@@ -296,8 +236,6 @@ class TestProductOutcomeViews:
             json={
                 "name": "Updated Name",
                 "description": "Updated description",
-                "metrics": "Updated metrics",
-                "time_horizon_months": 24,
                 "pillar_ids": [pillar1_id, pillar2_id],
             },
         )
@@ -307,8 +245,6 @@ class TestProductOutcomeViews:
         assert_that(data["id"], equal_to(outcome_id))
         assert_that(data["name"], equal_to("Updated Name"))
         assert_that(data["description"], equal_to("Updated description"))
-        assert_that(data["metrics"], equal_to("Updated metrics"))
-        assert_that(data["time_horizon_months"], equal_to(24))
         # Verify pillar links echoed back
         assert_that(set(data["pillar_ids"]), equal_to(set([pillar1_id, pillar2_id])))
 
@@ -320,7 +256,7 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             outcome = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Original Name", None, None, None, [], session
+                workspace.id, user.id, "Original Name", None, [], session
             )
             outcome_id = str(outcome.id)
         finally:
@@ -345,7 +281,7 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             outcome = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Original Name", None, None, None, [], session
+                workspace.id, user.id, "Original Name", None, [], session
             )
             outcome_id = str(outcome.id)
         finally:
@@ -368,7 +304,7 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             outcome = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Original Name", None, None, None, [], session
+                workspace.id, user.id, "Original Name", None, [], session
             )
             outcome_id = str(outcome.id)
         finally:
@@ -391,7 +327,7 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             outcome = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Original Name", None, None, None, [], session
+                workspace.id, user.id, "Original Name", None, [], session
             )
             outcome_id = str(outcome.id)
         finally:
@@ -404,75 +340,6 @@ class TestProductOutcomeViews:
 
         assert_that(response.status_code, equal_to(422))
 
-    def test_update_outcome_validation_error_metrics_too_long(
-        self, test_client, workspace, user
-    ):
-        """Test validation error for metrics exceeding max length returns 422."""
-        from src.db import SessionLocal
-        from src.strategic_planning import controller as product_strategy_controller
-
-        session = SessionLocal()
-        try:
-            outcome = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Original Name", None, None, None, [], session
-            )
-            outcome_id = str(outcome.id)
-        finally:
-            session.close()
-
-        response = test_client.put(
-            f"/api/workspaces/{workspace.id}/outcomes/{outcome_id}",
-            json={"name": "Valid Name", "metrics": "M" * 1001},
-        )
-
-        assert_that(response.status_code, equal_to(422))
-
-    def test_update_outcome_validation_error_time_horizon_too_low(
-        self, test_client, workspace, user
-    ):
-        """Test validation error for time horizon below minimum returns 422."""
-        from src.db import SessionLocal
-        from src.strategic_planning import controller as product_strategy_controller
-
-        session = SessionLocal()
-        try:
-            outcome = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Original Name", None, None, None, [], session
-            )
-            outcome_id = str(outcome.id)
-        finally:
-            session.close()
-
-        response = test_client.put(
-            f"/api/workspaces/{workspace.id}/outcomes/{outcome_id}",
-            json={"name": "Valid Name", "time_horizon_months": 5},
-        )
-
-        assert_that(response.status_code, equal_to(422))
-
-    def test_update_outcome_validation_error_time_horizon_too_high(
-        self, test_client, workspace, user
-    ):
-        """Test validation error for time horizon above maximum returns 422."""
-        from src.db import SessionLocal
-        from src.strategic_planning import controller as product_strategy_controller
-
-        session = SessionLocal()
-        try:
-            outcome = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Original Name", None, None, None, [], session
-            )
-            outcome_id = str(outcome.id)
-        finally:
-            session.close()
-
-        response = test_client.put(
-            f"/api/workspaces/{workspace.id}/outcomes/{outcome_id}",
-            json={"name": "Valid Name", "time_horizon_months": 37},
-        )
-
-        assert_that(response.status_code, equal_to(422))
-
     def test_update_outcome_pillar_links(self, test_client, workspace, user):
         """Test updating outcome pillar links returns 200."""
         from src.db import SessionLocal
@@ -481,13 +348,13 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             pillar1 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 1", None, None, session
+                workspace.id, user.id, "Pillar 1", None, session
             )
             pillar2 = product_strategy_controller.create_strategic_pillar(
-                workspace.id, user.id, "Pillar 2", None, None, session
+                workspace.id, user.id, "Pillar 2", None, session
             )
             outcome = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Test Outcome", None, None, None, [], session
+                workspace.id, user.id, "Test Outcome", None, [], session
             )
             outcome_id = str(outcome.id)
             pillar1_id = str(pillar1.id)
@@ -544,8 +411,6 @@ class TestProductOutcomeViews:
                 user.id,
                 "Outcome to Delete",
                 None,
-                None,
-                None,
                 [],
                 session,
             )
@@ -594,13 +459,13 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             outcome1 = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Outcome 1", None, None, None, [], session
+                workspace.id, user.id, "Outcome 1", None, [], session
             )
             outcome2 = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Outcome 2", None, None, None, [], session
+                workspace.id, user.id, "Outcome 2", None, [], session
             )
             outcome3 = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Outcome 3", None, None, None, [], session
+                workspace.id, user.id, "Outcome 3", None, [], session
             )
             # Store IDs before closing session
             outcome1_id = str(outcome1.id)
@@ -641,10 +506,10 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             outcome1 = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Outcome 1", None, None, None, [], session
+                workspace.id, user.id, "Outcome 1", None, [], session
             )
             outcome2 = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Outcome 2", None, None, None, [], session
+                workspace.id, user.id, "Outcome 2", None, [], session
             )
             # Store IDs before closing session
             outcome1_id = str(outcome1.id)
@@ -673,10 +538,10 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             outcome1 = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Outcome 1", None, None, None, [], session
+                workspace.id, user.id, "Outcome 1", None, [], session
             )
             outcome2 = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Outcome 2", None, None, None, [], session
+                workspace.id, user.id, "Outcome 2", None, [], session
             )
             # Store IDs before closing session
             outcome1_id = str(outcome1.id)
@@ -706,10 +571,10 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             outcome1 = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Outcome 1", None, None, None, [], session
+                workspace.id, user.id, "Outcome 1", None, [], session
             )
             outcome2 = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Outcome 2", None, None, None, [], session
+                workspace.id, user.id, "Outcome 2", None, [], session
             )
             # Store IDs before closing session
             outcome1_id = str(outcome1.id)
@@ -737,7 +602,7 @@ class TestProductOutcomeViews:
         session = SessionLocal()
         try:
             outcome1 = product_strategy_controller.create_product_outcome(
-                workspace.id, user.id, "Outcome 1", None, None, None, [], session
+                workspace.id, user.id, "Outcome 1", None, [], session
             )
             # Store ID before closing session
             outcome1_id = str(outcome1.id)

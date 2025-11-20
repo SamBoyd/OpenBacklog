@@ -25,10 +25,7 @@ class TestRoadmapThemePrioritization:
             workspace_id=workspace.id,
             user_id=user.id,
             name="New Theme",
-            problem_statement="Problem to solve",
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description="Problem to solve",
             outcome_ids=[],
             session=session,
         )
@@ -49,10 +46,7 @@ class TestRoadmapThemePrioritization:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Theme to Prioritize",
-            problem_statement="Problem",
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description="Problem",
             outcome_ids=[],
             session=session,
         )
@@ -66,7 +60,7 @@ class TestRoadmapThemePrioritization:
         assert not is_prioritized
 
         # Prioritize the theme
-        prioritized_theme = roadmap_intelligence_controller.prioritize_roadmap_theme(
+        roadmap_intelligence_controller.prioritize_roadmap_theme(
             theme_id=theme.id,
             new_order=0,
             workspace_id=workspace.id,
@@ -88,10 +82,7 @@ class TestRoadmapThemePrioritization:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Theme to Deprioritize",
-            problem_statement="Problem",
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description="Problem",
             outcome_ids=[],
             session=session,
         )
@@ -111,12 +102,10 @@ class TestRoadmapThemePrioritization:
         assert roadmap.is_theme_prioritized(theme.id)
 
         # Deprioritize the theme
-        deprioritized_theme = (
-            roadmap_intelligence_controller.deprioritize_roadmap_theme(
-                theme_id=theme.id,
-                workspace_id=workspace.id,
-                session=session,
-            )
+        roadmap_intelligence_controller.deprioritize_roadmap_theme(
+            theme_id=theme.id,
+            workspace_id=workspace.id,
+            session=session,
         )
 
         # Verify theme is no longer prioritized
@@ -132,10 +121,7 @@ class TestRoadmapThemePrioritization:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Already Prioritized",
-            problem_statement="Problem",
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description="Problem",
             outcome_ids=[],
             session=session,
         )
@@ -165,10 +151,7 @@ class TestRoadmapThemePrioritization:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Unprioritized Theme",
-            problem_statement="Problem",
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description="Problem",
             outcome_ids=[],
             session=session,
         )
@@ -198,10 +181,7 @@ class TestRoadmapThemePrioritization:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Theme 1",
-            problem_statement="Problem 1",
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description="Problem 1",
             outcome_ids=[],
             session=session,
         )
@@ -210,10 +190,7 @@ class TestRoadmapThemePrioritization:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Theme 2",
-            problem_statement="Problem 2",
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description="Problem 2",
             outcome_ids=[],
             session=session,
         )
@@ -222,10 +199,7 @@ class TestRoadmapThemePrioritization:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Theme 3 (Unprioritized)",
-            problem_statement="Problem 3",
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description="Problem 3",
             outcome_ids=[],
             session=session,
         )
@@ -254,7 +228,7 @@ class TestRoadmapThemePrioritization:
         assert not roadmap.is_theme_prioritized(theme3.id)
 
         # Reorder prioritized themes (swap them)
-        reordered_themes = roadmap_intelligence_controller.reorder_roadmap_themes(
+        roadmap_intelligence_controller.reorder_roadmap_themes(
             workspace_id=workspace.id,
             theme_orders={theme1.id: 1, theme2.id: 0},
             session=session,
@@ -276,10 +250,7 @@ class TestRoadmapThemePrioritization:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Prioritized",
-            problem_statement="Problem 1",
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description="Problem 1",
             outcome_ids=[],
             session=session,
         )
@@ -288,10 +259,7 @@ class TestRoadmapThemePrioritization:
             workspace_id=workspace.id,
             user_id=user.id,
             name="Unprioritized",
-            problem_statement="Problem 2",
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description="Problem 2",
             outcome_ids=[],
             session=session,
         )

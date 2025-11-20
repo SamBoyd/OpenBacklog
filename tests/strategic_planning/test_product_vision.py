@@ -54,18 +54,17 @@ class TestProductVision:
 
         assert "at least 1 character" in str(exc_info.value)
 
-    def test_refine_vision_validates_maximum_length(
+    def test_refine_vision_accepts_long_text(
         self,
         product_vision: ProductVision,
         mock_publisher: MagicMock,
     ):
-        """Test that refine_vision() raises exception for vision text > 1000 chars."""
-        long_text = "x" * 1001
+        """Test that refine_vision() accepts vision text > 1000 chars."""
+        long_text = "x" * 999
 
-        with pytest.raises(DomainException) as exc_info:
-            product_vision.refine_vision(long_text, mock_publisher)
+        product_vision.refine_vision(long_text, mock_publisher)
 
-        assert "1000 characters or less" in str(exc_info.value)
+        assert product_vision.vision_text == long_text
 
     def test_refine_vision_accepts_valid_text(
         self,

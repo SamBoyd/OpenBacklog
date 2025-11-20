@@ -99,7 +99,6 @@ def create_strategic_pillar(
     user_id: uuid.UUID,
     name: str,
     description: Optional[str],
-    anti_strategy: Optional[str],
     session: Session,
 ) -> StrategicPillar:
     """Create a new strategic pillar for a workspace.
@@ -108,8 +107,7 @@ def create_strategic_pillar(
         workspace_id: UUID of the workspace
         user_id: UUID of the user creating the pillar
         name: Pillar name (1-100 characters, unique per workspace)
-        description: Optional pillar description (max 1000 characters)
-        anti_strategy: Optional anti-strategy text (max 1000 characters)
+        description: Optional pillar description (no length limit)
         session: Database session
 
     Returns:
@@ -132,7 +130,6 @@ def create_strategic_pillar(
         user_id=user_id,
         name=name,
         description=description,
-        anti_strategy=anti_strategy,
         display_order=display_order,
         session=session,
         publisher=publisher,
@@ -149,7 +146,6 @@ def update_strategic_pillar(
     workspace_id: uuid.UUID,
     name: str,
     description: Optional[str],
-    anti_strategy: Optional[str],
     session: Session,
 ) -> StrategicPillar:
     """Update an existing strategic pillar.
@@ -158,8 +154,7 @@ def update_strategic_pillar(
         pillar_id: UUID of the pillar to update
         workspace_id: UUID of the workspace (for verification)
         name: Updated pillar name (1-100 characters, unique per workspace)
-        description: Updated pillar description (max 1000 characters)
-        anti_strategy: Updated anti-strategy text (max 1000 characters)
+        description: Updated pillar description (no length limit)
         session: Database session
 
     Returns:
@@ -185,7 +180,6 @@ def update_strategic_pillar(
     pillar.update_pillar(
         name=name,
         description=description,
-        anti_strategy=anti_strategy,
         publisher=publisher,
     )
 
@@ -344,8 +338,6 @@ def create_product_outcome(
     user_id: uuid.UUID,
     name: str,
     description: Optional[str],
-    metrics: Optional[str],
-    time_horizon_months: Optional[int],
     pillar_ids: List[uuid.UUID],
     session: Session,
 ) -> ProductOutcome:
@@ -356,8 +348,6 @@ def create_product_outcome(
         user_id: UUID of the user creating the outcome
         name: Outcome name (1-150 characters, unique per workspace)
         description: Optional outcome description (max 1500 characters)
-        metrics: How to measure this outcome (max 1000 characters)
-        time_horizon_months: Time horizon in months (6-36)
         pillar_ids: List of pillar IDs to link to this outcome
         session: Database session
 
@@ -378,8 +368,6 @@ def create_product_outcome(
         user_id=user_id,
         name=name,
         description=description,
-        metrics=metrics,
-        time_horizon_months=time_horizon_months,
         display_order=display_order,
         session=session,
         publisher=publisher,
@@ -398,8 +386,6 @@ def update_product_outcome(
     workspace_id: uuid.UUID,
     name: str,
     description: Optional[str],
-    metrics: Optional[str],
-    time_horizon_months: Optional[int],
     pillar_ids: List[uuid.UUID],
     session: Session,
 ) -> ProductOutcome:
@@ -410,8 +396,6 @@ def update_product_outcome(
         workspace_id: UUID of the workspace (for verification)
         name: Updated outcome name (1-150 characters, unique per workspace)
         description: Updated outcome description (max 1500 characters)
-        metrics: Updated outcome metrics (max 1000 characters)
-        time_horizon_months: Updated time horizon (6-36 months)
         pillar_ids: List of pillar IDs to link to this outcome
         session: Database session
 
@@ -438,8 +422,6 @@ def update_product_outcome(
     outcome.update_outcome(
         name=name,
         description=description,
-        metrics=metrics,
-        time_horizon_months=time_horizon_months,
         publisher=publisher,
     )
 

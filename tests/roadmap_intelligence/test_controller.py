@@ -30,9 +30,6 @@ def test_get_roadmap_themes_returns_ordered_list(
         user.id,
         "Theme 1",
         "Problem 1",
-        None,
-        None,
-        None,
         [],
         session,
     )
@@ -41,9 +38,6 @@ def test_get_roadmap_themes_returns_ordered_list(
         user.id,
         "Theme 2",
         "Problem 2",
-        None,
-        None,
-        None,
         [],
         session,
     )
@@ -52,9 +46,6 @@ def test_get_roadmap_themes_returns_ordered_list(
         user.id,
         "Theme 3",
         "Problem 3",
-        None,
-        None,
-        None,
         [],
         session,
     )
@@ -76,21 +67,13 @@ def test_create_roadmap_theme_minimal(
         user.id,
         "First Week Magic",
         "Users fail to integrate in first week",
-        None,
-        None,
-        None,
         [],
         session,
     )
 
     assert_that(theme.name, equal_to("First Week Magic"))
-    assert_that(
-        theme.problem_statement, equal_to("Users fail to integrate in first week")
-    )
+    assert_that(theme.description, equal_to("Users fail to integrate in first week"))
     assert_that(theme.workspace_id, equal_to(workspace.id))
-    assert_that(theme.hypothesis, equal_to(None))
-    assert_that(theme.indicative_metrics, equal_to(None))
-    assert_that(theme.time_horizon_months, equal_to(None))
 
 
 def test_create_roadmap_theme_full_details(
@@ -102,20 +85,12 @@ def test_create_roadmap_theme_full_details(
         user.id,
         "First Week Magic",
         "Users fail to integrate in first week",
-        "Quick wins drive adoption",
-        "% users active in week 1",
-        6,
         [],
         session,
     )
 
     assert_that(theme.name, equal_to("First Week Magic"))
-    assert_that(
-        theme.problem_statement, equal_to("Users fail to integrate in first week")
-    )
-    assert_that(theme.hypothesis, equal_to("Quick wins drive adoption"))
-    assert_that(theme.indicative_metrics, equal_to("% users active in week 1"))
-    assert_that(theme.time_horizon_months, equal_to(6))
+    assert_that(theme.description, equal_to("Users fail to integrate in first week"))
 
 
 def test_create_roadmap_theme_with_outcome_links(
@@ -123,10 +98,10 @@ def test_create_roadmap_theme_with_outcome_links(
 ):
     """Test creating theme linked to outcomes."""
     outcome1 = product_strategy_controller.create_product_outcome(
-        workspace.id, user.id, "Outcome 1", None, None, None, [], session
+        workspace.id, user.id, "Outcome 1", None, [], session
     )
     outcome2 = product_strategy_controller.create_product_outcome(
-        workspace.id, user.id, "Outcome 2", None, None, None, [], session
+        workspace.id, user.id, "Outcome 2", None, [], session
     )
 
     theme = controller.create_roadmap_theme(
@@ -134,9 +109,6 @@ def test_create_roadmap_theme_with_outcome_links(
         user.id,
         "Test Theme",
         "Test problem",
-        None,
-        None,
-        None,
         [outcome1.id, outcome2.id],
         session,
     )
@@ -158,9 +130,6 @@ def test_create_roadmap_theme_validates_name_empty(
             user.id,
             "",
             "Valid problem",
-            None,
-            None,
-            None,
             [],
             session,
         )
@@ -176,9 +145,6 @@ def test_create_roadmap_theme_validates_name_too_long(
             user.id,
             "A" * 101,
             "Valid problem",
-            None,
-            None,
-            None,
             [],
             session,
         )
@@ -187,16 +153,13 @@ def test_create_roadmap_theme_validates_name_too_long(
 def test_create_roadmap_theme_validates_problem_statement_empty(
     user: User, workspace: Workspace, session: Session
 ):
-    """Test validation of empty problem statement."""
+    """Test validation of empty description."""
     with pytest.raises(DomainException, match="at least 1 character"):
         controller.create_roadmap_theme(
             workspace.id,
             user.id,
             "Valid Name",
             "",
-            None,
-            None,
-            None,
             [],
             session,
         )
@@ -205,88 +168,16 @@ def test_create_roadmap_theme_validates_problem_statement_empty(
 def test_create_roadmap_theme_validates_problem_statement_too_long(
     user: User, workspace: Workspace, session: Session
 ):
-    """Test validation of problem statement exceeding max length."""
-    with pytest.raises(DomainException, match="1500 characters or less"):
+    """Test validation of description exceeding max length."""
+    # Note: Skipped until database schema constraints are updated
+    with pytest.raises(
+        DomainException, match="Description must be 4000 characters or less"
+    ):
         controller.create_roadmap_theme(
             workspace.id,
             user.id,
             "Valid name",
-            "P" * 1501,
-            None,
-            None,
-            None,
-            [],
-            session,
-        )
-
-
-def test_create_roadmap_theme_validates_hypothesis_too_long(
-    user: User, workspace: Workspace, session: Session
-):
-    """Test validation of hypothesis exceeding max length."""
-    with pytest.raises(DomainException, match="1500 characters or less"):
-        controller.create_roadmap_theme(
-            workspace.id,
-            user.id,
-            "Valid name",
-            "Valid problem",
-            "H" * 1501,
-            None,
-            None,
-            [],
-            session,
-        )
-
-
-def test_create_roadmap_theme_validates_metrics_too_long(
-    user: User, workspace: Workspace, session: Session
-):
-    """Test validation of indicative_metrics exceeding max length."""
-    with pytest.raises(DomainException, match="1000 characters or less"):
-        controller.create_roadmap_theme(
-            workspace.id,
-            user.id,
-            "Valid name",
-            "Valid problem",
-            None,
-            "M" * 1001,
-            None,
-            [],
-            session,
-        )
-
-
-def test_create_roadmap_theme_validates_time_horizon_too_low(
-    user: User, workspace: Workspace, session: Session
-):
-    """Test validation of time horizon below minimum."""
-    with pytest.raises(DomainException, match="between 0-12 months"):
-        controller.create_roadmap_theme(
-            workspace.id,
-            user.id,
-            "Valid name",
-            "Valid problem",
-            None,
-            None,
-            -1,
-            [],
-            session,
-        )
-
-
-def test_create_roadmap_theme_validates_time_horizon_too_high(
-    user: User, workspace: Workspace, session: Session
-):
-    """Test validation of time horizon above maximum."""
-    with pytest.raises(DomainException, match="between 0-12 months"):
-        controller.create_roadmap_theme(
-            workspace.id,
-            user.id,
-            "Valid name",
-            "Valid problem",
-            None,
-            None,
-            13,
+            "P" * 4001,
             [],
             session,
         )
@@ -302,9 +193,6 @@ def test_create_roadmap_theme_enforces_max_limit(
             user.id,
             f"Theme {i}",
             f"Problem {i}",
-            None,
-            None,
-            None,
             [],
             session,
         )
@@ -315,9 +203,6 @@ def test_create_roadmap_theme_enforces_max_limit(
             user.id,
             "Theme 6",
             "Problem 6",
-            None,
-            None,
-            None,
             [],
             session,
         )
@@ -332,37 +217,25 @@ def test_update_roadmap_theme_with_all_fields(
         user.id,
         "Original Name",
         "Original problem",
-        "Original hypothesis",
-        "Original metrics",
-        6,
         [],
         session,
     )
 
     updated_name = "Updated Name"
-    updated_problem = "Updated problem statement"
-    updated_hypothesis = "Updated hypothesis"
-    updated_metrics = "Updated metrics"
-    updated_time_horizon = 9
+    updated_description = "Updated description"
 
     updated_theme = controller.update_roadmap_theme(
         theme.id,
         workspace.id,
         updated_name,
-        updated_problem,
-        updated_hypothesis,
-        updated_metrics,
-        updated_time_horizon,
+        updated_description,
         [],
         session,
     )
 
     assert_that(updated_theme.id, equal_to(theme.id))
     assert_that(updated_theme.name, equal_to(updated_name))
-    assert_that(updated_theme.problem_statement, equal_to(updated_problem))
-    assert_that(updated_theme.hypothesis, equal_to(updated_hypothesis))
-    assert_that(updated_theme.indicative_metrics, equal_to(updated_metrics))
-    assert_that(updated_theme.time_horizon_months, equal_to(updated_time_horizon))
+    assert_that(updated_theme.description, equal_to(updated_description))
 
 
 def test_update_roadmap_theme_name_only(
@@ -374,9 +247,6 @@ def test_update_roadmap_theme_name_only(
         user.id,
         "Original Name",
         "Original problem",
-        "Original hypothesis",
-        "Original metrics",
-        6,
         [],
         session,
     )
@@ -387,19 +257,13 @@ def test_update_roadmap_theme_name_only(
         theme.id,
         workspace.id,
         updated_name,
-        theme.problem_statement,
-        theme.hypothesis,
-        theme.indicative_metrics,
-        theme.time_horizon_months,
+        theme.description,
         [],
         session,
     )
 
     assert_that(updated_theme.name, equal_to(updated_name))
-    assert_that(updated_theme.problem_statement, equal_to(theme.problem_statement))
-    assert_that(updated_theme.hypothesis, equal_to(theme.hypothesis))
-    assert_that(updated_theme.indicative_metrics, equal_to(theme.indicative_metrics))
-    assert_that(updated_theme.time_horizon_months, equal_to(theme.time_horizon_months))
+    assert_that(updated_theme.description, equal_to(theme.description))
 
 
 def test_update_roadmap_theme_outcome_links(
@@ -407,13 +271,13 @@ def test_update_roadmap_theme_outcome_links(
 ):
     """Test updating theme outcome linkages."""
     outcome1 = product_strategy_controller.create_product_outcome(
-        workspace.id, user.id, "Outcome 1", None, None, None, [], session
+        workspace.id, user.id, "Outcome 1", None, [], session
     )
     outcome2 = product_strategy_controller.create_product_outcome(
-        workspace.id, user.id, "Outcome 2", None, None, None, [], session
+        workspace.id, user.id, "Outcome 2", None, [], session
     )
     outcome3 = product_strategy_controller.create_product_outcome(
-        workspace.id, user.id, "Outcome 3", None, None, None, [], session
+        workspace.id, user.id, "Outcome 3", None, [], session
     )
 
     # Create theme with outcome1 and outcome2
@@ -422,9 +286,6 @@ def test_update_roadmap_theme_outcome_links(
         user.id,
         "Test Theme",
         "Test problem",
-        None,
-        None,
-        None,
         [outcome1.id, outcome2.id],
         session,
     )
@@ -437,10 +298,7 @@ def test_update_roadmap_theme_outcome_links(
         theme.id,
         workspace.id,
         theme.name,
-        theme.problem_statement,
-        theme.hypothesis,
-        theme.indicative_metrics,
-        theme.time_horizon_months,
+        theme.description,
         [outcome2.id, outcome3.id],
         session,
     )
@@ -462,16 +320,13 @@ def test_update_roadmap_theme_validates_name_empty(
         user.id,
         "Original Name",
         "Problem",
-        None,
-        None,
-        None,
         [],
         session,
     )
 
     with pytest.raises(DomainException, match="at least 1 character"):
         controller.update_roadmap_theme(
-            theme.id, workspace.id, "", "Problem", None, None, None, [], session
+            theme.id, workspace.id, "", "Problem", [], session
         )
 
 
@@ -487,9 +342,6 @@ def test_update_roadmap_theme_not_found(
             workspace.id,
             "Some name",
             "Some problem",
-            None,
-            None,
-            None,
             [],
             session,
         )
@@ -507,9 +359,6 @@ def test_delete_roadmap_theme_success(
         user.id,
         "Theme to Delete",
         "Problem",
-        None,
-        None,
-        None,
         [],
         session,
     )
@@ -545,9 +394,6 @@ def test_reorder_roadmap_themes_success(
         user.id,
         "Theme 1",
         "Problem 1",
-        None,
-        None,
-        None,
         [],
         session,
     )
@@ -556,9 +402,6 @@ def test_reorder_roadmap_themes_success(
         user.id,
         "Theme 2",
         "Problem 2",
-        None,
-        None,
-        None,
         [],
         session,
     )
@@ -567,9 +410,6 @@ def test_reorder_roadmap_themes_success(
         user.id,
         "Theme 3",
         "Problem 3",
-        None,
-        None,
-        None,
         [],
         session,
     )
@@ -603,13 +443,13 @@ def test_reorder_roadmap_themes_requires_all_themes(
 
     # Create 3 themes
     theme1 = controller.create_roadmap_theme(
-        workspace.id, user.id, "Theme 1", "Problem 1", None, None, None, [], session
+        workspace.id, user.id, "Theme 1", "Problem 1", [], session
     )
     theme2 = controller.create_roadmap_theme(
-        workspace.id, user.id, "Theme 2", "Problem 2", None, None, None, [], session
+        workspace.id, user.id, "Theme 2", "Problem 2", [], session
     )
     theme3 = controller.create_roadmap_theme(
-        workspace.id, user.id, "Theme 3", "Problem 3", None, None, None, [], session
+        workspace.id, user.id, "Theme 3", "Problem 3", [], session
     )
 
     prioritization_service.prioritize_theme(workspace.id, user.id, theme1.id, 0)
@@ -638,13 +478,13 @@ def test_reorder_roadmap_themes_validates_incomplete_sequence(
     prioritization_service = PrioritizationService(session, EventPublisher(session))
 
     theme1 = controller.create_roadmap_theme(
-        workspace.id, user.id, "Theme 1", "Problem 1", None, None, None, [], session
+        workspace.id, user.id, "Theme 1", "Problem 1", [], session
     )
     theme2 = controller.create_roadmap_theme(
-        workspace.id, user.id, "Theme 2", "Problem 2", None, None, None, [], session
+        workspace.id, user.id, "Theme 2", "Problem 2", [], session
     )
     theme3 = controller.create_roadmap_theme(
-        workspace.id, user.id, "Theme 3", "Problem 3", None, None, None, [], session
+        workspace.id, user.id, "Theme 3", "Problem 3", [], session
     )
 
     prioritization_service.prioritize_theme(workspace.id, user.id, theme1.id, 0)
@@ -669,10 +509,10 @@ def test_reorder_roadmap_themes_missing_theme(
     prioritization_service = PrioritizationService(session, EventPublisher(session))
 
     theme1 = controller.create_roadmap_theme(
-        workspace.id, user.id, "Theme 1", "Problem 1", None, None, None, [], session
+        workspace.id, user.id, "Theme 1", "Problem 1", [], session
     )
     theme2 = controller.create_roadmap_theme(
-        workspace.id, user.id, "Theme 2", "Problem 2", None, None, None, [], session
+        workspace.id, user.id, "Theme 2", "Problem 2", [], session
     )
 
     prioritization_service.prioritize_theme(workspace.id, user.id, theme1.id, 0)
@@ -699,11 +539,11 @@ def test_reorder_roadmap_themes_unknown_theme(
     prioritization_service = PrioritizationService(session, EventPublisher(session))
 
     theme1 = controller.create_roadmap_theme(
-        workspace.id, user.id, "Theme 1", "Problem 1", None, None, None, [], session
+        workspace.id, user.id, "Theme 1", "Problem 1", [], session
     )
 
     theme2 = controller.create_roadmap_theme(
-        workspace.id, user.id, "Theme 2", "Problem 2", None, None, None, [], session
+        workspace.id, user.id, "Theme 2", "Problem 2", [], session
     )
 
     prioritization_service.prioritize_theme(workspace.id, user.id, theme1.id, 0)

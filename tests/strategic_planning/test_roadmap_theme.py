@@ -48,10 +48,7 @@ class TestRoadmapTheme:
             id=uuid.uuid4(),
             workspace_id=workspace.id,
             name="First Week Magic",
-            problem_statement="Users fail to integrate in first week",
-            hypothesis="Quick wins drive adoption",
-            indicative_metrics="% users active in week 1",
-            time_horizon_months=6,
+            description="Users fail to integrate in first week. Quick wins drive adoption. % users active in week 1",
         )
         session.add(theme)
         session.commit()
@@ -70,7 +67,7 @@ class TestRoadmapTheme:
                 user_id=user.id,
                 workspace_id=workspace.id,
                 name=f"Theme {i}",
-                problem_statement=f"Problem {i}",
+                description=f"Description {i}",
             )
             session.add(theme)
         session.commit()
@@ -92,7 +89,7 @@ class TestRoadmapTheme:
                 user_id=user.id,
                 workspace_id=workspace.id,
                 name=f"Theme {i}",
-                problem_statement=f"Problem {i}",
+                description=f"Description {i}",
             )
             session.add(theme)
         session.commit()
@@ -112,10 +109,7 @@ class TestRoadmapTheme:
                 workspace_id=workspace.id,
                 user_id=user.id,
                 name="",
-                problem_statement="Valid problem",
-                hypothesis=None,
-                indicative_metrics=None,
-                time_horizon_months=None,
+                description="Valid description",
                 session=session,
                 publisher=mock_publisher,
             )
@@ -137,10 +131,7 @@ class TestRoadmapTheme:
                 workspace_id=workspace.id,
                 user_id=user.id,
                 name=long_name,
-                problem_statement="Valid problem",
-                hypothesis=None,
-                indicative_metrics=None,
-                time_horizon_months=None,
+                description="Valid description",
                 session=session,
                 publisher=mock_publisher,
             )
@@ -148,152 +139,47 @@ class TestRoadmapTheme:
         assert "100 characters or less" in str(exc_info.value)
         assert "101" in str(exc_info.value)
 
-    def test_define_theme_validates_problem_statement_minimum_length(
+    def test_define_theme_validates_description_minimum_length(
         self,
         workspace: Workspace,
         user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
-        """Test that define_theme() raises exception for empty problem statement."""
+        """Test that define_theme() raises exception for empty description."""
         with pytest.raises(DomainException) as exc_info:
             RoadmapTheme.define_theme(
                 workspace_id=workspace.id,
                 user_id=user.id,
                 name="Valid Name",
-                problem_statement="",
-                hypothesis=None,
-                indicative_metrics=None,
-                time_horizon_months=None,
+                description="",
                 session=session,
                 publisher=mock_publisher,
             )
 
         assert "at least 1 character" in str(exc_info.value)
 
-    def test_define_theme_validates_problem_statement_maximum_length(
+    def test_define_theme_validates_description_maximum_length(
         self,
         workspace: Workspace,
         user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
-        """Test that define_theme() raises exception for problem_statement > 1500 chars."""
-        long_problem = "x" * 1501
+        """Test that define_theme() raises exception for description > 4000 chars."""
+        long_description = "x" * 4001
 
         with pytest.raises(DomainException) as exc_info:
             RoadmapTheme.define_theme(
                 workspace_id=workspace.id,
                 user_id=user.id,
                 name="Valid Name",
-                problem_statement=long_problem,
-                hypothesis=None,
-                indicative_metrics=None,
-                time_horizon_months=None,
+                description=long_description,
                 session=session,
                 publisher=mock_publisher,
             )
 
-        assert "1500 characters or less" in str(exc_info.value)
-        assert "Problem statement" in str(exc_info.value)
-
-    def test_define_theme_validates_hypothesis_maximum_length(
-        self,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that define_theme() raises exception for hypothesis > 1500 chars."""
-        long_hypothesis = "x" * 1501
-
-        with pytest.raises(DomainException) as exc_info:
-            RoadmapTheme.define_theme(
-                workspace_id=workspace.id,
-                user_id=user.id,
-                name="Valid Name",
-                problem_statement="Valid problem",
-                hypothesis=long_hypothesis,
-                indicative_metrics=None,
-                time_horizon_months=None,
-                session=session,
-                publisher=mock_publisher,
-            )
-
-        assert "1500 characters or less" in str(exc_info.value)
-        assert "Hypothesis" in str(exc_info.value)
-
-    def test_define_theme_validates_indicative_metrics_maximum_length(
-        self,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that define_theme() raises exception for indicative_metrics > 1000 chars."""
-        long_metrics = "x" * 1001
-
-        with pytest.raises(DomainException) as exc_info:
-            RoadmapTheme.define_theme(
-                workspace_id=workspace.id,
-                user_id=user.id,
-                name="Valid Name",
-                problem_statement="Valid problem",
-                hypothesis=None,
-                indicative_metrics=long_metrics,
-                time_horizon_months=None,
-                session=session,
-                publisher=mock_publisher,
-            )
-
-        assert "1000 characters or less" in str(exc_info.value)
-        assert "Indicative metrics" in str(exc_info.value)
-
-    def test_define_theme_validates_time_horizon_minimum(
-        self,
-        workspace: Workspace,
-        user,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that define_theme() raises exception for time_horizon < 0."""
-        with pytest.raises(DomainException) as exc_info:
-            RoadmapTheme.define_theme(
-                workspace_id=workspace.id,
-                user_id=user.id,
-                name="Valid Name",
-                problem_statement="Valid problem",
-                hypothesis=None,
-                indicative_metrics=None,
-                time_horizon_months=-1,
-                session=session,
-                publisher=mock_publisher,
-            )
-
-        assert "between 0-12 months" in str(exc_info.value)
-
-    def test_define_theme_validates_time_horizon_maximum(
-        self,
-        workspace: Workspace,
-        user: User,
-        session: Session,
-        mock_publisher: MagicMock,
-    ):
-        """Test that define_theme() raises exception for time_horizon > 12."""
-        with pytest.raises(DomainException) as exc_info:
-            RoadmapTheme.define_theme(
-                workspace_id=workspace.id,
-                user_id=user.id,
-                name="Valid Name",
-                problem_statement="Valid problem",
-                hypothesis=None,
-                indicative_metrics=None,
-                time_horizon_months=13,
-                session=session,
-                publisher=mock_publisher,
-            )
-
-        assert "between 0-12 months" in str(exc_info.value)
+        assert "4000 characters or less" in str(exc_info.value)
 
     def test_define_theme_accepts_valid_input(
         self,
@@ -304,57 +190,42 @@ class TestRoadmapTheme:
     ):
         """Test that define_theme() accepts valid input."""
         name = "First Week Magic"
-        problem_statement = "Users fail to integrate in first week"
-        hypothesis = "Quick wins drive adoption"
-        indicative_metrics = "% users active in week 1"
-        time_horizon_months = 6
+        description = "Users fail to integrate in first week. Quick wins drive adoption. % users active in week 1"
 
         theme = RoadmapTheme.define_theme(
             workspace_id=workspace.id,
             user_id=user.id,
             name=name,
-            problem_statement=problem_statement,
-            hypothesis=hypothesis,
-            indicative_metrics=indicative_metrics,
-            time_horizon_months=time_horizon_months,
+            description=description,
             session=session,
             publisher=mock_publisher,
         )
 
         assert theme.name == name
-        assert theme.problem_statement == problem_statement
-        assert theme.hypothesis == hypothesis
-        assert theme.indicative_metrics == indicative_metrics
-        assert theme.time_horizon_months == time_horizon_months
+        assert theme.description == description
 
-    def test_define_theme_accepts_none_for_optional_fields(
+    def test_define_theme_accepts_valid_description(
         self,
         workspace: Workspace,
         user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
-        """Test that define_theme() accepts None for optional fields."""
+        """Test that define_theme() accepts valid description."""
         name = "First Week Magic"
-        problem_statement = "Users fail to integrate in first week"
+        description = "Users fail to integrate in first week"
 
         theme = RoadmapTheme.define_theme(
             workspace_id=workspace.id,
             user_id=user.id,
             name=name,
-            problem_statement=problem_statement,
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description=description,
             session=session,
             publisher=mock_publisher,
         )
 
         assert theme.name == name
-        assert theme.problem_statement == problem_statement
-        assert theme.hypothesis is None
-        assert theme.indicative_metrics is None
-        assert theme.time_horizon_months is None
+        assert theme.description == description
 
     def test_define_theme_emits_theme_defined_event(
         self,
@@ -365,19 +236,13 @@ class TestRoadmapTheme:
     ):
         """Test that define_theme() emits ThemeDefined event."""
         name = "First Week Magic"
-        problem_statement = "Users fail to integrate in first week"
-        hypothesis = "Quick wins drive adoption"
-        indicative_metrics = "% users active in week 1"
-        time_horizon_months = 6
+        description = "Users fail to integrate in first week. Quick wins drive adoption. % users active in week 1"
 
         theme = RoadmapTheme.define_theme(
             workspace_id=workspace.id,
             user_id=user.id,
             name=name,
-            problem_statement=problem_statement,
-            hypothesis=hypothesis,
-            indicative_metrics=indicative_metrics,
-            time_horizon_months=time_horizon_months,
+            description=description,
             session=session,
             publisher=mock_publisher,
         )
@@ -389,10 +254,7 @@ class TestRoadmapTheme:
         assert event.event_type == "ThemeDefined"
         assert event.aggregate_id == theme.id
         assert event.payload["name"] == name
-        assert event.payload["problem_statement"] == problem_statement
-        assert event.payload["hypothesis"] == hypothesis
-        assert event.payload["indicative_metrics"] == indicative_metrics
-        assert event.payload["time_horizon_months"] == time_horizon_months
+        assert event.payload["description"] == description
         assert event.payload["workspace_id"] == str(workspace.id)
         assert workspace_id_arg == str(workspace.id)
 
@@ -405,10 +267,7 @@ class TestRoadmapTheme:
         with pytest.raises(DomainException):
             roadmap_theme.update_theme(
                 name="x" * 101,
-                problem_statement="Valid",
-                hypothesis=None,
-                indicative_metrics=None,
-                time_horizon_months=6,
+                description="Valid description",
                 publisher=mock_publisher,
             )
 
@@ -419,25 +278,16 @@ class TestRoadmapTheme:
     ):
         """Test that update_theme() updates fields correctly."""
         new_name = "Updated Name"
-        new_problem = "Updated problem statement"
-        new_hypothesis = "Updated hypothesis"
-        new_metrics = "Updated metrics"
-        new_time_horizon = 9
+        new_description = "Updated description"
 
         roadmap_theme.update_theme(
             name=new_name,
-            problem_statement=new_problem,
-            hypothesis=new_hypothesis,
-            indicative_metrics=new_metrics,
-            time_horizon_months=new_time_horizon,
+            description=new_description,
             publisher=mock_publisher,
         )
 
         assert roadmap_theme.name == new_name
-        assert roadmap_theme.problem_statement == new_problem
-        assert roadmap_theme.hypothesis == new_hypothesis
-        assert roadmap_theme.indicative_metrics == new_metrics
-        assert roadmap_theme.time_horizon_months == new_time_horizon
+        assert roadmap_theme.description == new_description
 
     def test_update_theme_emits_theme_updated_event(
         self,
@@ -446,14 +296,11 @@ class TestRoadmapTheme:
     ):
         """Test that update_theme() emits ThemeUpdated event."""
         new_name = "Updated Name"
-        new_problem = "Updated problem"
+        new_description = "Updated description"
 
         roadmap_theme.update_theme(
             name=new_name,
-            problem_statement=new_problem,
-            hypothesis=None,
-            indicative_metrics=None,
-            time_horizon_months=None,
+            description=new_description,
             publisher=mock_publisher,
         )
 
@@ -462,7 +309,7 @@ class TestRoadmapTheme:
 
         assert event.event_type == "ThemeUpdated"
         assert event.payload["name"] == new_name
-        assert event.payload["problem_statement"] == new_problem
+        assert event.payload["description"] == new_description
 
     def test_link_to_outcomes_creates_outcome_links(
         self,
@@ -583,7 +430,7 @@ class TestRoadmapTheme:
             user_id=user.id,
             workspace_id=workspace.id,
             name="First Week Magic",
-            problem_statement="Problem 1",
+            description="Description 1",
         )
         session.add(theme1)
         session.commit()
@@ -592,7 +439,7 @@ class TestRoadmapTheme:
             user_id=user.id,
             workspace_id=workspace.id,
             name="First Week Magic",
-            problem_statement="Problem 2",
+            description="Description 2",
         )
         session.add(theme2)
 
@@ -608,19 +455,13 @@ class TestRoadmapTheme:
     ):
         """Test that theme is stored correctly in database."""
         name = "First Week Magic"
-        problem_statement = "Users fail to integrate in first week"
-        hypothesis = "Quick wins drive adoption"
-        indicative_metrics = "% users active in week 1"
-        time_horizon_months = 6
+        description = "Users fail to integrate in first week. Quick wins drive adoption. % users active in week 1"
 
         theme = RoadmapTheme.define_theme(
             workspace_id=workspace.id,
             user_id=user.id,
             name=name,
-            problem_statement=problem_statement,
-            hypothesis=hypothesis,
-            indicative_metrics=indicative_metrics,
-            time_horizon_months=time_horizon_months,
+            description=description,
             session=session,
             publisher=mock_publisher,
         )
@@ -632,10 +473,7 @@ class TestRoadmapTheme:
 
         assert saved_theme is not None
         assert saved_theme.name == name
-        assert saved_theme.problem_statement == problem_statement
-        assert saved_theme.hypothesis == hypothesis
-        assert saved_theme.indicative_metrics == indicative_metrics
-        assert saved_theme.time_horizon_months == time_horizon_months
+        assert saved_theme.description == description
         assert saved_theme.workspace_id == workspace.id
 
     def test_get_derived_pillars_returns_pillars_from_outcomes(
