@@ -3676,3 +3676,100 @@ export const mockSuggestionsToBeResolvedContextReturn: UseSuggestionsToBeResolve
     saveSuggestions: () => Promise.resolve(),
     isSaving: false,
 }
+
+// --- Villain (Narrative Layer) Mock Data ---
+
+import { VillainDto, VillainType } from '#types';
+
+export const mockVillainExternal: VillainDto = {
+    id: '550e8400-e29b-41d4-a716-446655440001',
+    identifier: 'V-2001',
+    user_id: '550e8400-e29b-41d4-a716-446655440000',
+    workspace_id: mockWorkspace.id,
+    name: 'Competitor XYZ',
+    villain_type: VillainType.EXTERNAL,
+    description: 'A well-funded competitor with a similar product that is stealing market share. They have a strong brand presence and aggressive marketing campaigns that make it difficult for us to acquire new customers.',
+    severity: 5,
+    is_defeated: false,
+    created_at: '2024-01-15T10:00:00Z',
+    updated_at: '2024-01-15T10:00:00Z',
+};
+
+export const mockVillainInternal: VillainDto = {
+    id: '550e8400-e29b-41d4-a716-446655440002',
+    identifier: 'V-2002',
+    user_id: '550e8400-e29b-41d4-a716-446655440000',
+    workspace_id: mockWorkspace.id,
+    name: 'Cognitive Overload',
+    villain_type: VillainType.INTERNAL,
+    description: 'Users experience information overload when trying to understand complex project dependencies. This leads to decision paralysis and reduced productivity.',
+    severity: 4,
+    is_defeated: false,
+    created_at: '2024-01-16T11:30:00Z',
+    updated_at: '2024-01-16T11:30:00Z',
+};
+
+export const mockVillainTechnical: VillainDto = {
+    id: '550e8400-e29b-41d4-a716-446655440003',
+    identifier: 'V-2003',
+    user_id: '550e8400-e29b-41d4-a716-446655440000',
+    workspace_id: mockWorkspace.id,
+    name: 'Legacy Code Debt',
+    villain_type: VillainType.TECHNICAL,
+    description: 'Years of accumulated technical debt in our codebase makes it difficult to add new features or fix bugs. The code is poorly documented and lacks proper test coverage, leading to frequent regressions.',
+    severity: 5,
+    is_defeated: false,
+    created_at: '2024-01-17T09:15:00Z',
+    updated_at: '2024-01-17T09:15:00Z',
+};
+
+export const mockVillainWorkflow: VillainDto = {
+    id: '550e8400-e29b-41d4-a716-446655440004',
+    identifier: 'V-2004',
+    user_id: '550e8400-e29b-41d4-a716-446655440000',
+    workspace_id: mockWorkspace.id,
+    name: 'Context Switching',
+    villain_type: VillainType.WORKFLOW,
+    description: 'Team members constantly switch between multiple tools (Slack, email, project management, code editor, documentation) which breaks their flow state and reduces productivity by up to 40%.',
+    severity: 3,
+    is_defeated: false,
+    created_at: '2024-01-18T14:45:00Z',
+    updated_at: '2024-01-18T14:45:00Z',
+};
+
+export const mockVillainDefeated: VillainDto = {
+    id: '550e8400-e29b-41d4-a716-446655440005',
+    identifier: 'V-2005',
+    user_id: '550e8400-e29b-41d4-a716-446655440000',
+    workspace_id: mockWorkspace.id,
+    name: 'Manual Deployments',
+    villain_type: VillainType.TECHNICAL,
+    description: 'Manual deployment process was error-prone and time-consuming, requiring 2-3 hours and causing frequent production incidents. We have now automated this with CI/CD pipelines.',
+    severity: 2,
+    is_defeated: true,
+    created_at: '2024-01-10T08:00:00Z',
+    updated_at: '2024-02-15T16:30:00Z',
+};
+
+export const mockVillainOther: VillainDto = {
+    id: '550e8400-e29b-41d4-a716-446655440006',
+    identifier: 'V-2006',
+    user_id: '550e8400-e29b-41d4-a716-446655440000',
+    workspace_id: mockWorkspace.id,
+    name: 'Budget Constraints',
+    villain_type: VillainType.OTHER,
+    description: 'Limited budget prevents us from hiring additional team members or investing in better infrastructure, slowing down product development.',
+    severity: 3,
+    is_defeated: false,
+    created_at: '2024-01-20T13:00:00Z',
+    updated_at: '2024-01-20T13:00:00Z',
+};
+
+export const mockVillains: VillainDto[] = [
+    mockVillainExternal,
+    mockVillainInternal,
+    mockVillainTechnical,
+    mockVillainWorkflow,
+    mockVillainDefeated,
+    mockVillainOther,
+];

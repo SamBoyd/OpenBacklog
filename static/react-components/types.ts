@@ -643,3 +643,146 @@ export const InitiativeGroupDtoSchema = z.object({
     initiative: z.array(InitiativeDtoSchema)
 });
 
+// --- Narrative Layer Types ---
+
+/**
+ * Hero (user persona) data transfer object.
+ */
+export interface HeroDto {
+    id: string;
+    identifier: string;
+    workspace_id: string;
+    name: string;
+    description: string | null;
+    is_primary: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export const HeroDtoSchema = z.object({
+    id: z.string().uuid(),
+    identifier: z.string(),
+    workspace_id: z.string().uuid(),
+    name: z.string().min(1).max(100),
+    description: z.string().min(1).max(2000).nullable(),
+    is_primary: z.boolean(),
+    created_at: z.string().datetime(),
+    updated_at: z.string().datetime(),
+});
+
+/**
+ * Villain type enumeration for categorizing obstacles.
+ */
+export enum VillainType {
+    EXTERNAL = 'EXTERNAL',
+    INTERNAL = 'INTERNAL',
+    TECHNICAL = 'TECHNICAL',
+    WORKFLOW = 'WORKFLOW',
+    OTHER = 'OTHER',
+}
+
+/**
+ * Villain (problem/obstacle) data transfer object.
+ */
+export interface VillainDto {
+    id: string;
+    identifier: string;
+    user_id: string;
+    workspace_id: string;
+    name: string;
+    villain_type: VillainType;
+    description: string;
+    severity: number; // 1-5
+    is_defeated: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export const VillainDtoSchema = z.object({
+    id: z.string().uuid(),
+    identifier: z.string(),
+    user_id: z.string().uuid(),
+    workspace_id: z.string().uuid(),
+    name: z.string().min(1).max(100),
+    villain_type: z.nativeEnum(VillainType),
+    description: z.string().min(1).max(2000),
+    severity: z.number().int().min(1).max(5),
+    is_defeated: z.boolean(),
+    created_at: z.string().datetime(),
+    updated_at: z.string().datetime(),
+});
+
+/**
+ * Roadmap theme (story arc) data transfer object.
+ */
+export interface RoadmapThemeDto {
+    id: string;
+    identifier: string;
+    workspace_id: string;
+    title: string;
+    description: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export const RoadmapThemeDtoSchema = z.object({
+    id: z.string().uuid(),
+    identifier: z.string(),
+    workspace_id: z.string().uuid(),
+    title: z.string().min(1).max(200),
+    description: z.string().min(1).max(2000).nullable(),
+    created_at: z.string().datetime(),
+    updated_at: z.string().datetime(),
+});
+
+/**
+ * Conflict status enumeration.
+ */
+export enum ConflictStatus {
+    OPEN = 'OPEN',
+    ESCALATING = 'ESCALATING',
+    RESOLVING = 'RESOLVING',
+    RESOLVED = 'RESOLVED',
+}
+
+/**
+ * Conflict data transfer object representing a hero vs villain tension.
+ */
+export interface ConflictDto {
+    id: string;
+    identifier: string;
+    workspace_id: string;
+    hero_id: string;
+    villain_id: string;
+    description: string;
+    status: ConflictStatus;
+    story_arc_id: string | null;
+    resolved_at: string | null;
+    resolved_by_initiative_id: string | null;
+    created_at: string;
+    updated_at: string;
+    hero?: HeroDto;
+    villain?: VillainDto;
+    story_arc?: RoadmapThemeDto;
+    resolved_by_initiative?: Partial<InitiativeDto>;
+}
+
+export const ConflictDtoSchema = z.object({
+    id: z.string().uuid(),
+    identifier: z.string(),
+    workspace_id: z.string().uuid(),
+    hero_id: z.string().uuid(),
+    villain_id: z.string().uuid(),
+    description: z.string().min(1).max(2000),
+    status: z.nativeEnum(ConflictStatus),
+    story_arc_id: z.string().uuid().nullable(),
+    resolved_at: z.string().nullable(),
+    resolved_by_initiative_id: z.string().uuid().nullable(),
+    created_at: z.string().datetime(),
+    updated_at: z.string().datetime(),
+    hero: HeroDtoSchema.optional(),
+    villain: VillainDtoSchema.optional(),
+    story_arc: RoadmapThemeDtoSchema.optional(),
+    resolved_by_initiative: InitiativeDtoSchema.optional(),
+});
+
