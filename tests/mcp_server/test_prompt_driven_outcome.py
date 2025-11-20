@@ -52,6 +52,7 @@ class TestSubmitProductOutcome:
     async def test_submit_creates_outcome_successfully(self, workspace):
         """Test that submit successfully creates outcome via controller."""
         name = "Developer Daily Adoption"
+        description = "Goal: Increase daily active IDE plugin users. Baseline: 30% daily active. Target: 80% daily active. Timeline: 6 months."
 
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
@@ -63,9 +64,7 @@ class TestSubmitProductOutcome:
             mock_outcome.id = uuid.uuid4()
             mock_outcome.workspace_id = workspace.id
             mock_outcome.name = name
-            mock_outcome.description = None
-            mock_outcome.metrics = None
-            mock_outcome.time_horizon_months = None
+            mock_outcome.description = description
             mock_outcome.display_order = 0
             mock_outcome.pillars = []
             mock_outcome.created_at = None
@@ -76,7 +75,7 @@ class TestSubmitProductOutcome:
             ) as mock_create:
                 mock_create.return_value = mock_outcome
 
-                result = await submit_product_outcome.fn(name)
+                result = await submit_product_outcome.fn(name, description)
 
         assert_that(result, has_entries({"status": "success", "type": "outcome"}))
         assert_that(result, has_key("data"))

@@ -81,8 +81,7 @@ class TestSubmitStrategicPillar:
     async def test_submit_creates_pillar_successfully(self, workspace):
         """Test that submit successfully creates pillar via controller."""
         name = "Deep IDE Integration"
-        description = "Seamless IDE experience"
-        anti_strategy = "No web-first"
+        description = "Strategy: Seamless IDE experience. Anti-Strategy: No web-first"
 
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
@@ -96,7 +95,6 @@ class TestSubmitStrategicPillar:
             mock_pillar.workspace_id = workspace.id
             mock_pillar.name = name
             mock_pillar.description = description
-            mock_pillar.anti_strategy = anti_strategy
             mock_pillar.display_order = 0
             mock_pillar.outcomes = []
             mock_pillar.created_at = None
@@ -113,9 +111,7 @@ class TestSubmitStrategicPillar:
                 ) as mock_get_pillars:
                     mock_get_pillars.return_value = [mock_pillar]
 
-                    result = await submit_strategic_pillar.fn(
-                        name, description, anti_strategy
-                    )
+                    result = await submit_strategic_pillar.fn(name, description)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "pillar"}))
@@ -136,7 +132,9 @@ class TestSubmitStrategicPillar:
             ) as mock_create:
                 mock_create.side_effect = DomainException("Pillar limit exceeded")
 
-                result = await submit_strategic_pillar.fn("Pillar Name")
+                result = await submit_strategic_pillar.fn(
+                    "Pillar Name", "Strategy: X. Anti-Strategy: Y."
+                )
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "pillar"}))

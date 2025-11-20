@@ -126,10 +126,7 @@ class TestSubmitRoadmapTheme:
     async def test_submit_creates_theme_successfully(self, workspace):
         """Test that submit successfully creates theme via controller."""
         name = "First-Week Configuration Success"
-        problem_statement = "Users abandon initial configuration"
-        hypothesis = "Smart defaults will increase completion"
-        indicative_metrics = "Setup completion: 40% → 70%"
-        time_horizon_months = 6
+        description = "Problem Statement: Users abandon initial configuration. Hypothesis: Smart defaults will increase completion from 40% to 70%. Indicative Metrics: Setup completion rate. Timeline: 6 months."
         outcome_ids = [str(uuid.uuid4())]
 
         with patch(
@@ -143,10 +140,7 @@ class TestSubmitRoadmapTheme:
             mock_theme.id = uuid.uuid4()
             mock_theme.workspace_id = workspace.id
             mock_theme.name = name
-            mock_theme.problem_statement = problem_statement
-            mock_theme.hypothesis = hypothesis
-            mock_theme.indicative_metrics = indicative_metrics
-            mock_theme.time_horizon_months = time_horizon_months
+            mock_theme.description = description
             mock_theme.outcomes = []
             mock_theme.created_at = None
             mock_theme.updated_at = None
@@ -159,10 +153,7 @@ class TestSubmitRoadmapTheme:
 
                 result = await submit_roadmap_theme.fn(
                     name,
-                    problem_statement,
-                    hypothesis,
-                    indicative_metrics,
-                    time_horizon_months,
+                    description,
                     outcome_ids,
                 )
 

@@ -85,34 +85,17 @@ async def get_theme_exploration_framework() -> Dict[str, Any]:
             ]
         )
 
-        # Add theme pattern template
-        builder.add_context(
-            "theme_pattern",
-            {
-                "problem": "Users are experiencing [specific problem]",
-                "hypothesis": "If we [intervention], then [outcome] because [rationale]",
-                "metrics": "[Metric] improves from [baseline] to [target]",
-                "horizon": "0-12 months",
-            },
-        )
-
         # Add detailed examples
         builder.add_example(
             text="First-Week Configuration Success",
             why_good="Specific problem, testable hypothesis, measurable, reasonable timeline",
-            problem_statement="New users abandon initial configuration (40% drop-off) because they don't understand why each setting matters",
-            hypothesis="Providing example values and smart defaults for each configuration setting will increase setup completion from 40% to 70%",
-            indicative_metrics="Setup completion rate: 40% → 70%",
-            time_horizon_months=6,
+            description="**Problem Statement**: New users abandon initial configuration (40% drop-off) because they don't understand why each setting matters. **Hypothesis**: Providing example values and smart defaults for each configuration setting will increase setup completion from 40% to 70%. **Indicative Metrics**: Setup completion rate improves from 40% to 70%. **Timeline**: 6 months to test and validate.",
         )
 
         builder.add_example(
             text="Keyboard-First Power Users",
             why_good="Clear user segment (power users), specific intervention, measurable outcome",
-            problem_statement="Power users lose time switching between keyboard and mouse during complex workflows",
-            hypothesis="If we provide comprehensive keyboard shortcuts for all actions, daily active power users will increase by 50%",
-            indicative_metrics="Daily active power users: +50%",
-            time_horizon_months=9,
+            description="**Problem Statement**: Power users lose time switching between keyboard and mouse during complex workflows. **Hypothesis**: If we provide comprehensive keyboard shortcuts for all actions, daily active power users will increase by 50%. **Indicative Metrics**: Daily active power users increases by 50%. **Timeline**: 9 months to implement and measure.",
         )
 
         # Add guiding questions
@@ -161,7 +144,7 @@ async def get_theme_exploration_framework() -> Dict[str, Any]:
                     {
                         "id": str(theme.id),
                         "name": theme.name,
-                        "problem_statement": theme.problem_statement,
+                        "description": theme.description,
                         "outcome_ids": [str(o.id) for o in theme.outcomes],
                     }
                     for theme in prioritized_themes
@@ -170,7 +153,7 @@ async def get_theme_exploration_framework() -> Dict[str, Any]:
                     {
                         "id": str(theme.id),
                         "name": theme.name,
-                        "problem_statement": theme.problem_statement,
+                        "description": theme.description,
                         "outcome_ids": [str(o.id) for o in theme.outcomes],
                     }
                     for theme in unprioritized_themes
@@ -199,10 +182,7 @@ async def get_theme_exploration_framework() -> Dict[str, Any]:
 @mcp.tool()
 async def submit_roadmap_theme(
     name: str,
-    problem_statement: str,
-    hypothesis: Optional[str] = None,
-    indicative_metrics: Optional[str] = None,
-    time_horizon_months: Optional[int] = None,
+    description: str,
     outcome_ids: Optional[List[str]] = None,
     hero_identifier: Optional[str] = None,
     primary_villain_identifier: Optional[str] = None,
@@ -217,10 +197,8 @@ async def submit_roadmap_theme(
 
     Args:
         name: Theme name (1-100 characters, unique per workspace)
-        problem_statement: Problem being solved (1-1500 characters, required)
-        hypothesis: Expected outcome (max 1500 characters, optional)
-        indicative_metrics: Success metrics (max 1000 characters, optional)
-        time_horizon_months: Time horizon in months (0-12, optional)
+        description: Theme description including problem statement, hypothesis, metrics, and timeline (required)
+                    Should include specific problem, testable hypothesis, indicative metrics, and timeline
         outcome_ids: List of outcome IDs to link (optional but recommended)
         hero_identifier: Optional human-readable hero identifier (e.g., "H-2003")
         primary_villain_identifier: Optional human-readable villain identifier (e.g., "V-2003")
@@ -231,10 +209,7 @@ async def submit_roadmap_theme(
     Example:
         >>> result = await submit_roadmap_theme(
         ...     name="First-Week Configuration Success",
-        ...     problem_statement="Users abandon setup...",
-        ...     hypothesis="Smart defaults will increase completion...",
-        ...     indicative_metrics="Setup completion: 40% → 70%",
-        ...     time_horizon_months=6,
+        ...     description="Problem Statement: New users abandon initial configuration (40% drop-off) because they don't understand why each setting matters. Hypothesis: Providing example values and smart defaults will increase setup completion from 40% to 70%. Indicative Metrics: Setup completion rate increases from 40% to 70%. Timeline: 6 months.",
         ...     outcome_ids=["outcome-uuid-1"]
         ... )
     """
@@ -281,10 +256,7 @@ async def submit_roadmap_theme(
             workspace_id=uuid.UUID(workspace_id),
             user_id=uuid.UUID(user_id),
             name=name,
-            problem_statement=problem_statement,
-            hypothesis=hypothesis,
-            indicative_metrics=indicative_metrics,
-            time_horizon_months=time_horizon_months,
+            description=description,
             outcome_ids=outcome_uuids,
             session=session,
         )

@@ -545,17 +545,18 @@ Framework similar to vision with pillar-specific criteria:
 
 ---
 
-#### `submit_strategic_pillar(workspace_id: str, name: str, description: str)`
+#### `submit_strategic_pillar(name: str, description: str)`
 
 Submits a refined strategic pillar.
 
 **Parameters:**
-- `workspace_id`: UUID of workspace
-- `name`: Pillar name
-- `description`: Pillar description
+- `name`: Pillar name (1-100 characters, unique per workspace)
+- `description`: Pillar description including strategy and anti-strategy (required)
+  - Should include both what you'll do and what you won't do
+  - Example: "Strategy: Provide seamless experience within developer's existing workflow. Anti-Strategy: No web-first experience, no mobile app, no Slack/Teams bots."
 
 **Returns:**
-Success response with saved pillar data.
+Success response with saved pillar data and next steps.
 
 ---
 
@@ -574,21 +575,19 @@ Framework with outcome-specific guidance:
 
 ---
 
-#### `submit_product_outcome(workspace_id: str, name: str, description: str, baseline_value: float, target_value: float, unit: str, target_date: str)`
+#### `submit_product_outcome(name: str, description: str, pillar_ids: List[str] | None)`
 
 Submits a refined product outcome.
 
 **Parameters:**
-- `workspace_id`: UUID of workspace
-- `name`: Outcome name
-- `description`: Outcome description
-- `baseline_value`: Starting metric value
-- `target_value`: Target metric value
-- `unit`: Metric unit (e.g., "%", "users", "minutes")
-- `target_date`: ISO date string
+- `name`: Outcome name (1-150 characters)
+- `description`: Outcome description including goal, baseline, target, and timeline (required)
+  - Should include: specific metric, baseline value, target value, and timeline
+  - Example: "Goal: Increase daily active IDE plugin users. Baseline: 30% of users daily active. Target: 80% daily active. Timeline: 6 months."
+- `pillar_ids`: Optional list of pillar UUIDs to link (recommended for strategic alignment)
 
 **Returns:**
-Success response with saved outcome data.
+Success response with saved outcome data and next steps.
 
 ---
 
@@ -603,27 +602,29 @@ Returns framework for defining hypothesis-driven roadmap themes.
 **Returns:**
 Framework with:
 - Purpose: Identify strategic bet areas
-- Theme pattern template (problem/hypothesis/metrics/horizon)
-- Examples of good themes
-- Current outcomes and themes
-- Alignment scoring guidance
+- Criteria for good themes (problem, hypothesis, metrics, timeline)
+- Examples of good themes with structured descriptions
+- Guiding questions and anti-patterns
+- Current outcomes and themes (prioritized and unprioritized)
+- Coaching tips for hypothesis-driven thinking
 
 ---
 
-#### `submit_roadmap_theme(workspace_id: str, name: str, problem_statement: str, hypothesis: str, success_metrics: str, time_horizon_months: int)`
+#### `submit_roadmap_theme(name: str, description: str, outcome_ids: List[str] | None, hero_identifier: str | None, primary_villain_identifier: str | None)`
 
 Submits a refined roadmap theme.
 
 **Parameters:**
-- `workspace_id`: UUID of workspace
-- `name`: Theme name
-- `problem_statement`: What's broken?
-- `hypothesis`: What do you believe will work?
-- `success_metrics`: How will you measure success?
-- `time_horizon_months`: 0-12 months
+- `name`: Theme name (1-100 characters, unique per workspace)
+- `description`: Theme description including problem statement, hypothesis, metrics, and timeline (required)
+  - Should include: specific problem, testable hypothesis, indicative metrics, and timeline
+  - Example: "Problem Statement: New users abandon setup (40% drop-off). Hypothesis: Smart defaults will increase completion from 40% to 70%. Indicative Metrics: Setup completion rate. Timeline: 6 months."
+- `outcome_ids`: Optional list of outcome UUIDs to link (recommended for strategic alignment)
+- `hero_identifier`: Optional human-readable hero identifier (e.g., "H-2003") to link who benefits
+- `primary_villain_identifier`: Optional human-readable villain identifier (e.g., "V-2003") to link what problem is solved
 
 **Returns:**
-Success response with theme data and alignment score.
+Success response with theme data and next steps.
 
 ---
 

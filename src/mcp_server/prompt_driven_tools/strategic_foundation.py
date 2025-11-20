@@ -78,7 +78,7 @@ async def get_vision_definition_framework() -> Dict[str, Any]:
                 "Outcome-focused, not solution-focused",
                 "Describes change in user's world",
                 "Clear and inspiring",
-                "1-2 sentences (max 1000 characters)",
+                "1-2 sentences recommended (no character limit)",
             ]
         )
 
@@ -166,7 +166,7 @@ async def submit_product_vision(vision_text: str) -> Dict[str, Any]:
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        vision_text: Refined vision statement (1-1000 characters)
+        vision_text: Refined vision statement (non-empty text)
 
     Returns:
         Success response with created/updated vision and suggested next steps
@@ -243,7 +243,7 @@ async def get_pillar_definition_framework() -> Dict[str, Any]:
     Example:
         >>> framework = await get_pillar_definition_framework()
         >>> # Claude Code uses framework to guide user through refinement
-        >>> await submit_strategic_pillar(name, description, anti_strategy)
+        >>> await submit_strategic_pillar(name, description)
     """
     session = SessionLocal()
     try:
@@ -274,15 +274,13 @@ async def get_pillar_definition_framework() -> Dict[str, Any]:
         builder.add_example(
             text="Deep IDE Integration",
             why_good="Clear focus on IDE, explicit trade-offs on other platforms",
-            description="Provide seamless experience within developer's existing workflow",
-            anti_strategy="No web-first experience, no mobile app, no Slack/Teams bots",
+            description="**Strategy**: Provide seamless experience within developer's existing workflow. **Anti-Strategy**: No web-first experience, no mobile app, no Slack/Teams bots.",
         )
 
         builder.add_example(
             text="Developer-First UX",
             why_good="Prioritizes user over buyer, clear scope exclusions",
-            description="Optimize for individual developer productivity, not team admin",
-            anti_strategy="No enterprise admin features, no complex permissions, no audit logs",
+            description="**Strategy**: Optimize for individual developer productivity, not team admin. **Anti-Strategy**: No enterprise admin features, no complex permissions, no audit logs.",
         )
 
         builder.add_questions(
@@ -326,7 +324,6 @@ async def get_pillar_definition_framework() -> Dict[str, Any]:
                         "id": str(pillar.id),
                         "name": pillar.name,
                         "description": pillar.description,
-                        "anti_strategy": pillar.anti_strategy,
                     }
                     for pillar in current_pillars
                 ],
@@ -369,8 +366,7 @@ async def get_pillar_definition_framework() -> Dict[str, Any]:
 @mcp.tool()
 async def submit_strategic_pillar(
     name: str,
-    description: Optional[str] = None,
-    anti_strategy: Optional[str] = None,
+    description: str,
 ) -> Dict[str, Any]:
     """Submit a refined strategic pillar after collaborative definition.
 
@@ -382,8 +378,8 @@ async def submit_strategic_pillar(
 
     Args:
         name: Pillar name (1-100 characters, unique per workspace)
-        description: Optional pillar description (max 1000 characters)
-        anti_strategy: Optional anti-strategy text (max 1000 characters)
+        description: Pillar description including strategy and anti-strategy (required)
+                    Should include both what you'll do and what you won't do
 
     Returns:
         Success response with created pillar and suggested next steps
@@ -391,8 +387,7 @@ async def submit_strategic_pillar(
     Example:
         >>> result = await submit_strategic_pillar(
         ...     name="Deep IDE Integration",
-        ...     description="Provide seamless experience within developer's existing workflow",
-        ...     anti_strategy="No web-first experience, no mobile app"
+        ...     description="Strategy: Provide seamless experience within developer's existing workflow. Anti-Strategy: No web-first experience, no mobile app, no Slack/Teams bots"
         ... )
     """
     session = SessionLocal()
@@ -406,7 +401,6 @@ async def submit_strategic_pillar(
             user_id=uuid.UUID(user_id),
             name=name,
             description=description,
-            anti_strategy=anti_strategy,
             session=session,
         )
 
@@ -434,12 +428,6 @@ async def submit_strategic_pillar(
             )
             next_steps.append(
                 "Use get_outcome_definition_framework() to start defining outcomes"
-            )
-
-        # Warn if no anti-strategy provided
-        if not anti_strategy:
-            next_steps.append(
-                "⚠️  Consider adding an anti-strategy to clarify what you WON'T do"
             )
 
         return build_success_response(
@@ -512,11 +500,7 @@ async def get_outcome_definition_framework() -> Dict[str, Any]:
         builder.add_example(
             text="Developer Daily Adoption",
             why_good="Specific metric, clear baseline/target, reasonable timeline, linked to pillar",
-            description="Increase daily active IDE plugin users from 30% to 80% within 6 months",
-            metric="Daily active users %",
-            baseline="30%",
-            target="80%",
-            time_horizon_months=6,
+            description="Goal: Increase daily active IDE plugin users to measure adoption. Baseline: 30% of users currently daily active. Target: 80% daily active. Timeline: 6 months to reach this target.",
         )
 
         builder.add_questions(
@@ -558,8 +542,7 @@ async def get_outcome_definition_framework() -> Dict[str, Any]:
                     {
                         "id": str(outcome.id),
                         "name": outcome.name,
-                        "metrics": outcome.metrics,
-                        "time_horizon_months": outcome.time_horizon_months,
+                        "description": outcome.description,
                     }
                     for outcome in current_outcomes
                 ],
@@ -585,9 +568,7 @@ async def get_outcome_definition_framework() -> Dict[str, Any]:
 @mcp.tool()
 async def submit_product_outcome(
     name: str,
-    description: Optional[str] = None,
-    metrics: Optional[str] = None,
-    time_horizon_months: Optional[int] = None,
+    description: str,
     pillar_ids: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Submit a refined product outcome after collaborative definition.
@@ -597,13 +578,19 @@ async def submit_product_outcome(
 
     Args:
         name: Outcome name (1-150 characters)
-        description: Optional outcome description (max 1500 characters)
-        metrics: How to measure this outcome (max 1000 characters)
-        time_horizon_months: Time horizon in months (1-36)
-        pillar_ids: List of pillar UUIDs to link
+        description: Outcome description including goal, baseline, target, and timeline (required)
+                    Should include specific metrics, baseline values, target values, and timeline
+        pillar_ids: List of pillar UUIDs to link (optional)
 
     Returns:
         Success response with created outcome
+
+    Example:
+        >>> result = await submit_product_outcome(
+        ...     name="Developer Daily Adoption",
+        ...     description="Goal: Increase daily active IDE plugin users to measure adoption. Baseline: 30% of users daily active. Target: 80% daily active. Timeline: 6 months. Metric: Daily active users %",
+        ...     pillar_ids=["pillar-uuid-1"]
+        ... )
     """
     session = SessionLocal()
     try:
@@ -622,8 +609,6 @@ async def submit_product_outcome(
             user_id=uuid.UUID(user_id),
             name=name,
             description=description,
-            metrics=metrics,
-            time_horizon_months=time_horizon_months,
             pillar_ids=pillar_uuids,
             session=session,
         )
