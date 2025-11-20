@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     )
     from src.models import Workspace
     from src.narrative.aggregates.hero import Hero
+    from src.narrative.aggregates.turning_point import TurningPoint
     from src.narrative.aggregates.villain import Villain
     from src.strategic_planning.aggregates.product_outcome import ProductOutcome
     from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
@@ -51,15 +52,13 @@ class RoadmapTheme(Base):
         hypothesis: Expected outcome (max 1500 characters)
         indicative_metrics: Success metrics (max 1000 characters)
         time_horizon_months: Time horizon in months (0-12)
-        hero_id: Optional foreign key to hero (user persona)
-        primary_villain_id: Optional foreign key to primary villain (problem)
         created_at: Timestamp when theme was created
         updated_at: Timestamp when theme was last modified
         workspace: Relationship to Workspace entity
         outcomes: Relationship to ProductOutcome entities (many-to-many)
         initiatives: Relationship to Initiative entities (one-to-many)
-        hero: Relationship to Hero entity
-        primary_villain: Relationship to Villain entity
+        heroes: Many-to-many relationship to Hero entities
+        villains: Many-to-many relationship to Villain entities
     """
 
     __tablename__ = "roadmap_themes"
@@ -117,18 +116,6 @@ class RoadmapTheme(Base):
         nullable=True,
     )
 
-    hero_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("dev.heroes.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-
-    primary_villain_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("dev.villains.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -160,14 +147,22 @@ class RoadmapTheme(Base):
         back_populates="roadmap_theme",
     )
 
-    hero: Mapped["Hero | None"] = relationship(
+    heroes: Mapped[List["Hero"]] = relationship(
         "Hero",
-        foreign_keys=[hero_id],
+        secondary="dev.roadmap_theme_heroes",
+        back_populates="roadmap_themes",
     )
 
-    primary_villain: Mapped["Villain | None"] = relationship(
+    villains: Mapped[List["Villain"]] = relationship(
         "Villain",
-        foreign_keys=[primary_villain_id],
+        secondary="dev.roadmap_theme_villains",
+        back_populates="roadmap_themes",
+    )
+
+    turning_points: Mapped[List["TurningPoint"]] = relationship(
+        "TurningPoint",
+        secondary="dev.turning_point_story_arcs",
+        back_populates="story_arcs",
     )
 
     @staticmethod
@@ -272,6 +267,8 @@ class RoadmapTheme(Base):
         time_horizon_months: int | None,
         session: Session,
         publisher: "EventPublisher",
+        hero_ids: List[uuid.UUID] | None = None,
+        villain_ids: List[uuid.UUID] | None = None,
     ) -> "RoadmapTheme":
         """Define a new roadmap theme with business validation.
 
@@ -286,6 +283,8 @@ class RoadmapTheme(Base):
             hypothesis: Expected outcome (max 1500 characters)
             indicative_metrics: Success metrics (max 1000 characters)
             time_horizon_months: Time horizon in months (0-12)
+            hero_ids: Optional list of hero UUIDs this theme concerns
+            villain_ids: Optional list of villain UUIDs this theme opposes
             session: SQLAlchemy database session
             publisher: EventPublisher instance for emitting domain events
 
@@ -329,6 +328,12 @@ class RoadmapTheme(Base):
         session.add(theme)
         session.flush()
 
+        # Link heroes and villains if provided
+        if hero_ids:
+            theme.link_heroes(hero_ids, session)
+        if villain_ids:
+            theme.link_villains(villain_ids, session)
+
         event = DomainEvent(
             user_id=user_id,
             event_type="ThemeDefined",
@@ -354,6 +359,9 @@ class RoadmapTheme(Base):
         indicative_metrics: str | None,
         time_horizon_months: int | None,
         publisher: "EventPublisher",
+        hero_ids: List[uuid.UUID] | None = None,
+        villain_ids: List[uuid.UUID] | None = None,
+        session: Session | None = None,
     ) -> None:
         """Update an existing roadmap theme.
 
@@ -366,6 +374,9 @@ class RoadmapTheme(Base):
             hypothesis: Updated hypothesis (max 1500 characters)
             indicative_metrics: Updated metrics (max 1000 characters)
             time_horizon_months: Updated time horizon (0-12 months)
+            hero_ids: Optional list of hero UUIDs to replace existing links
+            villain_ids: Optional list of villain UUIDs to replace existing links
+            session: Database session (required if hero_ids or villain_ids provided)
             publisher: EventPublisher instance for emitting domain events
 
         Raises:
@@ -394,6 +405,12 @@ class RoadmapTheme(Base):
         self.time_horizon_months = time_horizon_months
         self.updated_at = datetime.now(timezone.utc)
 
+        # Update many-to-many relationships if provided
+        if hero_ids is not None and session is not None:
+            self.link_heroes(hero_ids, session)
+        if villain_ids is not None and session is not None:
+            self.link_villains(villain_ids, session)
+
         event = DomainEvent(
             user_id=uuid.uuid4(),
             event_type="ThemeUpdated",
@@ -408,6 +425,78 @@ class RoadmapTheme(Base):
             },
         )
         publisher.publish(event, workspace_id=str(self.workspace_id))
+
+    def link_heroes(
+        self,
+        hero_ids: List[uuid.UUID],
+        session: Session,
+    ) -> None:
+        """Link heroes to this roadmap theme.
+
+        This method replaces all existing hero links with the new set.
+
+        Args:
+            hero_ids: List of hero IDs to link
+            session: Database session
+
+        Example:
+            >>> theme.link_heroes([hero1.id, hero2.id], session)
+        """
+        from src.narrative.aggregates.hero import Hero
+        from src.roadmap_intelligence.models import RoadmapThemeHero
+
+        session.query(RoadmapThemeHero).filter(
+            RoadmapThemeHero.roadmap_theme_id == self.id
+        ).delete()
+
+        for hero_id in hero_ids:
+            hero = session.query(Hero).filter_by(id=hero_id).first()
+            if not hero:
+                raise DomainException(f"Hero with id {hero_id} does not exist")
+            link = RoadmapThemeHero(
+                roadmap_theme_id=self.id,
+                hero_id=hero_id,
+                user_id=self.user_id,
+            )
+            session.add(link)
+
+        self.updated_at = datetime.now(timezone.utc)
+
+    def link_villains(
+        self,
+        villain_ids: List[uuid.UUID],
+        session: Session,
+    ) -> None:
+        """Link villains to this roadmap theme.
+
+        This method replaces all existing villain links with the new set.
+
+        Args:
+            villain_ids: List of villain IDs to link
+            session: Database session
+
+        Example:
+            >>> theme.link_villains([villain1.id, villain2.id], session)
+        """
+        from src.narrative.aggregates.villain import Villain
+        from src.roadmap_intelligence.models import RoadmapThemeVillain
+
+        session.query(RoadmapThemeVillain).filter(
+            RoadmapThemeVillain.roadmap_theme_id == self.id
+        ).delete()
+
+        for villain_id in villain_ids:
+            villain = session.query(Villain).filter_by(id=villain_id).first()
+            if not villain:
+                raise DomainException(f"Villain with id {villain_id} does not exist")
+            link = RoadmapThemeVillain(
+                roadmap_theme_id=self.id,
+                villain_id=villain_id,
+                user_id=self.user_id,
+            )
+            session.add(link)
+
+        self.updated_at = datetime.now(timezone.utc)
 
     def link_to_outcomes(
         self,

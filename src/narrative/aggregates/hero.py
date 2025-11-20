@@ -25,8 +25,12 @@ from src.narrative.exceptions import DomainException
 from src.strategic_planning.models import DomainEvent
 
 if TYPE_CHECKING:
+    from src.initiative_management.aggregates.strategic_initiative import (
+        StrategicInitiative,
+    )
     from src.models import Workspace
     from src.narrative.aggregates.conflict import Conflict
+    from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
     from src.strategic_planning.services.event_publisher import EventPublisher
 
 
@@ -130,6 +134,18 @@ class Hero(Base):
     conflicts: Mapped[List["Conflict"]] = relationship(
         "Conflict",
         back_populates="hero",
+    )
+
+    strategic_initiatives: Mapped[List["StrategicInitiative"]] = relationship(
+        "StrategicInitiative",
+        secondary="dev.strategic_initiative_heroes",
+        back_populates="heroes",
+    )
+
+    roadmap_themes: Mapped[List["RoadmapTheme"]] = relationship(
+        "RoadmapTheme",
+        secondary="dev.roadmap_theme_heroes",
+        back_populates="heroes",
     )
 
     @staticmethod

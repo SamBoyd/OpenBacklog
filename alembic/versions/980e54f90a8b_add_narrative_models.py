@@ -319,11 +319,20 @@ def upgrade() -> None:
 
     op.execute(
         dedent(
-            """
+            f"""
             CREATE TRIGGER trg_hero_identifier
             BEFORE INSERT ON dev.heroes
             FOR EACH ROW
             EXECUTE FUNCTION dev.set_hero_identifier();
+
+
+            ALTER TABLE dev.heroes ENABLE ROW LEVEL SECURITY;
+
+            CREATE POLICY heroes_policy ON dev.heroes
+                USING (user_id = private.get_user_id_from_jwt())
+                WITH CHECK (user_id = private.get_user_id_from_jwt());
+
+            GRANT SELECT, UPDATE, DELETE, INSERT ON TABLE dev.heroes TO {settings.postgrest_authenticated_role};
             """
         )
     )
@@ -399,11 +408,19 @@ def upgrade() -> None:
 
     op.execute(
         dedent(
-            """
+            f"""
             CREATE TRIGGER trg_villain_identifier
             BEFORE INSERT ON dev.villains
             FOR EACH ROW
             EXECUTE FUNCTION dev.set_villain_identifier();
+
+            ALTER TABLE dev.villains ENABLE ROW LEVEL SECURITY;
+
+            CREATE POLICY villains_policy ON dev.villains
+                USING (user_id = private.get_user_id_from_jwt())
+                WITH CHECK (user_id = private.get_user_id_from_jwt());
+
+            GRANT SELECT, UPDATE, DELETE, INSERT ON TABLE dev.villains TO {settings.postgrest_authenticated_role};
             """
         )
     )
@@ -492,11 +509,19 @@ def upgrade() -> None:
 
     op.execute(
         dedent(
-            """
+            f"""
             CREATE TRIGGER trg_conflict_identifier
             BEFORE INSERT ON dev.conflicts
             FOR EACH ROW
             EXECUTE FUNCTION dev.set_conflict_identifier();
+
+            ALTER TABLE dev.conflicts ENABLE ROW LEVEL SECURITY;
+
+            CREATE POLICY conflicts_policy ON dev.conflicts
+                USING (user_id = private.get_user_id_from_jwt())
+                WITH CHECK (user_id = private.get_user_id_from_jwt());
+
+            GRANT SELECT, UPDATE, DELETE, INSERT ON TABLE dev.conflicts TO {settings.postgrest_authenticated_role};
             """
         )
     )
@@ -536,6 +561,7 @@ def upgrade() -> None:
         ),
         sa.Column("narrative_description", sa.Text(), nullable=False),
         sa.Column("significance", significance_enum, nullable=False),
+        sa.Column("conflict_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("story_arc_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("initiative_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("task_id", postgresql.UUID(as_uuid=True), nullable=True),
@@ -551,6 +577,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["user_id"], ["private.users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(
             ["domain_event_id"], ["dev.domain_events.id"], ondelete="CASCADE"
+        ),
+        sa.ForeignKeyConstraint(
+            ["conflict_id"], ["dev.conflicts.id"], ondelete="SET NULL"
         ),
         sa.ForeignKeyConstraint(
             ["story_arc_id"], ["dev.roadmap_themes.id"], ondelete="SET NULL"
@@ -586,6 +615,12 @@ def upgrade() -> None:
         schema="dev",
     )
     op.create_index(
+        "ix_turning_points_conflict_id",
+        "turning_points",
+        ["conflict_id"],
+        schema="dev",
+    )
+    op.create_index(
         "ix_turning_points_created_at",
         "turning_points",
         ["created_at"],
@@ -596,11 +631,19 @@ def upgrade() -> None:
 
     op.execute(
         dedent(
-            """
+            f"""
             CREATE TRIGGER trg_turning_point_identifier
             BEFORE INSERT ON dev.turning_points
             FOR EACH ROW
             EXECUTE FUNCTION dev.set_turning_point_identifier();
+
+            ALTER TABLE dev.turning_points ENABLE ROW LEVEL SECURITY;
+
+            CREATE POLICY turning_points_policy ON dev.turning_points
+                USING (user_id = private.get_user_id_from_jwt())
+                WITH CHECK (user_id = private.get_user_id_from_jwt());
+
+            GRANT SELECT, UPDATE, DELETE, INSERT ON TABLE dev.turning_points TO {settings.postgrest_authenticated_role};
             """
         )
     )

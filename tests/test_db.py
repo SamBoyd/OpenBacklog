@@ -2,7 +2,7 @@ import json
 import uuid
 
 import pytest
-from hamcrest import assert_that, contains, equal_to, has_item, is_
+from hamcrest import any_of, assert_that, contains, equal_to, has_item, is_, none, not_
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -42,7 +42,11 @@ def test_tables_in_public_schema(session: Session):
         )
     )
     table_names = [row[0] for row in result.fetchall()]
-    assert_that(len(table_names), equal_to(22))
+    assert_that(
+        len(table_names),
+        equal_to(37),
+        f"Expected 22 tables in {SCHEMA_NAME} schema, but got {len(table_names)}",
+    )
 
     for table in table_names:
         # Check that the table exists
@@ -62,13 +66,22 @@ def test_tables_in_public_schema(session: Session):
         )
 
         # Check that the table has security policies
-        expected_check = "(user_id = get_user_id_from_jwt())"
         query = text(f"select with_check from pg_policies where tablename = '{table}';")
         result = session.execute(query)
+        raw_policy = result.fetchone()[0]
+        policy = " ".join(raw_policy.split())
         assert_that(
-            result.fetchone()[0],
-            is_(expected_check),
+            policy,
+            is_(not_(none())),
             f"Table {table} does not have security policies",
+        )
+
+        user_id_check = "(user_id = get_user_id_from_jwt())"
+        workspace_id_check = "(workspace_id IN ( SELECT workspace.id FROM workspace WHERE (workspace.user_id = get_user_id_from_jwt())))"
+        assert_that(
+            policy,
+            any_of(is_(user_id_check), is_(workspace_id_check)),
+            f"Table {table} has unexpected security policy, {policy}",
         )
 
 

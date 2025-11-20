@@ -6,7 +6,7 @@ business logic for defining and managing strategic context for initiatives.
 
 import uuid
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import DateTime, ForeignKey, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
@@ -48,9 +48,6 @@ class StrategicInitiative(Base):
         connection_to_vision: How this connects to workspace vision (max 1000 chars)
         success_criteria: What success looks like (max 1000 chars)
         out_of_scope: What is explicitly NOT being done (max 1000 chars)
-        hero_id: Optional foreign key to hero (user persona)
-        villain_id: Optional foreign key to villain (problem)
-        conflict_id: Optional foreign key to conflict
         narrative_intent: Optional text describing why this initiative matters narratively
         created_at: Timestamp when context was created
         updated_at: Timestamp when context was last modified
@@ -58,9 +55,9 @@ class StrategicInitiative(Base):
         workspace: Relationship to Workspace entity
         strategic_pillar: Relationship to StrategicPillar entity
         roadmap_theme: Relationship to RoadmapTheme entity
-        hero: Relationship to Hero entity
-        villain: Relationship to Villain entity
-        conflict: Relationship to Conflict entity
+        heroes: Many-to-many relationship to Hero entities
+        villains: Many-to-many relationship to Villain entities
+        conflicts: Many-to-many relationship to Conflict entities
     """
 
     __tablename__ = "strategic_initiatives"
@@ -130,24 +127,6 @@ class StrategicInitiative(Base):
         nullable=True,
     )
 
-    hero_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("dev.heroes.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-
-    villain_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("dev.villains.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-
-    conflict_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("dev.conflicts.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-
     narrative_intent: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
@@ -189,19 +168,22 @@ class StrategicInitiative(Base):
         back_populates="strategic_initiatives",
     )
 
-    hero: Mapped["Hero | None"] = relationship(
+    heroes: Mapped[List["Hero"]] = relationship(
         "Hero",
-        foreign_keys=[hero_id],
+        secondary="dev.strategic_initiative_heroes",
+        back_populates="strategic_initiatives",
     )
 
-    villain: Mapped["Villain | None"] = relationship(
+    villains: Mapped[List["Villain"]] = relationship(
         "Villain",
-        foreign_keys=[villain_id],
+        secondary="dev.strategic_initiative_villains",
+        back_populates="strategic_initiatives",
     )
 
-    conflict: Mapped["Conflict | None"] = relationship(
+    conflicts: Mapped[List["Conflict"]] = relationship(
         "Conflict",
-        foreign_keys=[conflict_id],
+        secondary="dev.strategic_initiative_conflicts",
+        back_populates="strategic_initiatives",
     )
 
     @staticmethod
@@ -222,6 +204,8 @@ class StrategicInitiative(Base):
 
     @staticmethod
     def define_strategic_context(
+        session: Session,
+        publisher: "EventPublisher",
         initiative_id: uuid.UUID,
         workspace_id: uuid.UUID,
         user_id: uuid.UUID,
@@ -231,8 +215,9 @@ class StrategicInitiative(Base):
         connection_to_vision: str | None,
         success_criteria: str | None,
         out_of_scope: str | None,
-        session: Session,
-        publisher: "EventPublisher",
+        hero_ids: List[uuid.UUID] | None = None,
+        villain_ids: List[uuid.UUID] | None = None,
+        conflict_ids: List[uuid.UUID] | None = None,
     ) -> "StrategicInitiative":
         """Define strategic context for an initiative with business validation.
 
@@ -250,6 +235,9 @@ class StrategicInitiative(Base):
             connection_to_vision: How this connects to vision (max 1000 chars)
             success_criteria: What success looks like (max 1000 chars)
             out_of_scope: What is explicitly NOT being done (max 1000 chars)
+            hero_ids: Optional list of hero UUIDs this initiative serves
+            villain_ids: Optional list of villain UUIDs this initiative confronts
+            conflict_ids: Optional list of conflict UUIDs this initiative addresses
             session: Database session for persistence
             publisher: EventPublisher instance for emitting domain events
 
@@ -299,6 +287,14 @@ class StrategicInitiative(Base):
         session.add(strategic_initiative)
         session.flush()
 
+        # Link heroes, villains, and conflicts if provided
+        if hero_ids:
+            strategic_initiative.link_heroes(hero_ids, session)
+        if villain_ids:
+            strategic_initiative.link_villains(villain_ids, session)
+        if conflict_ids:
+            strategic_initiative.link_conflicts(conflict_ids, session)
+
         # Emit event now that we have ID
         event = DomainEvent(
             user_id=user_id,
@@ -321,13 +317,17 @@ class StrategicInitiative(Base):
 
     def update_strategic_context(
         self,
+        publisher: "EventPublisher",
         pillar_id: uuid.UUID | None,
         theme_id: uuid.UUID | None,
         user_need: str | None,
         connection_to_vision: str | None,
         success_criteria: str | None,
         out_of_scope: str | None,
-        publisher: "EventPublisher",
+        hero_ids: List[uuid.UUID] | None = None,
+        villain_ids: List[uuid.UUID] | None = None,
+        conflict_ids: List[uuid.UUID] | None = None,
+        session: Session | None = None,
     ) -> None:
         """Update an existing strategic context.
 
@@ -335,26 +335,30 @@ class StrategicInitiative(Base):
         a StrategicContextUpdated domain event.
 
         Args:
+            publisher: EventPublisher instance for emitting domain events
             pillar_id: Optional UUID of the strategic pillar
             theme_id: Optional UUID of the roadmap theme
             user_need: Updated user need (max 1000 chars)
             connection_to_vision: Updated vision connection (max 1000 chars)
             success_criteria: Updated success criteria (max 1000 chars)
             out_of_scope: Updated out of scope (max 1000 chars)
-            publisher: EventPublisher instance for emitting domain events
+            hero_ids: Optional list of hero UUIDs to replace existing links
+            villain_ids: Optional list of villain UUIDs to replace existing links
+            conflict_ids: Optional list of conflict UUIDs to replace existing links
+            session: Database session (required if hero_ids, villain_ids, or conflict_ids provided)
 
         Raises:
             DomainException: If any field violates validation rules
 
         Example:
             >>> strategic_init.update_strategic_context(
+            ...     publisher=publisher,
             ...     pillar_id=new_pillar.id,
             ...     theme_id=theme.id,
             ...     user_need="Updated user need",
             ...     connection_to_vision="Updated vision connection",
             ...     success_criteria="Updated success criteria",
             ...     out_of_scope="Updated out of scope",
-            ...     publisher=publisher
             ... )
         """
         # Validate all text fields
@@ -371,6 +375,14 @@ class StrategicInitiative(Base):
         self.success_criteria = success_criteria
         self.out_of_scope = out_of_scope
         self.updated_at = datetime.now(timezone.utc)
+
+        # Update many-to-many relationships if provided
+        if hero_ids is not None and session is not None:
+            self.link_heroes(hero_ids, session)
+        if villain_ids is not None and session is not None:
+            self.link_villains(villain_ids, session)
+        if conflict_ids is not None and session is not None:
+            self.link_conflicts(conflict_ids, session)
 
         # Emit event
         event = DomainEvent(
@@ -389,3 +401,111 @@ class StrategicInitiative(Base):
             },
         )
         publisher.publish(event, workspace_id=str(self.workspace_id))
+
+    def link_heroes(
+        self,
+        hero_ids: List[uuid.UUID],
+        session: Session,
+    ) -> None:
+        """Link heroes to this strategic initiative.
+
+        This method replaces all existing hero links with the new set.
+
+        Args:
+            hero_ids: List of hero IDs to link
+            session: Database session
+
+        Example:
+            >>> strategic_init.link_heroes([hero1.id, hero2.id], session)
+        """
+        from src.initiative_management.models import StrategicInitiativeHero
+        from src.narrative.aggregates.hero import Hero
+
+        session.query(StrategicInitiativeHero).filter(
+            StrategicInitiativeHero.strategic_initiative_id == self.id
+        ).delete()
+
+        for hero_id in hero_ids:
+            hero = session.query(Hero).filter_by(id=hero_id).first()
+            if not hero:
+                raise DomainException(f"Hero with id {hero_id} does not exist")
+            link = StrategicInitiativeHero(
+                strategic_initiative_id=self.id,
+                hero_id=hero_id,
+                user_id=self.user_id,
+            )
+            session.add(link)
+
+        self.updated_at = datetime.now(timezone.utc)
+
+    def link_villains(
+        self,
+        villain_ids: List[uuid.UUID],
+        session: Session,
+    ) -> None:
+        """Link villains to this strategic initiative.
+
+        This method replaces all existing villain links with the new set.
+
+        Args:
+            villain_ids: List of villain IDs to link
+            session: Database session
+
+        Example:
+            >>> strategic_init.link_villains([villain1.id, villain2.id], session)
+        """
+        from src.initiative_management.models import StrategicInitiativeVillain
+        from src.narrative.aggregates.villain import Villain
+
+        session.query(StrategicInitiativeVillain).filter(
+            StrategicInitiativeVillain.strategic_initiative_id == self.id
+        ).delete()
+
+        for villain_id in villain_ids:
+            villain = session.query(Villain).filter_by(id=villain_id).first()
+            if not villain:
+                raise DomainException(f"Villain with id {villain_id} does not exist")
+            link = StrategicInitiativeVillain(
+                strategic_initiative_id=self.id,
+                villain_id=villain_id,
+                user_id=self.user_id,
+            )
+            session.add(link)
+
+        self.updated_at = datetime.now(timezone.utc)
+
+    def link_conflicts(
+        self,
+        conflict_ids: List[uuid.UUID],
+        session: Session,
+    ) -> None:
+        """Link conflicts to this strategic initiative.
+
+        This method replaces all existing conflict links with the new set.
+
+        Args:
+            conflict_ids: List of conflict IDs to link
+            session: Database session
+
+        Example:
+            >>> strategic_init.link_conflicts([conflict1.id, conflict2.id], session)
+        """
+        from src.initiative_management.models import StrategicInitiativeConflict
+        from src.narrative.aggregates.conflict import Conflict
+
+        session.query(StrategicInitiativeConflict).filter(
+            StrategicInitiativeConflict.strategic_initiative_id == self.id
+        ).delete()
+
+        for conflict_id in conflict_ids:
+            conflict = session.query(Conflict).filter_by(id=conflict_id).first()
+            if not conflict:
+                raise DomainException(f"Conflict with id {conflict_id} does not exist")
+            link = StrategicInitiativeConflict(
+                strategic_initiative_id=self.id,
+                conflict_id=conflict_id,
+                user_id=self.user_id,
+            )
+            session.add(link)
+
+        self.updated_at = datetime.now(timezone.utc)

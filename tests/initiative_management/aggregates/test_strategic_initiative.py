@@ -104,6 +104,8 @@ class TestStrategicInitiative:
 
         with pytest.raises(DomainException) as exc_info:
             StrategicInitiative.define_strategic_context(
+                session=session,
+                publisher=mock_publisher,
                 initiative_id=initiative.id,
                 workspace_id=workspace.id,
                 user_id=user.id,  # type: ignore
@@ -113,8 +115,6 @@ class TestStrategicInitiative:
                 connection_to_vision=None,
                 success_criteria=None,
                 out_of_scope=None,
-                session=session,
-                publisher=mock_publisher,
             )
 
         assert "1000 characters or less" in str(exc_info.value)
@@ -344,13 +344,13 @@ class TestStrategicInitiative:
         # Test user_need validation
         with pytest.raises(DomainException):
             strategic_init.update_strategic_context(
+                publisher=mock_publisher,
                 pillar_id=None,
                 theme_id=None,
                 user_need="x" * 1001,
                 connection_to_vision=None,
                 success_criteria=None,
                 out_of_scope=None,
-                publisher=mock_publisher,
             )
 
     def test_update_strategic_context_updates_fields_correctly(
@@ -387,13 +387,13 @@ class TestStrategicInitiative:
         new_out_of_scope = "Updated out of scope"
 
         strategic_init.update_strategic_context(
+            publisher=mock_publisher,
             pillar_id=strategic_pillar.id,
             theme_id=roadmap_theme.id,
             user_need=new_user_need,
             connection_to_vision=new_connection,
             success_criteria=new_criteria,
             out_of_scope=new_out_of_scope,
-            publisher=mock_publisher,
         )
 
         assert strategic_init.pillar_id == strategic_pillar.id
@@ -432,13 +432,13 @@ class TestStrategicInitiative:
         new_user_need = "Updated user need"
 
         strategic_init.update_strategic_context(
+            publisher=mock_publisher,
             pillar_id=None,
             theme_id=None,
             user_need=new_user_need,
             connection_to_vision=None,
             success_criteria=None,
             out_of_scope=None,
-            publisher=mock_publisher,
         )
 
         mock_publisher.publish.assert_called_once()

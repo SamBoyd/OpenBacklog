@@ -7,7 +7,7 @@ business logic for creating turning points from domain events.
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
@@ -18,6 +18,7 @@ from src.strategic_planning.models import DomainEvent
 
 if TYPE_CHECKING:
     from src.models import Initiative, Task, Workspace
+    from src.narrative.aggregates.conflict import Conflict
     from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 
 
@@ -46,14 +47,14 @@ class TurningPoint(Base):
         domain_event_id: Foreign key to domain event (one-to-one, unique)
         narrative_description: Human-readable "what happened" summary
         significance: Significance level (enum)
-        story_arc_id: Optional foreign key to roadmap theme (story arc)
-        initiative_id: Optional foreign key to initiative
+        conflict_id: Optional foreign key to conflict
         task_id: Optional foreign key to task
         created_at: Timestamp when turning point was created
         workspace: Relationship to Workspace entity
         domain_event: Relationship to DomainEvent entity
-        story_arc: Relationship to RoadmapTheme entity
-        initiative: Relationship to Initiative entity
+        conflict: Relationship to Conflict entity
+        story_arcs: Many-to-many relationship to RoadmapTheme entities
+        initiatives: Many-to-many relationship to Initiative entities
         task: Relationship to Task entity
     """
 
@@ -113,15 +114,9 @@ class TurningPoint(Base):
         nullable=False,
     )
 
-    story_arc_id: Mapped[uuid.UUID | None] = mapped_column(
+    conflict_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("dev.roadmap_themes.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-
-    initiative_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("dev.initiative.id", ondelete="SET NULL"),
+        ForeignKey("dev.conflicts.id", ondelete="SET NULL"),
         nullable=True,
     )
 
@@ -147,12 +142,21 @@ class TurningPoint(Base):
         "DomainEvent",
     )
 
-    story_arc: Mapped["RoadmapTheme | None"] = relationship(
-        "RoadmapTheme",
+    conflict: Mapped["Conflict | None"] = relationship(
+        "Conflict",
+        foreign_keys=[conflict_id],
     )
 
-    initiative: Mapped["Initiative | None"] = relationship(
+    story_arcs: Mapped[List["RoadmapTheme"]] = relationship(
+        "RoadmapTheme",
+        secondary="dev.turning_point_story_arcs",
+        back_populates="turning_points",
+    )
+
+    initiatives: Mapped[List["Initiative"]] = relationship(
         "Initiative",
+        secondary="dev.turning_point_initiatives",
+        back_populates="turning_points",
     )
 
     task: Mapped["Task | None"] = relationship(
@@ -161,13 +165,14 @@ class TurningPoint(Base):
 
     @staticmethod
     def create_from_event(
+        session: Session,
         domain_event: "DomainEvent",
         narrative_description: str,
         significance: Significance,
-        story_arc_id: uuid.UUID | None,
-        initiative_id: uuid.UUID | None,
-        task_id: uuid.UUID | None,
-        session: Session,
+        conflict_id: uuid.UUID | None = None,
+        story_arc_ids: List[uuid.UUID] | None = None,
+        initiative_ids: List[uuid.UUID] | None = None,
+        task_id: uuid.UUID | None = None,
     ) -> "TurningPoint":
         """Create a turning point from a domain event.
 
@@ -177,26 +182,28 @@ class TurningPoint(Base):
         are created after domain events occur).
 
         Args:
+            session: Database session for persistence
             domain_event: The domain event to link to
             narrative_description: Human-readable "what happened" summary
             significance: Significance level (enum)
-            story_arc_id: Optional UUID of story arc
-            initiative_id: Optional UUID of initiative
+            conflict_id: Optional UUID of conflict this turning point escalates/closes
+            story_arc_ids: Optional list of story arc UUIDs this turning point affects
+            initiative_ids: Optional list of initiative UUIDs this turning point affects
             task_id: Optional UUID of task
-            session: Database session for persistence
 
         Returns:
             The created and persisted TurningPoint with ID assigned
 
         Example:
             >>> turning_point = TurningPoint.create_from_event(
+            ...     session=session,
             ...     domain_event=event,
             ...     narrative_description="Sarah completed the MCP command task!",
             ...     significance=Significance.MODERATE,
-            ...     story_arc_id=arc.id,
-            ...     initiative_id=initiative.id,
+            ...     conflict_id=conflict.id,
+            ...     story_arc_ids=[arc.id],
+            ...     initiative_ids=[initiative.id],
             ...     task_id=task.id,
-            ...     session=session
             ... )
         """
         workspace_id_str = domain_event.payload.get("workspace_id")
@@ -211,12 +218,85 @@ class TurningPoint(Base):
             domain_event_id=domain_event.id,
             narrative_description=narrative_description,
             significance=significance.value,
-            story_arc_id=story_arc_id,
-            initiative_id=initiative_id,
+            conflict_id=conflict_id,
             task_id=task_id,
         )
 
         session.add(turning_point)
         session.flush()
 
+        # Link story arcs and initiatives if provided
+        if story_arc_ids:
+            turning_point.link_story_arcs(story_arc_ids, session)
+        if initiative_ids:
+            turning_point.link_initiatives(initiative_ids, session)
+
         return turning_point
+
+    def link_story_arcs(
+        self,
+        story_arc_ids: List[uuid.UUID],
+        session: Session,
+    ) -> None:
+        """Link story arcs to this turning point.
+
+        This method replaces all existing story arc links with the new set.
+
+        Args:
+            story_arc_ids: List of story arc (roadmap theme) IDs to link
+            session: Database session
+
+        Example:
+            >>> turning_point.link_story_arcs([arc1.id, arc2.id], session)
+        """
+        from src.narrative.models import TurningPointStoryArc
+        from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+
+        session.query(TurningPointStoryArc).filter(
+            TurningPointStoryArc.turning_point_id == self.id
+        ).delete()
+
+        for story_arc_id in story_arc_ids:
+            story_arc = session.query(RoadmapTheme).filter_by(id=story_arc_id).first()
+            if not story_arc:
+                raise ValueError(f"Story arc with id {story_arc_id} does not exist")
+            link = TurningPointStoryArc(
+                turning_point_id=self.id,
+                story_arc_id=story_arc_id,
+                user_id=self.user_id,
+            )
+            session.add(link)
+
+    def link_initiatives(
+        self,
+        initiative_ids: List[uuid.UUID],
+        session: Session,
+    ) -> None:
+        """Link initiatives to this turning point.
+
+        This method replaces all existing initiative links with the new set.
+
+        Args:
+            initiative_ids: List of initiative IDs to link
+            session: Database session
+
+        Example:
+            >>> turning_point.link_initiatives([init1.id, init2.id], session)
+        """
+        from src.models import Initiative
+        from src.narrative.models import TurningPointInitiative
+
+        session.query(TurningPointInitiative).filter(
+            TurningPointInitiative.turning_point_id == self.id
+        ).delete()
+
+        for initiative_id in initiative_ids:
+            initiative = session.query(Initiative).filter_by(id=initiative_id).first()
+            if not initiative:
+                raise ValueError(f"Initiative with id {initiative_id} does not exist")
+            link = TurningPointInitiative(
+                turning_point_id=self.id,
+                initiative_id=initiative_id,
+                user_id=self.user_id,
+            )
+            session.add(link)

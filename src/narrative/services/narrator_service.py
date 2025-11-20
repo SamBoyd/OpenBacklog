@@ -55,9 +55,16 @@ class NarratorService:
         Example:
             >>> turning_points = service.get_recent_turning_points(workspace.id, limit=5)
         """
+        from sqlalchemy.orm import selectinload
+
         return (
             self.session.query(TurningPoint)
             .filter_by(workspace_id=workspace_id)
+            .options(
+                selectinload(TurningPoint.conflict),
+                selectinload(TurningPoint.story_arcs),
+                selectinload(TurningPoint.initiatives),
+            )
             .order_by(TurningPoint.created_at.desc())
             .limit(limit)
             .all()
@@ -85,18 +92,49 @@ class NarratorService:
             >>> recap = service.generate_previously_on(workspace.id)
             >>> print(recap["recap_text"])
         """
+        from sqlalchemy.orm import selectinload
+
         from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 
         primary_hero = self.hero_service.get_primary_hero(workspace_id)
         open_conflicts = self.conflict_service.get_open_conflicts(workspace_id)
-        recent_turning_points = self.get_recent_turning_points(workspace_id, limit=5)
+
+        recent_turning_points = (
+            self.session.query(TurningPoint)
+            .filter_by(workspace_id=workspace_id)
+            .options(
+                selectinload(TurningPoint.conflict),
+                selectinload(TurningPoint.story_arcs),
+                selectinload(TurningPoint.initiatives),
+            )
+            .order_by(TurningPoint.created_at.desc())
+            .limit(5)
+            .all()
+        )
+
+        from src.roadmap_intelligence.models import (
+            RoadmapThemeHero,
+            RoadmapThemeVillain,
+        )
 
         active_arcs = (
             self.session.query(RoadmapTheme)
             .filter_by(workspace_id=workspace_id)
-            .filter(
-                (RoadmapTheme.hero_id.isnot(None))
-                | (RoadmapTheme.primary_villain_id.isnot(None))
+            .options(
+                selectinload(RoadmapTheme.heroes),
+                selectinload(RoadmapTheme.villains),
+            )
+            .outerjoin(
+                RoadmapThemeHero, RoadmapTheme.id == RoadmapThemeHero.roadmap_theme_id
+            )
+            .outerjoin(
+                RoadmapThemeVillain,
+                RoadmapTheme.id == RoadmapThemeVillain.roadmap_theme_id,
+            )
+            .group_by(RoadmapTheme.id)
+            .having(
+                (RoadmapThemeHero.roadmap_theme_id.isnot(None))
+                | (RoadmapThemeVillain.roadmap_theme_id.isnot(None))
             )
             .order_by(RoadmapTheme.created_at.desc())
             .limit(5)
@@ -117,16 +155,12 @@ class NarratorService:
             recap_parts.append(f"\nActive Story Arcs: {len(active_arcs)}")
             for arc in active_arcs:
                 arc_info = f"  • {arc.name}"
-                if arc.hero_id and primary_hero:
-                    arc_info += f" (helps {primary_hero.name})"
-                if arc.primary_villain_id:
-                    villain = (
-                        self.session.query(Villain)
-                        .filter_by(id=arc.primary_villain_id)
-                        .first()
-                    )
-                    if villain:
-                        arc_info += f" (fights {villain.name})"
+                if arc.heroes:
+                    hero_names = [h.name for h in arc.heroes]
+                    arc_info += f" (helps {', '.join(hero_names)})"
+                if arc.villains:
+                    villain_names = [v.name for v in arc.villains]
+                    arc_info += f" (fights {', '.join(villain_names)})"
                 recap_parts.append(arc_info)
         else:
             recap_parts.append("\nNo active story arcs yet.")
@@ -169,10 +203,8 @@ class NarratorService:
                 {
                     "id": str(arc.id),
                     "name": arc.name,
-                    "hero_id": str(arc.hero_id) if arc.hero_id else None,
-                    "primary_villain_id": (
-                        str(arc.primary_villain_id) if arc.primary_villain_id else None
-                    ),
+                    "hero_ids": [str(h.id) for h in arc.heroes],
+                    "villain_ids": [str(v.id) for v in arc.villains],
                 }
                 for arc in active_arcs
             ],
@@ -182,6 +214,9 @@ class NarratorService:
                     "identifier": tp.identifier,
                     "narrative_description": tp.narrative_description,
                     "significance": tp.significance,
+                    "conflict_id": str(tp.conflict_id) if tp.conflict_id else None,
+                    "story_arc_ids": [str(arc.id) for arc in tp.story_arcs],
+                    "initiative_ids": [str(init.id) for init in tp.initiatives],
                     "created_at": tp.created_at.isoformat(),
                 }
                 for tp in recent_turning_points

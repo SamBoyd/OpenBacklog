@@ -94,6 +94,8 @@ def serialize_theme(theme: RoadmapTheme) -> Dict[str, Any]:
         "time_horizon_months": theme.time_horizon_months,
         "display_order": theme.display_order,
         "outcome_ids": [serialize_uuid(outcome.id) for outcome in theme.outcomes],
+        "hero_ids": [serialize_uuid(hero.id) for hero in theme.heroes],
+        "villain_ids": [serialize_uuid(villain.id) for villain in theme.villains],
         "created_at": serialize_datetime(theme.created_at),
         "updated_at": serialize_datetime(theme.updated_at),
     }
@@ -111,6 +113,10 @@ def serialize_strategic_initiative(si: StrategicInitiative) -> Dict[str, Any]:
         "connection_to_vision": si.connection_to_vision,
         "success_criteria": si.success_criteria,
         "out_of_scope": si.out_of_scope,
+        "narrative_intent": si.narrative_intent,
+        "hero_ids": [serialize_uuid(hero.id) for hero in si.heroes],
+        "villain_ids": [serialize_uuid(villain.id) for villain in si.villains],
+        "conflict_ids": [serialize_uuid(conflict.id) for conflict in si.conflicts],
         "created_at": serialize_datetime(si.created_at),
         "updated_at": serialize_datetime(si.updated_at),
     }
@@ -173,8 +179,11 @@ def serialize_turning_point(turning_point: TurningPoint) -> Dict[str, Any]:
         "domain_event_id": serialize_uuid(turning_point.domain_event_id),
         "narrative_description": turning_point.narrative_description,
         "significance": turning_point.significance,
-        "story_arc_id": serialize_uuid(turning_point.story_arc_id),
-        "initiative_id": serialize_uuid(turning_point.initiative_id),
+        "conflict_id": serialize_uuid(turning_point.conflict_id),
+        "story_arc_ids": [serialize_uuid(arc.id) for arc in turning_point.story_arcs],
+        "initiative_ids": [
+            serialize_uuid(init.id) for init in turning_point.initiatives
+        ],
         "task_id": serialize_uuid(turning_point.task_id),
         "created_at": serialize_datetime(turning_point.created_at),
     }

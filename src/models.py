@@ -589,6 +589,12 @@ class Initiative(DoableBase, PublicBase, Base):
         cascade="all, delete-orphan",
     )
 
+    turning_points: Mapped[List["TurningPoint"]] = relationship(
+        "TurningPoint",
+        secondary="dev.turning_point_initiatives",
+        back_populates="initiatives",
+    )
+
     properties: Mapped[Dict[str, Any]] = mapped_column(
         MutableDict.as_mutable(JSONB()),
         nullable=False,
@@ -1535,6 +1541,15 @@ class Ordering(Base):
 # Import related models to ensure they're in the SQLAlchemy registry
 # This must be done after the main models are defined to avoid circular imports
 from src.github_app.models import RepositoryFileIndex  # noqa: E402
+
+# Import junction table models to ensure they're registered with SQLAlchemy
+from src.initiative_management.models import (
+    StrategicInitiativeConflict,
+    StrategicInitiativeHero,
+    StrategicInitiativeVillain,
+)
+from src.narrative.models import TurningPointInitiative, TurningPointStoryArc
 from src.roadmap_intelligence.aggregates.prioritized_roadmap import (  # noqa: E402
     PrioritizedRoadmap,
 )
+from src.roadmap_intelligence.models import RoadmapThemeHero, RoadmapThemeVillain

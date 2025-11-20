@@ -6,12 +6,14 @@ Create Date: 2025-11-19 12:36:29.674179
 
 """
 
+from textwrap import dedent
 from typing import Sequence, Union
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 from alembic import op
+from src.config import settings
 
 # revision identifiers, used by Alembic.
 revision: str = "5f3bdb885432"
@@ -21,181 +23,487 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add narrative relationship columns to roadmap_themes table
-    op.add_column(
-        "roadmap_themes",
-        sa.Column("hero_id", postgresql.UUID(as_uuid=True), nullable=True),
-        schema="dev",
-    )
-    op.add_column(
-        "roadmap_themes",
-        sa.Column("primary_villain_id", postgresql.UUID(as_uuid=True), nullable=True),
+    # Create junction tables for StrategicInitiative
+    op.create_table(
+        "strategic_initiative_heroes",
+        sa.Column(
+            "strategic_initiative_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "hero_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+            server_default=sa.text("private.get_user_id_from_jwt()"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["strategic_initiative_id"],
+            ["dev.strategic_initiatives.id"],
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["hero_id"],
+            ["dev.heroes.id"],
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("strategic_initiative_id", "hero_id"),
         schema="dev",
     )
 
-    # Create foreign key constraints for roadmap_themes
-    op.create_foreign_key(
-        "fk_roadmap_themes_hero_id",
-        "roadmap_themes",
-        "heroes",
+    op.create_table(
+        "strategic_initiative_villains",
+        sa.Column(
+            "strategic_initiative_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "villain_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+            server_default=sa.text("private.get_user_id_from_jwt()"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["strategic_initiative_id"],
+            ["dev.strategic_initiatives.id"],
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["villain_id"],
+            ["dev.villains.id"],
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("strategic_initiative_id", "villain_id"),
+        schema="dev",
+    )
+
+    op.create_table(
+        "strategic_initiative_conflicts",
+        sa.Column(
+            "strategic_initiative_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "conflict_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+            server_default=sa.text("private.get_user_id_from_jwt()"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["strategic_initiative_id"],
+            ["dev.strategic_initiatives.id"],
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["conflict_id"],
+            ["dev.conflicts.id"],
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("strategic_initiative_id", "conflict_id"),
+        schema="dev",
+    )
+
+    # Create junction tables for RoadmapTheme
+    op.create_table(
+        "roadmap_theme_heroes",
+        sa.Column(
+            "roadmap_theme_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "hero_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+            server_default=sa.text("private.get_user_id_from_jwt()"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["roadmap_theme_id"],
+            ["dev.roadmap_themes.id"],
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["hero_id"],
+            ["dev.heroes.id"],
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("roadmap_theme_id", "hero_id"),
+        schema="dev",
+    )
+
+    op.create_table(
+        "roadmap_theme_villains",
+        sa.Column(
+            "roadmap_theme_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "villain_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+            server_default=sa.text("private.get_user_id_from_jwt()"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["roadmap_theme_id"],
+            ["dev.roadmap_themes.id"],
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["villain_id"],
+            ["dev.villains.id"],
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("roadmap_theme_id", "villain_id"),
+        schema="dev",
+    )
+
+    # Create junction tables for TurningPoint
+    op.create_table(
+        "turning_point_story_arcs",
+        sa.Column(
+            "turning_point_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "story_arc_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+            server_default=sa.text("private.get_user_id_from_jwt()"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["turning_point_id"],
+            ["dev.turning_points.id"],
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["story_arc_id"],
+            ["dev.roadmap_themes.id"],
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("turning_point_id", "story_arc_id"),
+        schema="dev",
+    )
+
+    op.create_table(
+        "turning_point_initiatives",
+        sa.Column(
+            "turning_point_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "initiative_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            nullable=False,
+            server_default=sa.text("private.get_user_id_from_jwt()"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["turning_point_id"],
+            ["dev.turning_points.id"],
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["initiative_id"],
+            ["dev.initiative.id"],
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("turning_point_id", "initiative_id"),
+        schema="dev",
+    )
+
+    # Enable RLS and create policies for all junction tables
+    junction_tables = [
+        "strategic_initiative_heroes",
+        "strategic_initiative_villains",
+        "strategic_initiative_conflicts",
+        "roadmap_theme_heroes",
+        "roadmap_theme_villains",
+        "turning_point_story_arcs",
+        "turning_point_initiatives",
+    ]
+
+    for table in junction_tables:
+        op.execute(
+            dedent(
+                f"""
+                ALTER TABLE dev.{table} ENABLE ROW LEVEL SECURITY;
+                
+                CREATE POLICY {table}_policy ON dev.{table}
+                USING (user_id = private.get_user_id_from_jwt())
+                WITH CHECK (user_id = private.get_user_id_from_jwt());
+
+                GRANT SELECT, UPDATE, DELETE, INSERT ON TABLE dev.{table} TO {settings.postgrest_authenticated_role};
+                """
+            )
+        )
+
+    # Create indexes for junction tables
+    op.create_index(
+        "ix_strategic_initiative_heroes_strategic_initiative_id",
+        "strategic_initiative_heroes",
+        ["strategic_initiative_id"],
+        schema="dev",
+    )
+    op.create_index(
+        "ix_strategic_initiative_heroes_hero_id",
+        "strategic_initiative_heroes",
         ["hero_id"],
-        ["id"],
-        source_schema="dev",
-        referent_schema="dev",
-        ondelete="SET NULL",
-    )
-    op.create_foreign_key(
-        "fk_roadmap_themes_primary_villain_id",
-        "roadmap_themes",
-        "villains",
-        ["primary_villain_id"],
-        ["id"],
-        source_schema="dev",
-        referent_schema="dev",
-        ondelete="SET NULL",
-    )
-
-    # Create indexes for roadmap_themes
-    op.create_index(
-        "ix_roadmap_themes_hero_id", "roadmap_themes", ["hero_id"], schema="dev"
-    )
-    op.create_index(
-        "ix_roadmap_themes_primary_villain_id",
-        "roadmap_themes",
-        ["primary_villain_id"],
         schema="dev",
     )
 
-    # Add narrative relationship columns to strategic_initiatives table
-    op.add_column(
-        "strategic_initiatives",
-        sa.Column("hero_id", postgresql.UUID(as_uuid=True), nullable=True),
+    op.create_index(
+        "ix_strategic_initiative_villains_strategic_initiative_id",
+        "strategic_initiative_villains",
+        ["strategic_initiative_id"],
         schema="dev",
     )
-    op.add_column(
-        "strategic_initiatives",
-        sa.Column("villain_id", postgresql.UUID(as_uuid=True), nullable=True),
+    op.create_index(
+        "ix_strategic_initiative_villains_villain_id",
+        "strategic_initiative_villains",
+        ["villain_id"],
         schema="dev",
     )
-    op.add_column(
-        "strategic_initiatives",
-        sa.Column("conflict_id", postgresql.UUID(as_uuid=True), nullable=True),
+
+    op.create_index(
+        "ix_strategic_initiative_conflicts_strategic_initiative_id",
+        "strategic_initiative_conflicts",
+        ["strategic_initiative_id"],
         schema="dev",
     )
+    op.create_index(
+        "ix_strategic_initiative_conflicts_conflict_id",
+        "strategic_initiative_conflicts",
+        ["conflict_id"],
+        schema="dev",
+    )
+
+    op.create_index(
+        "ix_roadmap_theme_heroes_roadmap_theme_id",
+        "roadmap_theme_heroes",
+        ["roadmap_theme_id"],
+        schema="dev",
+    )
+    op.create_index(
+        "ix_roadmap_theme_heroes_hero_id",
+        "roadmap_theme_heroes",
+        ["hero_id"],
+        schema="dev",
+    )
+
+    op.create_index(
+        "ix_roadmap_theme_villains_roadmap_theme_id",
+        "roadmap_theme_villains",
+        ["roadmap_theme_id"],
+        schema="dev",
+    )
+    op.create_index(
+        "ix_roadmap_theme_villains_villain_id",
+        "roadmap_theme_villains",
+        ["villain_id"],
+        schema="dev",
+    )
+
+    op.create_index(
+        "ix_turning_point_story_arcs_turning_point_id",
+        "turning_point_story_arcs",
+        ["turning_point_id"],
+        schema="dev",
+    )
+    op.create_index(
+        "ix_turning_point_story_arcs_story_arc_id",
+        "turning_point_story_arcs",
+        ["story_arc_id"],
+        schema="dev",
+    )
+
+    op.create_index(
+        "ix_turning_point_initiatives_turning_point_id",
+        "turning_point_initiatives",
+        ["turning_point_id"],
+        schema="dev",
+    )
+    op.create_index(
+        "ix_turning_point_initiatives_initiative_id",
+        "turning_point_initiatives",
+        ["initiative_id"],
+        schema="dev",
+    )
+
+    # Add narrative_intent column to strategic_initiatives
     op.add_column(
         "strategic_initiatives",
         sa.Column("narrative_intent", sa.Text(), nullable=True),
         schema="dev",
     )
 
-    # Create foreign key constraints for strategic_initiatives
-    op.create_foreign_key(
-        "fk_strategic_initiatives_hero_id",
-        "strategic_initiatives",
-        "heroes",
-        ["hero_id"],
-        ["id"],
-        source_schema="dev",
-        referent_schema="dev",
-        ondelete="SET NULL",
-    )
-    op.create_foreign_key(
-        "fk_strategic_initiatives_villain_id",
-        "strategic_initiatives",
-        "villains",
-        ["villain_id"],
-        ["id"],
-        source_schema="dev",
-        referent_schema="dev",
-        ondelete="SET NULL",
-    )
-    op.create_foreign_key(
-        "fk_strategic_initiatives_conflict_id",
-        "strategic_initiatives",
-        "conflicts",
-        ["conflict_id"],
-        ["id"],
-        source_schema="dev",
-        referent_schema="dev",
-        ondelete="SET NULL",
-    )
-
-    # Create indexes for strategic_initiatives
-    op.create_index(
-        "ix_strategic_initiatives_hero_id",
-        "strategic_initiatives",
-        ["hero_id"],
-        schema="dev",
-    )
-    op.create_index(
-        "ix_strategic_initiatives_villain_id",
-        "strategic_initiatives",
-        ["villain_id"],
-        schema="dev",
-    )
-    op.create_index(
-        "ix_strategic_initiatives_conflict_id",
-        "strategic_initiatives",
-        ["conflict_id"],
-        schema="dev",
-    )
-
 
 def downgrade() -> None:
-    # Drop indexes for strategic_initiatives
+    # Drop indexes for junction tables
     op.drop_index(
-        "ix_strategic_initiatives_conflict_id", "strategic_initiatives", schema="dev"
+        "ix_turning_point_initiatives_initiative_id",
+        "turning_point_initiatives",
+        schema="dev",
     )
     op.drop_index(
-        "ix_strategic_initiatives_villain_id", "strategic_initiatives", schema="dev"
+        "ix_turning_point_initiatives_turning_point_id",
+        "turning_point_initiatives",
+        schema="dev",
     )
     op.drop_index(
-        "ix_strategic_initiatives_hero_id", "strategic_initiatives", schema="dev"
+        "ix_turning_point_story_arcs_story_arc_id",
+        "turning_point_story_arcs",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_turning_point_story_arcs_turning_point_id",
+        "turning_point_story_arcs",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_roadmap_theme_villains_villain_id",
+        "roadmap_theme_villains",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_roadmap_theme_villains_roadmap_theme_id",
+        "roadmap_theme_villains",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_roadmap_theme_heroes_hero_id",
+        "roadmap_theme_heroes",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_roadmap_theme_heroes_roadmap_theme_id",
+        "roadmap_theme_heroes",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_strategic_initiative_conflicts_conflict_id",
+        "strategic_initiative_conflicts",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_strategic_initiative_conflicts_strategic_initiative_id",
+        "strategic_initiative_conflicts",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_strategic_initiative_villains_villain_id",
+        "strategic_initiative_villains",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_strategic_initiative_villains_strategic_initiative_id",
+        "strategic_initiative_villains",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_strategic_initiative_heroes_hero_id",
+        "strategic_initiative_heroes",
+        schema="dev",
+    )
+    op.drop_index(
+        "ix_strategic_initiative_heroes_strategic_initiative_id",
+        "strategic_initiative_heroes",
+        schema="dev",
     )
 
-    # Drop foreign key constraints for strategic_initiatives
-    op.drop_constraint(
-        "fk_strategic_initiatives_conflict_id",
-        "strategic_initiatives",
-        type_="foreignkey",
-        schema="dev",
-    )
-    op.drop_constraint(
-        "fk_strategic_initiatives_villain_id",
-        "strategic_initiatives",
-        type_="foreignkey",
-        schema="dev",
-    )
-    op.drop_constraint(
-        "fk_strategic_initiatives_hero_id",
-        "strategic_initiatives",
-        type_="foreignkey",
-        schema="dev",
-    )
+    # Drop junction tables
+    junction_tables_downgrade = [
+        "turning_point_initiatives",
+        "turning_point_story_arcs",
+        "roadmap_theme_villains",
+        "roadmap_theme_heroes",
+        "strategic_initiative_conflicts",
+        "strategic_initiative_villains",
+        "strategic_initiative_heroes",
+    ]
+    for table in junction_tables_downgrade:
+        op.execute(f"DROP POLICY IF EXISTS {table}_policy ON dev.{table};")
+        op.drop_table(table, schema="dev")
 
-    # Drop columns from strategic_initiatives
+    # Drop narrative_intent column
     op.drop_column("strategic_initiatives", "narrative_intent", schema="dev")
-    op.drop_column("strategic_initiatives", "conflict_id", schema="dev")
-    op.drop_column("strategic_initiatives", "villain_id", schema="dev")
-    op.drop_column("strategic_initiatives", "hero_id", schema="dev")
-
-    # Drop indexes for roadmap_themes
-    op.drop_index(
-        "ix_roadmap_themes_primary_villain_id", "roadmap_themes", schema="dev"
-    )
-    op.drop_index("ix_roadmap_themes_hero_id", "roadmap_themes", schema="dev")
-
-    # Drop foreign key constraints for roadmap_themes
-    op.drop_constraint(
-        "fk_roadmap_themes_primary_villain_id",
-        "roadmap_themes",
-        type_="foreignkey",
-        schema="dev",
-    )
-    op.drop_constraint(
-        "fk_roadmap_themes_hero_id", "roadmap_themes", type_="foreignkey", schema="dev"
-    )
-
-    # Drop columns from roadmap_themes
-    op.drop_column("roadmap_themes", "primary_villain_id", schema="dev")
-    op.drop_column("roadmap_themes", "hero_id", schema="dev")

@@ -26,6 +26,9 @@ from src.narrative.exceptions import DomainException
 from src.strategic_planning.models import DomainEvent
 
 if TYPE_CHECKING:
+    from src.initiative_management.aggregates.strategic_initiative import (
+        StrategicInitiative,
+    )
     from src.models import Initiative, Workspace
     from src.narrative.aggregates.hero import Hero
     from src.narrative.aggregates.villain import Villain
@@ -181,6 +184,12 @@ class Conflict(Base):
 
     resolved_by_initiative: Mapped["Initiative | None"] = relationship(
         "Initiative",
+    )
+
+    strategic_initiatives: Mapped[List["StrategicInitiative"]] = relationship(
+        "StrategicInitiative",
+        secondary="dev.strategic_initiative_conflicts",
+        back_populates="conflicts",
     )
 
     @staticmethod

@@ -45,6 +45,9 @@ def create_strategic_initiative(
     success_criteria: Optional[str],
     out_of_scope: Optional[str],
     session: Session,
+    hero_ids: Optional[list[uuid.UUID]] = None,
+    villain_ids: Optional[list[uuid.UUID]] = None,
+    conflict_ids: Optional[list[uuid.UUID]] = None,
 ) -> StrategicInitiative:
     """Create strategic context for an initiative.
 
@@ -58,6 +61,9 @@ def create_strategic_initiative(
         connection_to_vision: How this connects to vision (max 1000 chars)
         success_criteria: What success looks like (max 1000 chars)
         out_of_scope: What is explicitly NOT being done (max 1000 chars)
+        hero_ids: Optional list of hero UUIDs this initiative serves
+        villain_ids: Optional list of villain UUIDs this initiative confronts
+        conflict_ids: Optional list of conflict UUIDs this initiative addresses
         session: Database session
 
     Returns:
@@ -68,6 +74,8 @@ def create_strategic_initiative(
     """
     publisher = EventPublisher(session)
     strategic_initiative = StrategicInitiative.define_strategic_context(
+        session=session,
+        publisher=publisher,
         initiative_id=initiative_id,
         workspace_id=workspace_id,
         user_id=user_id,
@@ -77,8 +85,9 @@ def create_strategic_initiative(
         connection_to_vision=connection_to_vision,
         success_criteria=success_criteria,
         out_of_scope=out_of_scope,
-        session=session,
-        publisher=publisher,
+        hero_ids=hero_ids,
+        villain_ids=villain_ids,
+        conflict_ids=conflict_ids,
     )
 
     session.commit()
@@ -95,6 +104,9 @@ def update_strategic_initiative(
     success_criteria: Optional[str],
     out_of_scope: Optional[str],
     session: Session,
+    hero_ids: Optional[list[uuid.UUID]] = None,
+    villain_ids: Optional[list[uuid.UUID]] = None,
+    conflict_ids: Optional[list[uuid.UUID]] = None,
 ) -> StrategicInitiative:
     """Update strategic context for an initiative.
 
@@ -106,6 +118,9 @@ def update_strategic_initiative(
         connection_to_vision: Updated vision connection (max 1000 chars)
         success_criteria: Updated success criteria (max 1000 chars)
         out_of_scope: Updated out of scope (max 1000 chars)
+        hero_ids: Optional list of hero UUIDs to replace existing links
+        villain_ids: Optional list of villain UUIDs to replace existing links
+        conflict_ids: Optional list of conflict UUIDs to replace existing links
         session: Database session
 
     Returns:
@@ -123,13 +138,17 @@ def update_strategic_initiative(
 
     publisher = EventPublisher(session)
     strategic_initiative.update_strategic_context(
+        publisher=publisher,
         pillar_id=pillar_id,
         theme_id=theme_id,
         user_need=user_need,
         connection_to_vision=connection_to_vision,
         success_criteria=success_criteria,
         out_of_scope=out_of_scope,
-        publisher=publisher,
+        hero_ids=hero_ids,
+        villain_ids=villain_ids,
+        conflict_ids=conflict_ids,
+        session=session,
     )
 
     session.commit()
