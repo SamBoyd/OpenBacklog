@@ -1,6 +1,6 @@
 import { HeroDto, HeroDtoSchema } from '#types';
-import { withApiCall } from '#api/api-utils';
-import { loadAndValidateJWT } from '#api/jwt';
+import { getPostgrestClient, withApiCall } from '#api/api-utils';
+import { fetchCurrentWorkspace } from '#services/workspaceApi';
 
 /**
  * Transforms raw API response data into a HeroDto.
@@ -27,23 +27,17 @@ export function heroFromData(data: any): HeroDto {
  */
 export async function getAllHeroes(workspaceId: string): Promise<HeroDto[]> {
     return withApiCall(async () => {
-        const response = await fetch(`/api/workspaces/${workspaceId}/heroes`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${loadAndValidateJWT()}`
-            }
-        });
+        const response = await getPostgrestClient()
+            .from('heroes')
+            .select('*')
+            .eq('workspace_id', workspaceId);
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        if (response.error) {
+            console.error('Error loading heroes', response.error);
+            throw new Error('Error loading heroes');
         }
 
-        const data = await response.json();
-
-        // Validate response data
-        const parsedData = HeroDtoSchema.array().safeParse(data);
+        const parsedData = HeroDtoSchema.array().safeParse(response.data);
         if (!parsedData.success) {
             console.error('Error loading heroes - data format', parsedData.error);
             throw new Error('Error loading heroes');
@@ -60,23 +54,26 @@ export async function getAllHeroes(workspaceId: string): Promise<HeroDto[]> {
  */
 export async function getHeroById(heroId: string): Promise<HeroDto> {
     return withApiCall(async () => {
-        const response = await fetch(`/api/heroes/${heroId}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${loadAndValidateJWT()}`
-            }
-        });
+        const response = await getPostgrestClient()
+            .from('heroes')
+            .select('*')
+            .eq('id', heroId);
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        if (response.error) {
+            console.error('Error loading hero', response.error);
+            throw new Error('Error loading hero');
         }
 
-        const data = await response.json();
+        if (response.data.length === 0) {
+            throw new Error('Hero not found');
+        }
 
-        // Validate response data
-        const parsedData = HeroDtoSchema.safeParse(data);
+        if (response.data.length > 1) {
+            console.error('Error loading hero - multiple heroes found');
+            throw new Error('Error loading hero');
+        }
+
+        const parsedData = HeroDtoSchema.safeParse(response.data[0]);
         if (!parsedData.success) {
             console.error('Error loading hero - data format', parsedData.error);
             throw new Error('Error loading hero');
@@ -93,23 +90,26 @@ export async function getHeroById(heroId: string): Promise<HeroDto> {
  */
 export async function getHeroByIdentifier(identifier: string): Promise<HeroDto> {
     return withApiCall(async () => {
-        const response = await fetch(`/api/heroes/identifier/${identifier}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${loadAndValidateJWT()}`
-            }
-        });
+        const response = await getPostgrestClient()
+            .from('heroes')
+            .select('*')
+            .eq('identifier', identifier);
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        if (response.error) {
+            console.error('Error loading hero by identifier', response.error);
+            throw new Error('Error loading hero');
         }
 
-        const data = await response.json();
+        if (response.data.length === 0) {
+            throw new Error('Hero not found');
+        }
 
-        // Validate response data
-        const parsedData = HeroDtoSchema.safeParse(data);
+        if (response.data.length > 1) {
+            console.error('Error loading hero - multiple heroes found with same identifier');
+            throw new Error('Error loading hero');
+        }
+
+        const parsedData = HeroDtoSchema.safeParse(response.data[0]);
         if (!parsedData.success) {
             console.error('Error loading hero - data format', parsedData.error);
             throw new Error('Error loading hero');

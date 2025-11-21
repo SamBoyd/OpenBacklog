@@ -1,6 +1,6 @@
 import { VillainDto, VillainDtoSchema } from '#types';
-import { withApiCall } from '#api/api-utils';
-import { loadAndValidateJWT } from '#api/jwt';
+import { getPostgrestClient, withApiCall } from '#api/api-utils';
+import { fetchCurrentWorkspace } from '#services/workspaceApi';
 
 /**
  * Transforms raw API response data into a VillainDto.
@@ -30,23 +30,17 @@ export function villainFromData(data: any): VillainDto {
  */
 export async function getAllVillains(workspaceId: string): Promise<VillainDto[]> {
     return withApiCall(async () => {
-        const response = await fetch(`/api/workspaces/${workspaceId}/villains`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${loadAndValidateJWT()}`
-            }
-        });
+        const response = await getPostgrestClient()
+            .from('villains')
+            .select('*')
+            .eq('workspace_id', workspaceId);
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        if (response.error) {
+            console.error('Error loading villains', response.error);
+            throw new Error('Error loading villains');
         }
 
-        const data = await response.json();
-
-        // Validate response data
-        const parsedData = VillainDtoSchema.array().safeParse(data);
+        const parsedData = VillainDtoSchema.array().safeParse(response.data);
         if (!parsedData.success) {
             console.error('Error loading villains - data format', parsedData.error);
             throw new Error('Error loading villains');
@@ -63,23 +57,26 @@ export async function getAllVillains(workspaceId: string): Promise<VillainDto[]>
  */
 export async function getVillainById(villainId: string): Promise<VillainDto> {
     return withApiCall(async () => {
-        const response = await fetch(`/api/villains/${villainId}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${loadAndValidateJWT()}`
-            }
-        });
+        const response = await getPostgrestClient()
+            .from('villains')
+            .select('*')
+            .eq('id', villainId);
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        if (response.error) {
+            console.error('Error loading villain', response.error);
+            throw new Error('Error loading villain');
         }
 
-        const data = await response.json();
+        if (response.data.length === 0) {
+            throw new Error('Villain not found');
+        }
 
-        // Validate response data
-        const parsedData = VillainDtoSchema.safeParse(data);
+        if (response.data.length > 1) {
+            console.error('Error loading villain - multiple villains found');
+            throw new Error('Error loading villain');
+        }
+
+        const parsedData = VillainDtoSchema.safeParse(response.data[0]);
         if (!parsedData.success) {
             console.error('Error loading villain - data format', parsedData.error);
             throw new Error('Error loading villain');
@@ -96,23 +93,26 @@ export async function getVillainById(villainId: string): Promise<VillainDto> {
  */
 export async function getVillainByIdentifier(identifier: string): Promise<VillainDto> {
     return withApiCall(async () => {
-        const response = await fetch(`/api/villains/identifier/${identifier}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${loadAndValidateJWT()}`
-            }
-        });
+        const response = await getPostgrestClient()
+            .from('villains')
+            .select('*')
+            .eq('identifier', identifier);
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+        if (response.error) {
+            console.error('Error loading villain by identifier', response.error);
+            throw new Error('Error loading villain');
         }
 
-        const data = await response.json();
+        if (response.data.length === 0) {
+            throw new Error('Villain not found');
+        }
 
-        // Validate response data
-        const parsedData = VillainDtoSchema.safeParse(data);
+        if (response.data.length > 1) {
+            console.error('Error loading villain - multiple villains found with same identifier');
+            throw new Error('Error loading villain');
+        }
+
+        const parsedData = VillainDtoSchema.safeParse(response.data[0]);
         if (!parsedData.success) {
             console.error('Error loading villain - data format', parsedData.error);
             throw new Error('Error loading villain');
