@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import ConflictDetail from '#components/Narrative/ConflictDetail';
-import { ConflictDto, ConflictStatus, HeroDto, VillainDto } from '#types';
+import { ConflictDto, ConflictStatus, HeroDto, VillainDto, VillainType } from '#types';
 
 // Mock data
 const mockHero: HeroDto = {
@@ -20,7 +20,7 @@ const mockVillain: VillainDto = {
     user_id: '550e8400-e29b-41d4-a716-446655440000',
     workspace_id: '550e8400-e29b-41d4-a716-446655440000',
     name: 'Context Switching Between Tools',
-    villain_type: 'WORKFLOW',
+    villain_type: VillainType.WORKFLOW,
     description: 'Users must constantly jump between IDE, planning tools, and documentation, breaking their flow state and reducing productivity.',
     severity: 5,
     is_defeated: false,

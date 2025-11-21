@@ -28,7 +28,6 @@ const mockConflicts: ConflictDto[] = [
   {
     id: 'conflict-1',
     identifier: 'C-2001',
-    user_id: 'user-123',
     workspace_id: 'workspace-123',
     hero_id: 'hero-1',
     villain_id: 'villain-1',
@@ -44,7 +43,6 @@ const mockConflicts: ConflictDto[] = [
   {
     id: 'conflict-2',
     identifier: 'C-2002',
-    user_id: 'user-123',
     workspace_id: 'workspace-123',
     hero_id: 'hero-1',
     villain_id: 'villain-2',
@@ -60,7 +58,6 @@ const mockConflicts: ConflictDto[] = [
   {
     id: 'conflict-3',
     identifier: 'C-2003',
-    user_id: 'user-123',
     workspace_id: 'workspace-123',
     hero_id: 'hero-2',
     villain_id: 'villain-3',
@@ -75,7 +72,6 @@ const mockConflicts: ConflictDto[] = [
   {
     id: 'conflict-4',
     identifier: 'C-2004',
-    user_id: 'user-123',
     workspace_id: 'workspace-123',
     hero_id: 'hero-1',
     villain_id: 'villain-4',
@@ -92,7 +88,6 @@ const mockConflicts: ConflictDto[] = [
 const manyConflicts: ConflictDto[] = Array.from({ length: 12 }, (_, i) => ({
   id: `conflict-${i}`,
   identifier: `C-${2000 + i}`,
-  user_id: 'user-123',
   workspace_id: 'workspace-123',
   hero_id: `hero-${i % 3}`,
   villain_id: `villain-${i % 4}`,
@@ -116,7 +111,11 @@ export const Empty: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useConflicts.mockReturnValue({
         conflicts: [],
@@ -141,7 +140,11 @@ export const Loading: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useConflicts.mockReturnValue({
         conflicts: null,
@@ -166,7 +169,11 @@ export const WithData: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useConflicts.mockReturnValue({
         conflicts: mockConflicts,
@@ -191,7 +198,11 @@ export const ManyConflicts: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useConflicts.mockReturnValue({
         conflicts: manyConflicts,
@@ -216,7 +227,11 @@ export const GroupedByStatus: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useConflicts.mockReturnValue({
         conflicts: mockConflicts,
@@ -248,7 +263,11 @@ export const Error: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useConflicts.mockReturnValue({
         conflicts: null,

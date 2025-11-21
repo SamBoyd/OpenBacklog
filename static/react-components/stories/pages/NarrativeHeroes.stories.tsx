@@ -84,13 +84,17 @@ export const Empty: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useHeroes.mockReturnValue({
         heroes: [],
         isLoading: false,
         error: null,
-        refetch: () => {},
+        refetch: async () => ({ data: [], status: 'success' } as any),
       });
       return <Story />;
     },
@@ -108,13 +112,17 @@ export const Loading: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useHeroes.mockReturnValue({
         heroes: [],
         isLoading: true,
         error: null,
-        refetch: () => {},
+        refetch: async () => ({ data: [], status: 'success' } as any),
       });
       return <Story />;
     },
@@ -132,13 +140,17 @@ export const WithData: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useHeroes.mockReturnValue({
         heroes: mockHeroes,
         isLoading: false,
         error: null,
-        refetch: () => {},
+        refetch: async () => ({ data: mockHeroes, status: 'success' } as any),
       });
       return <Story />;
     },
@@ -156,13 +168,17 @@ export const ManyHeroes: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useHeroes.mockReturnValue({
         heroes: manyHeroes,
         isLoading: false,
         error: null,
-        refetch: () => {},
+        refetch: async () => ({ data: manyHeroes, status: 'success' } as any),
       });
       return <Story />;
     },
@@ -172,7 +188,7 @@ export const ManyHeroes: Story = {
 /**
  * Error state - failed to load heroes
  */
-export const Error: Story = {
+export const ErrorState: Story = {
   render: () => <Heroes />,
   decorators: [
     (Story) => {
@@ -180,13 +196,17 @@ export const Error: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useHeroes.mockReturnValue({
         heroes: [],
         isLoading: false,
-        error: 'Failed to fetch heroes',
-        refetch: () => {},
+        error: new Error('Failed to fetch heroes'),
+        refetch: async () => ({ data: [], status: 'error' } as any),
       });
       return <Story />;
     },

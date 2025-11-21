@@ -29,7 +29,7 @@ const Conflicts: React.FC = () => {
       return null;
     }
 
-    return conflicts.reduce((acc, conflict) => {
+    return conflicts.reduce((acc: Record<ConflictStatus, typeof conflicts>, conflict: typeof conflicts[number]) => {
       if (!acc[conflict.status]) {
         acc[conflict.status] = [];
       }
@@ -128,7 +128,7 @@ const Conflicts: React.FC = () => {
         </div>
       ) : groupedConflicts ? (
         <div className="space-y-8" data-testid="conflicts-grouped-list">
-          {Object.entries(groupedConflicts).map(([status, statusConflicts]) => (
+          {Object.entries(groupedConflicts).map(([status, statusConflicts]: [string, typeof conflicts]) => (
             <div key={status}>
               <h2 className="text-lg font-semibold text-foreground mb-4 capitalize">
                 {status.toLowerCase().replace(/_/g, ' ')}
@@ -137,7 +137,7 @@ const Conflicts: React.FC = () => {
                 </span>
               </h2>
               <div className="space-y-4">
-                {statusConflicts.map((conflict) => (
+                {statusConflicts.map((conflict: typeof conflicts[number]) => (
                   <ConflictCard
                     key={conflict.id}
                     conflict={conflict}
@@ -150,7 +150,7 @@ const Conflicts: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-4" data-testid="conflicts-list">
-          {conflicts.map((conflict) => (
+          {conflicts && conflicts.map((conflict: typeof conflicts[number]) => (
             <ConflictCard
               key={conflict.id}
               conflict={conflict}

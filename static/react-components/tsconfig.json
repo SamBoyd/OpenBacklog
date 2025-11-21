@@ -10,7 +10,19 @@
     "module": "Node16",
     "moduleResolution": "Node16",
     "skipLibCheck": true,  // Uncomment this line if you have issues with type checking in node_modules
-    "types": ["@testing-library/jest-dom"]
+    "types": ["@testing-library/jest-dom"],
+    "resolvePackageJsonImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "#types": ["types.ts"],
+      "#api/*": ["api/*"],
+      "#hooks/*": ["hooks/*"],
+      "#contexts/*": ["contexts/*"],
+      "#components/*": ["components/*"],
+      "#services/*": ["services/*"],
+      "#styles": ["styles"],
+      "#*": ["./*", "./*.ts", "./*.tsx"]
+    }
   },
   "include": [
     "renderers/**/*.ts",

@@ -40,7 +40,8 @@ export function useVillains(workspaceId: string, filters?: VillainFilters) {
       }
 
       if (filters?.minSeverity !== undefined) {
-        filteredVillains = filteredVillains.filter(villain => villain.severity >= filters.minSeverity);
+        const minSeverity = filters.minSeverity;
+        filteredVillains = filteredVillains.filter(villain => villain.severity >= minSeverity);
       }
 
       return filteredVillains;

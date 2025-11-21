@@ -104,7 +104,7 @@ const Villains: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="villains-grid">
-          {villains.map((villain) => (
+          {villains.map((villain: typeof villains[number]) => (
             <VillainCard
               key={villain.id}
               villain={villain}

@@ -118,13 +118,17 @@ export const Empty: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useVillains.mockReturnValue({
         villains: [],
         isLoading: false,
         error: null,
-        refetch: () => {},
+        refetch: async () => ({ data: [], status: 'success' } as any),
       });
       return <Story />;
     },
@@ -142,13 +146,17 @@ export const Loading: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useVillains.mockReturnValue({
         villains: [],
         isLoading: true,
         error: null,
-        refetch: () => {},
+        refetch: async () => ({ data: [], status: 'success' } as any),
       });
       return <Story />;
     },
@@ -166,13 +174,17 @@ export const WithData: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useVillains.mockReturnValue({
         villains: mockVillains,
         isLoading: false,
         error: null,
-        refetch: () => {},
+        refetch: async () => ({ data: mockVillains, status: 'success' } as any),
       });
       return <Story />;
     },
@@ -190,13 +202,17 @@ export const ManyVillains: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useVillains.mockReturnValue({
         villains: manyVillains,
         isLoading: false,
         error: null,
-        refetch: () => {},
+        refetch: async () => ({ data: manyVillains, status: 'success' } as any),
       });
       return <Story />;
     },
@@ -206,7 +222,7 @@ export const ManyVillains: Story = {
 /**
  * Error state - failed to load villains
  */
-export const Error: Story = {
+export const ErrorState: Story = {
   render: () => <Villains />,
   decorators: [
     (Story) => {
@@ -214,13 +230,17 @@ export const Error: Story = {
         currentWorkspace: mockWorkspace,
         workspaces: [mockWorkspace],
         isLoading: false,
+        isProcessing: false,
         error: null,
+        changeWorkspace: async () => {},
+        addWorkspace: async () => mockWorkspace,
+        refresh: () => {},
       });
       useVillains.mockReturnValue({
         villains: [],
         isLoading: false,
-        error: 'Failed to fetch villains',
-        refetch: () => {},
+        error: new Error('Failed to fetch villains'),
+        refetch: async () => ({ data: [], status: 'error' } as any),
       });
       return <Story />;
     },
