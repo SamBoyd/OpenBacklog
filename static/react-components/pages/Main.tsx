@@ -22,6 +22,9 @@ import SubscriptionCompletePage from '#pages/SubscriptionComplete';
 import Onboarding from '#pages/Onboarding';
 import ProductStrategy from '#pages/ProductStrategy';
 import Roadmap from '#pages/Roadmap';
+import Heroes from '#pages/Narrative/Heroes';
+import Villains from '#pages/Narrative/Villains';
+import Conflicts from '#pages/Narrative/Conflicts';
 
 import ViewInitiative from '#components/ViewInitiative';
 import ViewTask from '#components/ViewTask';
@@ -75,6 +78,9 @@ export const MainContent = () => {
                 <Route path="/workspace/initiatives/:initiativeId/tasks/:taskId" element={<ViewTask />} />
                 <Route path="/workspace/initiatives/:initiativeId" element={<ViewInitiative />} />
                 <Route path="/workspace/initiatives" element={<Initiatives />} />
+                <Route path="/workspace/heroes" element={<Heroes />} />
+                <Route path="/workspace/villains" element={<Villains />} />
+                <Route path="/workspace/conflicts" element={<Conflicts />} />
                 <Route path="/workspace" element={<Navigate to="/workspace/initiatives" />} />
             </Route>
 

@@ -266,6 +266,18 @@
       "storybook": "./hooks/useOnboardingPolling.mock.tsx",
       "default": "./hooks/useOnboardingPolling.tsx"
     },
+    "#hooks/useHeroes": {
+      "storybook": "./hooks/useHeroes.mock.tsx",
+      "default": "./hooks/useHeroes.tsx"
+    },
+    "#hooks/useVillains": {
+      "storybook": "./hooks/useVillains.mock.tsx",
+      "default": "./hooks/useVillains.tsx"
+    },
+    "#hooks/useConflicts": {
+      "storybook": "./hooks/useConflicts.mock.tsx",
+      "default": "./hooks/useConflicts.tsx"
+    },
     "#styles": {
       "default": "./styles"
     },
