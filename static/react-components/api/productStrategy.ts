@@ -15,7 +15,6 @@ export interface VisionDto {
 export interface PillarCreateRequest {
   name: string;
   description?: string | null;
-  anti_strategy?: string | null;
 }
 
 export interface PillarDto {
@@ -23,7 +22,6 @@ export interface PillarDto {
   workspace_id: string;
   name: string;
   description: string | null;
-  anti_strategy: string | null;
   display_order: number;
   outcome_ids: string[];
   created_at: string;
@@ -111,7 +109,6 @@ export async function createStrategicPillar(
 export interface PillarUpdateRequest {
   name: string;
   description?: string | null;
-  anti_strategy?: string | null;
 }
 
 export async function updateStrategicPillar(
@@ -184,8 +181,6 @@ export async function reorderStrategicPillars(
 export interface OutcomeCreateRequest {
   name: string;
   description?: string | null;
-  metrics?: string | null;
-  time_horizon_months?: number | null;
   pillar_ids?: string[];
 }
 
@@ -194,8 +189,6 @@ export interface OutcomeDto {
   workspace_id: string;
   name: string;
   description: string | null;
-  metrics: string | null;
-  time_horizon_months: number | null;
   display_order: number;
   pillar_ids: string[];
   created_at: string;
@@ -242,8 +235,6 @@ export async function createProductOutcome(
 export interface OutcomeUpdateRequest {
   name: string;
   description?: string | null;
-  metrics?: string | null;
-  time_horizon_months?: number | null;
   pillar_ids?: string[];
 }
 
@@ -316,10 +307,7 @@ export async function reorderProductOutcomes(
 
 export interface ThemeCreateRequest {
   name: string;
-  problem_statement: string;
-  hypothesis?: string | null;
-  indicative_metrics?: string | null;
-  time_horizon_months?: number | null;
+  description: string;
   outcome_ids?: string[];
 }
 
@@ -327,10 +315,7 @@ export interface ThemeDto {
   id: string;
   workspace_id: string;
   name: string;
-  problem_statement: string;
-  hypothesis: string | null;
-  indicative_metrics: string | null;
-  time_horizon_months: number | null;
+  description: string;
   outcome_ids: string[];
   created_at: string;
   updated_at: string;
@@ -375,10 +360,7 @@ export async function createRoadmapTheme(
 
 export interface ThemeUpdateRequest {
   name: string;
-  problem_statement: string;
-  hypothesis?: string | null;
-  indicative_metrics?: string | null;
-  time_horizon_months?: number | null;
+  description: string;
   outcome_ids?: string[];
 }
 
@@ -530,10 +512,8 @@ export async function deprioritizeTheme(
 export interface StrategicInitiativeCreateRequest {
   pillar_id?: string | null;
   theme_id?: string | null;
-  user_need?: string | null;
-  connection_to_vision?: string | null;
-  success_criteria?: string | null;
-  out_of_scope?: string | null;
+  description?: string | null;
+  narrative_intent?: string | null;
 }
 
 export interface StrategicInitiativeDto {
@@ -542,10 +522,8 @@ export interface StrategicInitiativeDto {
   workspace_id: string;
   pillar_id: string | null;
   theme_id: string | null;
-  user_need: string | null;
-  connection_to_vision: string | null;
-  success_criteria: string | null;
-  out_of_scope: string | null;
+  description: string | null;
+  narrative_intent: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -594,10 +572,8 @@ export async function createStrategicInitiative(
 export interface StrategicInitiativeUpdateRequest {
   pillar_id?: string | null;
   theme_id?: string | null;
-  user_need?: string | null;
-  connection_to_vision?: string | null;
-  success_criteria?: string | null;
-  out_of_scope?: string | null;
+  description?: string | null;
+  narrative_intent?: string | null;
 }
 
 export async function updateStrategicInitiative(

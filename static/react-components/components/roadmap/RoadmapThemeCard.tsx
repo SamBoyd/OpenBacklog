@@ -25,10 +25,10 @@ const RoadmapThemeCard: React.FC<RoadmapThemeCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const truncateLength = 150;
-  const shouldTruncate = theme.problem_statement.length > truncateLength;
-  const displayStatement = shouldTruncate && !isExpanded
-    ? `${theme.problem_statement.substring(0, truncateLength)}...`
-    : theme.problem_statement;
+  const shouldTruncate = theme.description.length > truncateLength;
+  const displayDescription = shouldTruncate && !isExpanded
+    ? `${theme.description.substring(0, truncateLength)}...`
+    : theme.description;
 
   return (
     <div
@@ -46,10 +46,10 @@ const RoadmapThemeCard: React.FC<RoadmapThemeCardProps> = ({
         {theme.name}
       </h3>
 
-      {/* Problem Statement */}
+      {/* Description */}
       <div className="mb-3">
         <p className="text-sm text-foreground/80">
-          {displayStatement}
+          {displayDescription}
         </p>
         {shouldTruncate && (
           <button
@@ -60,31 +60,6 @@ const RoadmapThemeCard: React.FC<RoadmapThemeCardProps> = ({
           </button>
         )}
       </div>
-
-      {/* Hypothesis (if present) */}
-      {theme.hypothesis && (
-        <div className="mb-2">
-          <p className="text-xs font-medium text-muted-foreground">Hypothesis:</p>
-          <p className="text-sm text-foreground/70">{theme.hypothesis}</p>
-        </div>
-      )}
-
-      {/* Indicative Metrics (if present) */}
-      {theme.indicative_metrics && (
-        <div className="mb-2">
-          <p className="text-xs font-medium text-muted-foreground">Metrics:</p>
-          <p className="text-sm text-foreground/70">{theme.indicative_metrics}</p>
-        </div>
-      )}
-
-      {/* Time Horizon (if present) */}
-      {theme.time_horizon_months !== null && theme.time_horizon_months !== undefined && (
-        <div className="mb-3">
-          <p className="text-xs text-muted-foreground">
-            Time horizon: {theme.time_horizon_months} {theme.time_horizon_months === 1 ? 'month' : 'months'}
-          </p>
-        </div>
-      )}
 
       {/* Divider */}
       {theme.strategicInitiatives.length > 0 && (

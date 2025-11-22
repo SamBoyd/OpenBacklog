@@ -8,15 +8,12 @@ import { useStrategicPillars } from '#hooks/useStrategicPillars';
 import { useRoadmapThemes } from '#hooks/useRoadmapThemes';
 import { useHeroes } from '#hooks/useHeroes';
 import { useVillains } from '#hooks/useVillains';
+import { useWorkspaces } from '#hooks/useWorkspaces';
 
 /**
  * Props for StoryBiblePage component.
  */
 export interface StoryBiblePageProps {
-    /**
-     * The workspace ID
-     */
-    workspaceId: string;
     /**
      * Product narrative summary
      */
@@ -42,7 +39,6 @@ export interface StoryBiblePageProps {
  * @returns {React.ReactElement} The StoryBiblePage component
  */
 const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
-    workspaceId,
     narrativeSummary = '',
     healthPercentage = 72,
     onEditNarrative,
@@ -54,6 +50,8 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
     const [expandedPillarId, setExpandedPillarId] = useState<string | null>(null);
     const [expandedThemeId, setExpandedThemeId] = useState<string | null>(null);
 
+    const { currentWorkspace } = useWorkspaces();
+    const workspaceId = currentWorkspace?.id || '';
     // Fetch all narrative data
     const {
         heroes,

@@ -53,19 +53,7 @@ const truncateDescription = (description: string | null, maxLength: number = 100
 };
 
 /**
- * Formats time horizon in months to a readable string.
- * @param {number | null} months - Time horizon in months
- * @returns {string} Formatted time horizon
- */
-const formatTimeHorizon = (months: number | null): string => {
-    if (!months) return '';
-    if (months < 12) return `${months} month${months !== 1 ? 's' : ''}`;
-    const years = Math.round(months / 12);
-    return `${years} year${years !== 1 ? 's' : ''}`;
-};
-
-/**
- * RoadmapThemeCard displays a roadmap theme with problem statement, hypothesis, and time horizon.
+ * RoadmapThemeCard displays a roadmap theme with its description and linked outcomes.
  * @param {RoadmapThemeCardProps} props - Component props
  * @returns {React.ReactElement} The RoadmapThemeCard component
  */
@@ -95,8 +83,8 @@ const RoadmapThemeCard: React.FC<RoadmapThemeCardProps> = ({
                     <h3 className="text-base font-semibold text-foreground mb-2" data-testid={`${dataTestId}-name`}>
                         {theme.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`${dataTestId}-problem-statement`}>
-                        {truncateDescription(theme.problem_statement, 120)}
+                    <p className="text-sm text-muted-foreground line-clamp-2" data-testid={`${dataTestId}-description`}>
+                        {truncateDescription(theme.description, 120)}
                     </p>
                 </div>
                 {/* Expand/Collapse Button */}
@@ -113,14 +101,6 @@ const RoadmapThemeCard: React.FC<RoadmapThemeCardProps> = ({
 
             {/* Metadata Section */}
             <div className="flex flex-wrap gap-4 mb-4" data-testid={`${dataTestId}-metadata`}>
-                {theme.time_horizon_months && (
-                    <div className="flex items-center gap-1" data-testid={`${dataTestId}-time-horizon`}>
-                        <span className="text-xs text-muted-foreground">Time Horizon:</span>
-                        <span className="text-sm font-semibold text-foreground">
-                            {formatTimeHorizon(theme.time_horizon_months)}
-                        </span>
-                    </div>
-                )}
                 <div className="flex items-center gap-1" data-testid={`${dataTestId}-outcome-count`}>
                     <span className="text-xs text-muted-foreground">Linked to</span>
                     <span className="text-sm font-semibold text-foreground">
@@ -129,33 +109,13 @@ const RoadmapThemeCard: React.FC<RoadmapThemeCardProps> = ({
                 </div>
             </div>
 
-            {/* Hypothesis Section */}
-            {theme.hypothesis && (
-                <div className="mb-4 pb-4 border-b border-border" data-testid={`${dataTestId}-hypothesis`}>
-                    <h4 className="text-xs font-medium text-muted-foreground mb-1">Our Hypothesis:</h4>
-                    <p className="text-sm text-muted-foreground italic">{truncateDescription(theme.hypothesis, 150)}</p>
-                </div>
-            )}
-
             {/* Expanded Content */}
             {isExpanded && (
                 <div className="mt-4 pt-4 border-t border-border space-y-4" data-testid={`${dataTestId}-expanded`}>
                     <div>
-                        <h4 className="text-xs font-medium text-muted-foreground mb-2">Problem Statement:</h4>
-                        <p className="text-sm text-foreground leading-relaxed">{theme.problem_statement}</p>
+                        <h4 className="text-xs font-medium text-muted-foreground mb-2">Description:</h4>
+                        <p className="text-sm text-foreground leading-relaxed">{theme.description}</p>
                     </div>
-                    {theme.hypothesis && (
-                        <div>
-                            <h4 className="text-xs font-medium text-muted-foreground mb-2">Hypothesis:</h4>
-                            <p className="text-sm text-foreground leading-relaxed">{theme.hypothesis}</p>
-                        </div>
-                    )}
-                    {theme.indicative_metrics && (
-                        <div>
-                            <h4 className="text-xs font-medium text-muted-foreground mb-2">Indicative Metrics:</h4>
-                            <p className="text-sm text-foreground leading-relaxed">{theme.indicative_metrics}</p>
-                        </div>
-                    )}
                 </div>
             )}
         </Card>

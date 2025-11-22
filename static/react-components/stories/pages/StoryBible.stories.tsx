@@ -9,6 +9,8 @@ import { HeroDto } from '#types';
 import { VillainDto, VillainType } from '#types';
 import { PillarDto } from '#api/productStrategy';
 import { ThemeDto } from '#api/productStrategy';
+import { mockWorkspace } from '#stories/example_data';
+import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 
 const mockNarrativeSummary = `OpenBacklog is pioneering a new category: the AI-native product management layer. We're building for solo developers and small teams who work alongside AI coding assistants like Claude Code, who need their product context to be immediately accessible to both humans and AI without breaking flow state.
 
@@ -84,7 +86,6 @@ const mockPillars: PillarDto[] = [
         workspace_id: 'ws-001',
         name: 'AI-Native Product Management',
         description: 'Build product management tools designed from the ground up for AI collaboration.',
-        anti_strategy: 'We will not build traditional project management tools that ignore AI.',
         display_order: 1,
         outcome_ids: ['outcome-1', 'outcome-2'],
         created_at: '2025-01-15T10:00:00Z',
@@ -95,7 +96,6 @@ const mockPillars: PillarDto[] = [
         workspace_id: 'ws-001',
         name: 'Developer Experience First',
         description: 'Prioritize the needs of developers over administrative overhead.',
-        anti_strategy: 'We will not add features that require context switching.',
         display_order: 2,
         outcome_ids: ['outcome-3'],
         created_at: '2025-01-16T14:30:00Z',
@@ -108,10 +108,7 @@ const mockThemes: ThemeDto[] = [
         id: '850e8400-e29b-41d4-a716-446655440001',
         workspace_id: 'ws-001',
         name: 'MCP Integration for AI Context',
-        problem_statement: 'AI assistants lack native access to product context.',
-        hypothesis: 'If we expose product data through an MCP server, AI can query it natively.',
-        indicative_metrics: 'Reduction in context switches, faster implementation',
-        time_horizon_months: 6,
+        description: 'Enable AI assistants to query product context natively through MCP server integration.',
         outcome_ids: ['outcome-1', 'outcome-2'],
         created_at: '2025-01-15T10:00:00Z',
         updated_at: '2025-01-15T10:00:00Z',
@@ -120,10 +117,7 @@ const mockThemes: ThemeDto[] = [
         id: '850e8400-e29b-41d4-a716-446655440002',
         workspace_id: 'ws-001',
         name: 'Narrative Health Monitoring',
-        problem_statement: 'Teams need visibility into narrative consistency over time.',
-        hypothesis: 'Health metrics will help teams maintain coherent product stories.',
-        indicative_metrics: 'Consistency scores, narrative coverage',
-        time_horizon_months: 3,
+        description: 'Provide visibility into narrative consistency over time with health metrics and coverage scores.',
         outcome_ids: ['outcome-3'],
         created_at: '2025-01-16T14:30:00Z',
         updated_at: '2025-01-16T14:30:00Z',
@@ -137,10 +131,6 @@ const meta: Meta<typeof StoryBiblePage> = {
         layout: 'fullscreen',
     },
     argTypes: {
-        workspaceId: {
-            control: 'text',
-            description: 'The workspace ID',
-        },
         narrativeSummary: {
             control: 'text',
             description: 'Product narrative summary',
@@ -161,6 +151,17 @@ const meta: Meta<typeof StoryBiblePage> = {
     decorators: [
         (Story) => {
             // Mock all hooks with data
+            useWorkspaces.mockReturnValue({
+                currentWorkspace: mockWorkspace,
+                workspaces: [mockWorkspace],
+                isLoading: false,
+                error: null,
+                changeWorkspace: async () => { },
+                addWorkspace: async () => mockWorkspace,
+                refresh: () => { },
+                isProcessing: false
+            });
+            
             useHeroes.mockReturnValue({
                 heroes: mockHeroes,
                 isLoading: false,
@@ -225,7 +226,6 @@ type Story = StoryObj<typeof StoryBiblePage>;
  */
 export const Default: Story = {
     args: {
-        workspaceId: 'ws-001',
         narrativeSummary: mockNarrativeSummary,
         healthPercentage: 72,
     },
@@ -236,7 +236,6 @@ export const Default: Story = {
  */
 export const GoodHealth: Story = {
     args: {
-        workspaceId: 'ws-001',
         narrativeSummary: mockNarrativeSummary,
         healthPercentage: 95,
     },
@@ -247,7 +246,6 @@ export const GoodHealth: Story = {
  */
 export const PoorHealth: Story = {
     args: {
-        workspaceId: 'ws-001',
         narrativeSummary: mockNarrativeSummary,
         healthPercentage: 40,
     },
@@ -258,7 +256,6 @@ export const PoorHealth: Story = {
  */
 export const WithCallbacks: Story = {
     args: {
-        workspaceId: 'ws-001',
         narrativeSummary: mockNarrativeSummary,
         healthPercentage: 72,
         onEditNarrative: () => console.log('Edit narrative clicked'),
@@ -271,7 +268,6 @@ export const WithCallbacks: Story = {
  */
 export const ShortNarrative: Story = {
     args: {
-        workspaceId: 'ws-001',
         narrativeSummary: 'Build the best AI-native product management tool for developers.',
         healthPercentage: 85,
     },

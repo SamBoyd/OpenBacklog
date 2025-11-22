@@ -103,7 +103,7 @@ const ThemeFilter: React.FC<ThemeFilterProps> = ({
                                         `}
                                         aria-pressed={isSelected(theme.id)}
                                         data-testid={`filter-theme-${theme.id}`}
-                                        title={theme.problem_statement}
+                                        title={theme.name}
                                     >
                                         {theme.name}
                                     </button>
@@ -151,7 +151,7 @@ const ThemeFilter: React.FC<ThemeFilterProps> = ({
                                         `}
                                         aria-pressed={isSelected(theme.id)}
                                         data-testid={`filter-theme-${theme.id}`}
-                                        title={theme.problem_statement}
+                                        title={theme.name}
                                     >
                                         {theme.name}
                                     </button>

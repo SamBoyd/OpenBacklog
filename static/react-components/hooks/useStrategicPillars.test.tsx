@@ -46,7 +46,6 @@ describe('useStrategicPillars', () => {
     workspace_id: workspaceId,
     name: 'Developer Experience',
     description: 'Make developers love our product',
-    anti_strategy: 'Not enterprise features',
     display_order: 0,
     created_at: '2025-01-01T00:00:00Z',
     updated_at: '2025-01-01T00:00:00Z',
@@ -58,7 +57,6 @@ describe('useStrategicPillars', () => {
     workspace_id: workspaceId,
     name: 'AI-Native',
     description: 'Build AI into core product',
-    anti_strategy: null,
     display_order: 1,
     created_at: '2025-01-02T00:00:00Z',
     updated_at: '2025-01-02T00:00:00Z',
@@ -150,7 +148,6 @@ describe('useStrategicPillars', () => {
     const newPillarRequest = {
       name: 'New Pillar',
       description: 'A new pillar',
-      anti_strategy: null,
     };
 
     const newPillar: PillarDto = {
@@ -158,7 +155,6 @@ describe('useStrategicPillars', () => {
       workspace_id: workspaceId,
       name: newPillarRequest.name,
       description: newPillarRequest.description,
-      anti_strategy: newPillarRequest.anti_strategy,
       display_order: 2,
       created_at: '2025-01-03T00:00:00Z',
       updated_at: '2025-01-03T00:00:00Z',

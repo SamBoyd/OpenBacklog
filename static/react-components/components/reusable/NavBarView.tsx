@@ -61,7 +61,7 @@ interface NavBarViewProps {
     supportPath: string;
     accountPath: string;
     billingPath: string;
-    strategyPath: string;
+    storyBiblePath: string;
     roadmapPath: string;
     toggleTheme: () => void;
     currentTheme: string;
@@ -79,7 +79,7 @@ const NavBarView: React.FC<NavBarViewProps> = ({
     supportPath,
     accountPath,
     billingPath,
-    strategyPath,
+    storyBiblePath,
     roadmapPath,
 }) => {
     return (
@@ -129,9 +129,9 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                                         />
                                         <NavBarButton
                                             icon={<FaChartLine />}
-                                            title="Strategy"
-                                            onClick={() => onNavigate(strategyPath)}
-                                            active={currentPath.includes(strategyPath)}
+                                            title="Story Bible"
+                                            onClick={() => onNavigate(storyBiblePath)}
+                                            active={currentPath.includes(storyBiblePath)}
                                         />
                                     </div>
                                 </div>
@@ -212,12 +212,12 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                             </MobileNavBarButton>
                             <MobileNavBarButton
                                 icon={<FaChartLine />}
-                                title="Strategy"
-                                onClick={() => onNavigate(strategyPath)}
-                                active={currentPath.includes(strategyPath)}
+                                title="Story Bible"
+                                onClick={() => onNavigate(storyBiblePath)}
+                                active={currentPath.includes(storyBiblePath)}
                                 className="block w-full text-left"
                             >
-                                <span>Strategy</span>
+                                <span>Story Bible</span>
                             </MobileNavBarButton>
                         </div>
                         {/* Mobile Action Icons */}

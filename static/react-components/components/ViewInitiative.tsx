@@ -21,7 +21,6 @@ import { Button } from '#components/reusable/Button';
 import ViewInitiativeDiff from '#components/ViewInitiativeDiff';
 import TitleInput from '#components/reusable/TitleInput';
 import StatusFilter from './StatusFilter';
-import StrategicContextDisplay from '#components/StrategicContextDisplay';
 
 /**
  * ViewInitiative component for displaying and editing initiative details
@@ -230,14 +229,6 @@ const ViewInitiative = () => {
                             type: ['FEATURE', 'BUGFIX', 'RESEARCH', 'CHORE'],
                         }}
                     />
-
-                    {/* Strategic Context */}
-                    {initiativeId && (
-                        <StrategicContextDisplay
-                            initiativeId={initiativeId}
-                            loading={pageShouldShowSkeleton}
-                        />
-                    )}
 
                     {/* Description */}
                     <EntityDescriptionEditor

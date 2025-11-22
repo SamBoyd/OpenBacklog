@@ -20,7 +20,6 @@ import BillingUsage from '#pages/BillingUsage';
 import SubscriptionCheckoutPage from '#pages/SubscriptionCheckout';
 import SubscriptionCompletePage from '#pages/SubscriptionComplete';
 import Onboarding from '#pages/Onboarding';
-import ProductStrategy from '#pages/ProductStrategy';
 import Roadmap from '#pages/Roadmap';
 import Heroes from '#pages/Narrative/Heroes';
 import Villains from '#pages/Narrative/Villains';
@@ -41,6 +40,8 @@ import { TasksProvider } from '#contexts/TasksContext';
 
 import '../styles/output.css';
 import { GithubReposProvider } from '#hooks/useGithubRepos';
+import StoryBible from './Narrative/StoryBible';
+import StoryBiblePage from './Narrative/StoryBible';
 
 
 // Layout component for main app structure
@@ -71,7 +72,7 @@ export const MainContent = () => {
 
             {/* Protected workspace routes */}
             <Route element={<AppGuard><Layout /></AppGuard>}>
-                <Route path="/workspace/strategy" element={<ProductStrategy />} />
+                <Route path="/workspace/story-bible" element={<StoryBiblePage />} />
                 <Route path="/workspace/roadmap" element={<Roadmap />} />
                 <Route path="/workspace/context" element={<ContextDocument />} />
                 <Route path="/workspace/tasks" element={<Tasks />} />

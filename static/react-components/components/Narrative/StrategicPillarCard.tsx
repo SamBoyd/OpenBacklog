@@ -53,7 +53,7 @@ const truncateDescription = (description: string | null, maxLength: number = 100
 };
 
 /**
- * StrategicPillarCard displays a strategic pillar with name, description, and anti-strategy.
+ * StrategicPillarCard displays a strategic pillar with name and description.
  * @param {StrategicPillarCardProps} props - Component props
  * @returns {React.ReactElement} The StrategicPillarCard component
  */
@@ -111,14 +111,6 @@ const StrategicPillarCard: React.FC<StrategicPillarCardProps> = ({
                 </div>
             </div>
 
-            {/* Anti-Strategy Section */}
-            {pillar.anti_strategy && (
-                <div className="mb-4 pb-4 border-b border-border" data-testid={`${dataTestId}-anti-strategy`}>
-                    <h4 className="text-xs font-medium text-muted-foreground mb-1">What we won't do:</h4>
-                    <p className="text-sm text-muted-foreground italic">{truncateDescription(pillar.anti_strategy, 150)}</p>
-                </div>
-            )}
-
             {/* Expanded Content */}
             {isExpanded && (
                 <div className="mt-4 pt-4 border-t border-border space-y-4" data-testid={`${dataTestId}-expanded`}>
@@ -126,12 +118,6 @@ const StrategicPillarCard: React.FC<StrategicPillarCardProps> = ({
                         <div>
                             <h4 className="text-xs font-medium text-muted-foreground mb-2">Description:</h4>
                             <p className="text-sm text-foreground leading-relaxed">{pillar.description}</p>
-                        </div>
-                    )}
-                    {pillar.anti_strategy && (
-                        <div>
-                            <h4 className="text-xs font-medium text-muted-foreground mb-2">Anti-Strategy:</h4>
-                            <p className="text-sm text-foreground leading-relaxed">{pillar.anti_strategy}</p>
                         </div>
                     )}
                 </div>
