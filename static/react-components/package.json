@@ -278,6 +278,10 @@
       "storybook": "./hooks/useConflicts.mock.tsx",
       "default": "./hooks/useConflicts.tsx"
     },
+    "#hooks/strategyAndRoadmap/useStoryArcs": {
+      "storybook": "./hooks/strategyAndRoadmap/useStoryArcs.mock.tsx",
+      "default": "./hooks/strategyAndRoadmap/useStoryArcs.tsx"
+    },
     "#styles": {
       "default": "./styles"
     },

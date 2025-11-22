@@ -321,6 +321,21 @@ export interface ThemeDto {
   updated_at: string;
 }
 
+/**
+ * Extended theme data for roadmap overview display.
+ * Includes narrative context (heroes, villains) and progress tracking.
+ */
+export interface ArcDto extends ThemeDto {
+  heroes: Array<{ id: string; name: string }>;
+  villains: Array<{ id: string; name: string }>;
+  status: 'in_progress' | 'complete' | 'planned';
+  progress_percentage?: number;
+  scenes_completed?: number;
+  scenes_total?: number;
+  started_quarter?: string; // e.g., "Q1 2024"
+  expected_quarter?: string; // e.g., "Q2 2024"
+}
+
 export async function getRoadmapThemes(
   workspaceId: string
 ): Promise<ThemeDto[]> {
