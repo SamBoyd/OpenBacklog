@@ -4,7 +4,7 @@ import { mockStoryArcs } from '#hooks/strategyAndRoadmap/useStoryArcs.mock';
 
 const meta: Meta<typeof RoadmapSummaryPanel> = {
   component: RoadmapSummaryPanel,
-  title: 'strategyAndRoadmap/RoadmapSummaryPanel',
+  title: 'Components/StrategyAndRoadmap/RoadmapSummaryPanel',
   tags: ['autodocs'],
 };
 

@@ -4,7 +4,7 @@ import { RoadmapFilterControls } from '#components/strategyAndRoadmap/RoadmapFil
 
 const meta: Meta<typeof RoadmapFilterControls> = {
   component: RoadmapFilterControls,
-  title: 'strategyAndRoadmap/RoadmapFilterControls',
+  title: 'Components/StrategyAndRoadmap/RoadmapFilterControls',
   tags: ['autodocs'],
 };
 

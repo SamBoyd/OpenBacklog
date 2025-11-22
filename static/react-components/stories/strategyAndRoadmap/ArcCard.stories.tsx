@@ -4,7 +4,7 @@ import { mockStoryArcs } from '#hooks/strategyAndRoadmap/useStoryArcs.mock';
 
 const meta: Meta<typeof ArcCard> = {
   component: ArcCard,
-  title: 'strategyAndRoadmap/ArcCard',
+  title: 'Components/StrategyAndRoadmap/ArcCard',
   tags: ['autodocs'],
 };
 

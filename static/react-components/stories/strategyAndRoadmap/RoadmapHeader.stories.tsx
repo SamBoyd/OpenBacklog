@@ -3,7 +3,7 @@ import { RoadmapHeader } from '#components/strategyAndRoadmap/RoadmapHeader';
 
 const meta: Meta<typeof RoadmapHeader> = {
   component: RoadmapHeader,
-  title: 'strategyAndRoadmap/RoadmapHeader',
+  title: 'Components/StrategyAndRoadmap/RoadmapHeader',
   tags: ['autodocs'],
 };
 

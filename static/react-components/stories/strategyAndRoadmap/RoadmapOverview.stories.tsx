@@ -6,7 +6,7 @@ import { mockWorkspacesReturn } from '#stories/example_data';
 
 const meta: Meta<typeof RoadmapOverview> = {
   component: RoadmapOverview,
-  title: 'strategyAndRoadmap/RoadmapOverview',
+  title: 'Pages/StrategyAndRoadmap/RoadmapOverview',
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
