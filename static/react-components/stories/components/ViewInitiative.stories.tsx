@@ -909,6 +909,8 @@ export const WithStrategicContext: Story = {
                     name: 'First Week Magic',
                     description: 'New users struggle to see value in the first week and often abandon the product before experiencing its key benefits.',
                     outcome_ids: ['outcome-1'],
+                    hero_ids: [],
+                    villain_ids: [],
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                 },
@@ -918,6 +920,8 @@ export const WithStrategicContext: Story = {
                     name: 'Weekly AI Habit',
                     description: 'Users who try AI features once often forget to use them again.',
                     outcome_ids: [],
+                    hero_ids: [],
+                    villain_ids: [],
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                 }

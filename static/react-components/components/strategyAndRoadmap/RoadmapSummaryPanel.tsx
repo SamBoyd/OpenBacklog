@@ -38,7 +38,7 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
       if (arc.status === 'planned') counts.planned++;
       if (arc.status === 'complete') counts.complete++;
 
-      arc.heroes.forEach((hero) => {
+      (arc.heroes ?? []).forEach((hero) => {
         const existing = heroMap.get(hero.id) || { name: hero.name, count: 0 };
         heroMap.set(hero.id, {
           name: hero.name,
@@ -46,7 +46,7 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
         });
       });
 
-      arc.villains.forEach((villain) => {
+      (arc.villains ?? []).forEach((villain) => {
         const existing = villainMap.get(villain.id) || {
           name: villain.name,
           count: 0,
@@ -95,9 +95,9 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
 
       {/* Content */}
       {isExpanded && (
-        <div className="px-8 pb-8 grid grid-cols-4 gap-8">
+        <div className="px-8 pb-8 flex flex-row gap-4 justify-between flex-wrap">
           {/* Arc Status Column */}
-          <div className="space-y-3">
+          <div className="space-y-3 flex-grow">
             <h4 className="text-sm font-medium text-neutral-600 uppercase tracking-wider">
               Arc Status
             </h4>
@@ -132,7 +132,7 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
           </div>
 
           {/* Heroes Served Column */}
-          <div className="space-y-3">
+          <div className="space-y-3 flex-grow">
             <h4 className="text-sm font-medium text-neutral-600 uppercase tracking-wider">
               Heroes Served
             </h4>
@@ -159,7 +159,7 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
           </div>
 
           {/* Top Villains Column */}
-          <div className="space-y-3">
+          <div className="space-y-3 flex-grow">
             <h4 className="text-sm font-medium text-neutral-600 uppercase tracking-wider">
               Top Villains Confronted
             </h4>
@@ -186,7 +186,7 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
           </div>
 
           {/* Narrative Health Column */}
-          <div className="space-y-3">
+          <div className="space-y-3 flex-grow">
             <h4 className="text-sm font-medium text-neutral-600 uppercase tracking-wider">
               Narrative Health
             </h4>

@@ -58,6 +58,209 @@ def test_get_roadmap_themes_returns_ordered_list(
     assert_that(themes[2].id, equal_to(theme3.id))
 
 
+def test_get_roadmap_themes_eager_loads_heroes(
+    user: User, workspace: Workspace, session: Session
+):
+    """Test get_roadmap_themes eager-loads heroes relationship."""
+    from src.narrative.aggregates.hero import Hero
+    from src.strategic_planning.services.event_publisher import EventPublisher
+
+    publisher = EventPublisher(session)
+
+    # Create heroes
+    hero1 = Hero.define_hero(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        name="Hero 1",
+        description="Test hero 1",
+        is_primary=False,
+        session=session,
+        publisher=publisher,
+    )
+    hero2 = Hero.define_hero(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        name="Hero 2",
+        description="Test hero 2",
+        is_primary=False,
+        session=session,
+        publisher=publisher,
+    )
+    session.commit()
+
+    # Create theme and link heroes
+    from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+    from src.strategic_planning.services.event_publisher import EventPublisher
+
+    publisher = EventPublisher(session)
+    theme = RoadmapTheme.define_theme(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        name="Test Theme",
+        description="Test description",
+        session=session,
+        publisher=publisher,
+        hero_ids=[hero1.id, hero2.id],
+    )
+    session.commit()
+
+    # Get themes (should eager-load heroes)
+    themes = controller.get_roadmap_themes(workspace.id, session)
+
+    assert_that(themes, has_length(1))
+    theme = themes[0]
+
+    # Access heroes should NOT trigger additional queries (eager-loaded)
+    # We verify this by checking the relationship is accessible
+    assert_that(theme.heroes, has_length(2))
+    hero_ids = {h.id for h in theme.heroes}
+    assert hero1.id in hero_ids
+    assert hero2.id in hero_ids
+
+
+def test_get_roadmap_themes_eager_loads_villains(
+    user: User, workspace: Workspace, session: Session
+):
+    """Test get_roadmap_themes eager-loads villains relationship."""
+    from src.narrative.aggregates.villain import Villain, VillainType
+    from src.strategic_planning.services.event_publisher import EventPublisher
+
+    publisher = EventPublisher(session)
+
+    # Create villains
+    villain1 = Villain.define_villain(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        name="Villain 1",
+        villain_type=VillainType.EXTERNAL,
+        description="Test villain 1",
+        severity=3,
+        session=session,
+        publisher=publisher,
+    )
+    villain2 = Villain.define_villain(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        name="Villain 2",
+        villain_type=VillainType.INTERNAL,
+        description="Test villain 2",
+        severity=4,
+        session=session,
+        publisher=publisher,
+    )
+    session.commit()
+
+    # Create theme and link villains
+    from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+    from src.strategic_planning.services.event_publisher import EventPublisher
+
+    publisher = EventPublisher(session)
+    theme = RoadmapTheme.define_theme(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        name="Test Theme",
+        description="Test description",
+        session=session,
+        publisher=publisher,
+        villain_ids=[villain1.id, villain2.id],
+    )
+    session.commit()
+
+    # Get themes (should eager-load villains)
+    themes = controller.get_roadmap_themes(workspace.id, session)
+
+    assert_that(themes, has_length(1))
+    theme = themes[0]
+
+    # Access villains should NOT trigger additional queries (eager-loaded)
+    assert_that(theme.villains, has_length(2))
+    villain_ids = {v.id for v in theme.villains}
+    assert villain1.id in villain_ids
+    assert villain2.id in villain_ids
+
+
+def test_get_roadmap_themes_eager_loads_heroes_and_villains(
+    user: User, workspace: Workspace, session: Session
+):
+    """Test get_roadmap_themes eager-loads both heroes and villains."""
+    from src.narrative.aggregates.hero import Hero
+    from src.narrative.aggregates.villain import Villain, VillainType
+    from src.strategic_planning.services.event_publisher import EventPublisher
+
+    publisher = EventPublisher(session)
+
+    # Create heroes and villains
+    hero = Hero.define_hero(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        name="Hero 1",
+        description="Test hero",
+        is_primary=False,
+        session=session,
+        publisher=publisher,
+    )
+    villain = Villain.define_villain(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        name="Villain 1",
+        villain_type=VillainType.EXTERNAL,
+        description="Test villain",
+        severity=3,
+        session=session,
+        publisher=publisher,
+    )
+    session.commit()
+
+    # Create theme with both heroes and villains
+    from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+    from src.strategic_planning.services.event_publisher import EventPublisher
+
+    publisher = EventPublisher(session)
+    theme = RoadmapTheme.define_theme(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        name="Test Theme",
+        description="Test description",
+        session=session,
+        publisher=publisher,
+        hero_ids=[hero.id],
+        villain_ids=[villain.id],
+    )
+    session.commit()
+
+    # Get themes (should eager-load both)
+    themes = controller.get_roadmap_themes(workspace.id, session)
+
+    assert_that(themes, has_length(1))
+    theme = themes[0]
+
+    # Both relationships should be accessible without additional queries
+    assert_that(theme.heroes, has_length(1))
+    assert_that(theme.villains, has_length(1))
+    assert_that(theme.heroes[0].id, equal_to(hero.id))
+    assert_that(theme.villains[0].id, equal_to(villain.id))
+
+
+def test_get_roadmap_themes_with_empty_heroes_and_villains(
+    user: User, workspace: Workspace, session: Session
+):
+    """Test get_roadmap_themes works with themes that have no heroes or villains."""
+    theme = controller.create_roadmap_theme(
+        workspace.id,
+        user.id,
+        "Theme without heroes/villains",
+        "Test description",
+        [],
+        session,
+    )
+
+    themes = controller.get_roadmap_themes(workspace.id, session)
+
+    assert_that(themes, has_length(1))
+    assert_that(themes[0].heroes, has_length(0))
+    assert_that(themes[0].villains, has_length(0))
+
+
 def test_create_roadmap_theme_minimal(
     user: User, workspace: Workspace, session: Session
 ):

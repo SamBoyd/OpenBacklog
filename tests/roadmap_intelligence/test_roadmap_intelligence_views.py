@@ -28,6 +28,8 @@ class TestThemeViews:
             updated_at=datetime.now(),
         )
         theme.outcomes = []
+        theme.heroes = []
+        theme.villains = []
         return theme
 
     @patch("src.roadmap_intelligence.views.controller.get_roadmap_themes")
@@ -51,6 +53,8 @@ class TestThemeViews:
                     "name": "Test Theme",
                     "description": "Test description",
                     "outcome_ids": [],
+                    "hero_ids": [],
+                    "villain_ids": [],
                 }
             ),
         )
@@ -385,6 +389,298 @@ class TestThemeViews:
 
         assert_that(response.status_code, equal_to(422))
 
+    @patch("src.roadmap_intelligence.views.controller.get_roadmap_themes")
+    def test_get_workspace_themes_with_heroes_and_villains(
+        self, mock_get_themes, test_client, user, workspace
+    ):
+        """Test getting themes includes hero_ids and villain_ids."""
+        from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+
+        hero_id_1 = uuid.uuid4()
+        hero_id_2 = uuid.uuid4()
+        villain_id_1 = uuid.uuid4()
+        villain_id_2 = uuid.uuid4()
+
+        # Create mock hero and villain objects
+        from src.narrative.aggregates.hero import Hero
+        from src.narrative.aggregates.villain import Villain
+
+        mock_hero_1 = Hero(
+            id=hero_id_1,
+            name="Hero 1",
+            description="Test",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        mock_hero_2 = Hero(
+            id=hero_id_2,
+            name="Hero 2",
+            description="Test",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        mock_villain_1 = Villain(
+            id=villain_id_1,
+            name="Villain 1",
+            description="Test",
+            villain_type="EXTERNAL",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        mock_villain_2 = Villain(
+            id=villain_id_2,
+            name="Villain 2",
+            description="Test",
+            villain_type="INTERNAL",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        theme = RoadmapTheme(
+            id=uuid.uuid4(),
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Theme with Heroes/Villains",
+            description="Test description",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        theme.outcomes = []
+        theme.heroes = [mock_hero_1, mock_hero_2]
+        theme.villains = [mock_villain_1, mock_villain_2]
+
+        mock_get_themes.return_value = [theme]
+
+        response = test_client.get(f"/api/workspaces/{workspace.id}/themes")
+
+        assert_that(response.status_code, equal_to(200))
+        data = response.json()
+        assert_that(len(data), equal_to(1))
+        assert_that(
+            data[0],
+            has_entries(
+                {
+                    "id": str(theme.id),
+                    "hero_ids": [str(hero_id_1), str(hero_id_2)],
+                    "villain_ids": [str(villain_id_1), str(villain_id_2)],
+                }
+            ),
+        )
+
+    @patch("src.roadmap_intelligence.views.controller.create_roadmap_theme")
+    def test_create_roadmap_theme_returns_hero_and_villain_ids(
+        self, mock_create, test_client, user, workspace
+    ):
+        """Test creating theme returns hero_ids and villain_ids in response."""
+        from src.narrative.aggregates.hero import Hero
+        from src.narrative.aggregates.villain import Villain
+        from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+
+        hero_id = uuid.uuid4()
+        villain_id = uuid.uuid4()
+
+        mock_hero = Hero(
+            id=hero_id,
+            name="Hero",
+            description="Test",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        mock_villain = Villain(
+            id=villain_id,
+            name="Villain",
+            description="Test",
+            villain_type="EXTERNAL",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        theme = RoadmapTheme(
+            id=uuid.uuid4(),
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="New Theme",
+            description="New description",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        theme.outcomes = []
+        theme.heroes = [mock_hero]
+        theme.villains = [mock_villain]
+
+        mock_create.return_value = theme
+
+        payload = {
+            "name": "New Theme",
+            "description": "New description",
+            "outcome_ids": [],
+        }
+
+        response = test_client.post(
+            f"/api/workspaces/{workspace.id}/themes", json=payload
+        )
+
+        assert_that(response.status_code, equal_to(201))
+        data = response.json()
+        assert_that(data["hero_ids"], equal_to([str(hero_id)]))
+        assert_that(data["villain_ids"], equal_to([str(villain_id)]))
+
+    @patch("src.roadmap_intelligence.views.controller.update_roadmap_theme")
+    def test_update_roadmap_theme_returns_hero_and_villain_ids(
+        self, mock_update, test_client, user, workspace
+    ):
+        """Test updating theme returns hero_ids and villain_ids in response."""
+        from src.narrative.aggregates.hero import Hero
+        from src.narrative.aggregates.villain import Villain
+        from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+
+        theme_id = uuid.uuid4()
+        hero_id = uuid.uuid4()
+        villain_id = uuid.uuid4()
+
+        mock_hero = Hero(
+            id=hero_id,
+            name="Hero",
+            description="Test",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        mock_villain = Villain(
+            id=villain_id,
+            name="Villain",
+            description="Test",
+            villain_type="EXTERNAL",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        theme = RoadmapTheme(
+            id=theme_id,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Updated Theme",
+            description="Updated description",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        theme.outcomes = []
+        theme.heroes = [mock_hero]
+        theme.villains = [mock_villain]
+
+        mock_update.return_value = theme
+
+        payload = {
+            "name": "Updated Theme",
+            "description": "Updated description",
+            "outcome_ids": [],
+        }
+
+        response = test_client.put(
+            f"/api/workspaces/{workspace.id}/themes/{theme_id}", json=payload
+        )
+
+        assert_that(response.status_code, equal_to(200))
+        data = response.json()
+        assert_that(data["hero_ids"], equal_to([str(hero_id)]))
+        assert_that(data["villain_ids"], equal_to([str(villain_id)]))
+
+    @patch("src.roadmap_intelligence.views.controller.reorder_roadmap_themes")
+    def test_reorder_roadmap_themes_returns_hero_and_villain_ids(
+        self, mock_reorder, test_client, user, workspace
+    ):
+        """Test reordering themes returns hero_ids and villain_ids in response."""
+        from src.narrative.aggregates.hero import Hero
+        from src.narrative.aggregates.villain import Villain
+        from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+
+        theme_id_1 = uuid.uuid4()
+        theme_id_2 = uuid.uuid4()
+        hero_id = uuid.uuid4()
+        villain_id = uuid.uuid4()
+
+        mock_hero = Hero(
+            id=hero_id,
+            name="Hero",
+            description="Test",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        mock_villain = Villain(
+            id=villain_id,
+            name="Villain",
+            description="Test",
+            villain_type="EXTERNAL",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        theme1 = RoadmapTheme(
+            id=theme_id_1,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Theme 1",
+            description="Description 1",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        theme1.outcomes = []
+        theme1.heroes = [mock_hero]
+        theme1.villains = [mock_villain]
+
+        theme2 = RoadmapTheme(
+            id=theme_id_2,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Theme 2",
+            description="Description 2",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        theme2.outcomes = []
+        theme2.heroes = []
+        theme2.villains = []
+
+        mock_reorder.return_value = [theme1, theme2]
+
+        payload = {
+            "themes": [
+                {"id": str(theme_id_1), "display_order": 0},
+                {"id": str(theme_id_2), "display_order": 1},
+            ]
+        }
+
+        response = test_client.put(
+            f"/api/workspaces/{workspace.id}/themes/reorder", json=payload
+        )
+
+        assert_that(response.status_code, equal_to(200))
+        data = response.json()
+        assert_that(len(data), equal_to(2))
+        assert_that(data[0]["hero_ids"], equal_to([str(hero_id)]))
+        assert_that(data[0]["villain_ids"], equal_to([str(villain_id)]))
+        assert_that(data[1]["hero_ids"], equal_to([]))
+        assert_that(data[1]["villain_ids"], equal_to([]))
+
 
 class TestThemePrioritizationViews:
     """Test cases for theme prioritization endpoints."""
@@ -404,6 +700,8 @@ class TestThemePrioritizationViews:
             updated_at=datetime.now(),
         )
         theme.outcomes = []
+        theme.heroes = []
+        theme.villains = []
         return theme
 
     @patch("src.roadmap_intelligence.views.controller.get_prioritized_themes")
@@ -586,3 +884,232 @@ class TestThemePrioritizationViews:
         )
 
         assert_that(response.status_code, equal_to(400))
+
+    @patch("src.roadmap_intelligence.views.controller.get_prioritized_themes")
+    def test_get_prioritized_themes_includes_hero_and_villain_ids(
+        self, mock_get_prioritized, test_client, user, workspace
+    ):
+        """Test get prioritized themes includes hero_ids and villain_ids."""
+        from src.narrative.aggregates.hero import Hero
+        from src.narrative.aggregates.villain import Villain
+        from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+
+        hero_id = uuid.uuid4()
+        villain_id = uuid.uuid4()
+
+        mock_hero = Hero(
+            id=hero_id,
+            name="Hero",
+            description="Test",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        mock_villain = Villain(
+            id=villain_id,
+            name="Villain",
+            description="Test",
+            villain_type="EXTERNAL",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        theme = RoadmapTheme(
+            id=uuid.uuid4(),
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Prioritized Theme",
+            description="Test description",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        theme.outcomes = []
+        theme.heroes = [mock_hero]
+        theme.villains = [mock_villain]
+
+        mock_get_prioritized.return_value = [theme]
+
+        response = test_client.get(f"/api/workspaces/{workspace.id}/themes/prioritized")
+
+        assert_that(response.status_code, equal_to(200))
+        data = response.json()
+        assert_that(len(data), equal_to(1))
+        assert_that(data[0]["hero_ids"], equal_to([str(hero_id)]))
+        assert_that(data[0]["villain_ids"], equal_to([str(villain_id)]))
+
+    @patch("src.roadmap_intelligence.views.controller.get_unprioritized_themes")
+    def test_get_unprioritized_themes_includes_hero_and_villain_ids(
+        self, mock_get_unprioritized, test_client, user, workspace
+    ):
+        """Test get unprioritized themes includes hero_ids and villain_ids."""
+        from src.narrative.aggregates.hero import Hero
+        from src.narrative.aggregates.villain import Villain
+        from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+
+        hero_id = uuid.uuid4()
+        villain_id = uuid.uuid4()
+
+        mock_hero = Hero(
+            id=hero_id,
+            name="Hero",
+            description="Test",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        mock_villain = Villain(
+            id=villain_id,
+            name="Villain",
+            description="Test",
+            villain_type="EXTERNAL",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        theme = RoadmapTheme(
+            id=uuid.uuid4(),
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Unprioritized Theme",
+            description="Test description",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        theme.outcomes = []
+        theme.heroes = [mock_hero]
+        theme.villains = [mock_villain]
+
+        mock_get_unprioritized.return_value = [theme]
+
+        response = test_client.get(
+            f"/api/workspaces/{workspace.id}/themes/unprioritized"
+        )
+
+        assert_that(response.status_code, equal_to(200))
+        data = response.json()
+        assert_that(len(data), equal_to(1))
+        assert_that(data[0]["hero_ids"], equal_to([str(hero_id)]))
+        assert_that(data[0]["villain_ids"], equal_to([str(villain_id)]))
+
+    @patch("src.roadmap_intelligence.views.controller.prioritize_roadmap_theme")
+    def test_prioritize_theme_returns_hero_and_villain_ids(
+        self, mock_prioritize, test_client, user, workspace
+    ):
+        """Test prioritizing theme returns hero_ids and villain_ids."""
+        from src.narrative.aggregates.hero import Hero
+        from src.narrative.aggregates.villain import Villain
+        from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+
+        theme_id = uuid.uuid4()
+        hero_id = uuid.uuid4()
+        villain_id = uuid.uuid4()
+
+        mock_hero = Hero(
+            id=hero_id,
+            name="Hero",
+            description="Test",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        mock_villain = Villain(
+            id=villain_id,
+            name="Villain",
+            description="Test",
+            villain_type="EXTERNAL",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        theme = RoadmapTheme(
+            id=theme_id,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Theme",
+            description="Test description",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        theme.outcomes = []
+        theme.heroes = [mock_hero]
+        theme.villains = [mock_villain]
+
+        mock_prioritize.return_value = theme
+
+        payload = {"position": 0}
+
+        response = test_client.post(
+            f"/api/workspaces/{workspace.id}/themes/{theme_id}/prioritize",
+            json=payload,
+        )
+
+        assert_that(response.status_code, equal_to(200))
+        data = response.json()
+        assert_that(data["hero_ids"], equal_to([str(hero_id)]))
+        assert_that(data["villain_ids"], equal_to([str(villain_id)]))
+
+    @patch("src.roadmap_intelligence.views.controller.deprioritize_roadmap_theme")
+    def test_deprioritize_theme_returns_hero_and_villain_ids(
+        self, mock_deprioritize, test_client, user, workspace
+    ):
+        """Test deprioritizing theme returns hero_ids and villain_ids."""
+        from src.narrative.aggregates.hero import Hero
+        from src.narrative.aggregates.villain import Villain
+        from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+
+        theme_id = uuid.uuid4()
+        hero_id = uuid.uuid4()
+        villain_id = uuid.uuid4()
+
+        mock_hero = Hero(
+            id=hero_id,
+            name="Hero",
+            description="Test",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        mock_villain = Villain(
+            id=villain_id,
+            name="Villain",
+            description="Test",
+            villain_type="EXTERNAL",
+            workspace_id=workspace.id,
+            user_id=user.id,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+
+        theme = RoadmapTheme(
+            id=theme_id,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Theme",
+            description="Test description",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        theme.outcomes = []
+        theme.heroes = [mock_hero]
+        theme.villains = [mock_villain]
+
+        mock_deprioritize.return_value = theme
+
+        response = test_client.post(
+            f"/api/workspaces/{workspace.id}/themes/{theme_id}/deprioritize"
+        )
+
+        assert_that(response.status_code, equal_to(200))
+        data = response.json()
+        assert_that(data["hero_ids"], equal_to([str(hero_id)]))
+        assert_that(data["villain_ids"], equal_to([str(villain_id)]))

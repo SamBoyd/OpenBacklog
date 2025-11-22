@@ -22,7 +22,11 @@ def get_roadmap_themes(workspace_id: uuid.UUID, session: Session) -> List[Roadma
     """
     return (
         session.query(RoadmapTheme)
-        .options(selectinload(RoadmapTheme.outcomes))
+        .options(
+            selectinload(RoadmapTheme.outcomes),
+            selectinload(RoadmapTheme.heroes),
+            selectinload(RoadmapTheme.villains),
+        )
         .filter_by(workspace_id=workspace_id)
         .order_by(RoadmapTheme.created_at)
         .all()

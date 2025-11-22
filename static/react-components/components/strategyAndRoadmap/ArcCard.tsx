@@ -76,20 +76,20 @@ export const ArcCard: React.FC<ArcCardProps> = ({
 
       {/* Metadata Section */}
       <div className="space-y-2 text-sm">
-        {arc.heroes.length > 0 && (
+        {(arc.heroes ?? []).length > 0 && (
           <div className="flex gap-2 items-start">
             <span className="text-neutral-500">Hero:</span>
             <span className="text-neutral-700">
-              {arc.heroes.map((h) => h.name).join(', ')}
+              {(arc.heroes ?? []).map((h) => h.name).join(', ')}
             </span>
           </div>
         )}
 
-        {arc.villains.length > 0 && (
+        {(arc.villains ?? []).length > 0 && (
           <div className="flex gap-2 items-start">
             <span className="text-neutral-500">Villains:</span>
             <span className="text-neutral-700">
-              {arc.villains.map((v) => v.name).join(', ')}
+              {(arc.villains ?? []).map((v) => v.name).join(', ')}
             </span>
           </div>
         )}

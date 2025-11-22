@@ -24,6 +24,8 @@ const createMockTheme = (id: string, name: string): ThemeDto => ({
   name,
   description: `Description for ${name}: addressing key user problems and validating our hypothesis through measurable outcomes.`,
   outcome_ids: [],
+  hero_ids: [],
+  villain_ids: [],
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 });

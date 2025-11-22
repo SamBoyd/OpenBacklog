@@ -9,6 +9,8 @@ const mockTheme: ThemeDto = {
     name: 'MCP Integration for AI Context',
     description: 'AI assistants lack native access to product context, forcing developers to manually context-switch between tools. If we expose product management data through an MCP server, AI assistants can query it natively and make better decisions without breaking developer flow. Success will be measured by reduction in context switches, faster feature implementation, and improved AI decision quality over a 6-month horizon.',
     outcome_ids: ['outcome-1', 'outcome-2'],
+    hero_ids: [],
+    villain_ids: [],
     created_at: '2025-01-15T10:00:00Z',
     updated_at: '2025-01-15T10:00:00Z',
 };
@@ -19,6 +21,8 @@ const mockThemeMinimal: ThemeDto = {
     name: 'Narrative Health Monitoring',
     description: 'Teams need visibility into how consistent their product narrative is over time.',
     outcome_ids: ['outcome-3'],
+    hero_ids: [],
+    villain_ids: [],
     created_at: '2025-01-16T14:30:00Z',
     updated_at: '2025-01-16T14:30:00Z',
 };

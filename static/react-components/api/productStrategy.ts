@@ -317,17 +317,21 @@ export interface ThemeDto {
   name: string;
   description: string;
   outcome_ids: string[];
+  hero_ids: string[];
+  villain_ids: string[];
   created_at: string;
   updated_at: string;
 }
 
 /**
  * Extended theme data for roadmap overview display.
- * Includes narrative context (heroes, villains) and progress tracking.
+ * Inherits narrative context (hero_ids, villain_ids) from ThemeDto
+ * and adds arc-specific fields for progress tracking.
  */
 export interface ArcDto extends ThemeDto {
-  heroes: Array<{ id: string; name: string }>;
-  villains: Array<{ id: string; name: string }>;
+  // Runtime populated heroes and villains objects (for display purposes)
+  heroes?: Array<{ id: string; name: string }>;
+  villains?: Array<{ id: string; name: string }>;
   status: 'in_progress' | 'complete' | 'planned';
   progress_percentage?: number;
   scenes_completed?: number;

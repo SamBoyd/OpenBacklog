@@ -49,6 +49,8 @@ class ThemeResponse(BaseModel):
     name: str
     description: str
     outcome_ids: List[uuid.UUID] = Field(default_factory=list)
+    hero_ids: List[uuid.UUID] = Field(default_factory=list)
+    villain_ids: List[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 
@@ -73,6 +75,8 @@ async def get_workspace_themes(
                 name=theme.name,
                 description=theme.description,
                 outcome_ids=[outcome.id for outcome in theme.outcomes],
+                hero_ids=[hero.id for hero in theme.heroes],
+                villain_ids=[villain.id for villain in theme.villains],
                 created_at=theme.created_at,
                 updated_at=theme.updated_at,
             )
@@ -112,6 +116,8 @@ async def create_roadmap_theme(
             name=theme.name,
             description=theme.description,
             outcome_ids=[outcome.id for outcome in theme.outcomes],
+            hero_ids=[hero.id for hero in theme.heroes],
+            villain_ids=[villain.id for villain in theme.villains],
             created_at=theme.created_at,
             updated_at=theme.updated_at,
         )
@@ -194,6 +200,8 @@ async def reorder_roadmap_themes(
                 name=theme.name,
                 description=theme.description,
                 outcome_ids=[outcome.id for outcome in theme.outcomes],
+                hero_ids=[hero.id for hero in theme.heroes],
+                villain_ids=[villain.id for villain in theme.villains],
                 created_at=theme.created_at,
                 updated_at=theme.updated_at,
             )
@@ -256,6 +264,8 @@ async def update_roadmap_theme(
             name=theme.name,
             description=theme.description,
             outcome_ids=[outcome.id for outcome in theme.outcomes],
+            hero_ids=[hero.id for hero in theme.heroes],
+            villain_ids=[villain.id for villain in theme.villains],
             created_at=theme.created_at,
             updated_at=theme.updated_at,
         )
@@ -322,6 +332,8 @@ async def get_prioritized_themes(
                 name=theme.name,
                 description=theme.description,
                 outcome_ids=[outcome.id for outcome in theme.outcomes],
+                hero_ids=[hero.id for hero in theme.heroes],
+                villain_ids=[villain.id for villain in theme.villains],
                 created_at=theme.created_at,
                 updated_at=theme.updated_at,
             )
@@ -355,6 +367,8 @@ async def get_unprioritized_themes(
                 name=theme.name,
                 description=theme.description,
                 outcome_ids=[outcome.id for outcome in theme.outcomes],
+                hero_ids=[hero.id for hero in theme.heroes],
+                villain_ids=[villain.id for villain in theme.villains],
                 created_at=theme.created_at,
                 updated_at=theme.updated_at,
             )
@@ -411,6 +425,8 @@ async def prioritize_theme(
             name=theme.name,
             description=theme.description,
             outcome_ids=[outcome.id for outcome in theme.outcomes],
+            hero_ids=[hero.id for hero in theme.heroes],
+            villain_ids=[villain.id for villain in theme.villains],
             created_at=theme.created_at,
             updated_at=theme.updated_at,
         )
@@ -451,6 +467,8 @@ async def deprioritize_theme(
             name=theme.name,
             description=theme.description,
             outcome_ids=[outcome.id for outcome in theme.outcomes],
+            hero_ids=[hero.id for hero in theme.heroes],
+            villain_ids=[villain.id for villain in theme.villains],
             created_at=theme.created_at,
             updated_at=theme.updated_at,
         )
