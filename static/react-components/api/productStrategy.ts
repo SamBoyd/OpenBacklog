@@ -311,6 +311,24 @@ export interface ThemeCreateRequest {
   outcome_ids?: string[];
 }
 
+export interface HeroRef {
+  id: string;
+  name: string;
+  identifier: string;
+  description: string | null;
+  is_primary: boolean;
+}
+
+export interface VillainRef {
+  id: string;
+  name: string;
+  identifier: string;
+  description: string;
+  villain_type: string;
+  severity: number;
+  is_defeated: boolean;
+}
+
 export interface ThemeDto {
   id: string;
   workspace_id: string;
@@ -321,6 +339,9 @@ export interface ThemeDto {
   villain_ids: string[];
   created_at: string;
   updated_at: string;
+  // Embedded heroes and villains (populated by PostgREST queries)
+  heroes?: HeroRef[];
+  villains?: VillainRef[];
 }
 
 /**
@@ -329,9 +350,6 @@ export interface ThemeDto {
  * and adds arc-specific fields for progress tracking.
  */
 export interface ArcDto extends ThemeDto {
-  // Runtime populated heroes and villains objects (for display purposes)
-  heroes?: Array<{ id: string; name: string }>;
-  villains?: Array<{ id: string; name: string }>;
   status: 'in_progress' | 'complete' | 'planned';
   progress_percentage?: number;
   scenes_completed?: number;
@@ -340,21 +358,122 @@ export interface ArcDto extends ThemeDto {
   expected_quarter?: string; // e.g., "Q2 2024"
 }
 
+/**
+ * Fetches all roadmap themes for a workspace with embedded heroes and villains.
+ * @param {string} workspaceId - The workspace ID
+ * @returns {Promise<ThemeDto[]>} List of themes with heroes and villains
+ */
 export async function getRoadmapThemes(
   workspaceId: string
 ): Promise<ThemeDto[]> {
-  const response = await fetch(`/api/workspaces/${workspaceId}/themes`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+  const { getPostgrestClient, withApiCall } = await import('#api/api-utils');
+
+  return withApiCall(async () => {
+    const response = await getPostgrestClient()
+      .from('roadmap_themes')
+      .select(`
+        *,
+        roadmap_theme_heroes(
+          hero:hero_id(
+            id,
+            name,
+            identifier,
+            description,
+            is_primary
+          )
+        ),
+        roadmap_theme_villains(
+          villain:villain_id(
+            id,
+            name,
+            identifier,
+            description,
+            villain_type,
+            severity,
+            is_defeated
+          )
+        )
+      `)
+      .eq('workspace_id', workspaceId);
+
+    if (response.error) {
+      console.error('Error loading roadmap themes', response.error);
+      throw new Error(`Error loading roadmap themes: ${response.error.message}`);
+    }
+
+    // Transform the response to extract heroes and villains from junction tables
+    return response.data.map((theme: any) => ({
+      ...theme,
+      heroes: theme.roadmap_theme_heroes?.map((rth: any) => rth.hero).filter(Boolean) || [],
+      villains: theme.roadmap_theme_villains?.map((rtv: any) => rtv.villain).filter(Boolean) || [],
+      roadmap_theme_heroes: undefined,
+      roadmap_theme_villains: undefined,
+    }));
   });
+}
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch roadmap themes');
-  }
+/**
+ * Fetches a single roadmap theme by ID with embedded heroes and villains.
+ * @param {string} workspaceId - The workspace ID
+ * @param {string} themeId - The theme ID
+ * @returns {Promise<ThemeDto>} Theme with heroes and villains
+ */
+export async function getRoadmapThemeById(
+  workspaceId: string,
+  themeId: string
+): Promise<ThemeDto> {
+  const { getPostgrestClient, withApiCall } = await import('#api/api-utils');
 
-  return response.json();
+  return withApiCall(async () => {
+    const response = await getPostgrestClient()
+      .from('roadmap_themes')
+      .select(`
+        *,
+        roadmap_theme_heroes(
+          hero:hero_id(
+            id,
+            name,
+            identifier,
+            description,
+            is_primary
+          )
+        ),
+        roadmap_theme_villains(
+          villain:villain_id(
+            id,
+            name,
+            identifier,
+            description,
+            villain_type,
+            severity,
+            is_defeated
+          )
+        )
+      `)
+      .eq('workspace_id', workspaceId)
+      .eq('id', themeId)
+      .maybeSingle();
+
+    if (response.error) {
+      console.error('Error loading roadmap theme', response.error);
+      throw new Error(`Error loading roadmap theme: ${response.error.message}`);
+    }
+
+    if (!response.data) {
+      throw new Error('Roadmap theme not found');
+    }
+
+    const theme = response.data;
+
+    // Transform the response to extract heroes and villains from junction tables
+    return {
+      ...theme,
+      heroes: theme.roadmap_theme_heroes?.map((rth: any) => rth.hero).filter(Boolean) || [],
+      villains: theme.roadmap_theme_villains?.map((rtv: any) => rtv.villain).filter(Boolean) || [],
+      roadmap_theme_heroes: undefined,
+      roadmap_theme_villains: undefined,
+    };
+  });
 }
 
 export async function createRoadmapTheme(
@@ -545,6 +664,8 @@ export interface StrategicInitiativeDto {
   narrative_intent: string | null;
   created_at: string;
   updated_at: string;
+  // Embedded initiative data from PostgREST joins
+  initiative?: any; // Will be populated with full InitiativeDto when queried
 }
 
 export async function getStrategicInitiative(
@@ -615,6 +736,13 @@ export async function updateStrategicInitiative(
   return response.json();
 }
 
+/**
+ * Fetches strategic initiatives for a theme with full Initiative data including tasks.
+ * This provides complete context for displaying story arcs with their initiatives.
+ * @param {string} workspaceId - The workspace ID
+ * @param {string} themeId - The theme ID
+ * @returns {Promise<StrategicInitiativeDto[]>} Strategic initiatives with embedded initiative and task data
+ */
 export async function getStrategicInitiativesByTheme(
   workspaceId: string,
   themeId: string
@@ -624,13 +752,23 @@ export async function getStrategicInitiativesByTheme(
   return withApiCall(async () => {
     const response = await getPostgrestClient()
       .from('strategic_initiatives')
-      .select('*, initiative(id, identifier, title)')
+      .select(`
+        *,
+        initiative:initiative_id(
+          *,
+          tasks:task(
+            *,
+            checklist(*)
+          ),
+          orderings(*)
+        )
+      `)
       .eq('workspace_id', workspaceId)
       .eq('theme_id', themeId);
 
     if (response.error) {
       console.error('Error loading strategic initiatives by theme', response.error);
-      throw new Error('Error loading strategic initiatives by theme');
+      throw new Error(`Error loading strategic initiatives by theme: ${response.error.message}`);
     }
 
     return response.data as StrategicInitiativeDto[];
