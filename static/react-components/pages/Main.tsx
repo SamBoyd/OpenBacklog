@@ -40,8 +40,8 @@ import { TasksProvider } from '#contexts/TasksContext';
 
 import '../styles/output.css';
 import { GithubReposProvider } from '#hooks/useGithubRepos';
-import StoryBible from './Narrative/StoryBible';
 import StoryBiblePage from './Narrative/StoryBible';
+import { StoryArcDetail } from './Narrative/StoryArcDetail';
 
 
 // Layout component for main app structure
@@ -73,6 +73,7 @@ export const MainContent = () => {
             {/* Protected workspace routes */}
             <Route element={<AppGuard><Layout /></AppGuard>}>
                 <Route path="/workspace/story-bible" element={<StoryBiblePage />} />
+                <Route path="/workspace/story-bible/arc/:arcId" element={<StoryArcDetail />} />
                 <Route path="/workspace/roadmap" element={<Roadmap />} />
                 <Route path="/workspace/context" element={<ContextDocument />} />
                 <Route path="/workspace/tasks" element={<Tasks />} />

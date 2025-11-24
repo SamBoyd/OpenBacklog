@@ -282,6 +282,10 @@
       "storybook": "./hooks/strategyAndRoadmap/useStoryArcs.mock.tsx",
       "default": "./hooks/strategyAndRoadmap/useStoryArcs.tsx"
     },
+    "#hooks/useStoryArcDetail": {
+      "storybook": "./hooks/useStoryArcDetail.mock.tsx",
+      "default": "./hooks/useStoryArcDetail.tsx"
+    },
     "#styles": {
       "default": "./styles"
     },
