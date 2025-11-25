@@ -205,7 +205,7 @@ generate_react_cluster_env() {
 
     # Calculate PostgREST URL for React components
     local postgrest_port=$((3000 + cluster_number))
-    local postgrest_url="http://localhost:${postgrest_port}/rest"
+    local postgrest_url="http://localhost:${postgrest_port}"
 
     # Copy template and replace cluster-specific variables
     cp "$react_template" "$react_env_file"
