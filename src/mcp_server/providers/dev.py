@@ -62,15 +62,13 @@ class DevMCPAuthProvider(MCPAuthProvider):
             )
 
             if not workspace:
-                error_msg = (
-                    f"No workspace found for dev user {user.email}. "
-                    f"Create a workspace first."
+                logger.debug(
+                    f"Dev user context resolved: user={user.id}, workspace=None"
                 )
-                logger.error(error_msg)
-                raise MCPContextError(error_msg, error_type="workspace_error")
+                return user.id, None
 
             logger.debug(
-                f"Dev auth context resolved: user={user.id}, workspace={workspace.id}"
+                f"Dev user context resolved: user={user.id}, workspace={workspace.id}"
             )
 
             return user.id, workspace.id

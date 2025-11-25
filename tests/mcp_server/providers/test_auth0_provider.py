@@ -223,7 +223,6 @@ class TestAuth0MCPAuthProvider:
             assert exc_info.value.error_type == "auth_error"
             assert "User not found" in str(exc_info.value)
 
-    # Error case tests - Workspace lookup
     def test_workspace_not_found_for_user(self, provider, session, user):
         """Test error when no workspace found for user."""
         # Get OAuth account
@@ -243,11 +242,10 @@ class TestAuth0MCPAuthProvider:
         with patch("src.mcp_server.providers.auth0.get_access_token") as mock_get_token:
             mock_get_token.return_value = mock_token
 
-            with pytest.raises(MCPContextError) as exc_info:
-                provider.get_user_context(session)
+            user_id, workspace_id = provider.get_user_context(session)
 
-            assert exc_info.value.error_type == "workspace_error"
-            assert "No workspace found" in str(exc_info.value)
+            assert user_id == user.id
+            assert workspace_id is None
 
     # Error case tests - Generic exceptions
     def test_exception_during_token_access(self, provider, mock_session):

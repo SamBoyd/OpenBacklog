@@ -71,11 +71,10 @@ class TestDevMCPAuthProvider:
         session.commit()
 
         with patch("src.config.settings.dev_user_email", user.email):
-            with pytest.raises(MCPContextError) as exc_info:
-                provider.get_user_context(session)
+            user_id, workspace_id = provider.get_user_context(session)
 
-            assert exc_info.value.error_type == "workspace_error"
-            assert "No workspace found" in str(exc_info.value)
+            assert user_id == user.id
+            assert workspace_id is None
 
     def test_database_error_wrapped(self, provider, mock_session):
         """Test that generic database exceptions are wrapped in MCPContextError."""

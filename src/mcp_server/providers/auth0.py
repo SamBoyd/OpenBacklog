@@ -80,10 +80,8 @@ class Auth0MCPAuthProvider(MCPAuthProvider):
                 session.query(Workspace).filter(Workspace.user_id == user_id).first()
             )
             if not workspace:
-                raise MCPContextError(
-                    "No workspace found. Please create a workspace first.",
-                    error_type="workspace_error",
-                )
+                logger.debug(f"Auth0 context resolved: user={user_id}, workspace=None")
+                return user_id, None
 
             logger.debug(
                 f"Auth0 context resolved: user={user_id}, workspace={workspace.id}"
