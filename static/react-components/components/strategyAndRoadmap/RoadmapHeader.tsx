@@ -3,8 +3,8 @@ import { ChevronRight } from 'lucide-react';
 
 interface RoadmapHeaderProps {
   workspaceName?: string;
-  onViewToggle?: (view: 'timeline' | 'list' | 'board') => void;
-  activeView?: 'timeline' | 'list' | 'board';
+  onViewToggle?: (view: 'timeline' | 'list' | 'calendar') => void;
+  activeView?: 'timeline' | 'list' | 'calendar';
 }
 
 /**
@@ -16,9 +16,9 @@ export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
   onViewToggle,
   activeView = 'list',
 }) => {
-  const [currentView, setCurrentView] = useState<'timeline' | 'list' | 'board'>(activeView);
+  const [currentView, setCurrentView] = useState<'timeline' | 'list' | 'calendar'>(activeView);
 
-  const handleViewChange = (view: 'timeline' | 'list' | 'board') => {
+  const handleViewChange = (view: 'timeline' | 'list' | 'calendar') => {
     setCurrentView(view);
     onViewToggle?.(view);
   };
@@ -49,7 +49,7 @@ export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
 
         {/* View Toggle Buttons */}
         <div className="bg-neutral-100 rounded-[10px] p-1 flex gap-1">
-          {(['timeline', 'list', 'board'] as const).map((view) => (
+          {(['timeline', 'list', 'calendar'] as const).map((view) => (
             <button
               key={view}
               onClick={() => handleViewChange(view)}

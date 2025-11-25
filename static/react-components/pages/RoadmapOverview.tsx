@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { RoadmapHeader } from '#components/strategyAndRoadmap/RoadmapHeader';
 import { RoadmapFilterControls } from '#components/strategyAndRoadmap/RoadmapFilterControls';
 import { RoadmapListView } from '#components/strategyAndRoadmap/RoadmapListView';
 import { RoadmapSummaryPanel } from '#components/strategyAndRoadmap/RoadmapSummaryPanel';
 import { useStoryArcs } from '#hooks/strategyAndRoadmap/useStoryArcs';
 import { useWorkspaces } from '#hooks/useWorkspaces';
+import { RoadmapCalendarView } from '#components/strategyAndRoadmap/RoadmapCalendarView';
+import { RoadmapTimelineView } from '#components/strategyAndRoadmap/RoadmapTimelineView';
 
 /**
  * Roadmap Overview page displays a strategic narrative timeline of roadmap themes (arcs)
@@ -15,6 +17,8 @@ export function RoadmapOverview() {
   const { currentWorkspace } = useWorkspaces();
   const { arcs, isLoading } = useStoryArcs(currentWorkspace?.id || '');
 
+  const [currentView, setCurrentView] = useState<'timeline' | 'list' | 'calendar'>('list');
+  
   const handleViewArc = (arcId: string) => {
     console.log('View Arc:', arcId);
     // TODO: Navigate to arc detail view
@@ -55,7 +59,10 @@ export function RoadmapOverview() {
       {/* Page Header */}
       <RoadmapHeader
         workspaceName="Workspace Name"
-        onViewToggle={(view) => console.log('View changed to:', view)}
+        onViewToggle={(view) => {
+          console.log('View changed to:', view);
+          setCurrentView(view);
+        }}
       />
 
       {/* Filter Controls */}
@@ -64,17 +71,41 @@ export function RoadmapOverview() {
       />
 
       {/* Main Content - List View */}
-      <div className="flex-1 overflow-y-auto">
-        <RoadmapListView
-          arcs={arcs}
-          isLoading={isLoading}
-          onViewArc={handleViewArc}
-          onViewBeats={handleViewBeats}
-          onEdit={handleEditArc}
-          onMoreOptions={handleArcMoreOptions}
-        />
-      </div>
+      {currentView === 'list' && (
+        <div className="flex-1 overflow-y-auto">
+          <RoadmapListView
+            arcs={arcs}
+            isLoading={isLoading}
+            onViewArc={handleViewArc}
+            onViewBeats={handleViewBeats}
+            onEdit={handleEditArc}
+            onMoreOptions={handleArcMoreOptions}
+          />
+        </div>
+      )}
 
+      {currentView === 'timeline' && (
+        <div className="flex-1 overflow-y-auto">
+          <RoadmapTimelineView
+            arcs={arcs}
+            isLoading={isLoading}
+            onViewArc={handleViewArc}
+            onViewBeats={handleViewBeats}
+          />
+        </div>
+      )}
+
+      {currentView === 'calendar' && (
+        <div className="flex-1 overflow-y-auto">
+          <RoadmapCalendarView
+            arcs={arcs}
+            isLoading={isLoading}
+            onViewArc={handleViewArc}
+            onViewBeats={handleViewBeats}
+          />
+        </div>
+      )}
+      
       {/* Summary Panel */}
       <RoadmapSummaryPanel
         arcs={arcs}
