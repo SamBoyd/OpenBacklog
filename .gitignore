@@ -78,3 +78,8 @@ specs/
 .local/
 .ipython
 .ipynb*
+
+# gitmodules which I use for internal docs
+.gitmodules
+documentation/
+OpenBacklogDocumentation/
