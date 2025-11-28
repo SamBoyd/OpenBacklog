@@ -4,10 +4,10 @@ import {
   getStrategicInitiative,
   createStrategicInitiative as apiCreateStrategicInitiative,
   updateStrategicInitiative as apiUpdateStrategicInitiative,
-  StrategicInitiativeDto,
   StrategicInitiativeCreateRequest,
   StrategicInitiativeUpdateRequest,
 } from '#api/productStrategy';
+import { StrategicInitiativeDto } from '#types';
 
 type StrategicInitiativeMutationContext = {
   previousData: StrategicInitiativeDto | null | undefined;

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getStrategicInitiativesByTheme, StrategicInitiativeDto } from '#api/productStrategy';
-import { TaskDto, InitiativeDto } from '#types';
+import { getStrategicInitiativesByTheme } from '#api/productStrategy';
+import { TaskDto, InitiativeDto, StrategicInitiativeDto } from '#types';
 
 /**
  * Flattened beat item combining strategic initiative context with full initiative data.

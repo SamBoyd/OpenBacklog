@@ -1,4 +1,5 @@
 import { loadAndValidateJWT } from '#api/jwt'
+import { StrategicInitiativeDto } from '#types';
 
 export interface VisionUpdateRequest {
   vision_text: string;
@@ -650,39 +651,43 @@ export interface StrategicInitiativeCreateRequest {
   narrative_intent?: string | null;
 }
 
-export interface StrategicInitiativeDto {
-  id: string;
-  initiative_id: string;
-  workspace_id: string;
-  pillar_id: string | null;
-  theme_id: string | null;
-  description: string | null;
-  narrative_intent: string | null;
-  created_at: string;
-  updated_at: string;
-  // Embedded initiative data from PostgREST joins
-  initiative?: any; // Will be populated with full InitiativeDto when queried
-}
-
 export async function getStrategicInitiative(
   initiativeId: string
 ): Promise<StrategicInitiativeDto | null> {
-  const response = await fetch(`/api/initiatives/${initiativeId}/strategic-context`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+  const { getPostgrestClient, withApiCall } = await import('#api/api-utils');
+
+  return withApiCall(async () => {
+    const response = await getPostgrestClient()
+      .from('strategic_initiatives')
+      .select(`
+        *,
+        initiative:initiative_id(*),
+        pillar:pillar_id(*),
+        theme:theme_id(*),
+        strategic_initiative_heroes(
+          hero:hero_id(id, name, identifier, description, is_primary)
+        ),
+        strategic_initiative_villains(
+          villain:villain_id(id, name, identifier, description, villain_type, severity, is_defeated)
+        ),
+        strategic_initiative_conflicts(
+          conflict:conflict_id(id, identifier, hero_id, villain_id, description, status, story_arc_id, resolved_at, resolved_by_initiative_id)
+        )
+      `)
+      .eq('initiative_id', initiativeId)
+      .maybeSingle();
+
+    if (response.error) throw new Error(response.error.message);
+    if (!response.data) return null;
+
+    // Transform junction table data to embedded arrays
+    return {
+      ...response.data,
+      heroes: response.data.strategic_initiative_heroes?.map((sih: any) => sih.hero).filter(Boolean) || [],
+      villains: response.data.strategic_initiative_villains?.map((siv: any) => siv.villain).filter(Boolean) || [],
+      conflicts: response.data.strategic_initiative_conflicts?.map((sic: any) => sic.conflict).filter(Boolean) || [],
+    };
   });
-
-  if (response.status === 404) {
-    return null;
-  }
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch strategic initiative');
-  }
-
-  return response.json();
 }
 
 export async function createStrategicInitiative(

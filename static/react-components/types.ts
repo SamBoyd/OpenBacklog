@@ -587,6 +587,11 @@ export interface StrategicInitiativeDto {
     created_at: string;
     updated_at: string;
     initiative?: Partial<InitiativeDto>; // Join data for display
+    pillar?: any; // Embedded pillar from PostgREST join (ThemeDto)
+    theme?: any; // Embedded theme from PostgREST join (ThemeDto)
+    heroes?: HeroDto[]; // Embedded heroes from strategic_initiative_heroes junction table
+    villains?: VillainDto[]; // Embedded villains from strategic_initiative_villains junction table
+    conflicts?: ConflictDto[]; // Embedded conflicts from strategic_initiative_conflicts junction table
 }
 
 export const ContextDocumentDtoSchema = z.object({

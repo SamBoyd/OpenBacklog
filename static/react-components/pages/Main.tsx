@@ -41,6 +41,7 @@ import '../styles/output.css';
 import { GithubReposProvider } from '#hooks/useGithubRepos';
 import StoryBiblePage from './Narrative/StoryBible';
 import { StoryArcDetail } from './Narrative/StoryArcDetail';
+import ViewStrategicInitiative from '#components/ViewStrategicInitiative';
 
 
 // Layout component for main app structure
@@ -76,6 +77,7 @@ export const MainContent = () => {
                 <Route path="/workspace/context" element={<ContextDocument />} />
                 <Route path="/workspace/tasks" element={<Tasks />} />
                 <Route path="/workspace/initiatives/:initiativeId/tasks/:taskId" element={<ViewTask />} />
+                <Route path="/workspace/initiatives/:initiativeId/strategic" element={<ViewStrategicInitiative />} />
                 <Route path="/workspace/initiatives/:initiativeId" element={<ViewInitiative />} />
                 <Route path="/workspace/initiatives" element={<Initiatives />} />
                 <Route path="/workspace/heroes" element={<Heroes />} />
