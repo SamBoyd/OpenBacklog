@@ -20,7 +20,6 @@ import BillingUsage from '#pages/BillingUsage';
 import SubscriptionCheckoutPage from '#pages/SubscriptionCheckout';
 import SubscriptionCompletePage from '#pages/SubscriptionComplete';
 import Onboarding from '#pages/Onboarding';
-import Roadmap from '#pages/Roadmap';
 import Heroes from '#pages/Narrative/Heroes';
 import Villains from '#pages/Narrative/Villains';
 import Conflicts from '#pages/Narrative/Conflicts';
@@ -74,7 +73,6 @@ export const MainContent = () => {
             <Route element={<AppGuard><Layout /></AppGuard>}>
                 <Route path="/workspace/story-bible" element={<StoryBiblePage />} />
                 <Route path="/workspace/story-bible/arc/:arcId" element={<StoryArcDetail />} />
-                <Route path="/workspace/roadmap" element={<Roadmap />} />
                 <Route path="/workspace/context" element={<ContextDocument />} />
                 <Route path="/workspace/tasks" element={<Tasks />} />
                 <Route path="/workspace/initiatives/:initiativeId/tasks/:taskId" element={<ViewTask />} />

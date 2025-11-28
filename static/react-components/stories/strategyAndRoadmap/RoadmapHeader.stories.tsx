@@ -33,12 +33,12 @@ export const TimelineView: Story = {
 };
 
 /**
- * Header with board view selected.
+ * Header with calendar view selected.
  */
-export const BoardView: Story = {
+export const CalendarView: Story = {
   args: {
     workspaceName: 'Product Roadmap',
-    activeView: 'board',
+    activeView: 'calendar',
     onViewToggle: (view) => console.log('View toggled to:', view),
   },
 };

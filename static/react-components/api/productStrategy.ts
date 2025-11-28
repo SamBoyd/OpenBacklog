@@ -345,17 +345,13 @@ export interface ThemeDto {
 }
 
 /**
- * Extended theme data for roadmap overview display.
- * Inherits narrative context (hero_ids, villain_ids) from ThemeDto
- * and adds arc-specific fields for progress tracking.
+ * Theme data enriched with narrative context for roadmap overview display.
+ * Extends ThemeDto with embedded heroes and villains populated from hero_ids and villain_ids.
+ * Used for displaying themes in prioritized/unprioritized roadmap sections.
  */
 export interface ArcDto extends ThemeDto {
-  status: 'in_progress' | 'complete' | 'planned';
-  progress_percentage?: number;
-  scenes_completed?: number;
-  scenes_total?: number;
-  started_quarter?: string; // e.g., "Q1 2024"
-  expected_quarter?: string; // e.g., "Q2 2024"
+  // Inherits all ThemeDto fields including embedded heroes and villains
+  // No additional fields - this is now effectively an alias for ThemeDto with narratives
 }
 
 /**

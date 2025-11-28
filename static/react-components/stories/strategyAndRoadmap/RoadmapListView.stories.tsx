@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
 import { RoadmapListView } from '#components/strategyAndRoadmap/RoadmapListView';
-import { mockStoryArcs } from '#hooks/strategyAndRoadmap/useStoryArcs.mock';
+import {
+  mockPrioritizedArcs,
+  mockUnprioritizedArcs,
+} from '#hooks/strategyAndRoadmap/useStoryArcs.mock';
 
 const meta: Meta<typeof RoadmapListView> = {
   component: RoadmapListView,
@@ -11,50 +15,102 @@ const meta: Meta<typeof RoadmapListView> = {
 export default meta;
 type Story = StoryObj<typeof RoadmapListView>;
 
+const defaultHandlers = {
+  onViewArc: fn(),
+  onViewBeats: fn(),
+  onEdit: fn(),
+  onMoreOptions: fn(),
+};
+
 /**
- * List view with multiple arcs grouped by quarter.
+ * Default view with both prioritized and unprioritized themes.
+ * Shows the typical state with an active roadmap and backlog.
  */
 export const Default: Story = {
   args: {
-    arcs: mockStoryArcs,
+    prioritizedArcs: mockPrioritizedArcs,
+    unprioritizedArcs: mockUnprioritizedArcs,
     isLoading: false,
-    onViewArc: (arcId) => console.log('View Arc:', arcId),
-    onViewBeats: (arcId) => console.log('View Beats:', arcId),
-    onEdit: (arcId) => console.log('Edit:', arcId),
-    onMoreOptions: (arcId) => console.log('More Options:', arcId),
+    ...defaultHandlers,
   },
 };
 
 /**
- * Loading state of the list view.
+ * Only prioritized themes are present, backlog is empty.
+ * This shows the state when all themes have been prioritized.
+ */
+export const OnlyPrioritized: Story = {
+  args: {
+    prioritizedArcs: mockPrioritizedArcs,
+    unprioritizedArcs: [],
+    isLoading: false,
+    ...defaultHandlers,
+  },
+};
+
+/**
+ * Only backlog themes exist, no themes are prioritized yet.
+ * This shows the initial state before prioritization.
+ */
+export const OnlyBacklog: Story = {
+  args: {
+    prioritizedArcs: [],
+    unprioritizedArcs: mockUnprioritizedArcs,
+    isLoading: false,
+    ...defaultHandlers,
+  },
+};
+
+/**
+ * Empty state with no themes at all.
+ * User needs to create their first roadmap theme.
+ */
+export const Empty: Story = {
+  args: {
+    prioritizedArcs: [],
+    unprioritizedArcs: [],
+    isLoading: false,
+    ...defaultHandlers,
+  },
+};
+
+/**
+ * Loading state while fetching themes.
  */
 export const Loading: Story = {
   args: {
-    arcs: [],
+    prioritizedArcs: [],
+    unprioritizedArcs: [],
     isLoading: true,
   },
 };
 
 /**
- * Empty state with no arcs.
+ * Single prioritized theme with no backlog.
+ * Minimal viable roadmap state.
  */
-export const Empty: Story = {
+export const SingleTheme: Story = {
   args: {
-    arcs: [],
+    prioritizedArcs: [mockPrioritizedArcs[0]],
+    unprioritizedArcs: [],
     isLoading: false,
+    ...defaultHandlers,
   },
 };
 
 /**
- * Single arc in the list.
+ * Maximum prioritized themes (5) with additional themes in backlog.
+ * Shows the prioritization limit in action.
  */
-export const SingleArc: Story = {
+export const MaxPrioritized: Story = {
   args: {
-    arcs: [mockStoryArcs[0]],
+    prioritizedArcs: [
+      ...mockPrioritizedArcs,
+      { ...mockUnprioritizedArcs[0], id: 'extra-1' },
+      { ...mockUnprioritizedArcs[1], id: 'extra-2' },
+    ],
+    unprioritizedArcs: [mockUnprioritizedArcs[2]],
     isLoading: false,
-    onViewArc: (arcId) => console.log('View Arc:', arcId),
-    onViewBeats: (arcId) => console.log('View Beats:', arcId),
-    onEdit: (arcId) => console.log('Edit:', arcId),
-    onMoreOptions: (arcId) => console.log('More Options:', arcId),
+    ...defaultHandlers,
   },
 };

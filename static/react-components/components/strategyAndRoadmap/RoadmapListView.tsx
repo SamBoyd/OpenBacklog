@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { ArcDto } from '#api/productStrategy';
 import { ArcCard } from './ArcCard';
 
 interface RoadmapListViewProps {
-  arcs: ArcDto[];
+  prioritizedArcs: ArcDto[];
+  unprioritizedArcs: ArcDto[];
   isLoading?: boolean;
   onViewArc?: (arcId: string) => void;
   onViewBeats?: (arcId: string) => void;
@@ -11,85 +12,86 @@ interface RoadmapListViewProps {
   onMoreOptions?: (arcId: string) => void;
 }
 
-interface ArcsByQuarter {
-  [quarter: string]: ArcDto[];
-}
-
 /**
- * List view of roadmap arcs grouped by quarter.
- * Displays arcs in chronological order with quarter separators.
+ * List view of roadmap themes grouped by prioritization status.
+ * Displays prioritized themes (max 5) with priority badges, followed by backlog themes.
  */
 export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
-  arcs,
+  prioritizedArcs,
+  unprioritizedArcs,
   isLoading = false,
   onViewArc,
   onViewBeats,
   onEdit,
   onMoreOptions,
 }) => {
-  const arcsByQuarter = useMemo(() => {
-    const grouped: ArcsByQuarter = {};
-
-    arcs.forEach((arc) => {
-      const quarter = arc.started_quarter || 'Unscheduled';
-      if (!grouped[quarter]) {
-        grouped[quarter] = [];
-      }
-      grouped[quarter].push(arc);
-    });
-
-    return grouped;
-  }, [arcs]);
-
-  // Sort quarters in chronological order
-  const sortedQuarters = useMemo(() => {
-    return Object.keys(arcsByQuarter).sort((a, b) => {
-      // Extract year and quarter from "Q1 2024" format
-      const [aQuarter, aYear] = a.split(' ');
-      const [bQuarter, bYear] = b.split(' ');
-
-      if (aYear !== bYear) {
-        return parseInt(aYear) - parseInt(bYear);
-      }
-
-      const aQuarterNum = parseInt(aQuarter.substring(1));
-      const bQuarterNum = parseInt(bQuarter.substring(1));
-      return aQuarterNum - bQuarterNum;
-    });
-  }, [arcsByQuarter]);
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex items-center justify-center h-64">
         <div className="text-neutral-500">Loading roadmap...</div>
       </div>
     );
   }
 
-  if (arcs.length === 0) {
+  if (prioritizedArcs.length === 0 && unprioritizedArcs.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-neutral-500">No arcs found. Create your first strategic arc to get started.</div>
+      <div className="flex flex-col items-center justify-center h-64 text-neutral-500">
+        <p className="text-lg font-medium">No themes yet</p>
+        <p className="text-sm mt-2">Create your first roadmap theme to get started</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-8 px-8 py-8">
-      {sortedQuarters.map((quarter) => (
-        <div key={quarter}>
-          {/* Quarter Header with Divider */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1 h-px bg-neutral-300" />
-            <h2 className="text-lg font-medium text-neutral-700 px-4">
-              {quarter}
-            </h2>
-            <div className="flex-1 h-px bg-neutral-300" />
+      {/* Prioritized Themes Section */}
+      <div>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-neutral-900">
+            Prioritized Themes
+            <span className="ml-2 text-sm font-normal text-neutral-500">
+              ({prioritizedArcs.length}/5)
+            </span>
+          </h2>
+        </div>
+        {prioritizedArcs.length > 0 ? (
+          <div className="space-y-4 pl-8">
+            {prioritizedArcs.map((arc, index) => (
+              <div key={arc.id} className="relative">
+                {/* Priority badge */}
+                <div className="absolute -left-8 top-4 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-semibold">
+                  {index + 1}
+                </div>
+                <ArcCard
+                  arc={arc}
+                  onViewArc={onViewArc}
+                  onViewBeats={onViewBeats}
+                  onEdit={onEdit}
+                  onMoreOptions={onMoreOptions}
+                />
+              </div>
+            ))}
           </div>
+        ) : (
+          <div className="text-sm text-neutral-500 pl-8">
+            No prioritized themes. Use MCP to prioritize themes from the backlog.
+          </div>
+        )}
+      </div>
 
-          {/* Arc Cards for this Quarter */}
-          <div className="space-y-4 pl-4">
-            {arcsByQuarter[quarter].map((arc) => (
+      {/* Backlog Section */}
+      <div>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-neutral-900">
+            Backlog
+            <span className="ml-2 text-sm font-normal text-neutral-500">
+              ({unprioritizedArcs.length})
+            </span>
+          </h2>
+        </div>
+        {unprioritizedArcs.length > 0 ? (
+          <div className="space-y-4 pl-8">
+            {unprioritizedArcs.map((arc) => (
               <ArcCard
                 key={arc.id}
                 arc={arc}
@@ -100,15 +102,12 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
               />
             ))}
           </div>
-
-          {/* Empty State for Quarter */}
-          {arcsByQuarter[quarter].length === 0 && (
-            <div className="bg-neutral-50 rounded-lg p-8 text-center text-neutral-500">
-              No arcs starting this quarter
-            </div>
-          )}
-        </div>
-      ))}
+        ) : (
+          <div className="text-sm text-neutral-500 pl-8">
+            All themes are prioritized.
+          </div>
+        )}
+      </div>
     </div>
   );
 };

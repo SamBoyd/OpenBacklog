@@ -34,10 +34,6 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
     const villainMap = new Map<string, { name: string; count: number }>();
 
     arcs.forEach((arc) => {
-      if (arc.status === 'in_progress') counts.active++;
-      if (arc.status === 'planned') counts.planned++;
-      if (arc.status === 'complete') counts.complete++;
-
       (arc.heroes ?? []).forEach((hero) => {
         const existing = heroMap.get(hero.id) || { name: hero.name, count: 0 };
         heroMap.set(hero.id, {

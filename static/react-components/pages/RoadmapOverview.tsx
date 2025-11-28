@@ -9,13 +9,17 @@ import { RoadmapCalendarView } from '#components/strategyAndRoadmap/RoadmapCalen
 import { RoadmapTimelineView } from '#components/strategyAndRoadmap/RoadmapTimelineView';
 
 /**
- * Roadmap Overview page displays a strategic narrative timeline of roadmap themes (arcs)
- * organized by quarter. Users can view arcs grouped by time period, filter by narrative
- * elements (heroes, villains, themes, status), and see overall roadmap statistics.
+ * Roadmap Overview page displays roadmap themes organized by prioritization status.
+ * Users can view prioritized themes (active roadmap, max 5) and unprioritized themes (backlog),
+ * with narrative context including heroes and villains. Supports list, timeline, and calendar views.
  */
 export function RoadmapOverview() {
   const { currentWorkspace } = useWorkspaces();
-  const { arcs, isLoading } = useStoryArcs(currentWorkspace?.id || '');
+  const {
+    prioritizedArcs,
+    unprioritizedArcs,
+    isLoading
+  } = useStoryArcs(currentWorkspace?.id || '');
 
   const [currentView, setCurrentView] = useState<'timeline' | 'list' | 'calendar'>('list');
   
@@ -74,7 +78,8 @@ export function RoadmapOverview() {
       {currentView === 'list' && (
         <div className="flex-1 overflow-y-auto">
           <RoadmapListView
-            arcs={arcs}
+            prioritizedArcs={prioritizedArcs}
+            unprioritizedArcs={unprioritizedArcs}
             isLoading={isLoading}
             onViewArc={handleViewArc}
             onViewBeats={handleViewBeats}
@@ -87,7 +92,7 @@ export function RoadmapOverview() {
       {currentView === 'timeline' && (
         <div className="flex-1 overflow-y-auto">
           <RoadmapTimelineView
-            arcs={arcs}
+            arcs={[]}
             isLoading={isLoading}
             onViewArc={handleViewArc}
             onViewBeats={handleViewBeats}
@@ -98,17 +103,17 @@ export function RoadmapOverview() {
       {currentView === 'calendar' && (
         <div className="flex-1 overflow-y-auto">
           <RoadmapCalendarView
-            arcs={arcs}
+            arcs={[]}
             isLoading={isLoading}
             onViewArc={handleViewArc}
             onViewBeats={handleViewBeats}
           />
         </div>
       )}
-      
+
       {/* Summary Panel */}
       <RoadmapSummaryPanel
-        arcs={arcs}
+        arcs={[...prioritizedArcs, ...unprioritizedArcs]}
         onViewAllHeroes={handleViewAllHeroes}
         onViewAllVillains={handleViewAllVillains}
         onRunConsistencyCheck={handleRunConsistencyCheck}

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { RoadmapOverview } from '#pages/RoadmapOverview';
-import { useStoryArcs } from '#hooks/strategyAndRoadmap/useStoryArcs.mock';
+import { mockPrioritizedArcs, mockUnprioritizedArcs, useStoryArcs } from '#hooks/strategyAndRoadmap/useStoryArcs.mock';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 import { mockWorkspacesReturn } from '#stories/example_data';
 
@@ -29,6 +29,16 @@ export const Default: Story = {
   parameters: {
     layout: 'fullscreen',
   },
+  beforeEach: () => {
+    useStoryArcs.mockReturnValue({
+      prioritizedArcs: mockPrioritizedArcs,
+      unprioritizedArcs: mockUnprioritizedArcs,
+      isLoading: false,
+      error: null,
+      isLoadingPrioritized: false,
+      isLoadingUnprioritized: false
+    })
+  },
 };
 
 /**
@@ -37,9 +47,12 @@ export const Default: Story = {
 export const Loading: Story = {
   beforeEach: () => {
     useStoryArcs.mockReturnValue({
-      arcs: [],
+      prioritizedArcs: [],
+      unprioritizedArcs: [],
       isLoading: true,
       error: null,
+      isLoadingPrioritized: false,
+      isLoadingUnprioritized: false
     });
   },
 };
@@ -50,9 +63,12 @@ export const Loading: Story = {
 export const Empty: Story = {
   beforeEach: () => {
     useStoryArcs.mockReturnValue({
-      arcs: [],
+      prioritizedArcs: [],
+      unprioritizedArcs: [],
       isLoading: false,
       error: null,
+      isLoadingPrioritized: false,
+      isLoadingUnprioritized: false
     });
   },
 };
@@ -63,9 +79,12 @@ export const Empty: Story = {
 export const WithError: Story = {
   beforeEach: () => {
     useStoryArcs.mockReturnValue({
-      arcs: [],
-      isLoading: false,
+      prioritizedArcs: [],
+      unprioritizedArcs: [],
+      isLoadingPrioritized: false,
+      isLoadingUnprioritized: false,
       error: new Error('Failed to load roadmap'),
+      isLoading: false
     });
   },
 };
