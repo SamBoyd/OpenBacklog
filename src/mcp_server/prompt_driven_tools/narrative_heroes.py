@@ -15,10 +15,13 @@ from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
+    build_draft_hero_data,
+    build_draft_response,
     build_error_response,
     build_success_response,
     get_workspace_id_from_request,
     serialize_hero,
+    validate_hero_constraints,
 )
 from src.narrative.aggregates.hero import Hero
 from src.narrative.exceptions import DomainException
@@ -169,6 +172,7 @@ async def submit_hero(
     name: str,
     description: Optional[str] = None,
     is_primary: bool = False,
+    draft_mode: bool = True,
 ) -> Dict[str, Any]:
     """Submit a refined hero (user persona) after collaborative definition.
 
@@ -183,15 +187,26 @@ async def submit_hero(
         description: Rich description including who they are, motivations,
                      jobs-to-be-done, pains, desired gains, and context
         is_primary: Whether this is the primary hero
-
+        draft_mode: If True, validate without persisting; if False, persist to database (default: True)
     Returns:
-        Success response with created hero (including identifier like "H-2003") and next steps
+        Draft response with validation results if draft_mode=True,
+        or success response with created hero if draft_mode=False
 
+
+    Example:
+        >>> # Validate first (default)
+        >>> draft = await submit_hero(
+        ...     name="Sarah, The Solo Builder",
+        ...     description="Sarah is a solo developer...",
+        ...     is_primary=True
+        ...     draft_mode=True
+        ... )
     Example:
         >>> result = await submit_hero(
         ...     name="Sarah, The Solo Builder",
         ...     description="Sarah is a solo developer...",
         ...     is_primary=True
+        ...     draft_mode=False
         ... )
     """
     session = SessionLocal()
@@ -202,8 +217,38 @@ async def submit_hero(
         publisher = EventPublisher(session)
         hero_service = HeroService(session, publisher)
 
+        # DRAFT MODE: Validate without persisting
+        if draft_mode:
+            validate_hero_constraints(
+                workspace_id=uuid.UUID(workspace_id),
+                name=name,
+                description=description,
+                is_primary=is_primary,
+                session=session,
+            )
+
+            draft_data = build_draft_hero_data(
+                workspace_id=uuid.UUID(workspace_id),
+                user_id=uuid.UUID(user_id),
+                name=name,
+                description=description,
+                is_primary=is_primary,
+            )
+
+            return build_draft_response(
+                entity_type="hero",
+                message=f"Draft hero '{name}' validated successfully",
+                data=draft_data,
+                next_steps=[
+                    "Review hero details with user",
+                    "Confirm the hero is clear and correctly defined",
+                    "If approved, call submit_hero() with draft_mode=False",
+                    "Consider setting a primary hero if this is your main user persona",
+                ],
+            )
+
         if is_primary:
-            existing_primary = hero_service.get_primary_hero(workspace_id)
+            existing_primary = hero_service.get_primary_hero(uuid.UUID(workspace_id))
             if existing_primary:
                 existing_primary.update_hero(
                     name=existing_primary.name,
@@ -286,7 +331,9 @@ async def get_heroes() -> Dict[str, Any]:
         return build_success_response(
             entity_type="hero",
             message=f"Found {len(heroes)} hero(es)",
-            data=[serialize_hero(hero) for hero in heroes],
+            data={
+                "heroes": [serialize_hero(hero) for hero in heroes],
+            },
         )
 
     except ValueError as e:

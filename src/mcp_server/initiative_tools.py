@@ -12,6 +12,13 @@ from src.initiative_management.initiative_controller import (
 )
 from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp  # type: ignore
+from src.mcp_server.prompt_driven_tools.utils import build_draft_response
+from src.mcp_server.prompt_driven_tools.utils.draft_builder import (
+    build_draft_initiative_data,
+)
+from src.mcp_server.prompt_driven_tools.utils.validation_runner import (
+    validate_initiative_constraints,
+)
 from src.models import Initiative, InitiativeStatus
 
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +49,7 @@ async def create_initiative(
     title: str,
     description: str,
     status: str | None = None,
+    draft_mode: bool = True,
 ) -> Dict[str, Any]:
     """
     Create a new initiative for the user.
@@ -50,6 +58,7 @@ async def create_initiative(
         - title: Title for the initiative
         - description: Description for the initiative
         - status: Optional status string (defaults to BACKLOG) - Options: BACKLOG, TO_DO, IN_PROGRESS
+        - draft_mode: If True, validate without persisting; if False, persist to database (default: True)
     """
     logger.info("Creating a new initiative via MCP tool")
     session: Session = SessionLocal()
@@ -81,6 +90,35 @@ async def create_initiative(
                     ),
                     "error_type": "validation_error",
                 }
+
+        # DRAFT MODE: Validate without persisting
+        if draft_mode:
+            validate_initiative_constraints(
+                workspace_id=workspace_id,
+                title=title,
+                description=description,
+                status=initiative_status,
+                session=session,
+            )
+
+            draft_data = build_draft_initiative_data(
+                workspace_id=workspace_id,
+                user_id=user_id,
+                title=title,
+                description=description,
+                status=initiative_status,
+            )
+
+            return build_draft_response(
+                entity_type="initiative",
+                message=f"Draft initiative '{title}' validated successfully",
+                data=draft_data,
+                next_steps=[
+                    "Review initiative details with user",
+                    "Confirm the initiative is clear and correctly defined",
+                    "If approved, call create_initiative() with draft_mode=False",
+                ],
+            )
 
         controller = InitiativeController(session)
         initiative = controller.create_initiative(

@@ -10,6 +10,7 @@ from src.mcp_server.prompt_driven_tools.strategic_foundation import (
     get_pillar_definition_framework,
     submit_strategic_pillar,
 )
+from src.models import Workspace
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.exceptions import DomainException
 
@@ -78,7 +79,7 @@ class TestSubmitStrategicPillar:
     """Test suite for submit_strategic_pillar tool."""
 
     @pytest.mark.asyncio
-    async def test_submit_creates_pillar_successfully(self, workspace):
+    async def test_submit_creates_pillar_successfully(self, workspace: Workspace):
         """Test that submit successfully creates pillar via controller."""
         name = "Deep IDE Integration"
         description = "Strategy: Seamless IDE experience. Anti-Strategy: No web-first"
@@ -111,7 +112,9 @@ class TestSubmitStrategicPillar:
                 ) as mock_get_pillars:
                     mock_get_pillars.return_value = [mock_pillar]
 
-                    result = await submit_strategic_pillar.fn(name, description)
+                    result = await submit_strategic_pillar.fn(
+                        name, description, draft_mode=False
+                    )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "pillar"}))
@@ -133,7 +136,7 @@ class TestSubmitStrategicPillar:
                 mock_create.side_effect = DomainException("Pillar limit exceeded")
 
                 result = await submit_strategic_pillar.fn(
-                    "Pillar Name", "Strategy: X. Anti-Strategy: Y."
+                    "Pillar Name", "Strategy: X. Anti-Strategy: Y.", draft_mode=False
                 )
 
         # Verify error response
