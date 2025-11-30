@@ -21,6 +21,11 @@ class FrameworkBuilder:
         ...     text="Enable developers to manage tasks without leaving their IDE",
         ...     why_good="Focuses on user outcome, not features"
         ... )
+        >>> builder.set_conversation_guidelines(
+        ...     say_this="what you're building toward",
+        ...     not_this="the Vision",
+        ...     example="What change do you want to make in the world?"
+        ... )
         >>> framework = builder.build()
     """
 
@@ -39,6 +44,10 @@ class FrameworkBuilder:
         self._coaching_tips: List[str] = []
         self._current_state: Optional[Dict[str, Any]] = None
         self._additional_context: Dict[str, Any] = {}
+        self._conversation_guidelines: Optional[Dict[str, str]] = None
+        self._natural_questions: List[Dict[str, str]] = []
+        self._extraction_guidance: List[Dict[str, Any]] = []
+        self._inference_examples: List[Dict[str, Any]] = []
 
     def set_purpose(self, purpose: str) -> "FrameworkBuilder":
         """Set the purpose/why for this entity.
@@ -184,6 +193,105 @@ class FrameworkBuilder:
         self._additional_context[key] = value
         return self
 
+    def set_conversation_guidelines(
+        self, say_this: str, not_this: str, example: str
+    ) -> "FrameworkBuilder":
+        """Set entity-specific conversation guidelines.
+
+        Provides guidance on how to refer to this entity type in natural
+        conversation without exposing framework terminology.
+
+        Args:
+            say_this: Natural language to use (e.g., "what you're building toward")
+            not_this: Framework term to avoid (e.g., "the Vision")
+            example: Example question using natural language
+
+        Returns:
+            Self for method chaining
+        """
+        self._conversation_guidelines = {
+            "say_this": say_this,
+            "not_this": not_this,
+            "example_question": example,
+        }
+        return self
+
+    def add_natural_question(
+        self, framework_term: str, natural_question: str
+    ) -> "FrameworkBuilder":
+        """Map a framework term to a natural conversational question.
+
+        Args:
+            framework_term: The internal framework concept (e.g., "hero_name")
+            natural_question: Natural way to ask about it (e.g., "Who's the one person you're building this for?")
+
+        Returns:
+            Self for method chaining
+        """
+        self._natural_questions.append(
+            {"framework_term": framework_term, "natural_question": natural_question}
+        )
+        return self
+
+    def add_extraction_guidance(
+        self, from_input: str, extractions: Dict[str, str]
+    ) -> "FrameworkBuilder":
+        """Add guidance for extracting entity fields from user input.
+
+        Shows how to parse natural conversation into structured entity data.
+
+        Args:
+            from_input: Example user input text
+            extractions: Dict mapping field names to extraction patterns/values
+
+        Returns:
+            Self for method chaining
+
+        Example:
+            >>> builder.add_extraction_guidance(
+            ...     from_input="Solo founders drowning in feedback from everywhere",
+            ...     extractions={
+            ...         "name_pattern": "[Role], The [Descriptor] → 'Alex, The Solo Founder'",
+            ...         "core_pain": "drowning = overwhelmed by scattered input",
+            ...         "context": "solo = works alone, limited resources"
+            ...     }
+            ... )
+        """
+        self._extraction_guidance.append(
+            {"from_input": from_input, "extractions": extractions}
+        )
+        return self
+
+    def add_inference_example(
+        self, user_says: str, inferences: Dict[str, str]
+    ) -> "FrameworkBuilder":
+        """Add example of inferring entities from context.
+
+        Shows how to identify implicit framework entities when users
+        don't explicitly state them.
+
+        Args:
+            user_says: What the user said in natural conversation
+            inferences: Dict mapping entity types to inferred values
+
+        Returns:
+            Self for method chaining
+
+        Example:
+            >>> builder.add_inference_example(
+            ...     user_says="I'm building a tool for indie hackers to turn feedback into decisions",
+            ...     inferences={
+            ...         "implied_hero": "indie hacker with scattered feedback",
+            ...         "implied_villain": "difficulty turning feedback into decisions",
+            ...         "implied_vision": "Enable indie hackers to turn scattered feedback into confident product decisions"
+            ...     }
+            ... )
+        """
+        self._inference_examples.append(
+            {"user_says": user_says, "inferences": inferences}
+        )
+        return self
+
     def build(self) -> Dict[str, Any]:
         """Build the complete framework dictionary.
 
@@ -214,6 +322,18 @@ class FrameworkBuilder:
 
         if self._current_state is not None:
             framework["current_state"] = self._current_state
+
+        if self._conversation_guidelines:
+            framework["conversation_guidelines"] = self._conversation_guidelines
+
+        if self._natural_questions:
+            framework["natural_questions"] = self._natural_questions
+
+        if self._extraction_guidance:
+            framework["extraction_guidance"] = self._extraction_guidance
+
+        if self._inference_examples:
+            framework["inference_examples"] = self._inference_examples
 
         # Add any additional context
         framework.update(self._additional_context)

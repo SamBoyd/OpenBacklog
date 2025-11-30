@@ -703,7 +703,70 @@ Marks a specific checklist item as complete or incomplete.
 ## Strategic Planning Tools
 
 Strategic planning tools follow a **prompt-driven collaboration pattern**:
-**Get Framework � Claude + User Collaborate � Submit Result**
+**Get Framework → Claude + User Collaborate → Submit Result**
+
+### Framework Response Structure
+
+All `get_*_framework()` tools return a rich framework dictionary with the following fields:
+
+**Core Fields:**
+- `entity_type`: Type of entity (vision, pillar, outcome, hero, villain, etc.)
+- `purpose`: Why this entity matters
+- `criteria`: Quality criteria for good entities
+- `examples`: Good examples with explanations
+- `questions_to_explore`: Guiding questions for refinement
+- `anti_patterns`: What NOT to do with explanations
+- `coaching_tips`: Tips for refinement
+- `current_state`: Current workspace state for this entity type
+
+**Natural Language Mapping Fields (Framework-Invisible UX):**
+
+These fields help Claude Code conduct natural product conversations without exposing framework terminology:
+
+- `conversation_guidelines`: Entity-specific phrasing guidance
+  - `say_this`: Natural language to use
+  - `not_this`: Framework term to avoid
+  - `example_question`: Example natural question
+- `natural_questions`: Maps framework concepts to natural conversational questions
+- `extraction_guidance`: Patterns for parsing user input into structured entity fields
+- `inference_examples`: How to infer entities when users don't explicitly state them
+
+**Example Framework Response:**
+```json
+{
+  "entity_type": "hero",
+  "purpose": "Define who you're building for",
+  "criteria": ["Specific person with a name", "Real motivations", "Observable pains"],
+  "examples": [{"text": "Sarah, The Solo Builder", "why_good": "Specific, observable"}],
+  "questions_to_explore": ["Who specifically are you building this for?"],
+  "anti_patterns": [{"example": "Developers", "why_bad": "Too broad", "better": "Sarah"}],
+  "coaching_tips": ["Be specific - give them a name and archetype"],
+  "current_state": {"existing_heroes": [], "hero_count": 0},
+  "conversation_guidelines": {
+    "say_this": "use their actual name (Sarah, Alex)",
+    "not_this": "the Hero, your hero persona",
+    "example_question": "Who's the one person you're building this for?"
+  },
+  "natural_questions": [
+    {"framework_term": "hero_identity", "natural_question": "Who's the one person you're building this for?"},
+    {"framework_term": "pains", "natural_question": "What frustrates them most right now?"}
+  ],
+  "extraction_guidance": [
+    {
+      "from_input": "Solo founders drowning in feedback from everywhere",
+      "extractions": {"name_pattern": "[Role], The [Descriptor]", "core_pain": "overwhelmed by input"}
+    }
+  ],
+  "inference_examples": [
+    {
+      "user_says": "I keep talking to developers who lose hours switching tools",
+      "inferences": {"hero_name": "A developer (give them a name)", "pain": "context switching"}
+    }
+  ]
+}
+```
+
+---
 
 ### Vision Management
 
@@ -712,18 +775,7 @@ Strategic planning tools follow a **prompt-driven collaboration pattern**:
 Returns comprehensive framework for defining a product vision through collaborative refinement.
 
 **Returns:**
-```json
-{
-  "type": "vision",
-  "purpose": "Define the change you want to make in the world",
-  "criteria": [/* quality criteria */],
-  "examples": [/* good examples with explanations */],
-  "questions": [/* guiding questions */],
-  "anti_patterns": [/* what to avoid */],
-  "current_state": {/* existing vision if any */},
-  "coaching_tips": [/* refinement guidance */]
-}
-```
+Framework dict with all standard fields plus vision-specific criteria.
 
 **Criteria:**
 - Outcome-focused, not solution-focused
@@ -976,6 +1028,34 @@ Provides structured markdown workflow guidance for the complete OpenBacklog inte
 
 ---
 
+### `framework_invisible_conversation`
+
+Establishes the conversation philosophy for strategic planning sessions. The framework should be Claude Code's internal scaffolding, NOT user-facing vocabulary.
+
+**Core Principle:** Users should experience a natural product conversation, never learn framework terminology.
+
+**Key Guidelines:**
+- Never say "the Hero" - use their actual name (e.g., "Sarah", "Alex")
+- Never say "the Villain" - say "the problem", "what's blocking them"
+- Never say "the Vision" - say "what you're building toward"
+- Never say "Strategic Pillar" - say "your approach", "what makes you different"
+- Never say "Product Outcome" - say "what success looks like"
+- Never say "Roadmap Theme" - say "your next focus area", "the hypothesis you want to test"
+
+**Returns:** Markdown-formatted guide with:
+- Core philosophy
+- Terminology translation table (internal term → natural phrase)
+- Conversation patterns (what not to say, what to say instead)
+- Guidance for reflecting back to users
+- How to work with existing entities by name
+
+**Use Cases:**
+- Establishing conversation norms for strategic planning sessions
+- Reference for framework-invisible UX
+- Training Claude Code to avoid exposing framework terminology
+
+---
+
 ## Error Handling
 
 All tools return consistent error responses:
@@ -1002,13 +1082,15 @@ All tools return consistent error responses:
 
 1. **Always start with health_check** to verify connectivity
 2. **Follow the workflow sequence** for best results:
-   - Health check � Initiative selection � Task selection � Prioritization � Details � Planning � Updates � Implementation � Completion
+   - Health check → Initiative selection → Task selection → Prioritization → Details → Planning → Updates → Implementation → Completion
 3. **Validate context before updates** using `validate_context()`
 4. **Get user confirmation** before making changes
 5. **Update OpenBacklog first** before local implementation
 6. **Use framework tools** for strategic planning (get framework, collaborate, submit)
 7. **Link entities** for strategic alignment (outcomes to pillars, themes to outcomes)
 8. **Track progress** using checklist item updates
+9. **Framework-invisible conversations**: Use `framework_invisible_conversation` prompt for strategic planning sessions to ensure natural product conversations. Never expose framework terminology (Hero, Villain, Pillar) to users - use their own product language instead.
+10. **Natural language extraction**: Use `conversation_guidelines` and `natural_questions` from framework responses to ask questions in the user's domain language, then extract structured data using `extraction_guidance` patterns.
 
 ---
 
@@ -1030,6 +1112,8 @@ All tools return consistent error responses:
 Narrative layer tools follow the **prompt-driven collaboration pattern**:
 **Get Framework → Claude + User Collaborate → Submit Result**
 
+All narrative framework tools include the standard framework response fields plus **natural language mapping fields** (`conversation_guidelines`, `natural_questions`, `extraction_guidance`, `inference_examples`) to support framework-invisible UX. See the Framework Response Structure section above for details.
+
 ### Hero Management
 
 #### `get_hero_definition_framework()`
@@ -1037,7 +1121,7 @@ Narrative layer tools follow the **prompt-driven collaboration pattern**:
 Returns comprehensive framework for defining a hero (user persona) through collaborative refinement.
 
 **Returns:**
-Framework dict with purpose, criteria, examples, questions, anti-patterns, current state (existing heroes), and coaching tips.
+Framework dict with all standard fields. Key conversation guideline: Use the hero's actual name (e.g., "Sarah") instead of "the hero".
 
 **Criteria:**
 - Specific person with a name, not a broad segment

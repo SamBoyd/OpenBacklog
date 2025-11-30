@@ -132,6 +132,50 @@ async def get_villain_definition_framework() -> Dict[str, Any]:
 
         builder.add_context("villain_types", villain_types_info)
 
+        builder.set_conversation_guidelines(
+            say_this="the problem, what's blocking them, the friction, the obstacle",
+            not_this="the Villain, your villain, the enemy",
+            example="What's the biggest thing blocking them today?",
+        )
+
+        builder.add_natural_question(
+            "problem_identification",
+            "What's the biggest thing blocking them right now?",
+        )
+        builder.add_natural_question(
+            "manifestation",
+            "How does this show up in their day? What does it look like?",
+        )
+        builder.add_natural_question(
+            "impact",
+            "What does this cost them? Time? Money? Frustration?",
+        )
+        builder.add_natural_question(
+            "evidence",
+            "How do you know this is a real problem? What have you seen or heard?",
+        )
+
+        builder.add_extraction_guidance(
+            from_input="They keep telling me they lose track of what they were doing when they switch between tools",
+            extractions={
+                "villain_name": "Context Switching",
+                "villain_type": "WORKFLOW",
+                "manifestation": "Switching between tools causes loss of mental context",
+                "evidence": "Direct user feedback about losing track",
+                "implied_impact": "Lost productivity, frustration, slower shipping",
+            },
+        )
+
+        builder.add_inference_example(
+            user_says="Feedback comes from everywhere - Twitter, email, support - and they can't make sense of it all",
+            inferences={
+                "villain": "Scattered Feedback",
+                "type": "WORKFLOW",
+                "impact": "Can't synthesize insights, decision paralysis",
+                "implied_hero_pain": "Overwhelmed by multiple input channels",
+            },
+        )
+
         current_state = {
             "existing_villains": [
                 {

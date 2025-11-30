@@ -133,6 +133,51 @@ async def get_theme_exploration_framework() -> Dict[str, Any]:
         )
         builder.add_coaching_tip("Metrics should be leading indicators, not lagging")
 
+        builder.set_conversation_guidelines(
+            say_this="your next focus area, the bet you want to test, your hypothesis",
+            not_this="Roadmap Theme, the theme, your workstream",
+            example="What's the next bet you want to make? What problem are you testing a solution for?",
+        )
+
+        builder.add_natural_question(
+            "problem",
+            "What specific problem are you seeing? Who's experiencing it?",
+        )
+        builder.add_natural_question(
+            "hypothesis",
+            "What do you believe will solve it? What's your bet?",
+        )
+        builder.add_natural_question(
+            "validation",
+            "How will you know if it worked? What number will change?",
+        )
+        builder.add_natural_question(
+            "timeline",
+            "How long do you need to test this?",
+        )
+
+        builder.add_extraction_guidance(
+            from_input="New users keep dropping off during setup - I think if we showed them examples it would help. Maybe we could get completion from 40% to 70%",
+            extractions={
+                "theme_name": "First-Week Configuration Success",
+                "problem": "New users dropping off during setup (40% completion)",
+                "hypothesis": "Showing examples will help users complete setup",
+                "target_metric": "Setup completion rate: 40% → 70%",
+                "implied_timeline": "Needs clarification (suggest 3-6 months)",
+            },
+        )
+
+        builder.add_inference_example(
+            user_says="Power users keep asking for keyboard shortcuts - they hate using the mouse",
+            inferences={
+                "theme": "Keyboard-First Power Users",
+                "problem": "Power users lose efficiency switching to mouse",
+                "hypothesis": "Comprehensive keyboard shortcuts will increase power user engagement",
+                "implied_metric": "Power user daily active rate or session length",
+                "who_benefits": "Power users (specific segment)",
+            },
+        )
+
         # Set current state with available outcomes and existing themes
         current_state = {
             "available_outcomes": [

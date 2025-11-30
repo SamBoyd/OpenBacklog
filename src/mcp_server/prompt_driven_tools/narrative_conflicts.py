@@ -130,6 +130,50 @@ async def get_conflict_creation_framework() -> Dict[str, Any]:
             ]
         )
 
+        builder.set_conversation_guidelines(
+            say_this="how this problem affects them, the tension, what's at stake",
+            not_this="the Conflict, hero vs villain conflict",
+            example="How does this problem actually affect Sarah's day?",
+        )
+
+        builder.add_natural_question(
+            "tension",
+            "How does this problem show up in their daily work?",
+        )
+        builder.add_natural_question(
+            "impact",
+            "What does this cost them? What happens because of it?",
+        )
+        builder.add_natural_question(
+            "stakes",
+            "What's at risk if this doesn't get solved?",
+        )
+        builder.add_natural_question(
+            "resolution",
+            "When this is fixed, what does their day look like instead?",
+        )
+
+        builder.add_extraction_guidance(
+            from_input="Sarah loses an hour every day just switching between her IDE and the planning tool - she told me she forgets what she was doing",
+            extractions={
+                "hero_reference": "Sarah",
+                "villain_reference": "context switching / tool switching",
+                "impact": "loses an hour daily, forgets context",
+                "evidence": "direct user feedback",
+                "stakes": "productivity loss, frustration, potential churn",
+            },
+        )
+
+        builder.add_inference_example(
+            user_says="If we don't solve the feedback problem, Alex will just keep using spreadsheets and never adopt our tool",
+            inferences={
+                "hero": "Alex",
+                "villain": "feedback fragmentation (or similar)",
+                "stakes": "User won't adopt the product",
+                "resolution_success": "Alex stops using spreadsheets, fully adopts tool",
+            },
+        )
+
         current_state = {
             "available_heroes": [
                 {

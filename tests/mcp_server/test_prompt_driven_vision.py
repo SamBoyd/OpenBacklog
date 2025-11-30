@@ -241,3 +241,101 @@ class TestSubmitProductVisionDraftMode:
 
         # Verify validation was called
         mock_validate.assert_called_once()
+
+
+class TestVisionFrameworkNaturalLanguageMapping:
+    """Test suite for natural language mapping in vision framework."""
+
+    @pytest.mark.asyncio
+    async def test_framework_includes_conversation_guidelines(self):
+        """Test that vision framework includes conversation guidelines."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.return_value = None
+
+                result = await get_vision_definition_framework.fn()
+
+        assert_that(result, has_key("conversation_guidelines"))
+        guidelines = result["conversation_guidelines"]
+        assert_that(guidelines, has_key("say_this"))
+        assert_that(guidelines, has_key("not_this"))
+        assert_that(guidelines, has_key("example_question"))
+
+    @pytest.mark.asyncio
+    async def test_framework_includes_natural_questions(self):
+        """Test that vision framework includes natural question mappings."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.return_value = None
+
+                result = await get_vision_definition_framework.fn()
+
+        assert_that(result, has_key("natural_questions"))
+        assert isinstance(result["natural_questions"], list)
+        assert len(result["natural_questions"]) > 0
+
+        first_question = result["natural_questions"][0]
+        assert_that(first_question, has_key("framework_term"))
+        assert_that(first_question, has_key("natural_question"))
+
+    @pytest.mark.asyncio
+    async def test_framework_includes_extraction_guidance(self):
+        """Test that vision framework includes extraction guidance."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.return_value = None
+
+                result = await get_vision_definition_framework.fn()
+
+        assert_that(result, has_key("extraction_guidance"))
+        assert isinstance(result["extraction_guidance"], list)
+        assert len(result["extraction_guidance"]) > 0
+
+        first_guidance = result["extraction_guidance"][0]
+        assert_that(first_guidance, has_key("from_input"))
+        assert_that(first_guidance, has_key("extractions"))
+
+    @pytest.mark.asyncio
+    async def test_framework_includes_inference_examples(self):
+        """Test that vision framework includes inference examples."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.return_value = None
+
+                result = await get_vision_definition_framework.fn()
+
+        assert_that(result, has_key("inference_examples"))
+        assert isinstance(result["inference_examples"], list)
+        assert len(result["inference_examples"]) > 0
+
+        first_example = result["inference_examples"][0]
+        assert_that(first_example, has_key("user_says"))
+        assert_that(first_example, has_key("inferences"))

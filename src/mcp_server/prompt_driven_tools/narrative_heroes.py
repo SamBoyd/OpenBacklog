@@ -124,6 +124,53 @@ async def get_hero_definition_framework() -> Dict[str, Any]:
             ]
         )
 
+        builder.set_conversation_guidelines(
+            say_this="use their actual name (Sarah, Alex), 'your user', 'the person you're building for'",
+            not_this="the Hero, your hero persona, the primary hero",
+            example="Who's the one person you're building this for? Give me a specific example.",
+        )
+
+        builder.add_natural_question(
+            "hero_identity",
+            "Who's the one person you're building this for? Give me a real example.",
+        )
+        builder.add_natural_question(
+            "motivations",
+            "What drives them? What do they really care about?",
+        )
+        builder.add_natural_question(
+            "pains",
+            "What frustrates them most right now?",
+        )
+        builder.add_natural_question(
+            "context",
+            "Where and how do they work? What's their day like?",
+        )
+        builder.add_natural_question(
+            "success",
+            "When this works perfectly, what does their day look like?",
+        )
+
+        builder.add_extraction_guidance(
+            from_input="Solo founders drowning in feedback from everywhere - Twitter, email, support tickets",
+            extractions={
+                "name_pattern": "[Role], The [Descriptor] → 'Alex, The Solo Founder'",
+                "core_pain": "drowning in feedback = overwhelmed by scattered input",
+                "context": "solo founder = works alone, limited resources",
+                "sources_of_pain": "Twitter, email, support tickets = multiple channels",
+            },
+        )
+
+        builder.add_inference_example(
+            user_says="I keep talking to developers who lose hours every day switching between their IDE and planning tools",
+            inferences={
+                "hero_name": "A developer (give them a specific name like 'Sarah')",
+                "pain": "loses hours to context switching",
+                "context": "works in IDE, uses separate planning tools",
+                "implied_villain": "Context switching between tools",
+            },
+        )
+
         current_state = {
             "existing_heroes": [
                 {

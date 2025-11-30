@@ -169,6 +169,56 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
             ]
         )
 
+        builder.set_conversation_guidelines(
+            say_this="what you want to build next, your next project, this feature",
+            not_this="Strategic Initiative, the initiative, this initiative entity",
+            example="What do you want to build next? Who will it help and what problem will it solve?",
+        )
+
+        builder.add_natural_question(
+            "deliverable",
+            "What specific thing do you want to build?",
+        )
+        builder.add_natural_question(
+            "beneficiary",
+            "Who will this help? (Use their name, like Sarah or Alex)",
+        )
+        builder.add_natural_question(
+            "problem_solved",
+            "What problem does this solve for them?",
+        )
+        builder.add_natural_question(
+            "why_now",
+            "Why is this the right thing to build now?",
+        )
+        builder.add_natural_question(
+            "success",
+            "When this ships, what changes for them?",
+        )
+
+        builder.add_extraction_guidance(
+            from_input="I want to build auto-save for IDE context so Sarah doesn't lose her place when switching tasks",
+            extractions={
+                "title": "Auto-Save IDE Context",
+                "description": "Automatically save and restore IDE context when switching tasks",
+                "hero_connection": "Sarah (by name)",
+                "problem_solved": "losing place when switching tasks",
+                "implied_villain": "Context Switching",
+                "narrative_intent": "Help Sarah maintain flow by eliminating context loss during task switches",
+            },
+        )
+
+        builder.add_inference_example(
+            user_says="Alex needs a way to turn all that feedback chaos into actual decisions",
+            inferences={
+                "initiative_title": "AI-Powered Decision Synthesis (or similar)",
+                "hero": "Alex",
+                "villain": "Feedback chaos / scattered insights",
+                "value_delivered": "Transform chaos into actionable decisions",
+                "narrative_intent": "Help Alex conquer information overload",
+            },
+        )
+
         current_state = {
             "available_heroes": [
                 {

@@ -134,6 +134,44 @@ async def get_vision_definition_framework() -> Dict[str, Any]:
             ]
         )
 
+        builder.set_conversation_guidelines(
+            say_this="what you're building toward, the change you want to make",
+            not_this="the Vision, your product vision",
+            example="What change do you want to make in the world?",
+        )
+
+        builder.add_natural_question(
+            "vision_statement",
+            "What do you want to make possible for people?",
+        )
+        builder.add_natural_question(
+            "outcome_focus",
+            "When this works, what will users be able to do that they can't today?",
+        )
+        builder.add_natural_question(
+            "user_impact",
+            "If your product disappeared tomorrow, what would people lose?",
+        )
+
+        builder.add_extraction_guidance(
+            from_input="I'm building a tool for indie hackers to turn scattered feedback into product decisions",
+            extractions={
+                "beneficiary": "indie hackers",
+                "current_problem": "scattered feedback",
+                "desired_outcome": "product decisions",
+                "draft_vision": "Enable indie hackers to turn scattered feedback into confident product decisions",
+            },
+        )
+
+        builder.add_inference_example(
+            user_says="We help developers ship faster by removing context switching",
+            inferences={
+                "vision": "Enable developers to ship faster by staying in their flow",
+                "implied_hero": "Developer who loses time to context switching",
+                "implied_villain": "Context switching between tools",
+            },
+        )
+
         # Set current state
         if current_vision:
             builder.set_current_state(
@@ -354,6 +392,44 @@ async def get_pillar_definition_framework() -> Dict[str, Any]:
                 "Good anti-strategy feels uncomfortable (real trade-offs)",
                 "Test: Would competitors make the same trade-offs? (If yes, not differentiating)",
             ]
+        )
+
+        builder.set_conversation_guidelines(
+            say_this="your approach, what makes you different, your strategic bet",
+            not_this="Strategic Pillar, the pillar",
+            example="What's your unique approach here that competitors won't copy?",
+        )
+
+        builder.add_natural_question(
+            "differentiation",
+            "What makes your approach unique vs competitors?",
+        )
+        builder.add_natural_question(
+            "anti_strategy",
+            "What will you explicitly NOT do to maintain this focus?",
+        )
+        builder.add_natural_question(
+            "trade_offs",
+            "What are you giving up by making this bet?",
+        )
+
+        builder.add_extraction_guidance(
+            from_input="We're betting everything on the IDE - no web app, no mobile, just pure IDE integration",
+            extractions={
+                "pillar_name": "Deep IDE Integration",
+                "strategy": "Pure IDE integration, seamless developer workflow",
+                "anti_strategy": "No web app, no mobile app",
+                "trade_off": "Users who want web/mobile access won't be served",
+            },
+        )
+
+        builder.add_inference_example(
+            user_says="We want to be the simplest option - no enterprise features, no complex setup",
+            inferences={
+                "pillar": "Simplicity-First Design",
+                "anti_strategy": "No enterprise features, no complex configuration",
+                "implied_outcome": "Faster onboarding, higher individual adoption",
+            },
         )
 
         # Set current state with pillar limit info
@@ -627,6 +703,49 @@ async def get_outcome_definition_framework() -> Dict[str, Any]:
                 "Each pillar should have at least 1-2 outcomes",
                 "Outcomes should be observable and measurable",
             ]
+        )
+
+        builder.set_conversation_guidelines(
+            say_this="what success looks like, how you'll measure it, your target",
+            not_this="Product Outcome, the outcome",
+            example="How will you know this is working? What number changes?",
+        )
+
+        builder.add_natural_question(
+            "success_metric",
+            "How will you know this is working? What number will you watch?",
+        )
+        builder.add_natural_question(
+            "baseline",
+            "What's that number at today?",
+        )
+        builder.add_natural_question(
+            "target",
+            "What do you want it to be? By when?",
+        )
+        builder.add_natural_question(
+            "validation",
+            "If you hit this target, what does that prove about your approach?",
+        )
+
+        builder.add_extraction_guidance(
+            from_input="Right now only 30% of users open the app daily, I want to get that to 80% in 6 months",
+            extractions={
+                "outcome_name": "Daily Active Usage",
+                "metric": "Daily active users percentage",
+                "baseline": "30%",
+                "target": "80%",
+                "timeline": "6 months",
+            },
+        )
+
+        builder.add_inference_example(
+            user_says="We want developers to never leave the IDE - that's when we've won",
+            inferences={
+                "outcome": "IDE-Only Workflow Adoption",
+                "implied_metric": "Percentage of users completing workflows without leaving IDE",
+                "implied_target": "High percentage (90%+) of workflows completed in-IDE",
+            },
         )
 
         # Set current state
