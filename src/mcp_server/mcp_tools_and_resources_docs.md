@@ -147,6 +147,35 @@ Claude Code calls: create_workspace(name="My SaaS Product", description="")
 
 ## Initiative Management Tools
 
+### `create_initiative()`
+
+Create a new initiative for the user.
+
+**Parameters:**
+  - title: Title for the initiative
+  - description: Description for the initiative
+  - status: Optional status string (defaults to BACKLOG) - Options: BACKLOG, TO_DO, IN_PROGRESS
+
+**Returns**
+```json
+{
+  "status": "success",
+  "type": "initiative",
+  "message": "Created initiative 'Initiative Title'",
+  "data": [
+    {
+      "id": "<uuid>",
+      "title": "Initiative Title",
+      "description": "Initiative description",
+      "identifier": "INIT-001",
+      "status": "IN_PROGRESS",
+      "workspace_id": "<workspace_uuid>",
+      ...
+    }
+  ]
+}
+```
+
 ### `get_active_initiatives()`
 
 Fetches all initiatives with 'IN_PROGRESS' status.
