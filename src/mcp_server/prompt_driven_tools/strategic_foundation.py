@@ -50,17 +50,33 @@ async def get_vision_definition_framework() -> Dict[str, Any]:
     Returns rich context to help Claude Code guide the user through
     defining a high-quality product vision through collaborative refinement.
 
+    A vision describes the change you want to make in the world—not what you're
+    building, but why it matters. The test: "If others achieve this vision and
+    we can close shop, it's a good one." This ensures the vision is world-centric
+    rather than self-serving.
+
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Returns:
-        Framework dictionary with purpose, criteria, examples, questions,
-        anti-patterns, current state, and coaching tips
+        Framework dictionary containing:
+        - purpose: Why this entity exists
+        - criteria: Quality standards for a good vision
+        - examples: Strong vision statements with explanations
+        - questions: Discovery questions for refinement
+        - anti_patterns: Common mistakes to avoid
+        - coaching_tips: Guidance for iteration
+        - conversation_guidelines: How to discuss vision in natural language
+        - natural_questions: Framework terms mapped to conversational questions
+        - extraction_guidance: Patterns for parsing user input into vision components
+        - inference_examples: How to infer vision from indirect user statements
+        - current_state: Existing vision if any
 
     Example:
         >>> framework = await get_vision_definition_framework()
-        >>> # Claude Code uses framework to guide user through refinement
-        >>> # User and Claude iterate until vision is outcome-focused
+        >>> # Use natural_questions to guide conversation
+        >>> # Use extraction_guidance to parse user's response
+        >>> # Draft vision and reflect back in user's own words
         >>> await submit_product_vision(refined_vision)
     """
     session = SessionLocal()
@@ -134,12 +150,28 @@ async def get_vision_definition_framework() -> Dict[str, Any]:
             ]
         )
 
+        # === Natural Language Mapping Guidance ===
+        # These fields help Claude Code conduct natural product conversations
+        # without exposing internal framework terminology to users.
+
         builder.set_conversation_guidelines(
-            say_this="what you're building toward, the change you want to make",
-            not_this="the Vision, your product vision",
-            example="What change do you want to make in the world?",
+            say_this=(
+                "the future you're working toward, "
+                "the change you want to create, "
+                "what becomes possible because of your work"
+            ),
+            not_this=(
+                "the Vision, your product vision, "
+                "the vision statement, this strategic element"
+            ),
+            example=(
+                "Instead of 'Let's define your product vision,' say: "
+                "'What future are you working toward? If you succeed beyond "
+                "your wildest dreams, what changes in the world?'"
+            ),
         )
 
+        # Questions to ask users, mapped from framework concepts to natural language
         builder.add_natural_question(
             "vision_statement",
             "What do you want to make possible for people?",
@@ -149,26 +181,85 @@ async def get_vision_definition_framework() -> Dict[str, Any]:
             "When this works, what will users be able to do that they can't today?",
         )
         builder.add_natural_question(
-            "user_impact",
-            "If your product disappeared tomorrow, what would people lose?",
+            "success_scenario",
+            "Imagine it's 5 years from now and you've succeeded. What's different about the world?",
+        )
+        builder.add_natural_question(
+            "beneficiary_focus",
+            "Who specifically benefits most from what you're building? What changes for them?",
+        )
+        builder.add_natural_question(
+            "competition_test",
+            "If a competitor achieved exactly what you're describing, would you be happy the world changed—or frustrated you lost?",
         )
 
+        # Patterns for extracting vision components from natural conversation
         builder.add_extraction_guidance(
             from_input="I'm building a tool for indie hackers to turn scattered feedback into product decisions",
             extractions={
-                "beneficiary": "indie hackers",
-                "current_problem": "scattered feedback",
-                "desired_outcome": "product decisions",
-                "draft_vision": "Enable indie hackers to turn scattered feedback into confident product decisions",
+                "beneficiary": "indie hackers (solo developers building products)",
+                "current_state": "scattered feedback across channels, hard to synthesize",
+                "desired_state": "confident product decisions based on clear signal",
+                "transformation": "from overwhelmed by noise → acting on clarity",
+                "draft_vision": (
+                    "Indie hackers take confident product decisions "
+                    + "using clear signals to successfully build their passions"
+                ),
             },
         )
 
+        builder.add_extraction_guidance(
+            from_input="We want to help small teams ship faster without enterprise complexity",
+            extractions={
+                "beneficiary": "small teams (likely startups or small companies)",
+                "current_state": "slowed down by enterprise-grade tool complexity",
+                "desired_state": "shipping faster with right-sized tooling",
+                "anti_pattern_signal": "user dislikes enterprise complexity → simplicity pillar",
+                "draft_vision": (
+                    "Small teams ship at startup speed without enterprise overhead"
+                ),
+            },
+        )
+
+        # Examples of inferring vision from indirect user statements
         builder.add_inference_example(
             user_says="We help developers ship faster by removing context switching",
             inferences={
                 "vision": "Enable developers to ship faster by staying in their flow",
-                "implied_hero": "Developer who loses time to context switching",
-                "implied_villain": "Context switching between tools",
+                "implied_beneficiary": "Developers who lose time to tool-switching",
+                "implied_problem": "Context switching between tools breaks focus",
+                "implied_outcome": "Faster shipping through maintained flow state",
+                "follow_up": (
+                    "What does 'faster' mean to you? 2x? 10x? "
+                    "And what breaks their flow most often today?"
+                ),
+            },
+        )
+
+        builder.add_inference_example(
+            user_says="I want to democratize access to AI for non-technical people",
+            inferences={
+                "vision": "Make AI capabilities accessible to everyone, regardless of technical skill",
+                "implied_beneficiary": "Non-technical users excluded from AI benefits",
+                "implied_problem": "AI tools require technical expertise to use effectively",
+                "implied_outcome": "Non-technical people gain AI-powered capabilities",
+                "follow_up": (
+                    "When non-technical people can use AI, what do they accomplish? "
+                    "What specific task becomes possible for them?"
+                ),
+            },
+        )
+
+        builder.add_inference_example(
+            user_says="We're building the Stripe of X",
+            inferences={
+                "pattern": "Analogy-based description—user thinks in comparisons",
+                "what_stripe_means": "Simple API, great DX, complex problem made easy",
+                "implied_vision": "Make [X] as simple and accessible as Stripe made payments",
+                "follow_up": (
+                    "What is it about Stripe that you want to emulate? "
+                    "The simplicity? The developer experience? Making a hard thing easy?"
+                ),
             },
         )
 
