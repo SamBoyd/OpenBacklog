@@ -46,20 +46,25 @@ logger = logging.getLogger(__name__)
 async def get_theme_exploration_framework() -> Dict[str, Any]:
     """Get comprehensive framework for defining a roadmap theme.
 
-    Returns rich context to help Claude Code guide the user through
-    defining a hypothesis-driven roadmap theme through collaborative refinement.
+    Roadmap themes are strategic bet areas that organize your roadmap around
+    problems to solve, not features to build. Each theme represents a cluster
+    of initiatives that together advance one or more product outcomes.
+
+    Good themes express intent and learning focus, not solution decisions.
+    They communicate what you're exploring and why, not what you're building
+    and when. Themes sit in a 6-12 month horizon.
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Returns:
         Framework dict with purpose, criteria, examples, questions, anti-patterns,
-        current state (outcomes + themes), and coaching tips.
+        current state (outcomes + themes), coaching tips, and natural language
+        mapping guidance.
 
     Example:
         >>> framework = await get_theme_exploration_framework()
-        >>> print(framework["purpose"])
-        "Identify a new strategic bet area to explore"
+        >>> # Use to guide user through defining a hypothesis-driven bet area
     """
     session = SessionLocal()
     try:
@@ -77,104 +82,201 @@ async def get_theme_exploration_framework() -> Dict[str, Any]:
 
         builder = FrameworkBuilder("theme")
 
-        builder.set_purpose("Identify a new strategic bet area to explore")
+        builder.set_purpose(
+            "Define a strategic bet area - a problem space to explore over "
+            "the next 6-12 months that will advance your product outcomes"
+        )
 
         builder.add_criteria(
             [
-                "Clear problem statement (what's broken?)",
-                "Testable hypothesis (what do you believe will work?)",
-                "Indicative metrics (how will you know it worked?)",
-                "Reasonable time horizon (0-12 months)",
-                "Linked to product outcomes (strategic alignment)",
+                "Outcome-aligned: Clearly ladders up to at least one product outcome",
+                "Problem-oriented: Describes a user or business problem, not features",
+                "Exploratory: Includes a testable hypothesis you can prove or disprove",
+                "Flexible in execution: Allows initiatives to evolve as you learn",
+                "Communicable: Clear, memorable name that works as shorthand",
+                "Time-bound: Designed for 6-12 month focus, re-evaluated each cycle",
             ]
         )
 
-        # Add detailed examples
         builder.add_example(
-            text="First-Week Configuration Success",
-            why_good="Specific problem, testable hypothesis, measurable, reasonable timeline",
-            description="**Problem Statement**: New users abandon initial configuration (40% drop-off) because they don't understand why each setting matters. **Hypothesis**: Providing example values and smart defaults for each configuration setting will increase setup completion from 40% to 70%. **Indicative Metrics**: Setup completion rate improves from 40% to 70%. **Timeline**: 6 months to test and validate.",
+            text="Stay in Flow",
+            why_good="Problem-focused, memorable name, clear hypothesis, measurable",
+            description=(
+                "**Problem Statement**: Solo devs lose focus when context switching "
+                "between IDE and planning tools. "
+                "**Hypothesis**: If we embed backlog management directly in the IDE, "
+                "developers will complete more tasks per session. "
+                "**Indicative Metrics**: IDE engagement rate, task completion velocity. "
+                "**Timeline**: 6-9 months to test and validate."
+            ),
+            outcomes_supported="70% of users manage backlog from IDE",
         )
 
         builder.add_example(
-            text="Keyboard-First Power Users",
-            why_good="Clear user segment (power users), specific intervention, measurable outcome",
-            description="**Problem Statement**: Power users lose time switching between keyboard and mouse during complex workflows. **Hypothesis**: If we provide comprehensive keyboard shortcuts for all actions, daily active power users will increase by 50%. **Indicative Metrics**: Daily active power users increases by 50%. **Timeline**: 9 months to implement and measure.",
+            text="First-Run Delight",
+            why_good="Specific problem with data, clear hypothesis, actionable timeline",
+            description=(
+                "**Problem Statement**: New users abandon setup (40% drop-off) "
+                "because they don't understand why each setting matters. "
+                "**Hypothesis**: Smart defaults and contextual examples will "
+                "increase setup completion from 40% to 70%. "
+                "**Indicative Metrics**: Setup completion rate, time-to-first-value. "
+                "**Timeline**: 6 months."
+            ),
+            outcomes_supported="60% trial-to-active conversion",
         )
 
-        # Add guiding questions
-        builder.add_question("What specific problem are you seeing?")
-        builder.add_question("Who is experiencing this problem?")
-        builder.add_question("What do you believe will solve it? (Your hypothesis)")
-        builder.add_question("How will you measure success?")
-        builder.add_question("What's your timeline to test this?")
-        builder.add_question("Which product outcomes does this support?")
+        builder.add_example(
+            text="AI as Co-Pilot",
+            why_good="Clear user benefit, exploratory scope, hypothesis-driven",
+            description=(
+                "**Problem Statement**: Developers want AI assistance but hesitate "
+                "because they don't trust recommendations they don't understand. "
+                "**Hypothesis**: Making AI reasoning transparent and educational will "
+                "increase AI feature adoption by 50%. "
+                "**Indicative Metrics**: AI feature usage rate, trust survey scores. "
+                "**Timeline**: 9 months."
+            ),
+            outcomes_supported="80% of tasks created via AI",
+        )
 
-        # Add anti-patterns
+        builder.add_questions(
+            [
+                "What specific problem are you seeing? Who's experiencing it?",
+                "What's your bet? What do you believe will solve this?",
+                "How will you know if it worked? What metric will change?",
+                "What's a reasonable timeline to test this hypothesis?",
+                "Which of your success metrics does this support?",
+                "What might this theme include? (initiatives, not features)",
+            ]
+        )
+
         builder.add_anti_pattern(
             example="Improve onboarding",
-            why_bad="Vague, no specific problem or hypothesis",
-            better="Reduce setup abandonment by providing contextual examples (40% → 70% completion)",
+            why_bad="Too vague - doesn't specify the problem or a testable hypothesis",
+            better="First-Run Delight: Reduce setup abandonment via smart defaults (40% → 70%)",
         )
 
         builder.add_anti_pattern(
-            example="Build feature X",
-            why_bad="Solution-focused, not hypothesis-driven",
-            better="Test whether feature X solves problem Y for user segment Z",
+            example="Build mobile app",
+            why_bad="Solution-focused (a feature list), not a problem space to explore",
+            better="On-the-Go Access: Test if mobile task management increases daily engagement",
         )
 
-        # Add coaching tips
-        builder.add_coaching_tip(
-            "Good themes are bets you can test, not features to build"
+        builder.add_anti_pattern(
+            example="Infrastructure improvements",
+            why_bad="Departmental bucket - reflects internal structure, not user problems",
+            better="Lightning Fast: Reduce response times to maintain user flow state",
         )
-        builder.add_coaching_tip("Problem statement should be specific and observable")
-        builder.add_coaching_tip(
-            "Hypothesis should be falsifiable (could be proven wrong)"
+
+        builder.add_anti_pattern(
+            example="Add dark mode",
+            why_bad="Too narrow/tactical - could be completed in a single sprint",
+            better="Developer Comfort: Explore customization options that reduce eye strain and improve focus",
         )
-        builder.add_coaching_tip("Metrics should be leading indicators, not lagging")
+
+        builder.add_anti_pattern(
+            example="Delight users",
+            why_bad="Too grand - sounds inspiring but doesn't guide prioritization",
+            better="Celebration Moments: Create emotional wins at key milestones to drive retention",
+        )
+
+        builder.add_coaching_tips(
+            [
+                "Name it well: Memorable phrases like 'Stay in Flow' stick better than jargon",
+                "Make it a bet: Each theme should embody a hypothesis you can test and learn from",
+                "Limit to 3-5 themes per cycle: Enough to diversify bets, few enough to focus",
+                "Use it to say no: If an initiative doesn't fit a theme, it's off-strategy",
+                "A theme is not a feature: It's a problem space that may spawn multiple initiatives",
+                "Good themes are chapters in your product story, not line items on a release calendar",
+            ]
+        )
 
         builder.set_conversation_guidelines(
-            say_this="your next focus area, the bet you want to test, your hypothesis",
-            not_this="Roadmap Theme, the theme, your workstream",
-            example="What's the next bet you want to make? What problem are you testing a solution for?",
+            say_this="your next big bet, the problem space you want to explore, your focus area",
+            not_this="Roadmap Theme, the theme entity, your workstream",
+            example="What's the next big bet you want to make? What problem space do you want to explore?",
         )
 
         builder.add_natural_question(
-            "problem",
-            "What specific problem are you seeing? Who's experiencing it?",
+            "problem_space",
+            "What problem keeps coming up? What's frustrating your users right now?",
         )
         builder.add_natural_question(
             "hypothesis",
-            "What do you believe will solve it? What's your bet?",
+            "What's your bet? If you could fix one thing, what would change for them?",
         )
         builder.add_natural_question(
-            "validation",
-            "How will you know if it worked? What number will change?",
+            "success_signal",
+            "How will you know you're on the right track? What number would move?",
+        )
+        builder.add_natural_question(
+            "scope",
+            "What kind of work might this include? What would you explore first?",
         )
         builder.add_natural_question(
             "timeline",
-            "How long do you need to test this?",
+            "How long do you need to test this bet? 3 months? 6 months?",
         )
 
         builder.add_extraction_guidance(
-            from_input="New users keep dropping off during setup - I think if we showed them examples it would help. Maybe we could get completion from 40% to 70%",
+            from_input=(
+                "Solo devs keep telling me they lose their train of thought when "
+                "they have to leave VS Code to update their backlog. I think if "
+                "we put everything in the IDE, they'd get more done."
+            ),
             extractions={
-                "theme_name": "First-Week Configuration Success",
-                "problem": "New users dropping off during setup (40% completion)",
-                "hypothesis": "Showing examples will help users complete setup",
+                "theme_name": "'Stay in Flow' (memorable, problem-focused)",
+                "problem": "Context switching between IDE and planning tool breaks focus",
+                "who_affected": "Solo developers",
+                "hypothesis": "IDE-native backlog management increases task completion",
+                "implied_metric": "Task completion rate, time in flow state",
+                "suggested_timeline": "6-9 months (significant integration work)",
+            },
+        )
+
+        builder.add_extraction_guidance(
+            from_input=(
+                "New users keep abandoning during setup. Like 40% never finish. "
+                "I bet if we showed them examples of what good looks like, more "
+                "would complete it."
+            ),
+            extractions={
+                "theme_name": "'First-Run Delight' (focuses on the experience)",
+                "problem": "40% of users abandon setup - high drop-off",
+                "who_affected": "New users in their first session",
+                "hypothesis": "Examples and smart defaults will increase completion",
                 "target_metric": "Setup completion rate: 40% → 70%",
-                "implied_timeline": "Needs clarification (suggest 3-6 months)",
+                "suggested_timeline": "3-6 months (onboarding iteration)",
             },
         )
 
         builder.add_inference_example(
-            user_says="Power users keep asking for keyboard shortcuts - they hate using the mouse",
+            user_says=(
+                "Everyone's asking for keyboard shortcuts. Power users hate "
+                "reaching for the mouse - kills their flow."
+            ),
             inferences={
-                "theme": "Keyboard-First Power Users",
-                "problem": "Power users lose efficiency switching to mouse",
-                "hypothesis": "Comprehensive keyboard shortcuts will increase power user engagement",
+                "theme": "Keyboard-First Workflows",
+                "problem": "Mouse usage interrupts power user flow",
+                "who_benefits": "Power users (specific, valuable segment)",
+                "hypothesis": "Comprehensive shortcuts will increase engagement",
                 "implied_metric": "Power user daily active rate or session length",
-                "who_benefits": "Power users (specific segment)",
+                "note": "Narrow scope - may be an initiative under a broader theme like 'Developer Comfort'",
+            },
+        )
+
+        builder.add_inference_example(
+            user_says=(
+                "I want to make the AI actually useful. Right now people don't "
+                "trust it because they don't know why it's suggesting things."
+            ),
+            inferences={
+                "theme": "AI Transparency (or 'AI as Co-Pilot')",
+                "problem": "Users don't trust AI recommendations they don't understand",
+                "hypothesis": "Explaining AI reasoning will increase adoption",
+                "implied_metric": "AI feature usage rate, trust scores",
+                "outcomes_connection": "Supports AI adoption metrics",
             },
         )
 
