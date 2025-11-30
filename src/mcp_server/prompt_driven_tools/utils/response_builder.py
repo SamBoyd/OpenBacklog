@@ -8,6 +8,7 @@ def build_success_response(
     message: str,
     data: Dict[str, Any],
     next_steps: Optional[List[str]] = None,
+    warnings: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Build a standardized success response.
 
@@ -16,6 +17,7 @@ def build_success_response(
         message: Human-readable success message
         data: Serialized entity data
         next_steps: Optional list of suggested next actions
+        warnings: Optional list of warning messages (e.g., skipped invalid IDs)
 
     Returns:
         Standardized success response dictionary
@@ -30,6 +32,9 @@ def build_success_response(
     if next_steps:
         response["next_steps"] = next_steps
 
+    if warnings:
+        response["warnings"] = warnings
+
     return response
 
 
@@ -38,6 +43,7 @@ def build_draft_response(
     message: str,
     data: Dict[str, Any],
     next_steps: Optional[List[str]] = None,
+    warnings: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Build a draft mode response with validation reminder.
 
@@ -49,6 +55,7 @@ def build_draft_response(
         message: Human-readable success message about validation
         data: Draft entity data dictionary with placeholder values
         next_steps: Optional list of suggested next actions
+        warnings: Optional list of warning messages (e.g., skipped invalid IDs)
 
     Returns:
         Draft response dictionary with is_draft flag and validation reminder
@@ -81,6 +88,9 @@ def build_draft_response(
 
     if next_steps:
         response["next_steps"] = next_steps
+
+    if warnings:
+        response["warnings"] = warnings
 
     return response
 

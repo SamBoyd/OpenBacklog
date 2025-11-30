@@ -9,15 +9,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, List
 
-from sqlalchemy import (
-    Boolean,
-    DateTime,
-    ForeignKey,
-    String,
-    Text,
-    UniqueConstraint,
-    text,
-)
+from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 

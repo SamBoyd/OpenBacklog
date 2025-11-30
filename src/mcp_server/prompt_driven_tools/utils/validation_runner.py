@@ -5,7 +5,7 @@ to the database. Used in draft mode to catch validation errors early.
 """
 
 import uuid
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -283,3 +283,159 @@ def validate_initiative_constraints(
     session: Session,
 ) -> None:
     return None
+
+
+def validate_strategic_initiative_constraints(
+    workspace_id: uuid.UUID,
+    title: str,
+    description: str,
+    hero_ids: List[str],
+    villain_ids: List[str],
+    conflict_ids: List[str],
+    pillar_id: Optional[str],
+    theme_id: Optional[str],
+    narrative_intent: Optional[str],
+    session: Session,
+) -> Dict[str, Any]:
+    """Validate strategic initiative constraints with graceful degradation.
+
+    Instead of failing on invalid IDs, this function returns valid IDs and
+    warnings for invalid ones. This enables partial creation when some
+    narrative links are missing or incorrect.
+
+    Args:
+        workspace_id: UUID of the workspace
+        title: Initiative title
+        description: Initiative description
+        hero_ids: List of hero UUIDs to validate
+        villain_ids: List of villain UUIDs to validate
+        conflict_ids: List of conflict UUIDs to validate
+        pillar_id: Optional pillar UUID to validate
+        theme_id: Optional theme UUID to validate
+        narrative_intent: Optional narrative intent text
+        session: SQLAlchemy database session
+
+    Returns:
+        Dictionary with:
+        - valid_hero_ids: List of valid hero UUIDs
+        - valid_villain_ids: List of valid villain UUIDs
+        - valid_conflict_ids: List of valid conflict UUIDs
+        - valid_pillar_id: Valid pillar UUID or None
+        - valid_theme_id: Valid theme UUID or None
+        - warnings: List of warning messages for invalid IDs
+
+    Raises:
+        DomainException: If title or description validation fails
+    """
+    from src.narrative.aggregates.conflict import Conflict
+    from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
+
+    warnings: List[str] = []
+    valid_hero_ids: List[uuid.UUID] = []
+    valid_villain_ids: List[uuid.UUID] = []
+    valid_conflict_ids: List[uuid.UUID] = []
+    valid_pillar_id: Optional[uuid.UUID] = None
+    valid_theme_id: Optional[uuid.UUID] = None
+
+    if not title or len(title.strip()) == 0:
+        raise DomainException("Title is required")
+    if len(title) > 200:
+        raise DomainException(
+            f"Title must be 200 characters or less (got {len(title)})"
+        )
+
+    if not description or len(description.strip()) == 0:
+        raise DomainException("Description is required")
+    if len(description) > 4000:
+        raise DomainException(
+            f"Description must be 4000 characters or less (got {len(description)})"
+        )
+
+    if narrative_intent and len(narrative_intent) > 1000:
+        raise DomainException(
+            f"Narrative intent must be 1000 characters or less (got {len(narrative_intent)})"
+        )
+
+    for hero_id_str in hero_ids:
+        try:
+            hero_uuid = uuid.UUID(hero_id_str)
+            hero = (
+                session.query(Hero)
+                .filter_by(id=hero_uuid, workspace_id=workspace_id)
+                .first()
+            )
+            if hero:
+                valid_hero_ids.append(hero_uuid)
+            else:
+                warnings.append(f"Hero ID {hero_id_str} not found - skipped")
+        except ValueError:
+            warnings.append(f"Invalid hero ID format: {hero_id_str} - skipped")
+
+    for villain_id_str in villain_ids:
+        try:
+            villain_uuid = uuid.UUID(villain_id_str)
+            villain = (
+                session.query(Villain)
+                .filter_by(id=villain_uuid, workspace_id=workspace_id)
+                .first()
+            )
+            if villain:
+                valid_villain_ids.append(villain_uuid)
+            else:
+                warnings.append(f"Villain ID {villain_id_str} not found - skipped")
+        except ValueError:
+            warnings.append(f"Invalid villain ID format: {villain_id_str} - skipped")
+
+    for conflict_id_str in conflict_ids:
+        try:
+            conflict_uuid = uuid.UUID(conflict_id_str)
+            conflict = (
+                session.query(Conflict)
+                .filter_by(id=conflict_uuid, workspace_id=workspace_id)
+                .first()
+            )
+            if conflict:
+                valid_conflict_ids.append(conflict_uuid)
+            else:
+                warnings.append(f"Conflict ID {conflict_id_str} not found - skipped")
+        except ValueError:
+            warnings.append(f"Invalid conflict ID format: {conflict_id_str} - skipped")
+
+    if pillar_id:
+        try:
+            pillar_uuid = uuid.UUID(pillar_id)
+            pillar = (
+                session.query(StrategicPillar)
+                .filter_by(id=pillar_uuid, workspace_id=workspace_id)
+                .first()
+            )
+            if pillar:
+                valid_pillar_id = pillar_uuid
+            else:
+                warnings.append(f"Pillar ID {pillar_id} not found - skipped")
+        except ValueError:
+            warnings.append(f"Invalid pillar ID format: {pillar_id} - skipped")
+
+    if theme_id:
+        try:
+            theme_uuid = uuid.UUID(theme_id)
+            theme = (
+                session.query(RoadmapTheme)
+                .filter_by(id=theme_uuid, workspace_id=workspace_id)
+                .first()
+            )
+            if theme:
+                valid_theme_id = theme_uuid
+            else:
+                warnings.append(f"Theme ID {theme_id} not found - skipped")
+        except ValueError:
+            warnings.append(f"Invalid theme ID format: {theme_id} - skipped")
+
+    return {
+        "valid_hero_ids": valid_hero_ids,
+        "valid_villain_ids": valid_villain_ids,
+        "valid_conflict_ids": valid_conflict_ids,
+        "valid_pillar_id": valid_pillar_id,
+        "valid_theme_id": valid_theme_id,
+        "warnings": warnings,
+    }

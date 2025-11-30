@@ -9,12 +9,13 @@ This document provides a comprehensive overview of all tools and resources avail
 3. [Core Workflow Tools](#core-workflow-tools)
 4. [Workspace Management Tools](#workspace-management-tools)
 5. [Initiative Management Tools](#initiative-management-tools)
-6. [Task Management Tools](#task-management-tools)
-7. [Checklist Management Tools](#checklist-management-tools)
-8. [Strategic Planning Tools](#strategic-planning-tools)
-9. [Roadmap Management Tools](#roadmap-management-tools)
-10. [Utility Tools](#utility-tools)
-11. [Prompts](#prompts)
+6. [Strategic Initiative Tools](#strategic-initiative-tools)
+7. [Task Management Tools](#task-management-tools)
+8. [Checklist Management Tools](#checklist-management-tools)
+9. [Strategic Planning Tools](#strategic-planning-tools)
+10. [Roadmap Management Tools](#roadmap-management-tools)
+11. [Utility Tools](#utility-tools)
+12. [Prompts](#prompts)
 
 ---
 
@@ -252,6 +253,192 @@ Retrieves complete initiative context including all associated tasks.
 - Getting full initiative context
 - Planning work across multiple tasks
 - Understanding task dependencies
+
+---
+
+## Strategic Initiative Tools
+
+Strategic initiative tools follow the **prompt-driven collaboration pattern**:
+**Get Framework → Claude + User Collaborate → Submit Result**
+
+These tools create initiatives with full narrative connections (heroes, villains, conflicts, pillars, themes), bridging strategic planning with the narrative layer.
+
+### `get_strategic_initiative_definition_framework()`
+
+Returns comprehensive framework for defining a strategic initiative with narrative connections.
+
+**Returns:**
+```json
+{
+  "type": "strategic_initiative",
+  "purpose": "Define an initiative with strategic context - who it helps, what it defeats, and why it matters",
+  "criteria": [/* quality criteria */],
+  "examples": [/* good examples with explanations */],
+  "questions": [/* guiding questions */],
+  "anti_patterns": [/* what to avoid */],
+  "current_state": {
+    "available_heroes": [/* heroes to link */],
+    "available_villains": [/* villains to confront */],
+    "available_pillars": [/* pillars for alignment */],
+    "available_themes": [/* themes for placement */],
+    "active_conflicts": [/* conflicts to address */]
+  },
+  "coaching_tips": [/* refinement guidance */]
+}
+```
+
+**Use Cases:**
+- Starting initiative creation with full context
+- Understanding available narrative connections
+- Guiding user through strategic initiative refinement
+
+---
+
+### `submit_strategic_initiative(title, description, hero_ids, villain_ids, conflict_ids, pillar_id, theme_id, narrative_intent, status, draft_mode)`
+
+Submits a strategic initiative with optional narrative connections.
+
+Creates both an Initiative and its StrategicInitiative context in one operation. Uses graceful degradation: invalid narrative IDs are skipped with warnings rather than failing.
+
+**Parameters:**
+- `title` (required): Initiative title (e.g., "Smart Context Switching")
+- `description` (required): What this initiative delivers
+- `hero_ids` (optional): List of hero UUIDs this initiative helps
+- `villain_ids` (optional): List of villain UUIDs this initiative confronts
+- `conflict_ids` (optional): List of conflict UUIDs this initiative addresses
+- `pillar_id` (optional): Strategic pillar UUID for alignment
+- `theme_id` (optional): Roadmap theme UUID for placement
+- `narrative_intent` (optional): Why this initiative matters narratively
+- `status` (optional): Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG
+- `draft_mode` (optional): If true, validate without persisting; if false, persist (default: true)
+
+**Returns (draft_mode=true):**
+```json
+{
+  "status": "draft",
+  "type": "strategic_initiative",
+  "message": "Draft strategic initiative 'Title' validated successfully",
+  "data": {
+    "title": "...",
+    "description": "...",
+    "heroes": [/* linked heroes */],
+    "villains": [/* linked villains */],
+    "conflicts": [/* linked conflicts */],
+    "pillar": {/* linked pillar */},
+    "theme": {/* linked theme */},
+    "narrative_intent": "..."
+  },
+  "next_steps": [/* review and confirm guidance */],
+  "warnings": [/* any invalid ID warnings */]
+}
+```
+
+**Returns (draft_mode=false):**
+```json
+{
+  "status": "success",
+  "type": "strategic_initiative",
+  "message": "Strategic initiative created with narrative connections",
+  "data": {
+    "initiative": {
+      "id": "<uuid>",
+      "title": "...",
+      "identifier": "I-1001",
+      "status": "BACKLOG"
+    },
+    "strategic_context": {/* full strategic initiative details */}
+  },
+  "next_steps": [/* what to do next */]
+}
+```
+
+**Use Cases:**
+- Creating initiatives with full strategic context
+- Validating initiative before persisting (draft mode)
+- Linking initiatives to heroes, villains, and conflicts
+
+---
+
+### `get_strategic_initiatives()`
+
+Retrieves all strategic initiatives with their narrative connections.
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "strategic_initiative",
+  "message": "Found N strategic initiative(s)",
+  "data": {
+    "strategic_initiatives": [
+      {
+        "id": "<uuid>",
+        "initiative": {
+          "id": "<uuid>",
+          "title": "...",
+          "description": "...",
+          "identifier": "I-1001",
+          "status": "IN_PROGRESS"
+        },
+        "strategic_context": {
+          "heroes": [/* linked heroes */],
+          "villains": [/* linked villains */],
+          "conflicts": [/* linked conflicts */],
+          "pillar": {/* linked pillar */},
+          "theme": {/* linked theme */},
+          "narrative_intent": "..."
+        },
+        "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Pillar: Deep IDE Integration"
+      }
+    ]
+  }
+}
+```
+
+**Use Cases:**
+- Viewing all initiatives with strategic context
+- Understanding the full narrative landscape
+- Planning based on hero/villain connections
+
+---
+
+### `get_strategic_initiative(query: str)`
+
+Retrieves a single strategic initiative by ID or identifier.
+
+Accepts a flexible query that tries multiple lookup strategies:
+1. First tries as StrategicInitiative UUID
+2. Then tries as Initiative UUID
+3. Finally tries as Initiative identifier (e.g., "I-1001")
+
+**Parameters:**
+- `query`: Strategic initiative ID, initiative ID, or initiative identifier
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "strategic_initiative",
+  "message": "Found strategic initiative: Title",
+  "data": {
+    "id": "<uuid>",
+    "initiative": {
+      "id": "<uuid>",
+      "title": "...",
+      "description": "...",
+      "identifier": "I-1001",
+      "status": "IN_PROGRESS"
+    },
+    "strategic_context": {/* full strategic initiative details */},
+    "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Why: ..."
+  }
+}
+```
+
+**Use Cases:**
+- Getting full context for a specific initiative
+- Looking up initiative by human-readable identifier
+- Understanding narrative connections before work
 
 ---
 
@@ -1095,6 +1282,7 @@ Success response with updated theme.
 - Task tools: `src/mcp_server/task_tools.py`
 - Workflow: `src/mcp_server/start_openbacklog_workflow.py`
 - Strategic foundation: `src/mcp_server/prompt_driven_tools/strategic_foundation.py`
+- Strategic initiatives: `src/mcp_server/prompt_driven_tools/strategic_initiatives.py`
 - Roadmap themes: `src/mcp_server/prompt_driven_tools/roadmap_themes.py`
 - Narrative heroes: `src/mcp_server/prompt_driven_tools/narrative_heroes.py`
 - Narrative villains: `src/mcp_server/prompt_driven_tools/narrative_villains.py`

@@ -264,3 +264,71 @@ def build_draft_initiative_data(
         "created_at": "0001-01-01T00:00:00",
         "updated_at": "0001-01-01T00:00:00",
     }
+
+
+def build_draft_strategic_initiative_data(
+    workspace_id: uuid.UUID,
+    user_id: uuid.UUID,
+    title: str,
+    description: str,
+    status: InitiativeStatus,
+    hero_ids: Optional[List[uuid.UUID]] = None,
+    villain_ids: Optional[List[uuid.UUID]] = None,
+    conflict_ids: Optional[List[uuid.UUID]] = None,
+    pillar_id: Optional[uuid.UUID] = None,
+    theme_id: Optional[uuid.UUID] = None,
+    narrative_intent: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Build draft strategic initiative data with initiative and strategic context.
+
+    Args:
+        workspace_id: UUID of the workspace
+        user_id: UUID of the user
+        title: Initiative title
+        description: Initiative description
+        status: Initiative status
+        hero_ids: List of valid hero UUIDs
+        villain_ids: List of valid villain UUIDs
+        conflict_ids: List of valid conflict UUIDs
+        pillar_id: Valid pillar UUID or None
+        theme_id: Valid theme UUID or None
+        narrative_intent: Narrative intent text
+
+    Returns:
+        Dictionary with initiative and strategic context data
+    """
+    return {
+        "initiative": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "identifier": "I-DRAFT-001",
+            "workspace_id": str(workspace_id),
+            "user_id": str(user_id),
+            "title": title,
+            "description": description,
+            "status": status.value if hasattr(status, "value") else str(status),
+            "created_at": "0001-01-01T00:00:00",
+            "updated_at": "0001-01-01T00:00:00",
+        },
+        "strategic_context": {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "initiative_id": "00000000-0000-0000-0000-000000000000",
+            "workspace_id": str(workspace_id),
+            "pillar_id": str(pillar_id) if pillar_id else None,
+            "theme_id": str(theme_id) if theme_id else None,
+            "description": description,
+            "narrative_intent": narrative_intent,
+            "hero_ids": [str(h) for h in (hero_ids or [])],
+            "villain_ids": [str(v) for v in (villain_ids or [])],
+            "conflict_ids": [str(c) for c in (conflict_ids or [])],
+            "created_at": "0001-01-01T00:00:00",
+            "updated_at": "0001-01-01T00:00:00",
+        },
+        "narrative_connections": {
+            "hero_count": len(hero_ids or []),
+            "villain_count": len(villain_ids or []),
+            "conflict_count": len(conflict_ids or []),
+            "has_pillar": pillar_id is not None,
+            "has_theme": theme_id is not None,
+            "has_narrative_intent": narrative_intent is not None,
+        },
+    }

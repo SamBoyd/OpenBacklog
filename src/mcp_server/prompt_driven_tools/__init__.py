@@ -13,6 +13,7 @@ from src.mcp_server.prompt_driven_tools.narrative_recap import *
 from src.mcp_server.prompt_driven_tools.narrative_villains import *
 from src.mcp_server.prompt_driven_tools.roadmap_themes import *
 from src.mcp_server.prompt_driven_tools.strategic_foundation import *
+from src.mcp_server.prompt_driven_tools.strategic_initiatives import *
 from src.mcp_server.prompt_driven_tools.utilities import *
 
 __all__ = [
@@ -49,6 +50,11 @@ __all__ = [
     "get_recent_turning_points",
     "generate_previously_on",
     "get_story_bible",
+    # Strategic Initiatives (narrative-connected initiatives)
+    "get_strategic_initiative_definition_framework",
+    "submit_strategic_initiative",
+    "get_strategic_initiatives",
+    "get_strategic_initiative",
     # Utility Tools (Phase 3)
     "review_strategic_foundation",
     "connect_outcome_to_pillars",
