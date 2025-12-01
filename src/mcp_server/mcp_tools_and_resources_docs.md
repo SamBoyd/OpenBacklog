@@ -116,27 +116,32 @@ A workspace is a container for initiatives, tasks, and strategic planning. Creat
 ```json
 {
   "status": "success" | "error",
-    "type": "workspace",
-    "message": "Created workspace '{name}'",
-    "workspace": {
-      "id": "<uuid>",
-      "name": "...",
-      "description": "...",
-      "icon": null
-    }
+  "type": "workspace",
+  "message": "Created workspace '{name}'",
+  "workspace": {
+    "id": "<uuid>",
+    "name": "...",
+    "description": "...",
+    "icon": null
+  },
+  "first_session_guidance": {
+    "instruction": "This is a NEW USER. Begin their first strategic planning session NOW. Do NOT offer choices. Follow the guidance below precisely.",
+    "full_guide": "# First Session Onboarding Guide\n\n[~350 lines of comprehensive guidance including:\n- Strategic framework overview\n- Framework-invisible conversation philosophy\n- Validation workflow (draft_mode pattern)\n- Entity sequence (Vision → Hero → Villain → ... → Strategic Initiative)\n- Natural questions quick reference\n- Session completion checklist]"
   }
-  ```
+}
+```
 
-  **Use Cases:**
-  - First-time user setup (onboarding)
-  - Setting up workspace before creating initiatives
+**Use Cases:**
+- First-time user setup (onboarding)
+- Setting up workspace before creating initiatives
 
-  **Important Notes:**
-  - This is typically the first step for new users
-  - Each user can only have one workspace
-  - The workspace is automatically associated with the authenticated user
-  - Creating your first initiative after workspace creation will automatically complete onboarding
-  - Workspace ID is automatically resolved from the authenticated user in all subsequent requests
+**Important Notes:**
+- This is typically the first step for new users
+- Each user can only have one workspace
+- The workspace is automatically associated with the authenticated user
+- **The response includes embedded `first_session_guidance`** with conversation philosophy, validation workflow, and entity sequence - MCP clients should follow this guidance immediately
+- Creating your first initiative after workspace creation will automatically complete onboarding
+- Workspace ID is automatically resolved from the authenticated user in all subsequent requests
 
 **Example Usage:**
 ```
@@ -1053,6 +1058,41 @@ Establishes the conversation philosophy for strategic planning sessions. The fra
 - Establishing conversation norms for strategic planning sessions
 - Reference for framework-invisible UX
 - Training Claude Code to avoid exposing framework terminology
+
+---
+
+### `first_session_onboarding`
+
+Comprehensive onboarding guide for first strategic planning sessions with new users. This prompt should be loaded immediately after `create_workspace()` to ensure proper conversation norms.
+
+**When to Load:** After `create_workspace()` returns successfully. The response includes a `recommended_prompt` field pointing to this prompt.
+
+**Key Sections:**
+1. **Framework Overview:** Vision → Pillars → Outcomes → Themes → Initiatives hierarchy with time horizons
+2. **Framework-Invisible Conversation Philosophy:** Embedded (no separate prompt load needed)
+3. **Validation Workflow:** Mandatory draft_mode → reflect → confirm → submit pattern
+4. **Entity Sequence:** Recommended order for first session entities
+5. **Natural Questions Reference:** Quick-reference for each entity type
+6. **Session Completion Checklist:** Ensures strategic initiative created
+
+**Core Requirements:**
+- Never expose framework terminology to users
+- Always use `draft_mode: true` first, reflect back, get confirmation, then `draft_mode: false`
+- Create entities one at a time with validation (no batch submissions)
+- Session MUST end with a strategic initiative that connects to hero, villain, conflict, pillar, and theme
+
+**Returns:** Markdown-formatted comprehensive guide (~400 lines) with:
+- Strategic hierarchy explanation
+- Terminology translation table
+- Validation workflow steps
+- Entity sequence with natural questions
+- Completion checklist
+
+**Use Cases:**
+- First session with a new user after workspace creation
+- Ensuring framework-invisible UX from the start
+- Establishing validation discipline
+- Guaranteeing concrete "what to build first" outcome
 
 ---
 

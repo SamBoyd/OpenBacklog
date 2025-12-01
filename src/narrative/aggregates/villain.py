@@ -221,6 +221,16 @@ class Villain(Base):
             raise DomainException(f"Severity must be between 1-5 (got {severity})")
 
     @staticmethod
+    def _validate_villain_type(villain_type: str) -> None:
+        """Validate villain type is valid.
+
+        Args:
+            villain_type: The villain type to validate
+        """
+        if villain_type not in VillainType.__members__:
+            raise DomainException(f"Invalid villain type: {villain_type}")
+
+    @staticmethod
     def define_villain(
         workspace_id: uuid.UUID,
         user_id: uuid.UUID,

@@ -379,6 +379,13 @@ async def submit_roadmap_theme(
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
 
+        warnings = []
+        if not outcome_ids:
+            warnings.append(
+                "ALIGNMENT GAP: No outcomes linked. Themes should connect to the product "
+                "outcomes they drive. Consider which outcome(s) this theme advances."
+            )
+
         # Convert outcome_ids from strings to UUIDs
         outcome_uuids = []
         if outcome_ids:
@@ -446,6 +453,7 @@ async def submit_roadmap_theme(
                     "Consider linking to product outcomes for better strategic alignment",
                     "Consider linking to heroes and villains for better context",
                 ],
+                warnings=warnings if warnings else None,
             )
 
         # Create theme via controller
@@ -494,6 +502,7 @@ async def submit_roadmap_theme(
             message="Roadmap theme created successfully",
             data=serialize_theme(theme),
             next_steps=next_steps,
+            warnings=warnings if warnings else None,
         )
 
     except DomainException as e:

@@ -187,7 +187,7 @@ def validate_villain_constraints(
     Villain._validate_name(name)  # pyright: ignore[reportPrivateUsage]
     Villain._validate_description(description)  # pyright: ignore[reportPrivateUsage]
     Villain._validate_severity(severity)  # pyright: ignore[reportPrivateUsage]
-    Villain._validate_villain_type(villain_type)
+    Villain._validate_villain_type(villain_type)  # pyright: ignore[reportPrivateUsage]
 
     # Check uniqueness
     existing = (

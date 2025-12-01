@@ -244,7 +244,7 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
                 {
                     "id": str(pillar.id),
                     "name": pillar.name,
-                    "description": pillar.description,
+                    "description": pillar.description[:100],
                 }
                 for pillar in pillars
             ],
@@ -252,7 +252,7 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
                 {
                     "id": str(theme.id),
                     "name": theme.name,
-                    "is_prioritized": theme.is_prioritized,
+                    "description": theme.description[:100],
                 }
                 for theme in themes
             ],
@@ -260,7 +260,7 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
                 {
                     "id": str(conflict.id),
                     "identifier": conflict.identifier,
-                    "description": conflict.description,
+                    "description": conflict.description[:100],
                 }
                 for conflict in conflicts
             ],
@@ -402,6 +402,25 @@ async def submit_strategic_initiative(
         valid_pillar_id = validation_result["valid_pillar_id"]
         valid_theme_id = validation_result["valid_theme_id"]
         warnings = validation_result["warnings"]
+
+        if not valid_hero_ids:
+            warnings.append(
+                "NARRATIVE GAP: No heroes linked. Strategic initiatives should connect "
+                "to the hero they help. Consider calling submit_hero() first if you "
+                "discussed who this helps but haven't created the entity yet."
+            )
+
+        if not valid_villain_ids:
+            warnings.append(
+                "NARRATIVE GAP: No villains linked. Consider calling submit_villain() "
+                "to create the villain this initiative confronts."
+            )
+
+        if not valid_conflict_ids:
+            warnings.append(
+                "NARRATIVE GAP: No conflicts linked. Consider calling create_conflict() "
+                "to establish the hero vs villain tension this initiative resolves."
+            )
 
         if draft_mode:
             draft_data = build_draft_strategic_initiative_data(

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from src.db import SessionLocal
 from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp  # type: ignore
+from src.mcp_server.onboarding_prompts import get_first_session_guidance_text
 from src.models import User, Workspace
 
 logging.basicConfig(level=logging.INFO)
@@ -90,6 +91,10 @@ async def create_workspace(name: str, description: str = "") -> Dict[str, Any]:
             "type": "workspace",
             "message": f"Created workspace '{name}'",
             "workspace": workspace_data,
+            "first_session_guidance": {
+                "instruction": "This is a NEW USER. Begin their first strategic planning session NOW. Do NOT offer choices. Follow the guidance below precisely.",
+                "full_guide": get_first_session_guidance_text(),
+            },
         }
 
     except MCPContextError as e:

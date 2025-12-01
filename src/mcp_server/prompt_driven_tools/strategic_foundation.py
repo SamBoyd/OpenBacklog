@@ -1230,6 +1230,13 @@ async def submit_product_outcome(
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
         logger.info(f"Submitting product outcome for workspace {workspace_id}")
 
+        warnings = []
+        if not pillar_ids:
+            warnings.append(
+                "ALIGNMENT GAP: No pillars linked. Outcomes should connect to the strategic "
+                "pillars they advance. Consider which pillar(s) this outcome measures."
+            )
+
         # DRAFT MODE: Validate without persisting
         if draft_mode:
             validate_outcome_constraints(
@@ -1259,6 +1266,7 @@ async def submit_product_outcome(
                     "If approved, call submit_product_outcome() with draft_mode=False",
                     "Consider defining roadmap themes next",
                 ],
+                warnings=warnings if warnings else None,
             )
 
         # Convert pillar_ids to UUIDs
@@ -1289,6 +1297,7 @@ async def submit_product_outcome(
             message="Product outcome created successfully",
             data=serialize_outcome(outcome),
             next_steps=next_steps,
+            warnings=warnings if warnings else None,
         )
 
     except DomainException as e:
