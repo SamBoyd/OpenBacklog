@@ -605,7 +605,6 @@ class TestSubmitRoadmapThemeDraftMode:
         assert_that(data["id"], equal_to("00000000-0000-0000-0000-000000000000"))
         assert_that(data["name"], equal_to(name))
         assert_that(data["description"], equal_to(description))
-        assert_that(data["display_order"], equal_to(0))  # First theme
         assert_that(data["created_at"], equal_to("0001-01-01T00:00:00"))
         assert_that(data["updated_at"], equal_to("0001-01-01T00:00:00"))
 

@@ -86,7 +86,6 @@ def serialize_theme(theme: RoadmapTheme) -> Dict[str, Any]:
         "workspace_id": serialize_uuid(theme.workspace_id),
         "name": theme.name,
         "description": theme.description,
-        "display_order": theme.display_order,
         "outcome_ids": [serialize_uuid(outcome.id) for outcome in theme.outcomes],
         "hero_ids": [serialize_uuid(hero.id) for hero in theme.heroes],
         "villain_ids": [serialize_uuid(villain.id) for villain in theme.villains],

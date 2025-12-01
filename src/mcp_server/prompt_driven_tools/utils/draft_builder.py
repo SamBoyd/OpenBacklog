@@ -211,7 +211,6 @@ def build_draft_theme_data(
     user_id: uuid.UUID,
     name: str,
     description: str,
-    display_order: int,
     outcome_ids: Optional[List[str]] = None,
     hero_identifier: Optional[str] = None,
     primary_villain_identifier: Optional[str] = None,
@@ -223,7 +222,6 @@ def build_draft_theme_data(
         user_id: UUID of the user
         name: Theme name
         description: Theme description
-        display_order: Display order
         outcome_ids: Optional list of outcome UUIDs to link
         hero_identifier: Optional hero identifier to link
         primary_villain_identifier: Optional villain identifier to link
@@ -237,7 +235,6 @@ def build_draft_theme_data(
         "user_id": str(user_id),
         "name": name,
         "description": description,
-        "display_order": display_order,
         "is_prioritized": False,
         "outcome_ids": outcome_ids or [],
         "hero_identifier": hero_identifier,

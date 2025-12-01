@@ -430,8 +430,7 @@ async def submit_roadmap_theme(
                 user_id=uuid.UUID(user_id),
                 name=name,
                 description=description,
-                outcome_ids=outcome_ids,  # Pass original string list
-                display_order=0,
+                outcome_ids=outcome_ids,
                 hero_identifier=hero_identifier,
                 primary_villain_identifier=primary_villain_identifier,
             )
