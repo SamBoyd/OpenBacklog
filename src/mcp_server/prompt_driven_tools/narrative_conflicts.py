@@ -15,16 +15,10 @@ from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
-    build_draft_response,
     build_error_response,
     build_success_response,
     get_workspace_id_from_request,
     serialize_conflict,
-)
-
-# Draft builder functions not yet implemented for conflicts
-from src.mcp_server.prompt_driven_tools.utils.draft_builder import (
-    build_draft_conflict_data,
 )
 from src.narrative.aggregates.conflict import Conflict, ConflictStatus
 from src.narrative.exceptions import DomainException
@@ -239,9 +233,11 @@ async def create_conflict(
     villain_identifier: str,
     description: str,
     story_arc_id: Optional[str] = None,
-    draft_mode: bool = True,
 ) -> Dict[str, Any]:
     """Creates a new conflict between a hero and villain.
+
+    IMPORTANT: Reflect the conflict back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
@@ -251,20 +247,10 @@ async def create_conflict(
         villain_identifier: Human-readable villain identifier (e.g., "V-2003")
         description: Rich description including conflict statement, impact, and stakes
         story_arc_id: Optional UUID of story arc addressing this conflict
-        draft_mode: If True, validate without persisting; if False, persist to database (default: True)
 
     Returns:
-        Draft response with validation results if draft_mode=True,
-        or success response with created conflict if draft_mode=False
+        Success response with created conflict
 
-    Example:
-        >>> # Validate first (default)
-        >>> draft = await create_conflict(
-        ...     hero_identifier="H-2003",
-        ...     villain_identifier="V-2003",
-        ...     description="Sarah cannot access product context from IDE...",
-        ...     story_arc_id="..."
-        ... )
     Example:
         >>> result = await create_conflict(
         ...     hero_identifier="H-2003",
@@ -277,29 +263,6 @@ async def create_conflict(
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
         logger.info(f"Creating conflict for workspace {workspace_id}")
-
-        # DRAFT MODE: Validate without persisting
-        if draft_mode:
-            draft_data = build_draft_conflict_data(
-                workspace_id=uuid.UUID(workspace_id),
-                user_id=uuid.UUID(user_id),
-                hero_identifier=hero_identifier,
-                villain_identifier=villain_identifier,
-                description=description,
-                story_arc_id=story_arc_id,
-            )
-
-            return build_draft_response(
-                entity_type="conflict",
-                message=f"Draft conflict '{hero_identifier} vs {villain_identifier}' validated successfully",
-                data=draft_data,
-                next_steps=[
-                    "Review conflict details with user",
-                    "Confirm the conflict is clear and observable",
-                    "If approved, call create_conflict() with draft_mode=False",
-                    "Consider linking this conflict to a story arc for better tracking",
-                ],
-            )
 
         publisher = EventPublisher(session)
         hero_service = HeroService(session, publisher)

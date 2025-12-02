@@ -16,10 +16,6 @@ from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
-    build_draft_outcome_data,
-    build_draft_pillar_data,
-    build_draft_response,
-    build_draft_vision_data,
     build_error_response,
     build_success_response,
     get_workspace_id_from_request,
@@ -293,71 +289,37 @@ async def get_vision_definition_framework() -> Dict[str, Any]:
 
 @mcp.tool()
 async def submit_product_vision(
-    vision_text: str, draft_mode: bool = True
+    vision_text: str,
 ) -> Dict[str, Any]:
     """Submit a refined product vision after collaborative definition.
 
     Called only when Claude Code and user have crafted a high-quality
     vision through dialogue using the framework guidance.
 
+    IMPORTANT: Reflect the vision back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
+
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
         vision_text: Refined vision statement (non-empty text)
-        draft_mode: If True, validate without persisting; if False, persist to database (default: True)
 
     Returns:
-        Draft response with validation results if draft_mode=True,
-        or success response with created/updated vision if draft_mode=False
+        Success response with created/updated vision
 
     Example:
-        >>> # Validate first (default)
-        >>> draft = await submit_product_vision(
-        ...     vision_text="Enable developers to manage tasks without leaving their IDE"
-        ... )
-        >>> # Then persist after user approval
         >>> result = await submit_product_vision(
-        ...     vision_text="Enable developers to manage tasks without leaving their IDE",
-        ...     draft_mode=False
+        ...     vision_text="Enable developers to manage tasks without leaving their IDE"
         ... )
     """
     session = SessionLocal()
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(
-            f"Submitting product vision for workspace {workspace_id} (draft_mode={draft_mode})"
-        )
+        logger.info(f"Submitting product vision for workspace {workspace_id}")
 
-        # DRAFT MODE: Validate without persisting
-        if draft_mode:
-            validate_vision_constraints(vision_text)
+        validate_vision_constraints(vision_text)
 
-            # Get existing vision to use its ID if it exists
-            existing_vision = strategic_controller.get_workspace_vision(
-                uuid.UUID(workspace_id), session
-            )
-            existing_vision_id = existing_vision.id if existing_vision else None
-
-            draft_data = build_draft_vision_data(
-                workspace_id=uuid.UUID(workspace_id),
-                vision_text=vision_text,
-                existing_vision_id=existing_vision_id,
-            )
-
-            return build_draft_response(
-                entity_type="product_vision",
-                message=f"Draft vision validated successfully",
-                data=draft_data,
-                next_steps=[
-                    "Review vision statement with user",
-                    "Confirm it focuses on user outcome, not features",
-                    "If approved, call submit_product_vision() with draft_mode=False",
-                    "Consider defining strategic pillars next",
-                ],
-            )
-
-        # NORMAL MODE: Create/update and persist vision
         vision = strategic_controller.upsert_workspace_vision(
             workspace_id=uuid.UUID(workspace_id),
             user_id=uuid.UUID(user_id),
@@ -722,12 +684,14 @@ async def get_pillar_definition_framework() -> Dict[str, Any]:
 async def submit_strategic_pillar(
     name: str,
     description: str,
-    draft_mode: bool = True,
 ) -> Dict[str, Any]:
     """Submit a refined strategic pillar after collaborative definition.
 
     Called only when Claude Code and user have crafted a high-quality
     pillar through dialogue using the framework guidance.
+
+    IMPORTANT: Reflect the pillar back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
@@ -736,71 +700,28 @@ async def submit_strategic_pillar(
         name: Pillar name (1-100 characters, unique per workspace)
         description: Pillar description including strategy and anti-strategy (required)
                     Should include both what you'll do and what you won't do
-        draft_mode: If True, validate without persisting; if False, persist to database (default: True)
 
     Returns:
-        Draft response with validation results if draft_mode=True,
-        or success response with created pillar if draft_mode=False
+        Success response with created pillar
 
     Example:
-        >>> # Validate first (default)
-        >>> draft = await submit_strategic_pillar(
-        ...     name="Deep IDE Integration",
-        ...     description="Strategy: Seamless developer workflow. Anti-Strategy: No web/mobile."
-        ... )
-        >>> # Then persist after user approval
         >>> result = await submit_strategic_pillar(
         ...     name="Deep IDE Integration",
-        ...     description="Strategy: Seamless developer workflow. Anti-Strategy: No web/mobile.",
-        ...     draft_mode=False
+        ...     description="Strategy: Seamless developer workflow. Anti-Strategy: No web/mobile."
         ... )
     """
     session = SessionLocal()
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(
-            f"Submitting strategic pillar for workspace {workspace_id} (draft_mode={draft_mode})"
+        logger.info(f"Submitting strategic pillar for workspace {workspace_id}")
+
+        validate_pillar_constraints(
+            workspace_id=uuid.UUID(workspace_id),
+            name=name,
+            description=description,
+            session=session,
         )
 
-        # DRAFT MODE: Validate without persisting
-        if draft_mode:
-            # Calculate display order
-            current_pillars = strategic_controller.get_strategic_pillars(
-                uuid.UUID(workspace_id), session
-            )
-            display_order = len(current_pillars)
-
-            # Run all validation (throws DomainException on failure)
-            validate_pillar_constraints(
-                workspace_id=uuid.UUID(workspace_id),
-                name=name,
-                description=description,
-                session=session,
-            )
-
-            # Build draft data dictionary
-            draft_data = build_draft_pillar_data(
-                workspace_id=uuid.UUID(workspace_id),
-                user_id=uuid.UUID(user_id),
-                name=name,
-                description=description,
-                display_order=display_order,
-            )
-
-            # Return draft response
-            return build_draft_response(
-                entity_type="strategic_pillar",
-                message=f"Draft pillar '{name}' validated successfully",
-                data=draft_data,
-                next_steps=[
-                    "Review pillar details with user",
-                    "Confirm strategy and anti-strategy are clear",
-                    "If approved, call submit_strategic_pillar() with draft_mode=False",
-                    "Consider defining product outcomes next",
-                ],
-            )
-
-        # NORMAL MODE: Create and persist pillar
         pillar = strategic_controller.create_strategic_pillar(
             workspace_id=uuid.UUID(workspace_id),
             user_id=uuid.UUID(user_id),
@@ -1192,9 +1113,11 @@ async def submit_product_outcome(
     name: str,
     description: str,
     pillar_ids: Optional[List[str]] = None,
-    draft_mode: bool = True,
 ) -> Dict[str, Any]:
     """Submit a refined product outcome after collaborative definition.
+
+    IMPORTANT: Reflect the outcome back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
@@ -1204,25 +1127,15 @@ async def submit_product_outcome(
         description: Outcome description including goal, baseline, target, and timeline (required)
                     Should include specific metrics, baseline values, target values, and timeline
         pillar_ids: List of pillar UUIDs to link (optional)
-        draft_mode: If True, validate without persisting; if False, persist to database (default: True)
 
     Returns:
-        Draft response with validation results if draft_mode=True,
-        or success response with created outcome if draft_mode=False
+        Success response with created outcome
 
-    Example:
-        >>> # Validate first (default)
-        >>> draft = await submit_product_outcome(
-        ...     name="Developer Daily Adoption",
-        ...     description="Goal: Increase daily active IDE plugin users to measure adoption. Baseline: 30% of users daily active. Target: 80% daily active. Timeline: 6 months. Metric: Daily active users %",
-        ...     pillar_ids=["pillar-uuid-1"]
-        ... )
     Example:
         >>> result = await submit_product_outcome(
         ...     name="Developer Daily Adoption",
         ...     description="Goal: Increase daily active IDE plugin users to measure adoption. Baseline: 30% of users daily active. Target: 80% daily active. Timeline: 6 months. Metric: Daily active users %",
         ...     pillar_ids=["pillar-uuid-1"]
-        ...     draft_mode=False
         ... )
     """
     session = SessionLocal()
@@ -1237,39 +1150,14 @@ async def submit_product_outcome(
                 "pillars they advance. Consider which pillar(s) this outcome measures."
             )
 
-        # DRAFT MODE: Validate without persisting
-        if draft_mode:
-            validate_outcome_constraints(
-                workspace_id=uuid.UUID(workspace_id),
-                name=name,
-                description=description,
-                pillar_ids=pillar_ids,
-                session=session,
-            )
+        validate_outcome_constraints(
+            workspace_id=uuid.UUID(workspace_id),
+            name=name,
+            description=description,
+            pillar_ids=pillar_ids,
+            session=session,
+        )
 
-            draft_data = build_draft_outcome_data(
-                workspace_id=uuid.UUID(workspace_id),
-                user_id=uuid.UUID(user_id),
-                name=name,
-                description=description,
-                display_order=0,
-                pillar_ids=pillar_ids,
-            )
-
-            return build_draft_response(
-                entity_type="product_outcome",
-                message=f"Draft ourcome '{name}' validated successfully",
-                data=draft_data,
-                next_steps=[
-                    "Review product outcome details with user",
-                    "Confirm the measure of success is clear",
-                    "If approved, call submit_product_outcome() with draft_mode=False",
-                    "Consider defining roadmap themes next",
-                ],
-                warnings=warnings if warnings else None,
-            )
-
-        # Convert pillar_ids to UUIDs
         pillar_uuids = []
         if pillar_ids:
             for pillar_id in pillar_ids:

@@ -126,7 +126,7 @@ A workspace is a container for initiatives, tasks, and strategic planning. Creat
   },
   "first_session_guidance": {
     "instruction": "This is a NEW USER. Begin their first strategic planning session NOW. Do NOT offer choices. Follow the guidance below precisely.",
-    "full_guide": "# First Session Onboarding Guide\n\n[~350 lines of comprehensive guidance including:\n- Strategic framework overview\n- Framework-invisible conversation philosophy\n- Validation workflow (draft_mode pattern)\n- Entity sequence (Vision → Hero → Villain → ... → Strategic Initiative)\n- Natural questions quick reference\n- Session completion checklist]"
+    "full_guide": "# First Session Onboarding Guide\n\n[~350 lines of comprehensive guidance including:\n- Strategic framework overview\n- Framework-invisible conversation philosophy\n- Validation workflow (reflect before submit pattern)\n- Entity sequence (Vision → Hero → Villain → ... → Strategic Initiative)\n- Natural questions quick reference\n- Session completion checklist]"
   }
 }
 ```
@@ -299,11 +299,13 @@ Returns comprehensive framework for defining a strategic initiative with narrati
 
 ---
 
-### `submit_strategic_initiative(title, description, hero_ids, villain_ids, conflict_ids, pillar_id, theme_id, narrative_intent, status, draft_mode)`
+### `submit_strategic_initiative(title, description, hero_ids, villain_ids, conflict_ids, pillar_id, theme_id, narrative_intent, status)`
 
 Submits a strategic initiative with optional narrative connections.
 
 Creates both an Initiative and its StrategicInitiative context in one operation. Uses graceful degradation: invalid narrative IDs are skipped with warnings rather than failing.
+
+**Important:** Reflect the initiative back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
 
 **Parameters:**
 - `title` (required): Initiative title (e.g., "Smart Context Switching")
@@ -315,30 +317,8 @@ Creates both an Initiative and its StrategicInitiative context in one operation.
 - `theme_id` (optional): Roadmap theme UUID for placement
 - `narrative_intent` (optional): Why this initiative matters narratively
 - `status` (optional): Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG
-- `draft_mode` (optional): If true, validate without persisting; if false, persist (default: true)
 
-**Returns (draft_mode=true):**
-```json
-{
-  "status": "draft",
-  "type": "strategic_initiative",
-  "message": "Draft strategic initiative 'Title' validated successfully",
-  "data": {
-    "title": "...",
-    "description": "...",
-    "heroes": [/* linked heroes */],
-    "villains": [/* linked villains */],
-    "conflicts": [/* linked conflicts */],
-    "pillar": {/* linked pillar */},
-    "theme": {/* linked theme */},
-    "narrative_intent": "..."
-  },
-  "next_steps": [/* review and confirm guidance */],
-  "warnings": [/* any invalid ID warnings */]
-}
-```
-
-**Returns (draft_mode=false):**
+**Returns:**
 ```json
 {
   "status": "success",
@@ -359,7 +339,6 @@ Creates both an Initiative and its StrategicInitiative context in one operation.
 
 **Use Cases:**
 - Creating initiatives with full strategic context
-- Validating initiative before persisting (draft mode)
 - Linking initiatives to heroes, villains, and conflicts
 
 ---
@@ -1070,14 +1049,14 @@ Comprehensive onboarding guide for first strategic planning sessions with new us
 **Key Sections:**
 1. **Framework Overview:** Vision → Pillars → Outcomes → Themes → Initiatives hierarchy with time horizons
 2. **Framework-Invisible Conversation Philosophy:** Embedded (no separate prompt load needed)
-3. **Validation Workflow:** Mandatory draft_mode → reflect → confirm → submit pattern
+3. **Validation Workflow:** Reflect content back to user → get confirmation → submit pattern
 4. **Entity Sequence:** Recommended order for first session entities
 5. **Natural Questions Reference:** Quick-reference for each entity type
 6. **Session Completion Checklist:** Ensures strategic initiative created
 
 **Core Requirements:**
 - Never expose framework terminology to users
-- Always use `draft_mode: true` first, reflect back, get confirmation, then `draft_mode: false`
+- Always reflect content back to user, get explicit "yes" confirmation, then call submit_*()
 - Create entities one at a time with validation (no batch submissions)
 - Session MUST end with a strategic initiative that connects to hero, villain, conflict, pillar, and theme
 

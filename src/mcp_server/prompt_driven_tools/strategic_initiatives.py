@@ -25,14 +25,10 @@ from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
-    build_draft_response,
     build_error_response,
     build_success_response,
     get_workspace_id_from_request,
     serialize_strategic_initiative,
-)
-from src.mcp_server.prompt_driven_tools.utils.draft_builder import (
-    build_draft_strategic_initiative_data,
 )
 from src.mcp_server.prompt_driven_tools.utils.validation_runner import (
     validate_strategic_initiative_constraints,
@@ -309,7 +305,6 @@ async def submit_strategic_initiative(
     theme_id: Optional[str] = None,
     narrative_intent: Optional[str] = None,
     status: Optional[str] = None,
-    draft_mode: bool = True,
 ) -> Dict[str, Any]:
     """Submit a strategic initiative optionally with full narrative connections.
 
@@ -318,6 +313,9 @@ async def submit_strategic_initiative(
 
     Uses graceful degradation: invalid narrative IDs are skipped with warnings
     rather than failing the entire operation.
+
+    IMPORTANT: Reflect the initiative back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
@@ -332,25 +330,19 @@ async def submit_strategic_initiative(
         theme_id: Roadmap theme UUID for placement (optional)
         narrative_intent: Why this initiative matters narratively (optional)
         status: Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG
-        draft_mode: If True, validate without persisting; if False, persist (default: True)
 
     Returns:
-        Draft response with validation results and warnings if draft_mode=True,
-        or success response with created initiative and strategic context if draft_mode=False
+        Success response with created initiative and strategic context
 
     Example:
-        >>> # Validate first (default)
-        >>> draft = await submit_strategic_initiative(
+        >>> result = await submit_strategic_initiative(
         ...     title="Smart Context Switching",
         ...     description="Auto-save and restore IDE context...",
         ...     hero_ids=["uuid-of-sarah"],
         ...     villain_ids=["uuid-of-context-switching"],
         ...     pillar_id="uuid-of-ide-integration-pillar",
-        ...     narrative_intent="Defeats context switching for Sarah",
-        ...     draft_mode=True
+        ...     narrative_intent="Defeats context switching for Sarah"
         ... )
-        >>> # Then persist
-        >>> result = await submit_strategic_initiative(..., draft_mode=False)
     """
     session = SessionLocal()
     try:
@@ -420,40 +412,6 @@ async def submit_strategic_initiative(
             warnings.append(
                 "NARRATIVE GAP: No conflicts linked. Consider calling create_conflict() "
                 "to establish the hero vs villain tension this initiative resolves."
-            )
-
-        if draft_mode:
-            draft_data = build_draft_strategic_initiative_data(
-                workspace_id=workspace_id,
-                user_id=user_id,
-                title=title,
-                description=description,
-                status=initiative_status,
-                hero_ids=valid_hero_ids,
-                villain_ids=valid_villain_ids,
-                conflict_ids=valid_conflict_ids,
-                pillar_id=valid_pillar_id,
-                theme_id=valid_theme_id,
-                narrative_intent=narrative_intent,
-            )
-
-            next_steps = [
-                "Review initiative details with user",
-                "Confirm the narrative connections are correct",
-                "If approved, call submit_strategic_initiative() with draft_mode=False",
-            ]
-
-            if warnings:
-                next_steps.insert(
-                    0, f"Note: {len(warnings)} warning(s) - some IDs were invalid"
-                )
-
-            return build_draft_response(
-                entity_type="strategic_initiative",
-                message=f"Draft strategic initiative '{title}' validated successfully",
-                data=draft_data,
-                next_steps=next_steps,
-                warnings=warnings,
             )
 
         controller = InitiativeController(session)

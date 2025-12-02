@@ -689,7 +689,6 @@ class TestCreateInitiative:
                 "New Initiative",
                 "A brand new initiative",
                 "IN_PROGRESS",
-                draft_mode=False,
             )
 
             mock_controller.create_initiative.assert_called_once_with(
@@ -741,7 +740,6 @@ class TestCreateInitiative:
                 "Failing Initiative",
                 "Description",
                 "BACKLOG",
-                draft_mode=False,
             )
 
             assert_that(
@@ -755,57 +753,3 @@ class TestCreateInitiative:
                     }
                 ),
             )
-
-
-class TestCreateInitiativeDraftMode:
-    """Test suite for create_initiative draft mode functionality."""
-
-    @pytest.mark.asyncio
-    async def test_draft_mode_returns_draft_response(
-        self, session, user: User, workspace: Workspace
-    ):
-        """Test that draft_mode=True returns draft response without persisting."""
-        title = "New Initiative"
-        description = "A brand new initiative for testing draft mode"
-
-        with patch(
-            "src.mcp_server.initiative_tools.SessionLocal"
-        ) as mock_session_local:
-            mock_session_local.return_value = session
-
-            # Mock validation to prevent DB queries
-            with patch(
-                "src.mcp_server.initiative_tools.validate_initiative_constraints"
-            ) as mock_validate:
-                mock_validate.return_value = None  # Validation passes
-
-                # Mock get_auth_context
-                with patch(
-                    "src.mcp_server.initiative_tools.get_auth_context"
-                ) as mock_get_auth:
-                    mock_get_auth.return_value = (str(user.id), str(workspace.id))
-
-                    # Call tool with draft_mode=True
-                    result = await create_initiative.fn(
-                        title, description, draft_mode=True
-                    )
-
-        # Assert draft response structure
-        assert_that(result, has_entries({"status": "success", "type": "initiative"}))
-        assert_that(result, has_key("is_draft"))
-        assert_that(result["is_draft"], equal_to(True))
-        assert_that(result, has_key("validation_message"))
-        assert "draft" in result["validation_message"].lower()
-
-        # Verify draft data
-        assert_that(result, has_key("data"))
-        data = result["data"]
-        assert_that(data["id"], equal_to("00000000-0000-0000-0000-000000000000"))
-        assert_that(data["title"], equal_to(title))
-        assert_that(data["description"], equal_to(description))
-        assert_that(data["status"], equal_to("BACKLOG"))  # Default status
-        assert_that(data["created_at"], equal_to("0001-01-01T00:00:00"))
-        assert_that(data["updated_at"], equal_to("0001-01-01T00:00:00"))
-
-        # Verify validation was called
-        mock_validate.assert_called_once()

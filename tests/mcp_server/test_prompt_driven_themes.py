@@ -1,11 +1,11 @@
 """Minimal tests for prompt-driven roadmap theme workflow MCP tools."""
 
 import uuid
-from typing import Any, Callable, Tuple
 from unittest.mock import MagicMock, patch
 
 import pytest
 from hamcrest import assert_that, equal_to, has_entries, has_key
+from sqlalchemy.orm.session import Session
 
 from src.mcp_server.prompt_driven_tools.roadmap_themes import (
     connect_theme_to_outcomes,
@@ -125,40 +125,29 @@ class TestSubmitRoadmapTheme:
     """Test suite for submit_roadmap_theme tool."""
 
     @pytest.mark.asyncio
-    async def test_submit_creates_theme_successfully(self, workspace: Workspace):
+    async def test_submit_creates_theme_successfully(
+        self, session: Session, workspace: Workspace
+    ):
         """Test that submit successfully creates theme via controller."""
         name = "First-Week Configuration Success"
         description = "Problem Statement: Users abandon initial configuration. Hypothesis: Smart defaults will increase completion from 40% to 70%. Indicative Metrics: Setup completion rate. Timeline: 6 months."
-        outcome_ids = [str(uuid.uuid4())]
 
-        with patch(
-            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
+        outcome = ProductOutcome(
+            name="Developer Daily Adoption",
+            description="Increase daily active users",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+            display_order=0,
+        )
+        session.add(outcome)
+        session.commit()
+        outcome_ids = [str(outcome.id)]
 
-            # Mock controller create
-            mock_theme = MagicMock(spec=RoadmapTheme)
-            mock_theme.id = uuid.uuid4()
-            mock_theme.workspace_id = workspace.id
-            mock_theme.name = name
-            mock_theme.description = description
-            mock_theme.outcomes = []
-            mock_theme.created_at = None
-            mock_theme.updated_at = None
-            mock_theme.display_order = 0
-
-            with patch(
-                "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.create_roadmap_theme"
-            ) as mock_create:
-                mock_create.return_value = mock_theme
-
-                result = await submit_roadmap_theme.fn(
-                    name,
-                    description,
-                    outcome_ids,
-                    draft_mode=False,
-                )
+        result = await submit_roadmap_theme.fn(
+            name,
+            description,
+            outcome_ids,
+        )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
@@ -166,24 +155,23 @@ class TestSubmitRoadmapTheme:
         assert_that(result, has_key("next_steps"))
 
     @pytest.mark.asyncio
-    async def test_submit_handles_domain_exception(self):
+    async def test_submit_handles_domain_exception(
+        self, session: Session, workspace: Workspace
+    ):
         """Test that submit handles domain validation errors."""
-        with patch(
-            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
+        # Create 5 themes to hit the limit
+        for i in range(5):
+            theme = RoadmapTheme(
+                name=f"Test Theme {i}",
+                description=f"Problem {i}",
+                workspace_id=workspace.id,
+                user_id=workspace.user_id,
+            )
+            session.add(theme)
+        session.commit()
 
-            with patch(
-                "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.create_roadmap_theme"
-            ) as mock_create:
-                mock_create.side_effect = DomainException(
-                    "Workspace has reached maximum of 5 active roadmap themes"
-                )
-
-                result = await submit_roadmap_theme.fn(
-                    "Theme Name", "Problem statement", draft_mode=False
-                )
+        # Try to create another theme, should fail with domain exception
+        result = await submit_roadmap_theme.fn("Theme Name", "Problem statement")
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
@@ -193,7 +181,9 @@ class TestSubmitRoadmapTheme:
         """Test that submit handles invalid workspace_id."""
         # Override the conftest mock to raise ValueError for this test
         # mock_get_auth_context[6] is the mock for roadmap_themes.get_auth_context
-        original_side_effect = mock_get_auth_context[6].side_effect
+        original_side_effect = mock_get_auth_context[
+            6
+        ].side_effect  # pyright: ignore[reportUnknownVariableType]
         mock_get_auth_context[6].side_effect = ValueError("Invalid workspace ID")
 
         with patch(
@@ -202,9 +192,7 @@ class TestSubmitRoadmapTheme:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
-            result = await submit_roadmap_theme.fn(
-                "Theme Name", "Problem statement", draft_mode=False
-            )
+            result = await submit_roadmap_theme.fn("Theme Name", "Problem statement")
 
         # Reset the mock for other tests
         mock_get_auth_context[6].side_effect = original_side_effect
@@ -308,7 +296,7 @@ class TestPrioritizeWorkstream:
     """Test suite for prioritize_workstream tool."""
 
     @pytest.mark.asyncio
-    async def test_prioritize_succeeds_with_valid_input(self, workspace):
+    async def test_prioritize_succeeds_with_valid_input(self, workspace: Workspace):
         """Test that prioritize successfully prioritizes theme."""
         theme_id = str(uuid.uuid4())
         priority_position = 0
@@ -354,7 +342,7 @@ class TestPrioritizeWorkstream:
         assert_that(result, has_key("next_steps"))
 
     @pytest.mark.asyncio
-    async def test_prioritize_warns_on_capacity_exceeded(self, workspace):
+    async def test_prioritize_warns_on_capacity_exceeded(self, workspace: Workspace):
         """Test that prioritize warns when capacity exceeded."""
         theme_id = str(uuid.uuid4())
         priority_position = 0
@@ -433,7 +421,7 @@ class TestUtilityTools:
     """Test suite for utility tools (deprioritize, organize, connect)."""
 
     @pytest.mark.asyncio
-    async def test_deprioritize_removes_from_priority_list(self, workspace):
+    async def test_deprioritize_removes_from_priority_list(self, workspace: Workspace):
         """Test that deprioritize successfully removes theme."""
         theme_id = str(uuid.uuid4())
 
@@ -503,7 +491,7 @@ class TestUtilityTools:
         assert_that(result["data"]["count"], equal_to(2))
 
     @pytest.mark.asyncio
-    async def test_connect_updates_outcome_links(self, workspace):
+    async def test_connect_updates_outcome_links(self, workspace: Workspace):
         """Test that connect successfully updates outcome links."""
         theme_id = str(uuid.uuid4())
         outcome_ids = [str(uuid.uuid4())]
@@ -551,62 +539,3 @@ class TestUtilityTools:
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
         assert_that(result, has_key("data"))
         assert_that(result, has_key("next_steps"))
-
-
-class TestSubmitRoadmapThemeDraftMode:
-    """Test suite for submit_roadmap_theme draft mode functionality."""
-
-    @pytest.mark.asyncio
-    async def test_draft_mode_returns_draft_response(self, workspace):
-        """Test that draft_mode=True returns draft response without persisting."""
-        name = "First-Week Configuration Success"
-        description = "Problem Statement: Users abandon initial configuration. Hypothesis: Smart defaults will increase completion from 40% to 70%. Indicative Metrics: Setup completion rate. Timeline: 6 months."
-        outcome_ids = [str(uuid.uuid4())]
-
-        with patch(
-            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
-
-            # Mock validation to prevent DB queries
-            with patch(
-                "src.mcp_server.prompt_driven_tools.roadmap_themes.validate_theme_constraints"
-            ) as mock_validate:
-                mock_validate.return_value = None  # Validation passes
-
-                # Mock get_auth_context
-                with patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.get_auth_context"
-                ) as mock_get_auth:
-                    mock_get_auth.return_value = (str(uuid.uuid4()), str(workspace.id))
-
-                    # Mock get_roadmap_themes to return empty list for display_order calculation
-                    with patch(
-                        "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.get_roadmap_themes"
-                    ) as mock_get_themes:
-                        mock_get_themes.return_value = []
-
-                        # Call tool with draft_mode=True
-                        result = await submit_roadmap_theme.fn(
-                            name, description, outcome_ids, draft_mode=True
-                        )
-
-        # Assert draft response structure
-        assert_that(result, has_entries({"status": "success", "type": "theme"}))
-        assert_that(result, has_key("is_draft"))
-        assert_that(result["is_draft"], equal_to(True))
-        assert_that(result, has_key("validation_message"))
-        assert "draft" in result["validation_message"].lower()
-
-        # Verify draft data
-        assert_that(result, has_key("data"))
-        data = result["data"]
-        assert_that(data["id"], equal_to("00000000-0000-0000-0000-000000000000"))
-        assert_that(data["name"], equal_to(name))
-        assert_that(data["description"], equal_to(description))
-        assert_that(data["created_at"], equal_to("0001-01-01T00:00:00"))
-        assert_that(data["updated_at"], equal_to("0001-01-01T00:00:00"))
-
-        # Verify validation was called
-        mock_validate.assert_called_once()

@@ -16,8 +16,6 @@ from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
-    build_draft_response,
-    build_draft_theme_data,
     build_error_response,
     build_success_response,
     calculate_alignment_score,
@@ -337,12 +335,14 @@ async def submit_roadmap_theme(
     outcome_ids: Optional[List[str]] = None,
     hero_identifier: Optional[str] = None,
     primary_villain_identifier: Optional[str] = None,
-    draft_mode: bool = True,
 ) -> Dict[str, Any]:
     """Submit a refined roadmap theme after collaborative definition.
 
     Called only when Claude Code and user have crafted a high-quality
     hypothesis-driven theme through dialogue.
+
+    IMPORTANT: Reflect the theme back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
@@ -354,25 +354,15 @@ async def submit_roadmap_theme(
         outcome_ids: List of outcome IDs to link (optional but recommended)
         hero_identifier: Optional human-readable hero identifier (e.g., "H-2003")
         primary_villain_identifier: Optional human-readable villain identifier (e.g., "V-2003")
-        draft_mode: If True, validate without persisting; if False, persist to database (default: True)
 
     Returns:
-        Draft response with validation results if draft_mode=True,
-        or success response with created theme if draft_mode=False
+        Success response with created theme
 
     Example:
-        >>> # Validate first (default)
-        >>> draft = await submit_roadmap_theme(
-        ...     name="First-Week Configuration Success",
-        ...     description="Problem Statement: New users abandon initial configuration (40% drop-off) because they don't understand why each setting matters. Hypothesis: Providing example values and smart defaults will increase setup completion from 40% to 70%. Indicative Metrics: Setup completion rate increases from 40% to 70%. Timeline: 6 months.",
-        ...     outcome_ids=["outcome-uuid-1"]
-        ...     draft_mode=True
-        ... )
         >>> result = await submit_roadmap_theme(
         ...     name="First-Week Configuration Success",
-        ...     description="Problem Statement: New users abandon initial configuration (40% drop-off) because they don't understand why each setting matters. Hypothesis: Providing example values and smart defaults will increase setup completion from 40% to 70%. Indicative Metrics: Setup completion rate increases from 40% to 70%. Timeline: 6 months.",
+        ...     description="Problem Statement: New users abandon initial configuration (40% drop-off)...",
         ...     outcome_ids=["outcome-uuid-1"]
-        ...     draft_mode=False
         ... )
     """
     session = SessionLocal()
@@ -420,41 +410,15 @@ async def submit_roadmap_theme(
             )
             villain_uuid = villain.id
 
-        # DRAFT MODE: Validate without persisting
-        if draft_mode:
-            validate_theme_constraints(
-                workspace_id=uuid.UUID(workspace_id),
-                name=name,
-                description=description,
-                outcome_ids=outcome_ids,  # Pass original string list
-                session=session,
-                hero_identifier=hero_identifier,
-                primary_villain_identifier=primary_villain_identifier,
-            )
-
-            draft_data = build_draft_theme_data(
-                workspace_id=uuid.UUID(workspace_id),
-                user_id=uuid.UUID(user_id),
-                name=name,
-                description=description,
-                outcome_ids=outcome_ids,
-                hero_identifier=hero_identifier,
-                primary_villain_identifier=primary_villain_identifier,
-            )
-
-            return build_draft_response(
-                entity_type="theme",
-                message=f"Draft theme '{name}' validated successfully",
-                data=draft_data,
-                next_steps=[
-                    "Review theme details with user",
-                    "Confirm the theme is clear and correctly defined",
-                    "If approved, call submit_roadmap_theme() with draft_mode=False",
-                    "Consider linking to product outcomes for better strategic alignment",
-                    "Consider linking to heroes and villains for better context",
-                ],
-                warnings=warnings if warnings else None,
-            )
+        validate_theme_constraints(
+            workspace_id=uuid.UUID(workspace_id),
+            name=name,
+            description=description,
+            outcome_ids=outcome_ids,
+            session=session,
+            hero_identifier=hero_identifier,
+            primary_villain_identifier=primary_villain_identifier,
+        )
 
         # Create theme via controller
         theme = roadmap_controller.create_roadmap_theme(

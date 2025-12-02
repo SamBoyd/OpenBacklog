@@ -144,111 +144,6 @@ class TestGetStrategicInitiativeDefinitionFramework:
         assert_that(current_state["available_pillars"], has_length(1))
 
 
-class TestSubmitStrategicInitiativeDraftMode:
-    """Test suite for submit_strategic_initiative draft mode functionality."""
-
-    @pytest.mark.asyncio
-    async def test_draft_mode_returns_draft_response(self, workspace: Workspace):
-        """Test that draft_mode=True returns draft response without persisting."""
-        title = "Smart Context Switching"
-        description = "Auto-save and restore IDE context when switching between tasks."
-
-        with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_initiatives.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
-
-            with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_initiatives.validate_strategic_initiative_constraints"
-            ) as mock_validate:
-                mock_validate.return_value = {
-                    "valid_hero_ids": [],
-                    "valid_villain_ids": [],
-                    "valid_conflict_ids": [],
-                    "valid_pillar_id": None,
-                    "valid_theme_id": None,
-                    "warnings": [],
-                }
-
-                with patch(
-                    "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_auth_context"
-                ) as mock_get_auth:
-                    mock_get_auth.return_value = (
-                        str(uuid.uuid4()),
-                        str(workspace.id),
-                    )
-
-                    result = await submit_strategic_initiative.fn(
-                        title=title,
-                        description=description,
-                        draft_mode=True,
-                    )
-
-        assert_that(
-            result, has_entries({"status": "success", "type": "strategic_initiative"})
-        )
-        assert_that(result, has_key("is_draft"))
-        assert_that(result["is_draft"], equal_to(True))
-        assert_that(result, has_key("validation_message"))
-        assert "draft" in result["validation_message"].lower()
-
-        assert_that(result, has_key("data"))
-        data = result["data"]
-        assert_that(data, has_key("initiative"))
-        assert_that(data, has_key("strategic_context"))
-        assert_that(data["initiative"]["title"], equal_to(title))
-        assert_that(data["initiative"]["description"], equal_to(description))
-
-        mock_validate.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_draft_mode_with_warnings_for_invalid_ids(self, workspace: Workspace):
-        """Test that draft mode returns warnings for invalid narrative IDs."""
-        title = "Test Initiative"
-        description = "Test description for initiative"
-        invalid_hero_id = str(uuid.uuid4())
-
-        with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_initiatives.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
-
-            with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_initiatives.validate_strategic_initiative_constraints"
-            ) as mock_validate:
-                mock_validate.return_value = {
-                    "valid_hero_ids": [],
-                    "valid_villain_ids": [],
-                    "valid_conflict_ids": [],
-                    "valid_pillar_id": None,
-                    "valid_theme_id": None,
-                    "warnings": [f"Hero ID {invalid_hero_id} not found - skipped"],
-                }
-
-                with patch(
-                    "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_auth_context"
-                ) as mock_get_auth:
-                    mock_get_auth.return_value = (
-                        str(uuid.uuid4()),
-                        str(workspace.id),
-                    )
-
-                    result = await submit_strategic_initiative.fn(
-                        title=title,
-                        description=description,
-                        hero_ids=[invalid_hero_id],
-                        draft_mode=True,
-                    )
-
-        assert_that(result["status"], equal_to("success"))
-        assert_that(result, has_key("warnings"))
-        assert_that(result["warnings"], has_length(1))
-        assert_that(result["warnings"][0], contains_string("Hero ID"))
-        assert_that(result["warnings"][0], contains_string("not found"))
-
-
 class TestSubmitStrategicInitiativePersistMode:
     """Test suite for submit_strategic_initiative persist mode functionality."""
 
@@ -256,7 +151,7 @@ class TestSubmitStrategicInitiativePersistMode:
     async def test_persist_mode_creates_initiative_and_strategic_context(
         self, workspace: Workspace, session: Session
     ):
-        """Test that draft_mode=False creates both Initiative and StrategicInitiative."""
+        """Test creates both Initiative and StrategicInitiative."""
         from src.initiative_management.aggregates.strategic_initiative import (
             StrategicInitiative,
         )
@@ -277,7 +172,6 @@ class TestSubmitStrategicInitiativePersistMode:
                 title=title,
                 description=description,
                 narrative_intent="This is a test narrative intent",
-                draft_mode=False,
             )
 
         assert_that(result["status"], equal_to("success"))
@@ -352,7 +246,6 @@ class TestSubmitStrategicInitiativePersistMode:
                 description="Testing hero and villain linking",
                 hero_ids=[str(hero.id)],
                 villain_ids=[str(villain.id)],
-                draft_mode=False,
             )
 
         assert_that(result["status"], equal_to("success"))
@@ -421,7 +314,6 @@ class TestGetStrategicInitiatives:
                 title="Test Initiative for Retrieval",
                 description="Testing retrieval functionality",
                 narrative_intent="Test narrative intent",
-                draft_mode=False,
             )
 
         with patch(
@@ -578,7 +470,6 @@ class TestGetStrategicInitiative:
             create_result = await submit_strategic_initiative.fn(
                 title="Initiative for ID Lookup",
                 description="Testing lookup by strategic initiative ID",
-                draft_mode=False,
             )
 
         strategic_initiative_id = create_result["data"]["strategic_context"]["id"]
@@ -610,7 +501,6 @@ class TestGetStrategicInitiative:
             create_result = await submit_strategic_initiative.fn(
                 title="Initiative for Initiative ID Lookup",
                 description="Testing lookup by initiative ID",
-                draft_mode=False,
             )
 
         initiative_id = create_result["data"]["initiative"]["id"]
@@ -641,7 +531,6 @@ class TestGetStrategicInitiative:
             create_result = await submit_strategic_initiative.fn(
                 title="Initiative for Identifier Lookup",
                 description="Testing lookup by identifier",
-                draft_mode=False,
             )
 
         initiative_identifier = create_result["data"]["initiative"]["identifier"]
@@ -688,7 +577,6 @@ class TestGetStrategicInitiative:
                 title="Initiative with Narrative",
                 description="Testing narrative summary in response",
                 narrative_intent="To prove the tool works",
-                draft_mode=False,
             )
 
         initiative_id = create_result["data"]["initiative"]["id"]

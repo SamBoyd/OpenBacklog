@@ -79,42 +79,14 @@ class TestSubmitStrategicPillar:
     """Test suite for submit_strategic_pillar tool."""
 
     @pytest.mark.asyncio
-    async def test_submit_creates_pillar_successfully(self, workspace: Workspace):
+    async def test_submit_creates_pillar_successfully(
+        self, session, workspace: Workspace
+    ):
         """Test that submit successfully creates pillar via controller."""
         name = "Deep IDE Integration"
         description = "Strategy: Seamless IDE experience. Anti-Strategy: No web-first"
 
-        with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
-
-            # Mock controller create
-            mock_pillar = MagicMock(spec=StrategicPillar)
-            mock_pillar.id = uuid.uuid4()
-            mock_pillar.workspace_id = workspace.id
-            mock_pillar.name = name
-            mock_pillar.description = description
-            mock_pillar.display_order = 0
-            mock_pillar.outcomes = []
-            mock_pillar.created_at = None
-            mock_pillar.updated_at = None
-
-            with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.create_strategic_pillar"
-            ) as mock_create:
-                mock_create.return_value = mock_pillar
-
-                # Mock get_strategic_pillars for counting
-                with patch(
-                    "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_strategic_pillars"
-                ) as mock_get_pillars:
-                    mock_get_pillars.return_value = [mock_pillar]
-
-                    result = await submit_strategic_pillar.fn(
-                        name, description, draft_mode=False
-                    )
+        result = await submit_strategic_pillar.fn(name, description)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "pillar"}))
@@ -136,7 +108,7 @@ class TestSubmitStrategicPillar:
                 mock_create.side_effect = DomainException("Pillar limit exceeded")
 
                 result = await submit_strategic_pillar.fn(
-                    "Pillar Name", "Strategy: X. Anti-Strategy: Y.", draft_mode=False
+                    "Pillar Name", "Strategy: X. Anti-Strategy: Y."
                 )
 
         # Verify error response

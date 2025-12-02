@@ -49,23 +49,25 @@ Discussion is NOT creation. After discussing any entity, you MUST call the submi
 
 **If you didn't call submit_*(), the entity doesn't exist in the system.**
 
-### Rule 2: Draft Before Persist
+### Rule 2: Reflect Before Submit
 
 For EVERY entity submission, follow this exact sequence:
 
 ```
-1. Call submit_*(..., draft_mode=true) FIRST
-2. Show user what will be saved: "I'll save this as: [content]. Sound right?"
-3. Wait for explicit "yes" confirmation
-4. ONLY THEN call submit_*(..., draft_mode=false)
+1. Discuss with user and gather their input
+2. REFLECT BACK what you'll save: "Here's what I'll capture: [content]. Sound right?"
+3. WAIT for explicit "yes" confirmation
+4. ONLY THEN call the submit_*() function
 ```
 
 | WRONG | RIGHT |
 |-------|-------|
-| `submit_strategic_pillar(..., draft_mode=false)` | `submit_strategic_pillar(..., draft_mode=true)` → confirm → `draft_mode=false` |
-| `submit_hero(..., draft_mode=false)` | `submit_hero(..., draft_mode=true)` → confirm → `draft_mode=false` |
+| User describes something → immediately call submit_*() | User describes → reflect back → get "yes" → call submit_*() |
+| Submit without showing user what you're saving | "I'll save this as: [content]. Does that capture it?" → "Yes" → submit |
 
-**NEVER use draft_mode=false without first doing draft_mode=true and getting confirmation.**
+**NEVER call submit_*() without first reflecting the content back and getting user confirmation.**
+
+**The submit functions persist immediately—there is no undo. Get confirmation BEFORE calling them.**
 
 ---
 
@@ -100,34 +102,32 @@ WRONG:
 
 RIGHT:
 - User describes Andy
-- You call `submit_hero(name="Andy, The Indie Developer", description="...", draft_mode=true)`
-- You show draft: "I'll save Andy as: [description]. Sound right?"
-- User confirms
-- You call `submit_hero(..., draft_mode=false)`
+- You reflect: "I'll capture Andy as: [description]. Sound right?"
+- User confirms with "Yes"
+- You call `submit_hero(name="Andy, The Indie Developer", description="...")`
 - **Andy now exists in the system**
 
-### Mistake 2: Skipping draft_mode
+### Mistake 2: Submitting Without Confirmation
 
 WRONG:
 ```
 User: "Success means 3x completion rate"
-You: submit_product_outcome(..., draft_mode=false)  ← NEVER DO THIS
+You: submit_product_outcome(...)  ← NEVER DO THIS WITHOUT CONFIRMING FIRST
 ```
 
 RIGHT:
 ```
-User: "Success means 3x completion rate"  
-You: submit_product_outcome(..., draft_mode=true)
+User: "Success means 3x completion rate"
 You: "I'll capture this as: '3x project completion rate for indie hackers.' Does that sound right?"
 User: "Yes"
-You: submit_product_outcome(..., draft_mode=false)
+You: submit_product_outcome(...)
 ```
 
 ### Mistake 3: Batch Submitting
 
 WRONG: Submit 3 pillars in rapid succession without individual validation
 
-RIGHT: Create pillar 1 → validate → confirm → submit → THEN discuss pillar 2
+RIGHT: Reflect pillar 1 → get confirmation → submit → THEN discuss pillar 2
 
 ---
 
@@ -236,32 +236,28 @@ Then return to natural conversation.
    Use a question from the framework's natural_questions field
    Frame it in the user's product language
 
-3. DRAFT FIRST (draft_mode=true)
-   Call submit_*(..., draft_mode=true)
-   This validates without persisting
+3. REFLECT BACK IN USER'S WORDS
+   "Here's what I'll save: [content]. Does that capture it?"
+   Show them what you understood, what you're about to persist
 
-4. REFLECT BACK IN USER'S WORDS
-   "So [reflect their input back]. Does that capture it?"
-   Show them what you understood, not what you're storing
-
-5. WAIT FOR EXPLICIT CONFIRMATION
+4. WAIT FOR EXPLICIT CONFIRMATION
    Get a clear "yes" or refinement request
    DO NOT proceed without explicit user confirmation
 
-6. SUBMIT (draft_mode=false)
-   Only after confirmation: submit_*(..., draft_mode=false)
-   Now the entity is persisted
+5. SUBMIT
+   Only after confirmation: call submit_*()
+   This persists the entity immediately
 ```
 
 ### Anti-Patterns to Avoid
 
 **NEVER batch submit multiple entities:**
 - Bad: Submit 3 pillars in rapid succession
-- Good: Create one pillar, validate, confirm, then move to next
+- Good: Reflect one pillar, get confirmation, submit, then discuss next
 
-**NEVER skip the draft step:**
-- Bad: `submit_hero(..., draft_mode=false)` directly after user input
-- Good: `submit_hero(..., draft_mode=true)` → reflect back → confirm → `draft_mode=false`
+**NEVER submit without reflecting first:**
+- Bad: User says something → immediately call submit_*()
+- Good: User says something → "I'll capture this as X" → user confirms → submit_*()
 
 **NEVER assume confirmation:**
 - Bad: User says "sounds good" about a description, you submit multiple things
@@ -299,9 +295,10 @@ Listen for clues about vision, hero, and villain—but don't start creating enti
 
 **Key test:** If others achieve this vision and you can close shop, it's a good one.
 
-**MUST CALL:** After discussing vision, call:
-`submit_product_vision(statement="...", draft_mode=true)`
-Then confirm with user, then `submit_product_vision(..., draft_mode=false)`
+**MUST DO:** After discussing vision:
+1. Reflect back: "I'll capture your vision as: [statement]. Sound right?"
+2. Get explicit "yes"
+3. Call `submit_product_vision(vision_text="...")`
 
 ### Step 3: Hero (Who You're Building For)
 
@@ -311,9 +308,10 @@ Then confirm with user, then `submit_product_vision(..., draft_mode=false)`
 
 **Output:** A specific person with a name (e.g., "Alex, The Indie App Creator")
 
-**MUST CALL:** After discussing the hero, call:
-`submit_hero(name="...", description="...", draft_mode=true)`
-Then confirm with user, then `submit_hero(..., draft_mode=false)`
+**MUST DO:** After discussing the hero:
+1. Reflect back: "I'll save [name] as: [description]. Does that capture them?"
+2. Get explicit "yes"
+3. Call `submit_hero(name="...", description="...")`
 
 ### Step 4: Villain (What's Blocking Them)
 
@@ -323,9 +321,10 @@ Then confirm with user, then `submit_hero(..., draft_mode=false)`
 
 **Connect:** Reference the hero by name when discussing the villain.
 
-**MUST CALL:** After discussing the villain, call:
-`submit_villain(name="...", description="...", draft_mode=true)`
-Then confirm with user, then `submit_villain(..., draft_mode=false)`
+**MUST DO:** After discussing the villain:
+1. Reflect back: "The main problem is [villain description]. Is that right?"
+2. Get explicit "yes"
+3. Call `submit_villain(name="...", description="...")`
 
 ### Step 5: Conflict (Hero vs Villain Tension)
 
@@ -335,9 +334,10 @@ Then confirm with user, then `submit_villain(..., draft_mode=false)`
 
 **Connect:** Links the hero and villain you just created.
 
-**MUST CALL:** After discussing the conflict, call:
-`create_conflict(hero_id="...", villain_id="...", description="...", draft_mode=true)`
-Then confirm with user, then `create_conflict(..., draft_mode=false)`
+**MUST DO:** After discussing the conflict:
+1. Reflect back: "The core tension is [conflict description]. Sound right?"
+2. Get explicit "yes"
+3. Call `create_conflict(hero_identifier="...", villain_identifier="...", description="...")`
 
 ### Step 6: Strategic Pillars (What Makes You Different)
 
@@ -347,10 +347,11 @@ Then confirm with user, then `create_conflict(..., draft_mode=false)`
 
 **Create 2-5 pillars, one at a time with validation.**
 
-**MUST CALL:** For EACH pillar, call:
-`submit_strategic_pillar(name="...", description="...", draft_mode=true)`
-Then confirm with user, then `submit_strategic_pillar(..., draft_mode=false)`
-Repeat for each pillar individually.
+**MUST DO:** For EACH pillar:
+1. Reflect back: "Your approach is [pillar description]. Does that capture it?"
+2. Get explicit "yes"
+3. Call `submit_strategic_pillar(name="...", description="...")`
+4. Repeat for each pillar individually
 
 ### Step 7: Product Outcomes (What Success Looks Like)
 
@@ -360,9 +361,10 @@ Repeat for each pillar individually.
 
 **Create 2-3 outcomes, linking to relevant pillars. Validate linkages explicitly.**
 
-**MUST CALL:** For EACH outcome, call:
-`submit_product_outcome(name="...", description="...", pillar_ids=[...], draft_mode=true)`
-Then confirm with user (including pillar linkages), then `submit_product_outcome(..., draft_mode=false)`
+**MUST DO:** For EACH outcome:
+1. Reflect back: "Success looks like [outcome]. This connects to [pillar]. Right?"
+2. Get explicit "yes"
+3. Call `submit_product_outcome(name="...", description="...", pillar_ids=[...])`
 
 ### Step 8: Roadmap Theme (First Focus Area)
 
@@ -372,9 +374,10 @@ Then confirm with user (including pillar linkages), then `submit_product_outcome
 
 **Link:** Connect to outcomes, hero, and villain where appropriate.
 
-**MUST CALL:** After discussing the theme, call:
-`submit_roadmap_theme(name="...", description="...", outcome_ids=[...], draft_mode=true)`
-Then confirm with user (including outcome linkages), then `submit_roadmap_theme(..., draft_mode=false)`
+**MUST DO:** After discussing the theme:
+1. Reflect back: "Your focus area is [theme]. It advances [outcomes]. Sound right?"
+2. Get explicit "yes"
+3. Call `submit_roadmap_theme(name="...", description="...", outcome_ids=[...])`
 
 ### Step 9: Strategic Initiative (MANDATORY)
 
@@ -392,9 +395,10 @@ Then confirm with user (including outcome linkages), then `submit_roadmap_theme(
 
 This gives the user a concrete "what to build first" answer.
 
-**MUST CALL:** After discussing the initiative, call:
-`submit_strategic_initiative(title="...", description="...", hero_ids=[...], villain_ids=[...], conflict_ids=[...], pillar_id="...", theme_id="...", narrative_intent="...", draft_mode=true)`
-Then confirm with user (including all linkages), then `submit_strategic_initiative(..., draft_mode=false)`
+**MUST DO:** After discussing the initiative:
+1. Reflect back: "Your first build is [title]: [description]. It helps [hero] defeat [villain]. Right?"
+2. Get explicit "yes"
+3. Call `submit_strategic_initiative(title="...", description="...", hero_ids=[...], villain_ids=[...], conflict_ids=[...], pillar_id="...", theme_id="...", narrative_intent="...")`
 
 ---
 
@@ -452,7 +456,7 @@ Before ending a first session, verify:
 - [ ] **At least one Strategic Initiative via `submit_strategic_initiative()` (MANDATORY)**
 
 ### Quality Checks
-- [ ] User validated each entity before submission (draft_mode=true → confirm → draft_mode=false)
+- [ ] User confirmed each entity before submission (reflect → confirm → submit)
 - [ ] Entity linkages were explicitly confirmed
 - [ ] User can articulate "what to build first"
 - [ ] Strategic initiative has narrative connections (hero, villain, conflict, pillar, theme)
@@ -468,7 +472,7 @@ Before ending a first session, verify:
 ## Summary
 
 1. **Create, don't just discuss:** Every entity needs a submit_*() call
-2. **Draft before persist:** draft_mode=true → reflect → confirm → draft_mode=false
+2. **Reflect before submit:** Show user what you'll save → get "yes" → then call submit_*()
 3. **Framework is internal:** Use it for structure, never expose terminology
 4. **One at a time:** Never batch submit entities
 5. **End with initiative:** User must leave with a concrete "what to build first"
@@ -487,7 +491,7 @@ def first_session_onboarding() -> str:
 
     Load this prompt immediately after create_workspace() to ensure:
     1. Framework-invisible conversation philosophy is followed
-    2. Validation loops (draft_mode) are used for every entity
+    2. Reflect-before-submit validation is used for every entity
     3. Entities are created one at a time with user confirmation
     4. Session ends with a strategic initiative
 

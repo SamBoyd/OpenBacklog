@@ -15,8 +15,6 @@ from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
 from src.mcp_server.prompt_driven_tools.utils import (
     FrameworkBuilder,
-    build_draft_response,
-    build_draft_villain_data,
     build_error_response,
     build_success_response,
     get_workspace_id_from_request,
@@ -213,12 +211,14 @@ async def submit_villain(
     villain_type: str,
     description: str,
     severity: int,
-    draft_mode: bool = True,
 ) -> Dict[str, Any]:
     """Submit a refined villain (problem/obstacle) after collaborative definition.
 
     Called only when Claude Code and user have crafted a high-quality
     villain through dialogue using the framework guidance.
+
+    IMPORTANT: Reflect the villain back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
@@ -228,27 +228,16 @@ async def submit_villain(
         villain_type: Type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER)
         description: Rich description including how it manifests, impact, and evidence
         severity: How big a threat (1-5)
-        draft_mode: If True, validate without persisting; if False, persist to database (default: True)
 
     Returns:
-        Draft response with validation results if draft_mode=True,
-        or success response with created villain if draft_mode=False
+        Success response with created villain
 
     Example:
-        >>> # Validate first (default)
-        >>> draft = await submit_villain(
-        ...     name="Context Switching",
-        ...     villain_type="WORKFLOW",
-        ...     description="Jumping between tools breaks flow...",
-        ...     severity=5
-        ...     draft_mode=True
-        ... )
         >>> result = await submit_villain(
         ...     name="Context Switching",
         ...     villain_type="WORKFLOW",
         ...     description="Jumping between tools breaks flow...",
         ...     severity=5
-        ...     draft_mode=False
         ... )
     """
     session = SessionLocal()
@@ -265,36 +254,14 @@ async def submit_villain(
                 f"Invalid villain_type '{villain_type}'. Must be one of: {valid_types}",
             )
 
-        # DRAFT MODE: Validate without persisting
-        if draft_mode:
-            validate_villain_constraints(
-                workspace_id=uuid.UUID(workspace_id),
-                name=name,
-                villain_type=villain_type,
-                description=description,
-                severity=severity,
-                session=session,
-            )
-
-            draft_data = build_draft_villain_data(
-                workspace_id=uuid.UUID(workspace_id),
-                user_id=uuid.UUID(user_id),
-                name=name,
-                villain_type=villain_type,
-                description=description,
-                severity=severity,
-            )
-
-            return build_draft_response(
-                entity_type="villain",
-                message=f"Draft villain '{name}' validated successfully",
-                data=draft_data,
-                next_steps=[
-                    "Review villain details with user",
-                    "Confirm the villain is clear and correctly defined",
-                    "If approved, call submit_villain() with draft_mode=False",
-                ],
-            )
+        validate_villain_constraints(
+            workspace_id=uuid.UUID(workspace_id),
+            name=name,
+            villain_type=villain_type,
+            description=description,
+            severity=severity,
+            session=session,
+        )
 
         publisher = EventPublisher(session)
         villain = Villain.define_villain(
