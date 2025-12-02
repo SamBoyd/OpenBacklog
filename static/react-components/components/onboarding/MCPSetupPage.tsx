@@ -162,6 +162,14 @@ const MCPSetupPage: React.FC = () => {
                   <p className="text-base text-muted-foreground mt-3 mb-4">
                     Then select "<b>OpenBacklog</b>" from the list and then "<b>Authenticate</b>".
                   </p>
+
+                  {/* Optional: Allow Tools */}
+                  <div className="rounded-lg  text-muted-foreground">
+                    <p className="text-base text-muted-foreground">
+                      Optional: Skip tool approval prompts: Type
+                      <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">/permissions</code> and add <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">mcp__OpenBacklog</code> to the allow list.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
