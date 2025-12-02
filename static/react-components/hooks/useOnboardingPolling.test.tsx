@@ -3,10 +3,16 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useOnboardingPolling } from './useOnboardingPolling';
 import * as workspacesApi from '#api/workspaces';
 import * as initiativesApi from '#api/initiatives';
+import * as productStrategyApi from '#api/productStrategy';
+import * as heroesApi from '#api/heroes';
+import * as villainsApi from '#api/villains';
+import { VillainType } from '#types';
 
-// Mock the API modules
 vi.mock('#api/workspaces');
 vi.mock('#api/initiatives');
+vi.mock('#api/productStrategy');
+vi.mock('#api/heroes');
+vi.mock('#api/villains');
 
 describe('useOnboardingPolling', () => {
   beforeEach(() => {
@@ -28,6 +34,16 @@ describe('useOnboardingPolling', () => {
       expect(result.current.hasInitiatives).toBe(false);
       expect(result.current.workspaceCount).toBe(0);
       expect(result.current.initiativeCount).toBe(0);
+      expect(result.current.workspaceId).toBe(null);
+      expect(result.current.foundationProgress).toEqual({
+        hasVision: false,
+        hasHeroes: false,
+        hasVillains: false,
+        hasPillars: false,
+        hasOutcomes: false,
+        hasThemes: false,
+        hasInitiative: false,
+      });
     });
 
     it('should call getAllWorkspaces on mount', async () => {
@@ -40,22 +56,28 @@ describe('useOnboardingPolling', () => {
       });
     });
 
-    it('should transition to polling-initiatives when workspace is detected', async () => {
+    it('should transition to polling-foundation when workspace is detected', async () => {
       vi.spyOn(workspacesApi, 'getAllWorkspaces').mockResolvedValue([
-        { id: '1', name: 'Test Workspace', icon: null, description: null }
+        { id: 'ws-1', name: 'Test Workspace', icon: null, description: null }
       ]);
 
+      vi.spyOn(productStrategyApi, 'getWorkspaceVision').mockResolvedValue(null);
+      vi.spyOn(heroesApi, 'getAllHeroes').mockResolvedValue([]);
+      vi.spyOn(villainsApi, 'getAllVillains').mockResolvedValue([]);
+      vi.spyOn(productStrategyApi, 'getStrategicPillars').mockResolvedValue([]);
+      vi.spyOn(productStrategyApi, 'getProductOutcomes').mockResolvedValue([]);
+      vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockResolvedValue([]);
       vi.spyOn(initiativesApi, 'getAllInitiatives').mockResolvedValue([]);
 
       const { result } = renderHook(() => useOnboardingPolling());
 
-      // Wait for status to update to polling-initiatives
       await waitFor(() => {
-        expect(result.current.status).toBe('polling-initiatives');
+        expect(result.current.status).toBe('polling-foundation');
       });
 
       expect(result.current.hasWorkspace).toBe(true);
       expect(result.current.workspaceCount).toBe(1);
+      expect(result.current.workspaceId).toBe('ws-1');
     });
 
     it('should handle API errors gracefully', async () => {
@@ -72,25 +94,83 @@ describe('useOnboardingPolling', () => {
     });
   });
 
-  describe('Stage 2: Initiative Polling', () => {
-    it('should poll for initiatives after workspace is detected', async () => {
-      vi.spyOn(workspacesApi, 'getAllWorkspaces').mockResolvedValue([
-        { id: '1', name: 'Test Workspace', icon: null, description: null }
-      ]);
+  describe('Stage 2: Foundation Polling', () => {
+    const mockWorkspace = { id: 'ws-1', name: 'Test Workspace', icon: null, description: null };
 
-      const getAllInitiativesSpy = vi.spyOn(initiativesApi, 'getAllInitiatives').mockResolvedValue([]);
+    it('should poll for foundation entities after workspace is detected', async () => {
+      vi.spyOn(workspacesApi, 'getAllWorkspaces').mockResolvedValue([mockWorkspace]);
+
+      const getVisionSpy = vi.spyOn(productStrategyApi, 'getWorkspaceVision').mockResolvedValue(null);
+      vi.spyOn(heroesApi, 'getAllHeroes').mockResolvedValue([]);
+      vi.spyOn(villainsApi, 'getAllVillains').mockResolvedValue([]);
+      vi.spyOn(productStrategyApi, 'getStrategicPillars').mockResolvedValue([]);
+      vi.spyOn(productStrategyApi, 'getProductOutcomes').mockResolvedValue([]);
+      vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockResolvedValue([]);
+      vi.spyOn(initiativesApi, 'getAllInitiatives').mockResolvedValue([]);
 
       renderHook(() => useOnboardingPolling());
 
-      // Wait for workspace detection and initiative polling to start
       await waitFor(() => {
-        expect(getAllInitiativesSpy).toHaveBeenCalled();
+        expect(getVisionSpy).toHaveBeenCalledWith('ws-1');
       });
     });
 
-    it('should transition to complete when initiatives are detected', async () => {
-      vi.spyOn(workspacesApi, 'getAllWorkspaces').mockResolvedValue([
-        { id: '1', name: 'Test Workspace', icon: null, description: null }
+    it('should track foundation progress as entities are created', async () => {
+      vi.spyOn(workspacesApi, 'getAllWorkspaces').mockResolvedValue([mockWorkspace]);
+
+      vi.spyOn(productStrategyApi, 'getWorkspaceVision').mockResolvedValue({
+        id: 'v-1',
+        workspace_id: 'ws-1',
+        vision_text: 'Test vision',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      vi.spyOn(heroesApi, 'getAllHeroes').mockResolvedValue([
+        { id: 'h-1', identifier: 'H-1', workspace_id: 'ws-1', name: 'Test Hero', description: null, is_primary: true, created_at: '', updated_at: '' }
+      ]);
+      vi.spyOn(villainsApi, 'getAllVillains').mockResolvedValue([
+        { id: 'v-1', identifier: 'V-1', user_id: 'u-1', workspace_id: 'ws-1', name: 'Test Villain', villain_type: VillainType.EXTERNAL, description: 'desc', severity: 5, is_defeated: false, created_at: '', updated_at: '' }
+      ]);
+      vi.spyOn(productStrategyApi, 'getStrategicPillars').mockResolvedValue([]);
+      vi.spyOn(productStrategyApi, 'getProductOutcomes').mockResolvedValue([]);
+      vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockResolvedValue([]);
+      vi.spyOn(initiativesApi, 'getAllInitiatives').mockResolvedValue([]);
+
+      const { result } = renderHook(() => useOnboardingPolling());
+
+      await waitFor(() => {
+        expect(result.current.foundationProgress.hasVision).toBe(true);
+        expect(result.current.foundationProgress.hasHeroes).toBe(true);
+        expect(result.current.foundationProgress.hasVillains).toBe(true);
+      });
+    });
+
+    it('should transition to complete when initiative is detected', async () => {
+      vi.spyOn(workspacesApi, 'getAllWorkspaces').mockResolvedValue([mockWorkspace]);
+
+      vi.spyOn(productStrategyApi, 'getWorkspaceVision').mockResolvedValue({
+        id: 'v-1',
+        workspace_id: 'ws-1',
+        vision_text: 'Test vision',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      vi.spyOn(heroesApi, 'getAllHeroes').mockResolvedValue([
+        { id: 'h-1', identifier: 'H-1', workspace_id: 'ws-1', name: 'Test Hero', description: null, is_primary: true, created_at: '', updated_at: '' }
+      ]);
+      vi.spyOn(villainsApi, 'getAllVillains').mockResolvedValue([
+        { id: 'v-1', identifier: 'V-1', user_id: 'u-1', workspace_id: 'ws-1', name: 'Test Villain', villain_type: VillainType.EXTERNAL, description: 'desc', severity: 5, is_defeated: false, created_at: '', updated_at: '' }
+      ]);
+      vi.spyOn(productStrategyApi, 'getStrategicPillars').mockResolvedValue([
+        { id: 'p-1', workspace_id: 'ws-1', name: 'Pillar 1', description: null, display_order: 0, outcome_ids: [], created_at: '', updated_at: '' },
+        { id: 'p-2', workspace_id: 'ws-1', name: 'Pillar 2', description: null, display_order: 1, outcome_ids: [], created_at: '', updated_at: '' },
+      ]);
+      vi.spyOn(productStrategyApi, 'getProductOutcomes').mockResolvedValue([
+        { id: 'o-1', workspace_id: 'ws-1', name: 'Outcome 1', description: null, display_order: 0, pillar_ids: [], created_at: '', updated_at: '' },
+        { id: 'o-2', workspace_id: 'ws-1', name: 'Outcome 2', description: null, display_order: 1, pillar_ids: [], created_at: '', updated_at: '' },
+      ]);
+      vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockResolvedValue([
+        { id: 't-1', workspace_id: 'ws-1', name: 'Theme 1', description: 'desc', outcome_ids: [], hero_ids: [], villain_ids: [], created_at: '', updated_at: '' },
       ]);
 
       const mockInitiative = {
@@ -106,12 +186,10 @@ describe('useOnboardingPolling', () => {
         tasks: [],
         type: null
       };
-
       vi.spyOn(initiativesApi, 'getAllInitiatives').mockResolvedValue([mockInitiative]);
 
       const { result } = renderHook(() => useOnboardingPolling());
 
-      // Wait for completion
       await waitFor(() => {
         expect(result.current.status).toBe('complete');
       });
@@ -119,23 +197,35 @@ describe('useOnboardingPolling', () => {
       expect(result.current.hasWorkspace).toBe(true);
       expect(result.current.hasInitiatives).toBe(true);
       expect(result.current.initiativeCount).toBe(1);
+      expect(result.current.foundationProgress.hasInitiative).toBe(true);
     });
 
-    it('should handle initiative API errors gracefully', async () => {
-      vi.spyOn(workspacesApi, 'getAllWorkspaces').mockResolvedValue([
-        { id: '1', name: 'Test Workspace', icon: null, description: null }
-      ]);
+    it('should handle foundation API errors gracefully with Promise.allSettled', async () => {
+      vi.spyOn(workspacesApi, 'getAllWorkspaces').mockResolvedValue([mockWorkspace]);
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(productStrategyApi, 'getWorkspaceVision').mockRejectedValue(new Error('Network error'));
+      vi.spyOn(heroesApi, 'getAllHeroes').mockRejectedValue(new Error('Network error'));
+      vi.spyOn(villainsApi, 'getAllVillains').mockRejectedValue(new Error('Network error'));
+      vi.spyOn(productStrategyApi, 'getStrategicPillars').mockRejectedValue(new Error('Network error'));
+      vi.spyOn(productStrategyApi, 'getProductOutcomes').mockRejectedValue(new Error('Network error'));
+      vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockRejectedValue(new Error('Network error'));
       vi.spyOn(initiativesApi, 'getAllInitiatives').mockRejectedValue(new Error('Network error'));
 
-      renderHook(() => useOnboardingPolling());
+      const { result } = renderHook(() => useOnboardingPolling());
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Error polling initiatives:', expect.any(Error));
+        expect(result.current.status).toBe('polling-foundation');
       });
 
-      consoleErrorSpy.mockRestore();
+      expect(result.current.foundationProgress).toEqual({
+        hasVision: false,
+        hasHeroes: false,
+        hasVillains: false,
+        hasPillars: false,
+        hasOutcomes: false,
+        hasThemes: false,
+        hasInitiative: false,
+      });
     });
   });
 
@@ -145,7 +235,6 @@ describe('useOnboardingPolling', () => {
 
       const { unmount } = renderHook(() => useOnboardingPolling());
 
-      // Should unmount without errors
       expect(() => unmount()).not.toThrow();
     });
   });

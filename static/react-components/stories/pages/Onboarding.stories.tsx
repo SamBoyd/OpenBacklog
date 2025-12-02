@@ -14,9 +14,12 @@ import { WorkspaceDto } from '#types';
 import { useOpenbacklogToken, mockUseOpenbacklogTokenGeneratedReturn } from '#hooks/useOpenbacklogToken.mock';
 import { useOnboardingPolling } from '#hooks/useOnboardingPolling.mock';
 import {
-    mockUseOnboardingPolling,
     mockPollingWorkspace,
-    mockPollingInitiatives,
+    mockPollingFoundationStart,
+    mockPollingFoundationVision,
+    mockPollingFoundationCharacters,
+    mockPollingFoundationStrategy,
+    mockPollingFoundationTheme,
     mockComplete
 } from '#hooks/useOnboardingPolling.mock';
 
@@ -158,10 +161,10 @@ export const MCPSetupPollingWorkspace: Story = {
 };
 
 /**
- * MCP Setup page - Polling for initiative creation
- * Shows the state after workspace is created and now waiting for first initiative.
+ * MCP Setup page - Foundation polling just started
+ * Workspace exists but no strategic entities have been created yet.
  */
-export const MCPSetupPollingInitiatives: Story = {
+export const MCPSetupFoundationStart: Story = {
     decorators: [
         (Story) => {
             useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
@@ -172,7 +175,92 @@ export const MCPSetupPollingInitiatives: Story = {
                 addWorkspace: mockAddWorkspace,
             })
             useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
-            useOnboardingPolling.mockReturnValue(mockPollingInitiatives);
+            useOnboardingPolling.mockReturnValue(mockPollingFoundationStart);
+            return <Story />;
+        }
+    ],
+};
+
+/**
+ * MCP Setup page - Vision defined
+ * Shows progress after the user's product vision has been captured.
+ */
+export const MCPSetupFoundationVision: Story = {
+    decorators: [
+        (Story) => {
+            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
+            useWorkspaces.mockReturnValue({
+                ...mockWorkspacesReturn,
+                workspaces: [],
+                currentWorkspace: null,
+                addWorkspace: mockAddWorkspace,
+            })
+            useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
+            useOnboardingPolling.mockReturnValue(mockPollingFoundationVision);
+            return <Story />;
+        }
+    ],
+};
+
+/**
+ * MCP Setup page - Characters created (heroes & villains)
+ * Shows progress after heroes and villains have been defined.
+ */
+export const MCPSetupFoundationCharacters: Story = {
+    decorators: [
+        (Story) => {
+            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
+            useWorkspaces.mockReturnValue({
+                ...mockWorkspacesReturn,
+                workspaces: [],
+                currentWorkspace: null,
+                addWorkspace: mockAddWorkspace,
+            })
+            useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
+            useOnboardingPolling.mockReturnValue(mockPollingFoundationCharacters);
+            return <Story />;
+        }
+    ],
+};
+
+/**
+ * MCP Setup page - Strategy defined (pillars & outcomes)
+ * Shows progress after strategic pillars and outcomes have been set.
+ */
+export const MCPSetupFoundationStrategy: Story = {
+    decorators: [
+        (Story) => {
+            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
+            useWorkspaces.mockReturnValue({
+                ...mockWorkspacesReturn,
+                workspaces: [],
+                currentWorkspace: null,
+                addWorkspace: mockAddWorkspace,
+            })
+            useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
+            useOnboardingPolling.mockReturnValue(mockPollingFoundationStrategy);
+            return <Story />;
+        }
+    ],
+};
+
+/**
+ * MCP Setup page - Theme selected
+ * Shows progress after the roadmap theme (focus area) has been defined.
+ * Only missing the final initiative creation.
+ */
+export const MCPSetupFoundationTheme: Story = {
+    decorators: [
+        (Story) => {
+            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
+            useWorkspaces.mockReturnValue({
+                ...mockWorkspacesReturn,
+                workspaces: [],
+                currentWorkspace: null,
+                addWorkspace: mockAddWorkspace,
+            })
+            useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
+            useOnboardingPolling.mockReturnValue(mockPollingFoundationTheme);
             return <Story />;
         }
     ],

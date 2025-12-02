@@ -669,8 +669,8 @@ export const HeroDtoSchema = z.object({
     name: z.string().min(1).max(100),
     description: z.string().min(1).max(2000).nullable(),
     is_primary: z.boolean(),
-    created_at: z.string().datetime(),
-    updated_at: z.string().datetime(),
+    created_at: z.string(),
+    updated_at: z.string(),
 });
 
 /**
@@ -711,8 +711,8 @@ export const VillainDtoSchema = z.object({
     description: z.string().min(1).max(2000),
     severity: z.number().int().min(1).max(5),
     is_defeated: z.boolean(),
-    created_at: z.string().datetime(),
-    updated_at: z.string().datetime(),
+    created_at: z.string(),
+    updated_at: z.string(),
 });
 
 /**
@@ -734,8 +734,8 @@ export const RoadmapThemeDtoSchema = z.object({
     workspace_id: z.string().uuid(),
     title: z.string().min(1).max(200),
     description: z.string().min(1).max(2000).nullable(),
-    created_at: z.string().datetime(),
-    updated_at: z.string().datetime(),
+    created_at: z.string(),
+    updated_at: z.string(),
 });
 
 /**
@@ -781,8 +781,8 @@ export const ConflictDtoSchema = z.object({
     story_arc_id: z.string().uuid().nullable(),
     resolved_at: z.string().nullable(),
     resolved_by_initiative_id: z.string().uuid().nullable(),
-    created_at: z.string().datetime(),
-    updated_at: z.string().datetime(),
+    created_at: z.string(),
+    updated_at: z.string(),
     hero: HeroDtoSchema.optional(),
     villain: VillainDtoSchema.optional(),
     story_arc: RoadmapThemeDtoSchema.optional(),

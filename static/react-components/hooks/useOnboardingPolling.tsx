@@ -1,11 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAllWorkspaces } from '#api/workspaces';
 import { getAllInitiatives } from '#api/initiatives';
+import { getWorkspaceVision } from '#api/productStrategy';
+import { getAllHeroes } from '#api/heroes';
+import { getAllVillains } from '#api/villains';
+import { getStrategicPillars, getProductOutcomes, getRoadmapThemes } from '#api/productStrategy';
 
 /**
  * Polling status types for onboarding flow
  */
-export type OnboardingPollingStatus = 'polling-workspace' | 'polling-initiatives' | 'complete';
+export type OnboardingPollingStatus = 'polling-workspace' | 'polling-foundation' | 'complete';
+
+/**
+ * Progress state for strategic foundation entities
+ */
+export interface FoundationProgress {
+  hasVision: boolean;
+  hasHeroes: boolean;
+  hasVillains: boolean;
+  hasPillars: boolean;
+  hasOutcomes: boolean;
+  hasThemes: boolean;
+  hasInitiative: boolean;
+}
 
 /**
  * State interface for onboarding polling
@@ -21,15 +38,38 @@ export interface OnboardingPollingState {
   workspaceCount: number;
   /** Number of initiatives found */
   initiativeCount: number;
+  /** Current workspace ID (for foundation polling) */
+  workspaceId: string | null;
+  /** Progress tracking for strategic foundation entities */
+  foundationProgress: FoundationProgress;
 }
 
+const INITIAL_FOUNDATION_PROGRESS: FoundationProgress = {
+  hasVision: false,
+  hasHeroes: false,
+  hasVillains: false,
+  hasPillars: false,
+  hasOutcomes: false,
+  hasThemes: false,
+  hasInitiative: false,
+};
+
 /**
- * Hook that polls for workspace and initiative creation during onboarding.
+ * Hook that polls for workspace and strategic foundation creation during onboarding.
  *
- * Implements a two-stage polling flow:
+ * Implements a three-stage polling flow:
  * 1. Poll for workspace creation every 3 seconds
- * 2. Once workspace exists, poll for initiative creation every 3 seconds
- * 3. Complete when initiatives are detected
+ * 2. Once workspace exists, poll for strategic foundation entities every 3 seconds
+ * 3. Complete when initiative is detected
+ *
+ * Strategic foundation entities tracked:
+ * - Vision
+ * - Heroes (at least 1)
+ * - Villains (at least 1)
+ * - Pillars (at least 2)
+ * - Outcomes (at least 2)
+ * - Themes (at least 1)
+ * - Initiative (triggers completion)
  *
  * Polling continues indefinitely until completion or component unmount.
  *
@@ -37,7 +77,7 @@ export interface OnboardingPollingState {
  *
  * @example
  * ```tsx
- * const { status, hasWorkspace, hasInitiatives } = useOnboardingPolling();
+ * const { status, hasWorkspace, foundationProgress } = useOnboardingPolling();
  *
  * if (status === 'complete') {
  *   navigate('/workspace/initiatives');
@@ -50,6 +90,35 @@ export function useOnboardingPolling(): OnboardingPollingState {
   const [hasInitiatives, setHasInitiatives] = useState(false);
   const [workspaceCount, setWorkspaceCount] = useState(0);
   const [initiativeCount, setInitiativeCount] = useState(0);
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const [foundationProgress, setFoundationProgress] = useState<FoundationProgress>(INITIAL_FOUNDATION_PROGRESS);
+
+  /**
+   * Polls all strategic foundation entities in parallel
+   */
+  const pollFoundation = useCallback(async (wsId: string): Promise<FoundationProgress> => {
+    const results = await Promise.allSettled([
+      getWorkspaceVision(wsId),
+      getAllHeroes(wsId),
+      getAllVillains(wsId),
+      getStrategicPillars(wsId),
+      getProductOutcomes(wsId),
+      getRoadmapThemes(wsId),
+      getAllInitiatives(),
+    ]);
+
+    const [visionResult, heroesResult, villainsResult, pillarsResult, outcomesResult, themesResult, initiativesResult] = results;
+
+    return {
+      hasVision: visionResult.status === 'fulfilled' && visionResult.value !== null,
+      hasHeroes: heroesResult.status === 'fulfilled' && heroesResult.value.length >= 1,
+      hasVillains: villainsResult.status === 'fulfilled' && villainsResult.value.length >= 1,
+      hasPillars: pillarsResult.status === 'fulfilled' && pillarsResult.value.length >= 1,
+      hasOutcomes: outcomesResult.status === 'fulfilled' && outcomesResult.value.length >= 1,
+      hasThemes: themesResult.status === 'fulfilled' && themesResult.value.length >= 1,
+      hasInitiative: initiativesResult.status === 'fulfilled' && initiativesResult.value.length >= 1,
+    };
+  }, []);
 
   // Stage 1: Poll for workspace creation
   useEffect(() => {
@@ -61,20 +130,18 @@ export function useOnboardingPolling(): OnboardingPollingState {
       try {
         const workspaces = await getAllWorkspaces();
 
-        if (!isActive) return; // Check again after async call
+        if (!isActive) return;
 
         setWorkspaceCount(workspaces.length);
 
         if (workspaces.length > 0) {
-          // Workspace detected - move to stage 2
           setHasWorkspace(true);
-          setStatus('polling-initiatives');
+          setWorkspaceId(workspaces[0].id);
+          setStatus('polling-foundation');
         } else {
-          // Continue polling for workspace
           setTimeout(pollWorkspaces, 3000);
         }
       } catch (error) {
-        // Log error but continue polling
         console.error('Error polling workspaces:', error);
         if (isActive) {
           setTimeout(pollWorkspaces, 3000);
@@ -82,56 +149,50 @@ export function useOnboardingPolling(): OnboardingPollingState {
       }
     };
 
-    // Start polling
     pollWorkspaces();
 
-    // Cleanup function
     return () => {
       isActive = false;
     };
-  }, []); // Only run once on mount
+  }, []);
 
-  // Stage 2: Poll for initiative creation (only after workspace exists)
+  // Stage 2: Poll for strategic foundation entities
   useEffect(() => {
-    if (status !== 'polling-initiatives') return;
+    if (status !== 'polling-foundation' || !workspaceId) return;
 
     let isActive = true;
 
-    const pollInitiatives = async () => {
+    const pollFoundationEntities = async () => {
       if (!isActive) return;
 
       try {
-        const initiatives = await getAllInitiatives();
+        const progress = await pollFoundation(workspaceId);
 
-        if (!isActive) return; // Check again after async call
+        if (!isActive) return;
 
-        setInitiativeCount(initiatives.length);
+        setFoundationProgress(progress);
 
-        if (initiatives.length > 0) {
-          // Initiatives detected - complete onboarding
+        if (progress.hasInitiative) {
           setHasInitiatives(true);
+          setInitiativeCount(1);
           setStatus('complete');
         } else {
-          // Continue polling for initiatives
-          setTimeout(pollInitiatives, 3000);
+          setTimeout(pollFoundationEntities, 3000);
         }
       } catch (error) {
-        // Log error but continue polling
-        console.error('Error polling initiatives:', error);
+        console.error('Error polling foundation:', error);
         if (isActive) {
-          setTimeout(pollInitiatives, 3000);
+          setTimeout(pollFoundationEntities, 3000);
         }
       }
     };
 
-    // Start polling
-    pollInitiatives();
+    pollFoundationEntities();
 
-    // Cleanup function
     return () => {
       isActive = false;
     };
-  }, [status]); // Re-run when status changes to 'polling-initiatives'
+  }, [status, workspaceId, pollFoundation]);
 
   return {
     status,
@@ -139,5 +200,7 @@ export function useOnboardingPolling(): OnboardingPollingState {
     hasInitiatives,
     workspaceCount,
     initiativeCount,
+    workspaceId,
+    foundationProgress,
   };
 }

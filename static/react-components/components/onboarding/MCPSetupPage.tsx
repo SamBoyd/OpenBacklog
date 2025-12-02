@@ -1,27 +1,61 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useOnboardingPolling } from '#hooks/useOnboardingPolling';
+import { useOnboardingPolling, FoundationProgress } from '#hooks/useOnboardingPolling';
+
+/**
+ * Progress item for the strategic foundation checklist
+ */
+interface ProgressItemProps {
+  label: string;
+  completed: boolean;
+  isActive: boolean;
+}
+
+/**
+ * Renders a single progress checklist item
+ */
+const ProgressItem: React.FC<ProgressItemProps> = ({ label, completed, isActive }) => (
+  <div className={`flex items-center gap-3 py-1.5 ${isActive && !completed ? 'animate-pulse' : ''}`}>
+    {completed ? (
+      <svg className="w-5 h-5 text-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+    ) : (
+      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ${isActive ? 'border-primary' : 'border-muted-foreground/30'}`} />
+    )}
+    <span className={`text-sm ${completed ? 'text-success' : isActive ? 'text-foreground' : 'text-muted-foreground/50'}`}>
+      {label}
+    </span>
+  </div>
+);
+
+/**
+ * Calculates which progress item is currently active based on foundation progress
+ */
+function getActiveStep(progress: FoundationProgress): string {
+  if (!progress.hasVision) return 'vision';
+  if (!progress.hasHeroes) return 'heroes';
+  if (!progress.hasVillains) return 'villains';
+  if (!progress.hasPillars) return 'pillars';
+  if (!progress.hasOutcomes) return 'outcomes';
+  if (!progress.hasThemes) return 'themes';
+  if (!progress.hasInitiative) return 'initiative';
+  return 'complete';
+}
 
 /**
  * Standalone MCP setup page for onboarding
  * Generates API token and provides MCP installation command
- * Polls for workspace and initiative creation to unlock the web interface
+ * Polls for workspace and strategic foundation creation to unlock the web interface
  * @returns {React.ReactElement} The MCP setup page component
  */
 const MCPSetupPage: React.FC = () => {
-  // Track which item was copied for visual feedback
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
-
-  // Navigation hook for redirect
   const navigate = useNavigate();
+  const { status, hasWorkspace, initiativeCount, foundationProgress } = useOnboardingPolling();
 
-  // Poll for workspace and initiative creation
-  const { status, hasWorkspace, hasInitiatives, initiativeCount } = useOnboardingPolling();
-
-  // Redirect to initiatives page when onboarding is complete
   useEffect(() => {
     if (status === 'complete') {
-      // Wait 2 seconds to show success message before redirecting
       const timer = setTimeout(() => {
         navigate('/workspace/initiatives');
       }, 2000);
@@ -30,16 +64,11 @@ const MCPSetupPage: React.FC = () => {
         clearTimeout(timer);
       };
     }
-    // Return undefined if not in complete state
     return undefined;
   }, [status, navigate]);
 
-  // Get MCP server domain from current origin
   const mcpServerDomain = window.location.origin;
 
-  /**
-   * Copies text to clipboard with visual feedback
-   */
   const handleCopy = async (text: string, item: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -50,9 +79,6 @@ const MCPSetupPage: React.FC = () => {
     }
   };
 
-  /**
-   * Generates the MCP command
-   */
   const mcpCommand = useMemo((): string => {
     return `claude mcp add \\
   --transport=http \\
@@ -60,9 +86,6 @@ const MCPSetupPage: React.FC = () => {
   ${mcpServerDomain}/mcp/`;
   }, [mcpServerDomain]);
 
-  /**
-   * Renders the copy button with visual feedback
-   */
   const CopyButton: React.FC<{ onClick: () => void; copied: boolean }> = ({ onClick, copied }) => (
     <button
       onClick={onClick}
@@ -82,10 +105,7 @@ const MCPSetupPage: React.FC = () => {
     </button>
   );
 
-  /**
-   * Renders a code block with copy functionality
-   */
-  const CodeBlock: React.FC<{ code: string; language?: string; onCopy: () => void; copied: boolean }> = ({
+  const CodeBlock: React.FC<{ code: string; onCopy: () => void; copied: boolean }> = ({
     code,
     onCopy,
     copied
@@ -97,6 +117,9 @@ const MCPSetupPage: React.FC = () => {
       <CopyButton onClick={onCopy} copied={copied} />
     </div>
   );
+
+  const activeStep = getActiveStep(foundationProgress);
+  const isPollingFoundation = status === 'polling-foundation';
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -162,9 +185,7 @@ const MCPSetupPage: React.FC = () => {
                   <p className="text-base text-muted-foreground mt-3 mb-4">
                     Then select "<b>OpenBacklog</b>" from the list and then "<b>Authenticate</b>".
                   </p>
-
-                  {/* Optional: Allow Tools */}
-                  <div className="rounded-lg  text-muted-foreground">
+                  <div className="rounded-lg text-muted-foreground">
                     <p className="text-base text-muted-foreground">
                       Optional: Skip tool approval prompts: Type
                       <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">/permissions</code> and add <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">mcp__OpenBacklog</code> to the allow list.
@@ -174,7 +195,7 @@ const MCPSetupPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Step 3: Create Workspace and Initiative */}
+            {/* Step 3: Create Workspace */}
             <div>
               <div className="flex items-start gap-4 mb-4">
                 <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-background flex items-center justify-center">
@@ -207,70 +228,102 @@ const MCPSetupPage: React.FC = () => {
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span>Workspace created successfully!</span>
+                      <span>Workspace created! Claude will now guide your strategic planning.</span>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Step 4: Complete Setup via MCP */}
+            {/* Step 4: Build Strategic Foundation */}
             <div>
-              <div className="flex items-start gap-4 mb-4">
+              <div className="flex items-start gap-4">
                 <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-background flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center font-bold text-foreground">
+                  <div className={`w-8 h-8 rounded-full bg-card border flex items-center justify-center font-bold ${
+                    status === 'polling-workspace' ? 'border-border/50 text-muted-foreground' : 'border-border text-foreground'
+                  }`}>
                     4
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h2 className={`text-2xl font-semibold text-foreground mb-3 ${status === 'polling-workspace' ? 'text-muted-foreground' : 'text-foreground'
-                    }`}>
-                    Complete Setup via MCP
+                  <h2 className={`text-2xl font-semibold mb-3 ${
+                    status === 'polling-workspace' ? 'text-muted-foreground' : 'text-foreground'
+                  }`}>
+                    Build Your Strategic Foundation
                   </h2>
-                  <p className={`text-base text-muted-foreground mb-4 ${status === 'polling-workspace' ? 'text-muted-foreground/70' : 'text-muted-foreground'
-                    }`}>
-                    In Claude Code, continue the setup
+                  <p className={`text-base mb-2 ${
+                    status === 'polling-workspace' ? 'text-muted-foreground/50' : 'text-muted-foreground'
+                  }`}>
+                    Claude guides you through a ~10-15 minute conversation to define your product strategy: vision, who you're building for, their challenges, and your approach.
                   </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 5: Access Web UI */}
-            <div>
-              <div className="flex items-start gap-4">
-                <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-background flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center font-bold text-foreground">
-                    5
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <h2 className={`text-2xl font-semibold mb-3 ${status === 'polling-workspace' ? 'text-muted-foreground' : 'text-foreground'
-                    }`}>
-                    Access Web UI
-                  </h2>
-                  <p className={`text-base mb-4 ${status === 'polling-workspace' ? 'text-muted-foreground/70' : 'text-muted-foreground'
-                    }`}>
-                    After creating your first initiative, the web interface unlocks automatically for visualizing your backlog and roadmap.
+                  <p className={`text-sm mb-4 ${
+                    status === 'polling-workspace' ? 'text-muted-foreground/50' : 'text-muted-foreground'
+                  }`}>
+                    Just follow Claude's questions naturally. The web interface unlocks when complete.
                   </p>
 
-                  <div className="mt-5 border border-border/50 rounded-md flex items-center justify-center py-20">
+                  {/* Progress Tracker */}
+                  <div className={`mt-4 border rounded-lg p-5 ${
+                    status === 'polling-workspace' ? 'border-border/30 bg-muted/5' : 'border-border/50 bg-card/50'
+                  }`}>
                     {status === 'polling-workspace' && (
-                      <span className="text-sm text-muted-foreground">Waiting for workspace first...</span>
-                    )}
-                    {status === 'polling-initiatives' && (
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                        <span className="text-sm text-muted-foreground animate-pulse">Waiting for initiatives...</span>
+                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground/50">
+                        <span className="text-sm">Complete Step 3 first</span>
                       </div>
                     )}
+
+                    {isPollingFoundation && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-sm font-medium text-foreground">Strategic Planning Progress</span>
+                          <span className="text-xs text-muted-foreground">~10-15 min</span>
+                        </div>
+                        <ProgressItem 
+                          label="Vision defined" 
+                          completed={foundationProgress.hasVision} 
+                          isActive={activeStep === 'vision'}
+                        />
+                        <ProgressItem 
+                          label="Hero identified" 
+                          completed={foundationProgress.hasHeroes} 
+                          isActive={activeStep === 'heroes'}
+                        />
+                        <ProgressItem 
+                          label="Challenge captured" 
+                          completed={foundationProgress.hasVillains} 
+                          isActive={activeStep === 'villains'}
+                        />
+                        <ProgressItem 
+                          label="Strategy pillars set" 
+                          completed={foundationProgress.hasPillars} 
+                          isActive={activeStep === 'pillars'}
+                        />
+                        <ProgressItem 
+                          label="Success outcomes defined" 
+                          completed={foundationProgress.hasOutcomes} 
+                          isActive={activeStep === 'outcomes'}
+                        />
+                        <ProgressItem 
+                          label="Focus area selected" 
+                          completed={foundationProgress.hasThemes} 
+                          isActive={activeStep === 'themes'}
+                        />
+                        <ProgressItem 
+                          label="First initiative created" 
+                          completed={foundationProgress.hasInitiative} 
+                          isActive={activeStep === 'initiative'}
+                        />
+                      </div>
+                    )}
+
                     {status === 'complete' && (
-                      <div className="flex flex-col items-center gap-3">
+                      <div className="flex flex-col items-center gap-3 py-4">
                         <svg className="w-12 h-12 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         <div className="text-center">
                           <p className="text-base font-semibold text-success mb-1">
-                            {initiativeCount} {initiativeCount === 1 ? 'initiative' : 'initiatives'} detected!
+                            {initiativeCount} {initiativeCount === 1 ? 'initiative' : 'initiatives'} created!
                           </p>
                           <p className="text-sm text-muted-foreground">Redirecting to web interface...</p>
                         </div>
@@ -282,17 +335,6 @@ const MCPSetupPage: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Footer Note */}
-        {/* <div className="mt-16 pt-8 border-t border-border">
-          <p className="text-sm text-muted-foreground">
-            Need help? See our{' '}
-            <a href="/docs" className="text-primary hover:underline font-medium">
-              documentation
-            </a>
-            .
-          </p>
-        </div> */}
       </div>
     </div>
   );
