@@ -23,6 +23,7 @@ import Onboarding from '#pages/Onboarding';
 import Heroes from '#pages/Narrative/Heroes';
 import Villains from '#pages/Narrative/Villains';
 import Conflicts from '#pages/Narrative/Conflicts';
+import RoadmapOverview from '#pages/RoadmapOverview';
 
 import ViewInitiative from '#components/ViewInitiative';
 import ViewTask from '#components/ViewTask';
@@ -72,6 +73,7 @@ export const MainContent = () => {
 
             {/* Protected workspace routes */}
             <Route element={<AppGuard><Layout /></AppGuard>}>
+                <Route path="/workspace/roadmap" element={<RoadmapOverview />} />
                 <Route path="/workspace/story-bible" element={<StoryBiblePage />} />
                 <Route path="/workspace/story-bible/arc/:arcId" element={<StoryArcDetail />} />
                 <Route path="/workspace/context" element={<ContextDocument />} />
