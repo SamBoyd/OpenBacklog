@@ -158,3 +158,28 @@ class TestCreateWorkspace:
             workspace_data = result["workspace"]
             assert_that(workspace_data["name"], equal_to("Test Workspace"))
             assert_that(workspace_data["description"], is_(None))
+
+    async def test_create_workspace_with_placeholder(self, user: User, session):
+        """Test workspace creation with placeholder."""
+        # Clear existing workspaces
+        existing_workspaces = (
+            session.query(Workspace).filter(Workspace.user_id == user.id).all()
+        )
+        for ws in existing_workspaces:
+            session.delete(ws)
+        session.commit()
+
+        with patch("src.mcp_server.workspace_tools.SessionLocal") as mock_session_local:
+            mock_session_local.return_value = session
+
+            result = await create_workspace.fn("{your workspace name}")
+
+            assert_that(result["status"], equal_to("error"))
+            assert_that(result["type"], equal_to("workspace"))
+            assert_that(
+                result["error_message"],
+                equal_to(
+                    "You need to replace the placeholder '{your workspace name}' with your actual workspace name."
+                ),
+            )
+            assert_that(result["error_type"], equal_to("placeholder_error"))

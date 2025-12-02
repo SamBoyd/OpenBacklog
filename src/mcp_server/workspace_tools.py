@@ -67,6 +67,16 @@ async def create_workspace(name: str, description: str = "") -> Dict[str, Any]:
                 },
             }
 
+        if name == "{your workspace name}":
+            # This is the placeholder used in the onboarding page
+            # and is result of a copy paste error
+            return {
+                "status": "error",
+                "type": "workspace",
+                "error_message": "You need to replace the placeholder '{your workspace name}' with your actual workspace name.",
+                "error_type": "placeholder_error",
+            }
+
         from src.controller import create_workspace as controller_create_workspace
 
         workspace = controller_create_workspace(
