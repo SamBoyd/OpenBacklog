@@ -176,21 +176,16 @@ const MCPSetupPage: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <h2 className="text-2xl font-semibold text-foreground mb-3">
-                    Create Workspace & Initiative
+                    Create Workspace
                   </h2>
                   <p className="text-base text-muted-foreground mb-4">
-                    In Claude Code, ask to create your workspace and first initiative:
+                    In Claude Code, ask to create your workspace:
                   </p>
                   <div className="space-y-3">
                     <CodeBlock
-                      code="Create a workspace called [name] in OpenBacklog"
-                      onCopy={() => handleCopy("Create a workspace called [name] in OpenBacklog", 'workspace')}
+                      code="Create a workspace in OpenBacklog called {your workspace name}"
+                      onCopy={() => handleCopy("Create a workspace in OpenBacklog called ", 'workspace')}
                       copied={copiedItem === 'workspace'}
-                    />
-                    <CodeBlock
-                      code="Create an initiative for [feature] in OpenBacklog"
-                      onCopy={() => handleCopy("Create an initiative for [feature] in OpenBacklog", 'initiative')}
-                      copied={copiedItem === 'initiative'}
                     />
                   </div>
                   {status === 'polling-workspace' && (
@@ -211,23 +206,42 @@ const MCPSetupPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Step 4: Access Web UI */}
+            {/* Step 4: Complete Setup via MCP */}
             <div>
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4 mb-4">
                 <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-background flex items-center justify-center">
                   <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center font-bold text-foreground">
                     4
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h2 className={`text-2xl font-semibold mb-3 ${
-                    status === 'polling-workspace' ? 'text-muted-foreground' : 'text-foreground'
-                  }`}>
+                  <h2 className={`text-2xl font-semibold text-foreground mb-3 ${status === 'polling-workspace' ? 'text-muted-foreground' : 'text-foreground'
+                    }`}>
+                    Complete Setup via MCP
+                  </h2>
+                  <p className={`text-base text-muted-foreground mb-4 ${status === 'polling-workspace' ? 'text-muted-foreground/70' : 'text-muted-foreground'
+                    }`}>
+                    In Claude Code, continue the setup
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 5: Access Web UI */}
+            <div>
+              <div className="flex items-start gap-4">
+                <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-background flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center font-bold text-foreground">
+                    5
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h2 className={`text-2xl font-semibold mb-3 ${status === 'polling-workspace' ? 'text-muted-foreground' : 'text-foreground'
+                    }`}>
                     Access Web UI
                   </h2>
-                  <p className={`text-base mb-4 ${
-                    status === 'polling-workspace' ? 'text-muted-foreground/70' : 'text-muted-foreground'
-                  }`}>
+                  <p className={`text-base mb-4 ${status === 'polling-workspace' ? 'text-muted-foreground/70' : 'text-muted-foreground'
+                    }`}>
                     After creating your first initiative, the web interface unlocks automatically for visualizing your backlog and roadmap.
                   </p>
 
