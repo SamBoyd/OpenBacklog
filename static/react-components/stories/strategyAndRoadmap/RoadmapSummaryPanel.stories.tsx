@@ -36,7 +36,7 @@ export const Collapsed: Story = {
   render: (args) => {
     return (
       <div>
-        <div className="text-xs text-neutral-500 mb-2">
+        <div className="text-xs text-foreground mb-2">
           Click the Collapse button to see the collapsed state
         </div>
         <RoadmapSummaryPanel {...args} />

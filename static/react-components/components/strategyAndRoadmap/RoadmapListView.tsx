@@ -28,14 +28,14 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-neutral-500">Loading roadmap...</div>
+        <div className="text-foreground">Loading roadmap...</div>
       </div>
     );
   }
 
   if (prioritizedArcs.length === 0 && unprioritizedArcs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-neutral-500">
+      <div className="flex flex-col items-center justify-center h-64 text-foreground">
         <p className="text-lg font-medium">No themes yet</p>
         <p className="text-sm mt-2">Create your first roadmap theme to get started</p>
       </div>
@@ -47,9 +47,9 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
       {/* Prioritized Themes Section */}
       <div>
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-neutral-900">
+          <h2 className="text-lg font-semibold text-foreground">
             Prioritized Themes
-            <span className="ml-2 text-sm font-normal text-neutral-500">
+            <span className="ml-2 text-sm font-normal text-foreground">
               ({prioritizedArcs.length}/5)
             </span>
           </h2>
@@ -73,7 +73,7 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
             ))}
           </div>
         ) : (
-          <div className="text-sm text-neutral-500 pl-8">
+          <div className="text-sm text-foreground pl-8">
             No prioritized themes. Use MCP to prioritize themes from the backlog.
           </div>
         )}
@@ -82,9 +82,9 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
       {/* Backlog Section */}
       <div>
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-neutral-900">
+          <h2 className="text-lg font-semibold text-foreground">
             Backlog
-            <span className="ml-2 text-sm font-normal text-neutral-500">
+            <span className="ml-2 text-sm font-normal text-foreground">
               ({unprioritizedArcs.length})
             </span>
           </h2>
@@ -103,7 +103,7 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
             ))}
           </div>
         ) : (
-          <div className="text-sm text-neutral-500 pl-8">
+          <div className="text-sm text-foreground pl-8">
             All themes are prioritized.
           </div>
         )}

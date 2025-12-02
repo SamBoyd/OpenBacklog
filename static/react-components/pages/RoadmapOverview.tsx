@@ -59,7 +59,7 @@ export function RoadmapOverview() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-neutral-50">
+    <div className="h-full flex flex-col">
       {/* Page Header */}
       <RoadmapHeader
         workspaceName="Workspace Name"

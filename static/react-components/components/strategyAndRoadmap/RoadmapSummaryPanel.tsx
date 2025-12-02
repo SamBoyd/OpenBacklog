@@ -72,14 +72,14 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
   }, [arcs]);
 
   return (
-    <div className="bg-white border-t border-neutral-200">
+    <div className="bg-background text-foreground   border-t border-border">
       {/* Header */}
       <div className="px-8 py-6 flex items-center justify-between">
-        <h3 className="text-base font-medium text-neutral-900">Roadmap Summary</h3>
+        <h3 className="text-base font-medium text-foreground">Roadmap Summary</h3>
 
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1 text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+          className="flex items-center gap-1 text-sm text-foreground hover:text-foreground transition-colors"
         >
           {isExpanded ? 'Collapse' : 'Expand'}
           <ChevronUp
@@ -94,34 +94,34 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
         <div className="px-8 pb-8 flex flex-row gap-4 justify-between flex-wrap">
           {/* Arc Status Column */}
           <div className="space-y-3 flex-grow">
-            <h4 className="text-sm font-medium text-neutral-600 uppercase tracking-wider">
+            <h4 className="text-sm font-medium text-foreground uppercase tracking-wider">
               Arc Status
             </h4>
 
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-neutral-950">Active:</span>
+                <span className="text-foreground0">Active:</span>
                 <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">
                   {stats.counts.active}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-neutral-950">Planned:</span>
+                <span className="text-foreground0">Planned:</span>
                 <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
                   {stats.counts.planned}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-neutral-950">Complete:</span>
-                <span className="bg-neutral-100 text-neutral-700 px-2 py-1 rounded text-xs font-medium">
+                <span className="text-foreground0">Complete:</span>
+                <span className="bg-neutral-100 text-foreground px-2 py-1 rounded text-xs font-medium">
                   {stats.counts.complete}
                 </span>
               </div>
 
-              <div className="border-t border-neutral-200 pt-2 flex items-center justify-between font-medium">
-                <span className="text-neutral-950">Total:</span>
+              <div className="border-t border-border pt-2 flex items-center justify-between font-medium">
+                <span className="text-foreground0">Total:</span>
                 <span>{stats.total}</span>
               </div>
             </div>
@@ -129,20 +129,20 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
 
           {/* Heroes Served Column */}
           <div className="space-y-3 flex-grow">
-            <h4 className="text-sm font-medium text-neutral-600 uppercase tracking-wider">
+            <h4 className="text-sm font-medium text-foreground uppercase tracking-wider">
               Heroes Served
             </h4>
 
             <div className="space-y-2 text-sm">
               {stats.topHeroes.map((hero) => (
                 <div key={hero.name} className="flex items-center justify-between">
-                  <span className="text-neutral-700">{hero.name}:</span>
-                  <span className="text-neutral-500">{hero.count} arcs</span>
+                  <span className="text-foreground">{hero.name}:</span>
+                  <span className="text-foreground">{hero.count} arcs</span>
                 </div>
               ))}
 
               {stats.topHeroes.length === 0 && (
-                <div className="text-neutral-500">No heroes assigned</div>
+                <div className="text-foreground">No heroes assigned</div>
               )}
 
               <button
@@ -156,20 +156,20 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
 
           {/* Top Villains Column */}
           <div className="space-y-3 flex-grow">
-            <h4 className="text-sm font-medium text-neutral-600 uppercase tracking-wider">
+            <h4 className="text-sm font-medium text-foreground uppercase tracking-wider">
               Top Villains Confronted
             </h4>
 
             <div className="space-y-2 text-sm">
               {stats.topVillains.map((villain) => (
                 <div key={villain.name} className="flex items-center justify-between">
-                  <span className="text-neutral-700">{villain.name}:</span>
-                  <span className="text-neutral-500">{villain.count} arcs</span>
+                  <span className="text-foreground">{villain.name}:</span>
+                  <span className="text-foreground">{villain.count} arcs</span>
                 </div>
               ))}
 
               {stats.topVillains.length === 0 && (
-                <div className="text-neutral-500">No villains assigned</div>
+                <div className="text-foreground">No villains assigned</div>
               )}
 
               <button
@@ -183,17 +183,17 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
 
           {/* Narrative Health Column */}
           <div className="space-y-3 flex-grow">
-            <h4 className="text-sm font-medium text-neutral-600 uppercase tracking-wider">
+            <h4 className="text-sm font-medium text-foreground uppercase tracking-wider">
               Narrative Health
             </h4>
 
             <div className="space-y-3">
               <div className="flex items-end gap-2">
                 <span className="text-2xl">🟢</span>
-                <span className="text-2xl font-bold text-neutral-950">100%</span>
+                <span className="text-2xl font-bold text-foreground0">100%</span>
               </div>
 
-              <p className="text-sm text-neutral-600">
+              <p className="text-sm text-foreground">
                 High coherence, all arcs well-connected
               </p>
 

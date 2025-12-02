@@ -24,39 +24,39 @@ export const RoadmapHeader: React.FC<RoadmapHeaderProps> = ({
   };
 
   return (
-    <div className="bg-white border-b border-neutral-200">
+    <div className="bg-background text-foreground   border-b border-border">
       {/* Breadcrumb Navigation */}
-      <div className="px-8 py-4 border-b border-neutral-200">
-        <div className="flex items-center gap-2 text-sm text-neutral-600">
-          <button className="font-medium text-neutral-600 hover:text-neutral-900">
+      <div className="px-8 py-4 border-b border-border">
+        <div className="flex items-center gap-2 text-sm text-foreground">
+          <button className="font-medium text-foreground hover:text-foreground">
             {workspaceName}
           </button>
           <ChevronRight size={16} />
-          <button className="font-medium text-neutral-600 hover:text-neutral-900">
+          <button className="font-medium text-foreground hover:text-foreground">
             Strategy & Roadmap
           </button>
           <ChevronRight size={16} />
-          <span className="text-neutral-900 font-medium">Overview</span>
+          <span className="text-foreground font-medium">Overview</span>
         </div>
       </div>
 
       {/* Title & Description Section */}
       <div className="px-8 py-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-medium text-neutral-900 mb-1">Roadmap</h1>
-          <p className="text-sm text-neutral-500">Strategic narrative timeline</p>
+          <h1 className="text-2xl font-medium text-foreground mb-1">Roadmap</h1>
+          <p className="text-sm text-foreground">Strategic narrative timeline</p>
         </div>
 
         {/* View Toggle Buttons */}
-        <div className="bg-neutral-100 rounded-[10px] p-1 flex gap-1">
+        <div className="bg-muted/10 border border-border rounded-[10px] p-1 flex gap-1">
           {(['timeline', 'list', 'calendar'] as const).map((view) => (
             <button
               key={view}
               onClick={() => handleViewChange(view)}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
                 currentView === view
-                  ? 'bg-white shadow-sm text-neutral-900'
-                  : 'text-neutral-600 hover:text-neutral-900'
+                  ? 'bg-background text-foreground  border border-border shadow-sm'
+                  : 'text-foreground/80 hover:text-foreground bg-transparent'
               }`}
             >
               {view.charAt(0).toUpperCase() + view.slice(1)}

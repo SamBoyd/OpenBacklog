@@ -31,7 +31,7 @@ export const RoadmapTimelineView: React.FC<RoadmapTimelineViewProps> = ({
     // Coming soon placeholder view
     return (
         <div className="flex items-center justify-center h-96">
-            <div className="text-neutral-500">Timeline view coming soon</div>
+            <div className="text-foreground">Timeline view coming soon</div>
         </div>
     );
 };

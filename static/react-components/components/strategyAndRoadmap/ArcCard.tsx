@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArcDto } from '#api/productStrategy';
 import { MoreHorizontal } from 'lucide-react';
+import { Button } from '#components/reusable/Button';
 
 interface ArcCardProps {
   arc: ArcDto;
@@ -22,11 +23,11 @@ export const ArcCard: React.FC<ArcCardProps> = ({
   onMoreOptions,
 }) => {
   return (
-    <div className="bg-white border-2 border-neutral-200 rounded-lg p-5 space-y-4 hover:border-neutral-300 transition-colors">
+    <div className="bg-background text-foreground border-border rounded-lg p-5 space-y-4 hover:border-border transition-colors">
       {/* Header */}
       <div>
-        <h3 className="text-lg font-medium text-neutral-950 mb-2">{arc.name}</h3>
-        <p className="text-sm text-neutral-600 line-clamp-2">
+        <h3 className="text-lg font-medium text-foreground0 mb-2">{arc.name}</h3>
+        <p className="text-sm text-foreground line-clamp-2">
           {arc.description}
         </p>
       </div>
@@ -35,16 +36,16 @@ export const ArcCard: React.FC<ArcCardProps> = ({
       <div className="space-y-2 text-sm">
         {(arc.heroes ?? []).length > 0 && (
           <div className="flex gap-2 items-start">
-            <span className="text-neutral-500 font-medium">Heroes:</span>
-            <span className="text-neutral-700">
+            <span className="text-foreground font-medium">Heroes:</span>
+            <span className="text-foreground">
               {arc.heroes?.map((h) => h.name).join(', ')}
             </span>
           </div>
         )}
         {(arc.villains ?? []).length > 0 && (
           <div className="flex gap-2 items-start">
-            <span className="text-neutral-500 font-medium">Villains:</span>
-            <span className="text-neutral-700">
+            <span className="text-foreground font-medium">Villains:</span>
+            <span className="text-foreground">
               {arc.villains?.map((v) => v.name).join(', ')}
             </span>
           </div>
@@ -52,40 +53,36 @@ export const ArcCard: React.FC<ArcCardProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2 pt-2 border-t border-neutral-100">
+      <div className="flex gap-2 pt-2 border-t border-border">
         {onViewArc && (
-          <button
+          <Button
             onClick={() => onViewArc(arc.id)}
-            className="px-3 py-1.5 text-xs font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded transition-colors"
           >
             View Theme
-          </button>
+          </Button>
         )}
         {onViewBeats && (
-          <button
+          <Button
             onClick={() => onViewBeats(arc.id)}
-            className="px-3 py-1.5 text-xs font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded transition-colors"
           >
             View Beats
-          </button>
+          </Button>
         )}
         {onEdit && (
-          <button
+          <Button
             onClick={() => onEdit(arc.id)}
-            className="p-1.5 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded transition-colors"
             title="Edit theme"
           >
             ✎
-          </button>
+          </Button>
         )}
         {onMoreOptions && (
-          <button
+          <Button
             onClick={() => onMoreOptions(arc.id)}
-            className="p-1.5 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded transition-colors"
             title="More options"
           >
             <MoreHorizontal size={14} />
-          </button>
+          </Button>
         )}
       </div>
     </div>

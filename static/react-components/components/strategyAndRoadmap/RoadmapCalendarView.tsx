@@ -31,7 +31,7 @@ export const RoadmapCalendarView: React.FC<RoadmapCalendarViewProps> = ({
     // Coming soon placeholder view
     return (
         <div className="flex items-center justify-center h-96">
-            <div className="text-neutral-500">Calendar view coming soon</div>
+            <div className="text-foreground">Calendar view coming soon</div>
         </div>
     );
 };
