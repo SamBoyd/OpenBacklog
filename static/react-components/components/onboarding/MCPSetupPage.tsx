@@ -86,7 +86,7 @@ const MCPSetupPage: React.FC = () => {
   ${mcpServerDomain}/mcp/`;
   }, [mcpServerDomain]);
 
-  const CopyButton: React.FC<{ onClick: () => void; copied: boolean }> = ({ onClick, copied }) => (
+  const CopyButton: React.FC<{ onClick: (e: React.MouseEvent) => void; copied: boolean }> = ({ onClick, copied }) => (
     <button
       onClick={onClick}
       className="absolute top-3 right-3 p-1.5 rounded transition-colors hover:bg-muted"
@@ -110,11 +110,17 @@ const MCPSetupPage: React.FC = () => {
     onCopy,
     copied
   }) => (
-    <div className="relative bg-[#1e1e1e] rounded-md overflow-hidden">
+    <div 
+      className="relative bg-[#1e1e1e] rounded-md overflow-hidden cursor-pointer group"
+      onClick={onCopy}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onCopy(); }}
+    >
       <pre className="p-4 overflow-x-auto text-sm">
-        <code className="text-[#d4d4d4] font-mono whitespace-pre">{code}</code>
+        <code className="text-[#d4d4d4] font-mono whitespace-pre group-hover:text-white transition-colors">{code}</code>
       </pre>
-      <CopyButton onClick={onCopy} copied={copied} />
+      <CopyButton onClick={(e) => { e.stopPropagation(); onCopy(); }} copied={copied} />
     </div>
   );
 
