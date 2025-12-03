@@ -168,23 +168,23 @@ const ViewStrategicInitiative: React.FC = () => {
                   )}
               </div>
 
-              {/* Scenes (Tasks) Section */}
+              {/* Tasks Section */}
               <div className="border border-border rounded-lg p-6 bg-background">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-base font-normal text-foreground">
-                    Scenes ({scenesCount.total})
+                    Tasks ({scenesCount.total})
                   </h2>
                   <div className="flex items-center gap-2">
                     <Button onClick={() => {}} className="text-sm">
                       <Plus size={16} />
-                      Add Scene
+                      Add Task
                     </Button>
                     <Button
                       onClick={() => {}}
                       className="text-sm bg-primary text-primary-foreground hover:bg-primary/90"
                     >
                       <Sparkles size={16} />
-                      Decompose
+                      Decompose Task
                     </Button>
                   </div>
                 </div>
@@ -198,7 +198,7 @@ const ViewStrategicInitiative: React.FC = () => {
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-sm text-muted-foreground">
-                      No scenes (tasks) have been defined yet
+                      No tasks have been defined yet
                     </p>
                   </div>
                 )}
@@ -209,7 +209,7 @@ const ViewStrategicInitiative: React.FC = () => {
                       onClick={() => {}}
                       className="w-full py-2 text-sm font-medium"
                     >
-                      View All Scenes in Planning Board
+                      View All Tasks in Planning Board
                     </NoBorderButton>
                   </div>
                 )}
