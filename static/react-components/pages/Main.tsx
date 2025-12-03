@@ -26,6 +26,7 @@ import Conflicts from '#pages/Narrative/Conflicts';
 import RoadmapOverview from '#pages/RoadmapOverview';
 
 import ViewInitiative from '#components/ViewInitiative';
+import ViewInitiativeWrapper from '#components/ViewInitiativeWrapper';
 import ViewTask from '#components/ViewTask';
 import NavBar from '#components/reusable/NavBar';
 import ChatDialog from '#components/ChatDialog/ChatDialog';
@@ -79,8 +80,7 @@ export const MainContent = () => {
                 <Route path="/workspace/context" element={<ContextDocument />} />
                 <Route path="/workspace/tasks" element={<Tasks />} />
                 <Route path="/workspace/initiatives/:initiativeId/tasks/:taskId" element={<ViewTask />} />
-                <Route path="/workspace/initiatives/:initiativeId/strategic" element={<ViewStrategicInitiative />} />
-                <Route path="/workspace/initiatives/:initiativeId" element={<ViewInitiative />} />
+                <Route path="/workspace/initiatives/:initiativeId" element={<ViewInitiativeWrapper />} />
                 <Route path="/workspace/initiatives" element={<Initiatives />} />
                 <Route path="/workspace/heroes" element={<Heroes />} />
                 <Route path="/workspace/villains" element={<Villains />} />
