@@ -3,10 +3,14 @@ import { useParams } from '#hooks/useParams';
 import { useStrategicInitiative } from '#hooks/useStrategicInitiative';
 import ItemView from '#components/reusable/ItemView';
 import { Button, NoBorderButton, CompactButton } from '#components/reusable/Button';
+import InitiativeProgressBar from '#components/reusable/InitiativeProgressBar';
+import InitiativeStatusBadge from '#components/reusable/InitiativeStatusBadge';
+import HeroCard from '#components/reusable/HeroCard';
+import VillainCard from '#components/reusable/VillainCard';
 import StakesConflictSection from '#components/StakesConflictSection';
 import TasksList from '#components/TasksList';
-import { statusDisplay, TaskStatus, InitiativeStatus, HeroDto, VillainDto } from '#types';
-import { Pencil, ExternalLink, Plus, Sparkles } from 'lucide-react';
+import { statusDisplay, TaskStatus } from '#types';
+import { Pencil, Plus, Sparkles } from 'lucide-react';
 
 /**
  * Calculates the progress percentage from tasks
@@ -18,117 +22,6 @@ const calculateProgress = (tasks: any[] | undefined): number => {
   const completedTasks = tasks.filter((task: any) => task.status === 'DONE').length;
   return Math.round((completedTasks / tasks.length) * 100);
 };
-
-/**
- * Gets the status badge styling based on initiative status
- * @param {string} status - The initiative status
- * @returns {string} Tailwind CSS classes for the badge
- */
-const getStatusBadgeStyle = (status: string | undefined): string => {
-  switch (status) {
-    case InitiativeStatus.IN_PROGRESS:
-      return 'bg-status-in-progress border-status-in-progress text-status-in-progress-foreground';
-    case InitiativeStatus.DONE:
-      return 'bg-status-done border-status-done text-status-done-foreground';
-    case InitiativeStatus.BLOCKED:
-      return 'bg-destructive border-destructive text-destructive-foreground';
-    case InitiativeStatus.TO_DO:
-      return 'bg-status-todo border-status-todo text-status-todo-foreground';
-    case InitiativeStatus.BACKLOG:
-      return 'bg-muted border-muted text-muted-foreground';
-    default:
-      return 'bg-muted border-muted text-muted-foreground';
-  }
-};
-
-/**
- * ProgressBar component for showing initiative completion progress
- */
-interface ProgressBarProps {
-  progress: number;
-  completed: number;
-  total: number;
-}
-
-const ProgressBar: React.FC<ProgressBarProps> = ({ progress, completed, total }) => (
-  <div className="border-b border-border px-6 py-2.5">
-    <div className="flex items-center gap-4">
-      <div className="flex-1 flex flex-col gap-2">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Progress</span>
-          <span className="text-foreground font-medium">{progress}%</span>
-        </div>
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-      <div className="text-sm text-muted-foreground whitespace-nowrap">
-        Scenes: <span className="text-foreground font-medium">{completed} / {total}</span> complete
-      </div>
-    </div>
-  </div>
-);
-
-/**
- * HeroCard component for displaying hero information with primary color styling
- */
-interface HeroCardProps {
-  hero: HeroDto;
-}
-
-const HeroCard: React.FC<HeroCardProps> = ({ hero }) => (
-  <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
-    <p className="text-sm font-medium text-foreground">{hero.name}</p>
-    {hero.description && (
-      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-        Core Promise: "{hero.description}"
-      </p>
-    )}
-    <CompactButton
-      onClick={() => {}}
-      className="text-primary font-medium mt-2"
-    >
-      
-      View Hero Detail
-    </CompactButton>
-  </div>
-);
-
-/**
- * VillainCard component for displaying villain information with accent/warning styling
- */
-interface VillainCardProps {
-  villain: VillainDto;
-}
-
-const VillainCard: React.FC<VillainCardProps> = ({ villain }) => (
-  <div className="bg-accent/20 border border-accent/40 rounded-lg p-3">
-    <div className="flex items-start gap-2">
-      <span className="text-accent-foreground">⚠</span>
-      <div className="flex-1">
-        <p className="text-sm font-medium text-foreground">{villain.name}</p>
-        {villain.description && (
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-            {villain.description}
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Severity: {villain.severity}/5
-        </p>
-        <CompactButton
-          onClick={() => {}}
-          className="text-accent-foreground font-medium mt-2"
-        >
-          
-          View Villain Detail
-        </CompactButton>
-      </div>
-    </div>
-  </div>
-);
 
 /**
  * ViewStrategicInitiative displays a strategic initiative with full narrative context
@@ -207,15 +100,11 @@ const ViewStrategicInitiative: React.FC = () => {
           <h1 className="text-2xl font-bold text-foreground flex-1">
             {initiative?.identifier}: {initiative?.title}
           </h1>
-          <span
-            className={`px-3 py-1 text-xs font-medium rounded-lg border ${getStatusBadgeStyle(initiative?.status)}`}
-          >
-            {statusDisplay(initiative?.status as any)}
-          </span>
+          <InitiativeStatusBadge status={initiative?.status} />
         </div>
 
         {/* Progress Bar */}
-        <ProgressBar
+        <InitiativeProgressBar
           progress={progress}
           completed={scenesCount.completed}
           total={scenesCount.total}
@@ -227,7 +116,7 @@ const ViewStrategicInitiative: React.FC = () => {
           <div className="flex flex-row w-full gap-8">
             {/* Left Column - Content */}
             <div className="space-y-6 flex-grow">
-              {/* What This Initiative Does Section - NEW */}
+              {/* What This Initiative Does Section */}
               {initiative?.description && (
                 <div className="border border-border rounded-lg p-6 bg-background">
                   <div className="flex items-center justify-between mb-4">
@@ -362,7 +251,6 @@ const ViewStrategicInitiative: React.FC = () => {
                             onClick={() => {}}
                             className="font-medium mt-2"
                           >
-                            
                             View Theme Detail
                           </CompactButton>
                         </div>
@@ -389,7 +277,6 @@ const ViewStrategicInitiative: React.FC = () => {
                             onClick={() => {}}
                             className="font-medium mt-2"
                           >
-                            
                             View Pillar Detail
                           </CompactButton>
                         </div>
