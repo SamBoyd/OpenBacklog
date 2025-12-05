@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useWorkspaces } from '#hooks/useWorkspaces';
-import { useStoryArcDetail } from '#hooks/useStoryArcDetail';
+import { useRoadmapThemeDetail } from '#hooks/useRoadmapThemeDetail';
 import StoryArcDetailLayout from './StoryArcDetailLayout';
 
 /**
@@ -13,7 +13,7 @@ import StoryArcDetailLayout from './StoryArcDetailLayout';
  * This component:
  * 1. Extracts arcId from route params
  * 2. Gets workspace ID from context
- * 3. Fetches story arc data via useStoryArcDetail hook
+ * 3. Fetches story arc data via useRoadmapThemeDetail hook
  * 4. Handles loading, error, and no-data states
  * 5. Wires up navigation handlers
  * 6. Renders StoryArcDetailLayout with fetched data
@@ -39,7 +39,7 @@ const StoryArcDetail = () => {
         metrics,
         isLoading,
         error,
-    } = useStoryArcDetail(workspaceId, arcId || '');
+    } = useRoadmapThemeDetail(workspaceId, arcId || '');
 
     /**
      * Navigate to a specific beat (initiative) detail page.

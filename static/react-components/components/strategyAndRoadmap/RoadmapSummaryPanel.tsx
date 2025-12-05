@@ -1,21 +1,21 @@
 import React, { useState, useMemo } from 'react';
-import { ArcDto } from '#api/productStrategy';
 import { ChevronUp } from 'lucide-react';
+import { ThemeDto } from '#api/productStrategy';
 
 interface RoadmapSummaryPanelProps {
-  arcs: ArcDto[];
+  themes: ThemeDto[];
   onViewAllHeroes?: () => void;
   onViewAllVillains?: () => void;
   onRunConsistencyCheck?: () => void;
 }
 
 /**
- * Summary panel showing statistics about roadmap arcs.
- * Displays arc status counts, heroes served, top villains, and narrative health.
+ * Summary panel showing statistics about roadmap themes.
+ * Displays theme status counts, heroes served, top villains, and narrative health.
  * Can be collapsed/expanded.
  */
 export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
-  arcs,
+  themes,
   onViewAllHeroes,
   onViewAllVillains,
   onRunConsistencyCheck,
@@ -33,8 +33,8 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
     const heroMap = new Map<string, { name: string; count: number }>();
     const villainMap = new Map<string, { name: string; count: number }>();
 
-    arcs.forEach((arc) => {
-      (arc.heroes ?? []).forEach((hero) => {
+    themes.forEach((theme) => {
+      (theme.heroes ?? []).forEach((hero) => {
         const existing = heroMap.get(hero.id) || { name: hero.name, count: 0 };
         heroMap.set(hero.id, {
           name: hero.name,
@@ -42,7 +42,7 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
         });
       });
 
-      (arc.villains ?? []).forEach((villain) => {
+      (theme.villains ?? []).forEach((villain) => {
         const existing = villainMap.get(villain.id) || {
           name: villain.name,
           count: 0,
@@ -67,9 +67,9 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
       counts,
       topHeroes,
       topVillains,
-      total: arcs.length,
+      total: themes.length,
     };
-  }, [arcs]);
+  }, [themes]);
 
   return (
     <div className="bg-background text-foreground   border-t border-border">
@@ -92,10 +92,10 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
       {/* Content */}
       {isExpanded && (
         <div className="px-8 pb-8 flex flex-row gap-4 justify-between flex-wrap">
-          {/* Arc Status Column */}
+          {/* Theme Status Column */}
           <div className="space-y-3 flex-grow">
             <h4 className="text-sm font-medium text-foreground uppercase tracking-wider">
-              Arc Status
+              Theme Status
             </h4>
 
             <div className="space-y-2 text-sm">
@@ -137,7 +137,7 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
               {stats.topHeroes.map((hero) => (
                 <div key={hero.name} className="flex items-center justify-between">
                   <span className="text-foreground">{hero.name}:</span>
-                  <span className="text-foreground">{hero.count} arcs</span>
+                  <span className="text-foreground">{hero.count} themes</span>
                 </div>
               ))}
 
@@ -164,7 +164,7 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
               {stats.topVillains.map((villain) => (
                 <div key={villain.name} className="flex items-center justify-between">
                   <span className="text-foreground">{villain.name}:</span>
-                  <span className="text-foreground">{villain.count} arcs</span>
+                  <span className="text-foreground">{villain.count} themes</span>
                 </div>
               ))}
 
@@ -194,7 +194,7 @@ export const RoadmapSummaryPanel: React.FC<RoadmapSummaryPanelProps> = ({
               </div>
 
               <p className="text-sm text-foreground">
-                High coherence, all arcs well-connected
+                High coherence, all themes well-connected
               </p>
 
               <button

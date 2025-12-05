@@ -1,16 +1,16 @@
 // eslint-disable-next-line n/no-unpublished-import
 import { fn } from '@storybook/test';
-import { ArcDto } from '#api/productStrategy';
-import * as actual from './useStoryArcs';
+import * as actual from './useRoadmapThemes';
+import { ThemeDto } from '#api/productStrategy';
 
-export const useStoryArcs = fn(actual.useStoryArcs).mockName('useStoryArcs');
+export const  useRoadmapThemes = fn(actual. useRoadmapThemes).mockName(' useRoadmapThemes');
 
 /**
- * Mock data for prioritized story arcs (active roadmap themes).
+ * Mock data for prioritized themes (active roadmap themes).
  */
-export const mockPrioritizedArcs: ArcDto[] = [
+export const mockPrioritizedThemes: ThemeDto[] = [
   {
-    id: 'arc-1',
+    id: 'theme-1',
     workspace_id: 'workspace-1',
     name: 'AI-First Product Management',
     description: 'Helping Sarah achieve flow by eliminating context switching with intelligent task automation',
@@ -50,7 +50,7 @@ export const mockPrioritizedArcs: ArcDto[] = [
     ],
   },
   {
-    id: 'arc-2',
+    id: 'theme-2',
     workspace_id: 'workspace-1',
     name: 'Performance Optimization',
     description: 'Improving application speed and responsiveness for power users who work with large datasets',
@@ -81,7 +81,7 @@ export const mockPrioritizedArcs: ArcDto[] = [
     ],
   },
   {
-    id: 'arc-3',
+    id: 'theme-3',
     workspace_id: 'workspace-1',
     name: 'Onboarding Experience Redesign',
     description: 'Helping new users succeed in their first week by providing clear guidance and quick wins',
@@ -114,11 +114,11 @@ export const mockPrioritizedArcs: ArcDto[] = [
 ];
 
 /**
- * Mock data for unprioritized story arcs (backlog themes).
+ * Mock data for unprioritized roadmap themes (backlog themes).
  */
-export const mockUnprioritizedArcs: ArcDto[] = [
+export const mockUnprioritizedThemes: ThemeDto[] = [
   {
-    id: 'arc-4',
+    id: 'theme-4',
     workspace_id: 'workspace-1',
     name: 'Mobile App Launch',
     description: 'Native mobile applications for iOS and Android to enable on-the-go productivity',
@@ -158,7 +158,7 @@ export const mockUnprioritizedArcs: ArcDto[] = [
     ],
   },
   {
-    id: 'arc-5',
+    id: 'theme-5',
     workspace_id: 'workspace-1',
     name: 'Advanced Analytics Dashboard',
     description: 'Comprehensive analytics and insights for data-driven product decisions',
@@ -171,7 +171,7 @@ export const mockUnprioritizedArcs: ArcDto[] = [
     villains: [],
   },
   {
-    id: 'arc-6',
+    id: 'theme-6',
     workspace_id: 'workspace-1',
     name: 'Collaboration Features',
     description: 'Real-time collaboration tools for distributed teams working asynchronously',
@@ -183,13 +183,4 @@ export const mockUnprioritizedArcs: ArcDto[] = [
     heroes: [],
     villains: [],
   },
-];
-
-/**
- * Legacy export for backward compatibility.
- * @deprecated Use mockPrioritizedArcs and mockUnprioritizedArcs instead.
- */
-export const mockStoryArcs: ArcDto[] = [
-  ...mockPrioritizedArcs,
-  ...mockUnprioritizedArcs,
 ];

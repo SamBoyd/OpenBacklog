@@ -99,7 +99,7 @@ function calculateMetrics(beats: BeatItem[], theme: ThemeDto | null): MetricsDat
  * @param {string} arcId - The arc/theme ID
  * @returns {StoryArcDetailData} Complete story arc detail data
  */
-export function useStoryArcDetail(workspaceId: string, arcId: string): StoryArcDetailData {
+export function useRoadmapThemeDetail(workspaceId: string, arcId: string): StoryArcDetailData {
   // Fetch the specific theme/arc with heroes and villains
   const {
     theme: arc,

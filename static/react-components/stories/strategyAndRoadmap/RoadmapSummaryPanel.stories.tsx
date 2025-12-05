@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { RoadmapSummaryPanel } from '#components/strategyAndRoadmap/RoadmapSummaryPanel';
-import { mockStoryArcs } from '#hooks/strategyAndRoadmap/useStoryArcs.mock';
+import { mockPrioritizedThemes, mockUnprioritizedThemes } from '#hooks/strategyAndRoadmap/useRoadmapThemes.mock';
 
 const meta: Meta<typeof RoadmapSummaryPanel> = {
   component: RoadmapSummaryPanel,
@@ -16,7 +16,7 @@ type Story = StoryObj<typeof RoadmapSummaryPanel>;
  */
 export const Expanded: Story = {
   args: {
-    arcs: mockStoryArcs,
+    themes: mockPrioritizedThemes,
     onViewAllHeroes: () => console.log('View All Heroes clicked'),
     onViewAllVillains: () => console.log('View All Villains clicked'),
     onRunConsistencyCheck: () => console.log('Run Consistency Check clicked'),
@@ -28,7 +28,7 @@ export const Expanded: Story = {
  */
 export const Collapsed: Story = {
   args: {
-    arcs: mockStoryArcs,
+    themes: mockPrioritizedThemes,
     onViewAllHeroes: () => console.log('View All Heroes clicked'),
     onViewAllVillains: () => console.log('View All Villains clicked'),
     onRunConsistencyCheck: () => console.log('Run Consistency Check clicked'),
@@ -46,11 +46,11 @@ export const Collapsed: Story = {
 };
 
 /**
- * Summary panel with no arcs (empty state).
+ * Summary panel with no themes (empty state).
  */
 export const Empty: Story = {
   args: {
-    arcs: [],
+    themes: [],
     onViewAllHeroes: () => console.log('View All Heroes clicked'),
     onViewAllVillains: () => console.log('View All Villains clicked'),
     onRunConsistencyCheck: () => console.log('Run Consistency Check clicked'),

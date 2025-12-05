@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useThemePrioritization } from '#hooks/useThemePrioritization';
 import { useHeroes } from '#hooks/useHeroes';
 import { useVillains } from '#hooks/useVillains';
-import { ArcDto, ThemeDto } from '#api/productStrategy';
+import { ThemeDto } from '#api/productStrategy';
 
 /**
  * Custom hook for fetching and combining story arc data for the roadmap overview.
@@ -11,7 +11,7 @@ import { ArcDto, ThemeDto } from '#api/productStrategy';
  * @param {string} workspaceId - The workspace ID
  * @returns {object} Object containing prioritized/unprioritized arcs, loading state, and error
  */
-export function useStoryArcs(workspaceId: string) {
+export function  useRoadmapThemes(workspaceId: string) {
   const {
     prioritizedThemes = [],
     unprioritizedThemes = [],
@@ -34,7 +34,7 @@ export function useStoryArcs(workspaceId: string) {
   } = useVillains(workspaceId);
 
   // Helper function to enrich themes with heroes/villains
-  const enrichThemesWithNarratives = (themes: ThemeDto[]): ArcDto[] => {
+  const enrichThemesWithNarratives = (themes: ThemeDto[]): ThemeDto[] => {
     const heroMap = new Map(heroes.map((h) => [h.id, h]));
     const villainMap = new Map(villains.map((v) => [v.id, v]));
 
@@ -55,19 +55,19 @@ export function useStoryArcs(workspaceId: string) {
     });
   };
 
-  const prioritizedArcs = useMemo(
+  const prioritizedThemesWithNarratives = useMemo(
     () => enrichThemesWithNarratives(prioritizedThemes),
     [prioritizedThemes, heroes, villains]
   );
 
-  const unprioritizedArcs = useMemo(
+  const unprioritizedThemesWithNarratives = useMemo(
     () => enrichThemesWithNarratives(unprioritizedThemes),
     [unprioritizedThemes, heroes, villains]
   );
 
   return {
-    prioritizedArcs,
-    unprioritizedArcs,
+    prioritizedThemes: prioritizedThemesWithNarratives,
+    unprioritizedThemes: unprioritizedThemesWithNarratives,
     isLoadingPrioritized,
     isLoadingUnprioritized,
     isLoading: isLoadingPrioritized || isLoadingUnprioritized || isLoadingHeroes || isLoadingVillains,

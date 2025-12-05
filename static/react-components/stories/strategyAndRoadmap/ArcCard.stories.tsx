@@ -1,23 +1,23 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
-import { ArcCard } from '#components/strategyAndRoadmap/ArcCard';
+import { ThemeCard } from '#components/strategyAndRoadmap/ThemeCard';
 import {
-  mockPrioritizedArcs,
-  mockUnprioritizedArcs,
-} from '#hooks/strategyAndRoadmap/useStoryArcs.mock';
+  mockPrioritizedThemes,
+  mockUnprioritizedThemes,
+} from '#hooks/strategyAndRoadmap/useRoadmapThemes.mock';
 
-const meta: Meta<typeof ArcCard> = {
-  component: ArcCard,
-  title: 'Components/StrategyAndRoadmap/ArcCard',
+const meta: Meta<typeof ThemeCard> = {
+  component: ThemeCard,
+  title: 'Components/StrategyAndRoadmap/ThemeCard',
   tags: ['autodocs'],
 };
 
 export default meta;
-type Story = StoryObj<typeof ArcCard>;
+type Story = StoryObj<typeof ThemeCard>;
 
 const defaultHandlers = {
-  onViewArc: fn(),
-  onViewBeats: fn(),
+  onViewTheme: fn(),
+  onViewInitiatives: fn(),
   onEdit: fn(),
   onMoreOptions: fn(),
 };
@@ -28,7 +28,7 @@ const defaultHandlers = {
  */
 export const WithNarrativeContext: Story = {
   args: {
-    arc: mockPrioritizedArcs[0],
+    theme: mockPrioritizedThemes[0],
     ...defaultHandlers,
   },
 };
@@ -39,7 +39,7 @@ export const WithNarrativeContext: Story = {
  */
 export const MultipleNarratives: Story = {
   args: {
-    arc: mockPrioritizedArcs[1],
+    theme: mockPrioritizedThemes[1],
     ...defaultHandlers,
   },
 };
@@ -50,7 +50,7 @@ export const MultipleNarratives: Story = {
  */
 export const NoNarratives: Story = {
   args: {
-    arc: mockUnprioritizedArcs[1],
+    theme: mockUnprioritizedThemes[1],
     ...defaultHandlers,
   },
 };
@@ -61,8 +61,8 @@ export const NoNarratives: Story = {
  */
 export const LongDescription: Story = {
   args: {
-    arc: {
-      ...mockPrioritizedArcs[0],
+    theme: {
+      ...mockPrioritizedThemes[0],
       description:
         'This is a very long description that demonstrates how the ArcCard component handles text overflow. The description will be truncated to two lines using the line-clamp-2 utility class, ensuring the card maintains a consistent height and clean appearance even when theme descriptions are verbose. This helps maintain visual consistency across the roadmap.',
     },
@@ -76,7 +76,7 @@ export const LongDescription: Story = {
  */
 export const Minimal: Story = {
   args: {
-    arc: {
+    theme: {
       id: 'minimal-1',
       workspace_id: 'workspace-1',
       name: 'Simple Theme',
@@ -99,6 +99,6 @@ export const Minimal: Story = {
  */
 export const NoActions: Story = {
   args: {
-    arc: mockPrioritizedArcs[2],
+    theme: mockPrioritizedThemes[2],
   },
 };

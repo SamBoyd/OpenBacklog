@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import { useStoryArcs } from './useStoryArcs';
+import {  useRoadmapThemes } from './useRoadmapThemes';
 import * as useThemePrioritizationModule from '#hooks/useThemePrioritization';
 import * as useHeroesModule from '#hooks/useHeroes';
 import * as useVillainsModule from '#hooks/useVillains';
@@ -11,7 +11,7 @@ vi.mock('#hooks/useThemePrioritization');
 vi.mock('#hooks/useHeroes');
 vi.mock('#hooks/useVillains');
 
-describe('useStoryArcs', () => {
+describe(' useRoadmapThemes', () => {
   const mockWorkspaceId = 'workspace-1';
 
   const mockPrioritizedThemes: ThemeDto[] = [
@@ -164,16 +164,16 @@ describe('useStoryArcs', () => {
       createMockVillains({ villains: mockVillains })
     );
 
-    const { result } = renderHook(() => useStoryArcs(mockWorkspaceId));
+    const { result } = renderHook(() =>  useRoadmapThemes(mockWorkspaceId));
 
     await waitFor(() => {
-      expect(result.current.prioritizedArcs).toHaveLength(2);
-      expect(result.current.unprioritizedArcs).toHaveLength(1);
+      expect(result.current.prioritizedThemes).toHaveLength(2);
+      expect(result.current.unprioritizedThemes).toHaveLength(1);
     });
 
-    expect(result.current.prioritizedArcs[0].id).toBe('theme-1');
-    expect(result.current.prioritizedArcs[1].id).toBe('theme-2');
-    expect(result.current.unprioritizedArcs[0].id).toBe('theme-3');
+    expect(result.current.prioritizedThemes[0].id).toBe('theme-1');
+    expect(result.current.prioritizedThemes[1].id).toBe('theme-2');
+    expect(result.current.unprioritizedThemes[0].id).toBe('theme-3');
   });
 
   it('should enrich themes with heroes and villains', async () => {
@@ -192,25 +192,25 @@ describe('useStoryArcs', () => {
       createMockVillains({ villains: mockVillains })
     );
 
-    const { result } = renderHook(() => useStoryArcs(mockWorkspaceId));
+    const { result } = renderHook(() =>  useRoadmapThemes(mockWorkspaceId));
 
     await waitFor(() => {
-      expect(result.current.prioritizedArcs).toHaveLength(2);
+      expect(result.current.prioritizedThemes).toHaveLength(2);
     });
 
     // First theme should have enriched heroes and villains
-    const firstArc = result.current.prioritizedArcs[0];
-    expect(firstArc.heroes).toHaveLength(1);
-    expect(firstArc.heroes?.[0].name).toBe('Sarah, The Solo Builder');
-    expect(firstArc.villains).toHaveLength(2);
-    expect(firstArc.villains?.[0].name).toBe('Context Switching');
-    expect(firstArc.villains?.[1].name).toBe('AI Tool Ignorance');
+    const firstTheme = result.current.prioritizedThemes[0];
+    expect(firstTheme.heroes).toHaveLength(1);
+    expect(firstTheme.heroes?.[0].name).toBe('Sarah, The Solo Builder');
+    expect(firstTheme.villains).toHaveLength(2);
+    expect(firstTheme.villains?.[0].name).toBe('Context Switching');
+    expect(firstTheme.villains?.[1].name).toBe('AI Tool Ignorance');
 
     // Second theme should have enriched hero, no villains
-    const secondArc = result.current.prioritizedArcs[1];
-    expect(secondArc.heroes).toHaveLength(1);
-    expect(secondArc.heroes?.[0].name).toBe('Alex, The Power User');
-    expect(secondArc.villains).toHaveLength(0);
+    const secondTheme = result.current.prioritizedThemes[1];
+    expect(secondTheme.heroes).toHaveLength(1);
+    expect(secondTheme.heroes?.[0].name).toBe('Alex, The Power User');
+    expect(secondTheme.villains).toHaveLength(0);
   });
 
   it('should handle combined loading states correctly', async () => {
@@ -229,7 +229,7 @@ describe('useStoryArcs', () => {
       createMockVillains({ isLoading: false })
     );
 
-    const { result } = renderHook(() => useStoryArcs(mockWorkspaceId));
+    const { result } = renderHook(() =>  useRoadmapThemes(mockWorkspaceId));
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.isLoadingPrioritized).toBe(true);
@@ -252,7 +252,7 @@ describe('useStoryArcs', () => {
       createMockVillains({ isLoading: true })
     );
 
-    const { result } = renderHook(() => useStoryArcs(mockWorkspaceId));
+    const { result } = renderHook(() =>  useRoadmapThemes(mockWorkspaceId));
 
     expect(result.current.isLoading).toBe(true);
   });
@@ -274,7 +274,7 @@ describe('useStoryArcs', () => {
       createMockVillains()
     );
 
-    const { result } = renderHook(() => useStoryArcs(mockWorkspaceId));
+    const { result } = renderHook(() =>  useRoadmapThemes(mockWorkspaceId));
 
     expect(result.current.error).toBe(prioritizedError);
   });
@@ -294,7 +294,7 @@ describe('useStoryArcs', () => {
       createMockVillains()
     );
 
-    const { result } = renderHook(() => useStoryArcs(mockWorkspaceId));
+    const { result } = renderHook(() =>  useRoadmapThemes(mockWorkspaceId));
 
     expect(result.current.error).toBe(heroesError);
   });
@@ -312,11 +312,11 @@ describe('useStoryArcs', () => {
       createMockVillains()
     );
 
-    const { result } = renderHook(() => useStoryArcs(mockWorkspaceId));
+    const { result } = renderHook(() =>  useRoadmapThemes(mockWorkspaceId));
 
     await waitFor(() => {
-      expect(result.current.prioritizedArcs).toEqual([]);
-      expect(result.current.unprioritizedArcs).toEqual([]);
+      expect(result.current.prioritizedThemes).toEqual([]);
+      expect(result.current.unprioritizedThemes).toEqual([]);
       expect(result.current.isLoading).toBe(false);
       expect(result.current.error).toBeNull();
     });
@@ -352,15 +352,15 @@ describe('useStoryArcs', () => {
       createMockVillains({ villains: mockVillains })
     );
 
-    const { result } = renderHook(() => useStoryArcs(mockWorkspaceId));
+    const { result } = renderHook(() =>  useRoadmapThemes(mockWorkspaceId));
 
     await waitFor(() => {
-      expect(result.current.prioritizedArcs).toHaveLength(1);
+      expect(result.current.prioritizedThemes).toHaveLength(1);
     });
 
     // Should filter out non-existent references
-    const arc = result.current.prioritizedArcs[0];
-    expect(arc.heroes).toEqual([]);
-    expect(arc.villains).toEqual([]);
+    const theme = result.current.prioritizedThemes[0];
+    expect(theme.heroes).toEqual([]);
+    expect(theme.villains).toEqual([]);
   });
 });

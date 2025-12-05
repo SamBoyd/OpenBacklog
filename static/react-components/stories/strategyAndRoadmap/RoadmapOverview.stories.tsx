@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { RoadmapOverview } from '#pages/RoadmapOverview';
-import { mockPrioritizedArcs, mockUnprioritizedArcs, useStoryArcs } from '#hooks/strategyAndRoadmap/useStoryArcs.mock';
+import { mockPrioritizedThemes, mockUnprioritizedThemes, useRoadmapThemes } from '#hooks/strategyAndRoadmap/useRoadmapThemes.mock';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 import { mockWorkspacesReturn } from '#stories/example_data';
 
@@ -30,9 +30,9 @@ export const Default: Story = {
     layout: 'fullscreen',
   },
   beforeEach: () => {
-    useStoryArcs.mockReturnValue({
-      prioritizedArcs: mockPrioritizedArcs,
-      unprioritizedArcs: mockUnprioritizedArcs,
+    useRoadmapThemes.mockReturnValue({
+      prioritizedThemes: mockPrioritizedThemes,
+      unprioritizedThemes: mockUnprioritizedThemes,
       isLoading: false,
       error: null,
       isLoadingPrioritized: false,
@@ -46,9 +46,9 @@ export const Default: Story = {
  */
 export const Loading: Story = {
   beforeEach: () => {
-    useStoryArcs.mockReturnValue({
-      prioritizedArcs: [],
-      unprioritizedArcs: [],
+    useRoadmapThemes.mockReturnValue({
+      prioritizedThemes: [],
+      unprioritizedThemes: [],
       isLoading: true,
       error: null,
       isLoadingPrioritized: false,
@@ -62,9 +62,9 @@ export const Loading: Story = {
  */
 export const Empty: Story = {
   beforeEach: () => {
-    useStoryArcs.mockReturnValue({
-      prioritizedArcs: [],
-      unprioritizedArcs: [],
+    useRoadmapThemes.mockReturnValue({
+      prioritizedThemes: [],
+      unprioritizedThemes: [],
       isLoading: false,
       error: null,
       isLoadingPrioritized: false,
@@ -78,9 +78,9 @@ export const Empty: Story = {
  */
 export const WithError: Story = {
   beforeEach: () => {
-    useStoryArcs.mockReturnValue({
-      prioritizedArcs: [],
-      unprioritizedArcs: [],
+    useRoadmapThemes.mockReturnValue({
+      prioritizedThemes: [],
+      unprioritizedThemes: [],
       isLoadingPrioritized: false,
       isLoadingUnprioritized: false,
       error: new Error('Failed to load roadmap'),

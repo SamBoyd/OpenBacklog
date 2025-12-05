@@ -278,13 +278,13 @@
       "storybook": "./hooks/useConflicts.mock.tsx",
       "default": "./hooks/useConflicts.tsx"
     },
-    "#hooks/strategyAndRoadmap/useStoryArcs": {
-      "storybook": "./hooks/strategyAndRoadmap/useStoryArcs.mock.tsx",
-      "default": "./hooks/strategyAndRoadmap/useStoryArcs.tsx"
+    "#hooks/strategyAndRoadmap/useRoadmapThemes": {
+      "storybook": "./hooks/strategyAndRoadmap/useRoadmapThemes.mock.tsx",
+      "default": "./hooks/strategyAndRoadmap/useRoadmapThemes.tsx"
     },
-    "#hooks/useStoryArcDetail": {
-      "storybook": "./hooks/useStoryArcDetail.mock.tsx",
-      "default": "./hooks/useStoryArcDetail.tsx"
+    "#hooks/useRoadmapThemeDetail": {
+      "storybook": "./hooks/useRoadmapThemeDetail.mock.tsx",
+      "default": "./hooks/useRoadmapThemeDetail.tsx"
     },
     "#styles": {
       "default": "./styles"

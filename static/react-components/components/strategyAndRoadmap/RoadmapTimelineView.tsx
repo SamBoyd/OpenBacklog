@@ -1,28 +1,23 @@
 import React, { useMemo } from 'react';
-import { ArcDto } from '#api/productStrategy';
-import { ArcCard } from './ArcCard';
+import { ThemeDto } from '#api/productStrategy';
 
 interface RoadmapTimelineViewProps {
-  arcs: ArcDto[];
+  themes: ThemeDto[];
   isLoading?: boolean;
-  onViewArc?: (arcId: string) => void;
-  onViewInitiatives?: (arcId: string) => void;
-  onEdit?: (arcId: string) => void;
-  onMoreOptions?: (arcId: string) => void;
-}
-
-interface ArcsByQuarter {
-  [quarter: string]: ArcDto[];
+  onViewTheme?: (themeId: string) => void;
+  onViewInitiatives?: (themeId: string) => void;
+  onEdit?: (themeId: string) => void;
+  onMoreOptions?: (themeId: string) => void;
 }
 
 /**
- * List view of roadmap arcs grouped by quarter.
- * Displays arcs in chronological order with quarter separators.
+ * Timeline view of roadmap themes.
+ * Displays themes in chronological order with quarter separators.
  */
 export const RoadmapTimelineView: React.FC<RoadmapTimelineViewProps> = ({
-  arcs,
+  themes,
   isLoading = false,
-  onViewArc,
+  onViewTheme,
   onViewInitiatives,
   onEdit,
   onMoreOptions,

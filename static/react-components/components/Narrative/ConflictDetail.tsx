@@ -192,11 +192,11 @@ const ConflictDetail: React.FC<ConflictDetailProps> = ({
                         </div>
                     </div>
 
-                    {/* Story Arc (if linked) */}
+                    {/* Theme (if linked) */}
                     {conflict.story_arc && (
                         <div className="space-y-2">
                             <h3 className="text-sm font-semibold text-muted-foreground uppercase">
-                                Story Arc
+                                Theme
                             </h3>
                             <div className="p-3 bg-muted rounded">
                                 <div className="font-medium">{conflict.story_arc.title}</div>

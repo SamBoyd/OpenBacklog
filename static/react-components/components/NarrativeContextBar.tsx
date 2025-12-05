@@ -1,8 +1,9 @@
 import React from 'react';
 import { HeroDto, VillainDto } from '#types';
+import { ThemeDto } from '#api/productStrategy';
 
 export interface NarrativeContextBarProps {
-  parentArc?: any; // ThemeDto
+  parentTheme?: ThemeDto;
   heroes: HeroDto[];
   villains: VillainDto[];
   progress: number; // 0-100
@@ -11,12 +12,12 @@ export interface NarrativeContextBarProps {
 
 /**
  * NarrativeContextBar displays narrative context at the top of ViewStrategicInitiative
- * Shows parent arc, heroes, villains, and overall progress
+ * Shows parent theme, heroes, villains, and overall progress
  * @param {NarrativeContextBarProps} props - The component props
  * @returns {React.ReactElement} The NarrativeContextBar component
  */
 const NarrativeContextBar: React.FC<NarrativeContextBarProps> = ({
-  parentArc,
+  parentTheme,
   heroes,
   villains,
   progress,
@@ -25,14 +26,14 @@ const NarrativeContextBar: React.FC<NarrativeContextBarProps> = ({
   return (
     <div className="bg-background border-b border-border px-6 py-4">
       <div className="max-w-7xl mx-auto">
-        {/* Parent Arc Info */}
-        {parentArc && (
+        {/* Parent Theme Info */}
+        {parentTheme && (
           <div className="mb-4">
-            <p className="text-xs text-muted-foreground mb-2">STORY ARC</p>
-            <h2 className="text-lg font-semibold text-foreground">{parentArc.name}</h2>
-            {parentArc.description && (
+            <p className="text-xs text-muted-foreground mb-2">THEME</p>
+            <h2 className="text-lg font-semibold text-foreground">{parentTheme.name}</h2>
+            {parentTheme.description && (
               <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                {parentArc.description}
+                {parentTheme.description}
               </p>
             )}
           </div>

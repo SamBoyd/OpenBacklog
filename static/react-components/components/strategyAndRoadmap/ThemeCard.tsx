@@ -1,22 +1,22 @@
 import React from 'react';
-import { ArcDto } from '#api/productStrategy';
+import { ThemeDto } from '#api/productStrategy';
 import { Eye, MoreHorizontal, ShieldAlert, UserRound } from 'lucide-react';
 import { Button, IconButton } from '#components/reusable/Button';
 
-interface ArcCardProps {
-  arc: ArcDto;
-  onViewArc?: (arcId: string) => void;
-  onViewInitiatives?: (arcId: string) => void;
-  onMoreOptions?: (arcId: string) => void;
+interface ThemeCardProps {
+  theme: ThemeDto;
+  onViewTheme?: (themeId: string) => void;
+  onViewInitiatives?: (themeId: string) => void;
+  onMoreOptions?: (themeId: string) => void;
 }
 
 /**
  * Displays a single roadmap theme with narrative context (heroes/villains).
  * Shows theme information and action buttons for viewing details.
  */
-export const ArcCard: React.FC<ArcCardProps> = ({
-  arc,
-  onViewArc,
+export const ThemeCard: React.FC<ThemeCardProps> = ({
+  theme,
+  onViewTheme,
   onViewInitiatives,
   onMoreOptions,
 }) => {
@@ -24,29 +24,29 @@ export const ArcCard: React.FC<ArcCardProps> = ({
     <div className="bg-background text-foreground border-border rounded-lg p-5 space-y-4 hover:border-border transition-colors">
       {/* Header */}
       <div>
-        <h3 className="text-lg font-medium text-foreground0 mb-2">{arc.name}</h3>
+        <h3 className="text-lg font-medium text-foreground0 mb-2">{theme.name}</h3>
         <p className="text-sm text-foreground line-clamp-2">
-          {arc.description}
+          {theme.description}
         </p>
       </div>
 
       {/* Heroes & Villains Metadata */}
       <div className="space-y-2 text-sm">
-        {(arc.heroes ?? []).length > 0 && (
+        {(theme.heroes ?? []).length > 0 && (
           <div className="flex gap-2 items-start">
             <UserRound className="text-primary"/>
             <span className="text-foreground font-medium">Heroes:</span>
             <span className="text-foreground">
-              {arc.heroes?.map((h) => h.name).join(', ')}
+              {theme.heroes?.map((h) => h.name).join(', ')}
             </span>
           </div>
         )}
-        {(arc.villains ?? []).length > 0 && (
+        {(theme.villains ?? []).length > 0 && (
           <div className="flex gap-2 items-start">
             <ShieldAlert className="text-destructive"/>
             <span className="text-foreground font-medium">Villains:</span>
             <span className="text-foreground">
-              {arc.villains?.map((v) => v.name).join(', ')}
+              {theme.villains?.map((v) => v.name).join(', ')}
             </span>
           </div>
         )}
@@ -54,9 +54,9 @@ export const ArcCard: React.FC<ArcCardProps> = ({
 
       {/* Action Buttons */}
       <div className="flex gap-2 pt-2 border-t border-border">
-        {onViewArc && (
+        {onViewTheme && (
           <Button
-            onClick={() => onViewArc(arc.id)}
+            onClick={() => onViewTheme(theme.id)}
           >
             <Eye />
             View Theme
@@ -64,14 +64,14 @@ export const ArcCard: React.FC<ArcCardProps> = ({
         )}
         {onViewInitiatives && (
           <Button
-            onClick={() => onViewInitiatives(arc.id)}
+            onClick={() => onViewInitiatives(theme.id)}
           >
             View Initiatives
           </Button>
         )}
         {onMoreOptions && (
           <IconButton
-            onClick={() => onMoreOptions(arc.id)}
+            onClick={() => onMoreOptions(theme.id)}
             icon={<MoreHorizontal size={14} />}
           >
             More options

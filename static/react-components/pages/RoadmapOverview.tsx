@@ -3,7 +3,7 @@ import { RoadmapHeader } from '#components/strategyAndRoadmap/RoadmapHeader';
 import { RoadmapFilterControls } from '#components/strategyAndRoadmap/RoadmapFilterControls';
 import { RoadmapListView } from '#components/strategyAndRoadmap/RoadmapListView';
 import { RoadmapSummaryPanel } from '#components/strategyAndRoadmap/RoadmapSummaryPanel';
-import { useStoryArcs } from '#hooks/strategyAndRoadmap/useStoryArcs';
+import { useRoadmapThemes } from '#hooks/strategyAndRoadmap/useRoadmapThemes';
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { RoadmapCalendarView } from '#components/strategyAndRoadmap/RoadmapCalendarView';
 import { RoadmapTimelineView } from '#components/strategyAndRoadmap/RoadmapTimelineView';
@@ -16,25 +16,25 @@ import { RoadmapTimelineView } from '#components/strategyAndRoadmap/RoadmapTimel
 export function RoadmapOverview() {
   const { currentWorkspace } = useWorkspaces();
   const {
-    prioritizedArcs,
-    unprioritizedArcs,
+    prioritizedThemes,
+    unprioritizedThemes,
     isLoading
-  } = useStoryArcs(currentWorkspace?.id || '');
+  } = useRoadmapThemes(currentWorkspace?.id || '');
 
   const [currentView, setCurrentView] = useState<'timeline' | 'list' | 'calendar'>('list');
   
-  const handleViewArc = (arcId: string) => {
-    console.log('View Arc:', arcId);
-    // TODO: Navigate to arc detail view
+  const handleViewTheme = (themeId: string) => {
+    console.log('View Theme:', themeId);
+    // TODO: Navigate to theme detail view
   };
 
-  const handleViewInitiatives = (arcId: string) => {
-    console.log('View Initiatives/Retrospective:', arcId);
+  const handleViewInitiatives = (themeId: string) => {
+    console.log('View Initiatives/Retrospective:', themeId);
     // TODO: Navigate to Initiatives view
   };
 
-  const handleArcMoreOptions = (arcId: string) => {
-    console.log('More Options for Arc:', arcId);
+  const handleThemeMoreOptions = (themeId: string) => {
+    console.log('More Options for Theme:', themeId);
     // TODO: Show context menu
   };
 
@@ -73,12 +73,12 @@ export function RoadmapOverview() {
       {currentView === 'list' && (
         <div className="flex-1 overflow-y-auto">
           <RoadmapListView
-            prioritizedArcs={prioritizedArcs}
-            unprioritizedArcs={unprioritizedArcs}
+            prioritizedThemes={prioritizedThemes}
+            unprioritizedThemes={unprioritizedThemes}
             isLoading={isLoading}
-            onViewArc={handleViewArc}
+            onViewTheme={handleViewTheme}
             onViewInitiatives={handleViewInitiatives}
-            onMoreOptions={handleArcMoreOptions}
+            onMoreOptions={handleThemeMoreOptions}
           />
         </div>
       )}
@@ -86,9 +86,9 @@ export function RoadmapOverview() {
       {currentView === 'timeline' && (
         <div className="flex-1 overflow-y-auto">
           <RoadmapTimelineView
-            arcs={[]}
+            themes={[]}
             isLoading={isLoading}
-            onViewArc={handleViewArc}
+            onViewTheme={handleViewTheme}
             onViewInitiatives={handleViewInitiatives}
           />
         </div>
@@ -97,9 +97,9 @@ export function RoadmapOverview() {
       {currentView === 'calendar' && (
         <div className="flex-1 overflow-y-auto">
           <RoadmapCalendarView
-            arcs={[]}
+            themes={[]}
             isLoading={isLoading}
-            onViewArc={handleViewArc}
+            onViewTheme={handleViewTheme}
             onViewInitiatives={handleViewInitiatives}
           />
         </div>
@@ -107,7 +107,7 @@ export function RoadmapOverview() {
 
       {/* Summary Panel */}
       <RoadmapSummaryPanel
-        arcs={[...prioritizedArcs, ...unprioritizedArcs]}
+        themes={[...prioritizedThemes, ...unprioritizedThemes]}
         onViewAllHeroes={handleViewAllHeroes}
         onViewAllVillains={handleViewAllVillains}
         onRunConsistencyCheck={handleRunConsistencyCheck}

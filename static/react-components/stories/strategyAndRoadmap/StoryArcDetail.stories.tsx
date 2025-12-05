@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import StoryArcDetail from '../../pages/Narrative/StoryArcDetail/StoryArcDetail';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
-import { useStoryArcDetail } from '#hooks/useStoryArcDetail.mock';
+import { useRoadmapThemeDetail } from '#hooks/useRoadmapThemeDetail.mock';
 const { reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
 
 import { mockWorkspace, mockWorkspacesReturn } from '#stories/example_data';
@@ -48,7 +48,7 @@ type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {
   decorators: [
     (Story) => {
-      useStoryArcDetail.mockReturnValue({
+      useRoadmapThemeDetail.mockReturnValue({
         arc: mockArc,
         hero: mockHero,
         villains: mockVillains,
@@ -71,7 +71,7 @@ export const Loaded: Story = {
 export const Loading: Story = {
   decorators: [
     (Story) => {
-      useStoryArcDetail.mockReturnValue({
+      useRoadmapThemeDetail.mockReturnValue({
         arc: null,
         hero: null,
         villains: [],
@@ -94,7 +94,7 @@ export const Loading: Story = {
 export const Error: Story = {
   decorators: [
     (Story) => {
-      useStoryArcDetail.mockReturnValue({
+      useRoadmapThemeDetail.mockReturnValue({
         arc: null,
         hero: null,
         villains: [],
@@ -117,7 +117,7 @@ export const Error: Story = {
 export const NoArc: Story = {
   decorators: [
     (Story) => {
-      useStoryArcDetail.mockReturnValue({
+      useRoadmapThemeDetail.mockReturnValue({
         arc: null,
         hero: null,
         villains: [],
@@ -151,7 +151,7 @@ export const NoWorkspace: Story = {
         isProcessing: false,
       });
 
-      useStoryArcDetail.mockReturnValue({
+      useRoadmapThemeDetail.mockReturnValue({
         arc: null,
         hero: null,
         villains: [],

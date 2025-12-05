@@ -345,15 +345,6 @@ export interface ThemeDto {
   villains?: VillainRef[];
 }
 
-/**
- * Theme data enriched with narrative context for roadmap overview display.
- * Extends ThemeDto with embedded heroes and villains populated from hero_ids and villain_ids.
- * Used for displaying themes in prioritized/unprioritized roadmap sections.
- */
-export interface ArcDto extends ThemeDto {
-  // Inherits all ThemeDto fields including embedded heroes and villains
-  // No additional fields - this is now effectively an alias for ThemeDto with narratives
-}
 
 /**
  * Fetches all roadmap themes for a workspace with embedded heroes and villains.

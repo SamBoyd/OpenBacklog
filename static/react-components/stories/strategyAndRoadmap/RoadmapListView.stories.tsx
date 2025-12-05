@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
 import { RoadmapListView } from '#components/strategyAndRoadmap/RoadmapListView';
 import {
-  mockPrioritizedArcs,
-  mockUnprioritizedArcs,
-} from '#hooks/strategyAndRoadmap/useStoryArcs.mock';
+  mockPrioritizedThemes,
+  mockUnprioritizedThemes,
+} from '#hooks/strategyAndRoadmap/useRoadmapThemes.mock';
 
 const meta: Meta<typeof RoadmapListView> = {
   component: RoadmapListView,
@@ -16,8 +16,8 @@ export default meta;
 type Story = StoryObj<typeof RoadmapListView>;
 
 const defaultHandlers = {
-  onViewArc: fn(),
-  onViewBeats: fn(),
+  onViewTheme: fn(),
+  onViewInitiatives: fn(),
   onEdit: fn(),
   onMoreOptions: fn(),
 };
@@ -28,8 +28,8 @@ const defaultHandlers = {
  */
 export const Default: Story = {
   args: {
-    prioritizedArcs: mockPrioritizedArcs,
-    unprioritizedArcs: mockUnprioritizedArcs,
+    prioritizedThemes: mockPrioritizedThemes,
+    unprioritizedThemes: mockUnprioritizedThemes,
     isLoading: false,
     ...defaultHandlers,
   },
@@ -41,8 +41,8 @@ export const Default: Story = {
  */
 export const OnlyPrioritized: Story = {
   args: {
-    prioritizedArcs: mockPrioritizedArcs,
-    unprioritizedArcs: [],
+    prioritizedThemes: mockPrioritizedThemes,
+    unprioritizedThemes: [],
     isLoading: false,
     ...defaultHandlers,
   },
@@ -54,8 +54,8 @@ export const OnlyPrioritized: Story = {
  */
 export const OnlyBacklog: Story = {
   args: {
-    prioritizedArcs: [],
-    unprioritizedArcs: mockUnprioritizedArcs,
+    prioritizedThemes: [],
+    unprioritizedThemes: mockUnprioritizedThemes,
     isLoading: false,
     ...defaultHandlers,
   },
@@ -67,8 +67,8 @@ export const OnlyBacklog: Story = {
  */
 export const Empty: Story = {
   args: {
-    prioritizedArcs: [],
-    unprioritizedArcs: [],
+    prioritizedThemes: [],
+    unprioritizedThemes: [],
     isLoading: false,
     ...defaultHandlers,
   },
@@ -79,8 +79,8 @@ export const Empty: Story = {
  */
 export const Loading: Story = {
   args: {
-    prioritizedArcs: [],
-    unprioritizedArcs: [],
+    prioritizedThemes: [],
+    unprioritizedThemes: [],
     isLoading: true,
   },
 };
@@ -91,8 +91,8 @@ export const Loading: Story = {
  */
 export const SingleTheme: Story = {
   args: {
-    prioritizedArcs: [mockPrioritizedArcs[0]],
-    unprioritizedArcs: [],
+    prioritizedThemes: [mockPrioritizedThemes[0]],
+    unprioritizedThemes: [],
     isLoading: false,
     ...defaultHandlers,
   },
@@ -104,12 +104,12 @@ export const SingleTheme: Story = {
  */
 export const MaxPrioritized: Story = {
   args: {
-    prioritizedArcs: [
-      ...mockPrioritizedArcs,
-      { ...mockUnprioritizedArcs[0], id: 'extra-1' },
-      { ...mockUnprioritizedArcs[1], id: 'extra-2' },
+    prioritizedThemes: [
+      ...mockPrioritizedThemes,
+      { ...mockUnprioritizedThemes[0], id: 'extra-1' },
+      { ...mockUnprioritizedThemes[1], id: 'extra-2' },
     ],
-    unprioritizedArcs: [mockUnprioritizedArcs[2]],
+    unprioritizedThemes: [mockUnprioritizedThemes[2]],
     isLoading: false,
     ...defaultHandlers,
   },

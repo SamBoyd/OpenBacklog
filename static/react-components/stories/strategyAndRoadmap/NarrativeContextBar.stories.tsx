@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import NarrativeContextBar from '../../pages/Narrative/StoryArcDetail/NarrativeContextBar';
+import NarrativeContextBar from '#components/NarrativeContextBar';
 import { mockHero, mockSecondaryHero, mockVillains, mockThemes } from './mockData';
 
 const meta: Meta<typeof NarrativeContextBar> = {
