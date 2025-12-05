@@ -1,13 +1,12 @@
 import React from 'react';
 import { ArcDto } from '#api/productStrategy';
-import { MoreHorizontal } from 'lucide-react';
-import { Button } from '#components/reusable/Button';
+import { Eye, MoreHorizontal, ShieldAlert, UserRound } from 'lucide-react';
+import { Button, IconButton } from '#components/reusable/Button';
 
 interface ArcCardProps {
   arc: ArcDto;
   onViewArc?: (arcId: string) => void;
   onViewInitiatives?: (arcId: string) => void;
-  onEdit?: (arcId: string) => void;
   onMoreOptions?: (arcId: string) => void;
 }
 
@@ -19,7 +18,6 @@ export const ArcCard: React.FC<ArcCardProps> = ({
   arc,
   onViewArc,
   onViewInitiatives,
-  onEdit,
   onMoreOptions,
 }) => {
   return (
@@ -36,6 +34,7 @@ export const ArcCard: React.FC<ArcCardProps> = ({
       <div className="space-y-2 text-sm">
         {(arc.heroes ?? []).length > 0 && (
           <div className="flex gap-2 items-start">
+            <UserRound className="text-primary"/>
             <span className="text-foreground font-medium">Heroes:</span>
             <span className="text-foreground">
               {arc.heroes?.map((h) => h.name).join(', ')}
@@ -44,6 +43,7 @@ export const ArcCard: React.FC<ArcCardProps> = ({
         )}
         {(arc.villains ?? []).length > 0 && (
           <div className="flex gap-2 items-start">
+            <ShieldAlert className="text-destructive"/>
             <span className="text-foreground font-medium">Villains:</span>
             <span className="text-foreground">
               {arc.villains?.map((v) => v.name).join(', ')}
@@ -58,6 +58,7 @@ export const ArcCard: React.FC<ArcCardProps> = ({
           <Button
             onClick={() => onViewArc(arc.id)}
           >
+            <Eye />
             View Theme
           </Button>
         )}
@@ -68,21 +69,13 @@ export const ArcCard: React.FC<ArcCardProps> = ({
             View Initiatives
           </Button>
         )}
-        {onEdit && (
-          <Button
-            onClick={() => onEdit(arc.id)}
-            title="Edit theme"
-          >
-            ✎
-          </Button>
-        )}
         {onMoreOptions && (
-          <Button
+          <IconButton
             onClick={() => onMoreOptions(arc.id)}
-            title="More options"
+            icon={<MoreHorizontal size={14} />}
           >
-            <MoreHorizontal size={14} />
-          </Button>
+            More options
+          </IconButton>
         )}
       </div>
     </div>

@@ -33,11 +33,6 @@ export function RoadmapOverview() {
     // TODO: Navigate to Initiatives view
   };
 
-  const handleEditArc = (arcId: string) => {
-    console.log('Edit Arc:', arcId);
-    // TODO: Navigate to arc edit view
-  };
-
   const handleArcMoreOptions = (arcId: string) => {
     console.log('More Options for Arc:', arcId);
     // TODO: Show context menu
@@ -83,7 +78,6 @@ export function RoadmapOverview() {
             isLoading={isLoading}
             onViewArc={handleViewArc}
             onViewInitiatives={handleViewInitiatives}
-            onEdit={handleEditArc}
             onMoreOptions={handleArcMoreOptions}
           />
         </div>

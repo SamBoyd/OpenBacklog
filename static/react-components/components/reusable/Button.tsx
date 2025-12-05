@@ -140,7 +140,7 @@ export const IconButton: React.FC<ButtonProps> = ({ useRef, id, title, children,
             {...props}
         >
             {icon}
-            <span>{title}</span>
+            {title && <span>{title}</span>}
         </button>
     );
 };

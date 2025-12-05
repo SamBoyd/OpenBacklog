@@ -8,7 +8,6 @@ interface RoadmapListViewProps {
   isLoading?: boolean;
   onViewArc?: (arcId: string) => void;
   onViewInitiatives?: (arcId: string) => void;
-  onEdit?: (arcId: string) => void;
   onMoreOptions?: (arcId: string) => void;
 }
 
@@ -22,7 +21,6 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
   isLoading = false,
   onViewArc,
   onViewInitiatives,
-  onEdit,
   onMoreOptions,
 }) => {
   if (isLoading) {
@@ -57,16 +55,11 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
         {prioritizedArcs.length > 0 ? (
           <div className="space-y-4 pl-8">
             {prioritizedArcs.map((arc, index) => (
-              <div key={arc.id} className="relative">
-                {/* Priority badge */}
-                <div className="absolute -left-8 top-4 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-semibold">
-                  {index + 1}
-                </div>
+              <div key={arc.id} className="relative border-2 border-primary/50 rounded-lg">
                 <ArcCard
                   arc={arc}
                   onViewArc={onViewArc}
                   onViewInitiatives={onViewInitiatives}
-                  onEdit={onEdit}
                   onMoreOptions={onMoreOptions}
                 />
               </div>
@@ -97,7 +90,6 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
                 arc={arc}
                 onViewArc={onViewArc}
                 onViewInitiatives={onViewInitiatives}
-                onEdit={onEdit}
                 onMoreOptions={onMoreOptions}
               />
             ))}
