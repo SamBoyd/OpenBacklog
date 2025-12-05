@@ -6,7 +6,7 @@ import { Button } from '#components/reusable/Button';
 interface ArcCardProps {
   arc: ArcDto;
   onViewArc?: (arcId: string) => void;
-  onViewBeats?: (arcId: string) => void;
+  onViewInitiatives?: (arcId: string) => void;
   onEdit?: (arcId: string) => void;
   onMoreOptions?: (arcId: string) => void;
 }
@@ -18,7 +18,7 @@ interface ArcCardProps {
 export const ArcCard: React.FC<ArcCardProps> = ({
   arc,
   onViewArc,
-  onViewBeats,
+  onViewInitiatives,
   onEdit,
   onMoreOptions,
 }) => {
@@ -61,11 +61,11 @@ export const ArcCard: React.FC<ArcCardProps> = ({
             View Theme
           </Button>
         )}
-        {onViewBeats && (
+        {onViewInitiatives && (
           <Button
-            onClick={() => onViewBeats(arc.id)}
+            onClick={() => onViewInitiatives(arc.id)}
           >
-            View Beats
+            View Initiatives
           </Button>
         )}
         {onEdit && (

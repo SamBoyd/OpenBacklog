@@ -6,7 +6,7 @@ interface RoadmapCalendarViewProps {
   arcs: ArcDto[];
   isLoading?: boolean;
   onViewArc?: (arcId: string) => void;
-  onViewBeats?: (arcId: string) => void;
+  onViewInitiatives?: (arcId: string) => void;
   onEdit?: (arcId: string) => void;
   onMoreOptions?: (arcId: string) => void;
 }
@@ -23,7 +23,7 @@ export const RoadmapCalendarView: React.FC<RoadmapCalendarViewProps> = ({
   arcs,
   isLoading = false,
   onViewArc,
-  onViewBeats,
+  onViewInitiatives,
   onEdit,
   onMoreOptions,
 }) => {

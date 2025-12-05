@@ -7,7 +7,7 @@ interface RoadmapListViewProps {
   unprioritizedArcs: ArcDto[];
   isLoading?: boolean;
   onViewArc?: (arcId: string) => void;
-  onViewBeats?: (arcId: string) => void;
+  onViewInitiatives?: (arcId: string) => void;
   onEdit?: (arcId: string) => void;
   onMoreOptions?: (arcId: string) => void;
 }
@@ -21,7 +21,7 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
   unprioritizedArcs,
   isLoading = false,
   onViewArc,
-  onViewBeats,
+  onViewInitiatives,
   onEdit,
   onMoreOptions,
 }) => {
@@ -65,7 +65,7 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
                 <ArcCard
                   arc={arc}
                   onViewArc={onViewArc}
-                  onViewBeats={onViewBeats}
+                  onViewInitiatives={onViewInitiatives}
                   onEdit={onEdit}
                   onMoreOptions={onMoreOptions}
                 />
@@ -96,7 +96,7 @@ export const RoadmapListView: React.FC<RoadmapListViewProps> = ({
                 key={arc.id}
                 arc={arc}
                 onViewArc={onViewArc}
-                onViewBeats={onViewBeats}
+                onViewInitiatives={onViewInitiatives}
                 onEdit={onEdit}
                 onMoreOptions={onMoreOptions}
               />

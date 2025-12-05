@@ -28,9 +28,9 @@ export function RoadmapOverview() {
     // TODO: Navigate to arc detail view
   };
 
-  const handleViewBeats = (arcId: string) => {
-    console.log('View Beats/Retrospective:', arcId);
-    // TODO: Navigate to beats view
+  const handleViewInitiatives = (arcId: string) => {
+    console.log('View Initiatives/Retrospective:', arcId);
+    // TODO: Navigate to Initiatives view
   };
 
   const handleEditArc = (arcId: string) => {
@@ -82,7 +82,7 @@ export function RoadmapOverview() {
             unprioritizedArcs={unprioritizedArcs}
             isLoading={isLoading}
             onViewArc={handleViewArc}
-            onViewBeats={handleViewBeats}
+            onViewInitiatives={handleViewInitiatives}
             onEdit={handleEditArc}
             onMoreOptions={handleArcMoreOptions}
           />
@@ -95,7 +95,7 @@ export function RoadmapOverview() {
             arcs={[]}
             isLoading={isLoading}
             onViewArc={handleViewArc}
-            onViewBeats={handleViewBeats}
+            onViewInitiatives={handleViewInitiatives}
           />
         </div>
       )}
@@ -106,7 +106,7 @@ export function RoadmapOverview() {
             arcs={[]}
             isLoading={isLoading}
             onViewArc={handleViewArc}
-            onViewBeats={handleViewBeats}
+            onViewInitiatives={handleViewInitiatives}
           />
         </div>
       )}
