@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThemeDto } from '#api/productStrategy';
-import { Eye, MoreHorizontal, ShieldAlert, UserRound } from 'lucide-react';
+import { Eye, MoreHorizontal, ShieldAlert, UserRound, Target, Compass } from 'lucide-react';
 import { Button, IconButton } from '#components/reusable/Button';
 
 interface ThemeCardProps {
@@ -30,7 +30,7 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({
         </p>
       </div>
 
-      {/* Heroes & Villains Metadata */}
+      {/* Heroes & Villains & Strategic Context Metadata */}
       <div className="space-y-2 text-sm">
         {(theme.heroes ?? []).length > 0 && (
           <div className="flex gap-2 items-start">
@@ -47,6 +47,24 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({
             <span className="text-foreground font-medium">Villains:</span>
             <span className="text-foreground">
               {theme.villains?.map((v) => v.name).join(', ')}
+            </span>
+          </div>
+        )}
+        {(theme.outcomes ?? []).length > 0 && (
+          <div className="flex gap-2 items-start">
+            <Target className="text-success/30"/>
+            <span className="text-foreground font-medium">Outcomes:</span>
+            <span className="text-foreground">
+              {theme.outcomes?.map((o) => o.name).join(', ')}
+            </span>
+          </div>
+        )}
+        {(theme.pillars ?? []).length > 0 && (
+          <div className="flex gap-2 items-start">
+            <Compass className="text-accent/50"/>
+            <span className="text-foreground font-medium">Pillars:</span>
+            <span className="text-foreground">
+              {theme.pillars?.map((p) => p.name).join(', ')}
             </span>
           </div>
         )}

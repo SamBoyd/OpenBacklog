@@ -3,6 +3,8 @@ import { RoadmapOverview } from '#pages/RoadmapOverview';
 import { mockPrioritizedThemes, mockUnprioritizedThemes, useRoadmapThemes } from '#hooks/strategyAndRoadmap/useRoadmapThemes.mock';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 import { mockWorkspacesReturn } from '#stories/example_data';
+import { mockStrategicPillarsReturn, useStrategicPillars } from '#hooks/useStrategicPillars.mock';
+import { mockProductOutcomesReturn, useProductOutcomes } from '#hooks/useProductOutcomes.mock';
 
 const meta: Meta<typeof RoadmapOverview> = {
   component: RoadmapOverview,
@@ -38,6 +40,9 @@ export const Default: Story = {
       isLoadingPrioritized: false,
       isLoadingUnprioritized: false
     })
+
+    useStrategicPillars.mockReturnValue(mockStrategicPillarsReturn);
+    useProductOutcomes.mockReturnValue(mockProductOutcomesReturn);
   },
 };
 

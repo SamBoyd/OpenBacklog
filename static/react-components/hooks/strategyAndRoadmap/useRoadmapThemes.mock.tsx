@@ -48,6 +48,40 @@ export const mockPrioritizedThemes: ThemeDto[] = [
         is_defeated: false,
       },
     ],
+    outcomes: [
+      {
+        id: 'outcome-1',
+        name: '80% AI feature adoption',
+        description: 'Users actively use AI features weekly',
+        display_order: 1,
+        pillar_ids: ['pillar-1', 'pillar-2'],
+        workspace_id: 'workspace-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      },
+    ],
+    pillars: [
+      {
+        id: 'pillar-1',
+        name: 'AI-Native Product Management',
+        description: 'Build product management tools designed from the ground up for AI collaboration.',
+        display_order: 1,
+        outcome_ids: ['outcome-1'],
+        workspace_id: 'workspace-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'pillar-2',
+        name: 'Developer Experience First',
+        description: 'Prioritize the needs of developers over administrative overhead.',
+        display_order: 2,
+        outcome_ids: ['outcome-1'],
+        workspace_id: 'workspace-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      }
+    ],
   },
   {
     id: 'theme-2',
@@ -79,6 +113,30 @@ export const mockPrioritizedThemes: ThemeDto[] = [
         is_defeated: true,
       },
     ],
+    outcomes: [
+      {
+        id: 'outcome-2',
+        name: 'Faster onboarding',
+        description: 'Users complete onboarding in under 5 minutes',
+        display_order: 1,
+        pillar_ids: ['pillar-1'],
+        workspace_id: 'workspace-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      },
+    ],
+    pillars: [
+      {
+        id: 'pillar-3',
+        name: 'Developer Experience First',
+        description: 'Prioritize the needs of developers over administrative overhead.',
+        display_order: 2,
+        outcome_ids: ['outcome-2'],
+        workspace_id: 'workspace-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      }
+    ],
   },
   {
     id: 'theme-3',
@@ -108,6 +166,30 @@ export const mockPrioritizedThemes: ThemeDto[] = [
         villain_type: 'WORKFLOW',
         severity: 3,
         is_defeated: false,
+      },
+    ],
+    outcomes: [
+      {
+        id: 'outcome-3',
+        name: 'Improved customer support',
+        description: 'Customers receive help faster with AI-powered support',
+        display_order: 1,
+        pillar_ids: ['pillar-4'],
+        workspace_id: 'workspace-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      },
+    ],
+    pillars: [
+      {
+        id: 'pillar-4',
+        name: 'Customer Support',
+        description: 'Customers receive help faster with AI-powered support',
+        display_order: 2,
+        outcome_ids: ['outcome-3'],
+        workspace_id: 'workspace-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
       },
     ],
   },
@@ -156,6 +238,30 @@ export const mockUnprioritizedThemes: ThemeDto[] = [
         is_defeated: false,
       },
     ],
+    outcomes: [
+      {
+        id: 'outcome-4',
+        name: 'Mobile app launch',
+        description: 'Native mobile applications for iOS and Android to enable on-the-go productivity',
+        display_order: 1,
+        pillar_ids: ['pillar-5'],
+        workspace_id: 'workspace-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      },
+    ],
+    pillars: [
+      {
+        id: 'pillar-5',
+        name: 'Mobile App Development',
+        description: 'Native mobile applications for iOS and Android to enable on-the-go productivity',
+        display_order: 2,
+        outcome_ids: ['outcome-4'],
+        workspace_id: 'workspace-1',
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      },
+    ]
   },
   {
     id: 'theme-5',

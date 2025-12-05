@@ -11,12 +11,30 @@ import {
   OutcomeReorderRequest,
 } from '#api/productStrategy';
 
+export interface UseProductOutcomesReturn {
+  outcomes: OutcomeDto[];
+  isLoading: boolean;
+  error: Error | null;
+  createOutcome: (request: OutcomeCreateRequest) => void;
+  isCreating: boolean;
+  createError: Error | null;
+  updateOutcome: (outcomeId: string, request: OutcomeUpdateRequest) => void;
+  isUpdating: boolean;
+  updateError: Error | null;
+  deleteOutcome: (outcomeId: string) => void;
+  isDeleting: boolean;
+  deleteError: Error | null;
+  reorderOutcomes: (request: OutcomeReorderRequest) => void;
+  isReordering: boolean;
+  reorderError: Error | null;
+}
+
 /**
  * Custom hook for managing product outcomes for a workspace
  * @param {string} workspaceId - The workspace ID
  * @returns {object} Object containing outcomes data, loading states, and mutation functions
  */
-export function useProductOutcomes(workspaceId: string) {
+export function useProductOutcomes(workspaceId: string): UseProductOutcomesReturn {
   const queryClient = useQueryClient();
 
   const {
@@ -76,7 +94,8 @@ export function useProductOutcomes(workspaceId: string) {
     createOutcome: createMutation.mutate,
     isCreating: createMutation.isPending,
     createError: createMutation.error,
-    updateOutcome: updateMutation.mutate,
+    updateOutcome: (outcomeId: string, request: OutcomeUpdateRequest) =>
+      updateMutation.mutate({ outcomeId, request }),
     isUpdating: updateMutation.isPending,
     updateError: updateMutation.error,
     deleteOutcome: deleteMutation.mutate,

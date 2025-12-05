@@ -343,6 +343,9 @@ export interface ThemeDto {
   // Embedded heroes and villains (populated by PostgREST queries)
   heroes?: HeroRef[];
   villains?: VillainRef[];
+  // Embedded outcomes and pillars (populated by client-side enrichment)
+  outcomes?: OutcomeDto[];
+  pillars?: PillarDto[];
 }
 
 
