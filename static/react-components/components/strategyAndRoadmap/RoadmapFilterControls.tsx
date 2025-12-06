@@ -91,6 +91,7 @@ export const RoadmapFilterControls: React.FC<RoadmapFilterControlsProps> = ({
           <div className="bg-muted/10 border border-border rounded-[10px] p-1 flex gap-1">
             {(['years', 'quarters', 'months', 'weeks'] as const).map((zoomLevel) => (
               <button
+                disabled={true}
                 key={zoomLevel}
                 onClick={() => {
                   setZoom(zoomLevel);
