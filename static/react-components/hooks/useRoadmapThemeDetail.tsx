@@ -7,7 +7,7 @@ import { ThemeDto, HeroRef, VillainRef } from '#api/productStrategy';
 import { ConflictDto } from '#types';
 
 /**
- * Metrics data derived from the story arc's beats and tasks.
+ * Metrics data derived from the roadmap theme's beats and tasks.
  */
 export interface MetricsData {
   completionPercent: number; // (completed beats / total beats) * 100
@@ -23,9 +23,9 @@ export interface MetricsData {
 }
 
 /**
- * Complete story arc detail data for the detail page.
+ * Complete roadmap theme detail data for the detail page.
  */
-export interface StoryArcDetailData {
+export interface RoadmapThemeDetailData {
   arc: ThemeDto | null;
   hero: HeroRef | null; // Primary hero from the theme
   villains: VillainRef[]; // Villains associated with the theme
@@ -93,13 +93,13 @@ function calculateMetrics(beats: BeatItem[], theme: ThemeDto | null): MetricsDat
 }
 
 /**
- * Main composition hook for the Story Arc Detail Page.
- * Combines data from multiple sources to provide complete context for a story arc.
+ * Main composition hook for the Roadmap theme Detail Page.
+ * Combines data from multiple sources to provide complete context for a roadmap theme.
  * @param {string} workspaceId - The workspace ID
  * @param {string} arcId - The arc/theme ID
- * @returns {StoryArcDetailData} Complete story arc detail data
+ * @returns {RoadmapThemeDetailData} Complete roadmap theme detail data
  */
-export function useRoadmapThemeDetail(workspaceId: string, arcId: string): StoryArcDetailData {
+export function useRoadmapThemeDetail(workspaceId: string, arcId: string): RoadmapThemeDetailData {
   // Fetch the specific theme/arc with heroes and villains
   const {
     theme: arc,

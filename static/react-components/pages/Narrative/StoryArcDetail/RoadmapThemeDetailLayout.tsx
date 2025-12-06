@@ -1,5 +1,5 @@
 import React from 'react';
-import { StoryArcDetailLayoutProps } from '#types/storyArc';
+import { RoadmapThemeDetailLayoutProps } from '#types/storyArc';
 import HeaderSection from './HeaderSection';
 import NarrativeContextBar from './NarrativeContextBar';
 import StorySection from './StorySection';
@@ -10,14 +10,14 @@ import PlaceholderSection from './PlaceholderSection';
 import MetricsSection from './MetricsSection';
 
 /**
- * StoryArcDetailLayout orchestrates all section components into a responsive 2-column layout.
+ * RoadmapThemeDetailLayout orchestrates all section components into a responsive 2-column layout.
  * This component handles the overall page structure, loading states, error states, and
  * responsive behavior across desktop, tablet, and mobile devices.
  *
- * @param {StoryArcDetailLayoutProps} props - Component props containing arc data and callbacks
- * @returns {React.ReactElement} The complete story arc detail layout
+ * @param {RoadmapThemeDetailLayoutProps} props - Component props containing arc data and callbacks
+ * @returns {React.ReactElement} The complete roadmap theme detail layout
  */
-const StoryArcDetailLayout: React.FC<StoryArcDetailLayoutProps> = ({
+const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
     arc,
     hero,
     villains,
@@ -36,7 +36,7 @@ const StoryArcDetailLayout: React.FC<StoryArcDetailLayoutProps> = ({
                 <div className="flex items-center justify-center min-h-screen p-6">
                     <div className="max-w-md w-full border border-destructive/50 rounded-lg p-8 bg-destructive/5">
                         <h2 className="text-xl font-bold text-destructive mb-3">
-                            Failed to load story arc
+                            Failed to load roadmap theme
                         </h2>
                         <p className="text-sm text-muted-foreground mb-4">
                             {error || 'An unexpected error occurred. Please try again.'}
@@ -60,10 +60,10 @@ const StoryArcDetailLayout: React.FC<StoryArcDetailLayoutProps> = ({
                 <div className="flex items-center justify-center min-h-screen p-6">
                     <div className="max-w-md w-full border border-border rounded-lg p-8 bg-card text-center">
                         <h2 className="text-xl font-bold text-foreground mb-3">
-                            Story Arc Not Found
+                            Roadmap Theme Not Found
                         </h2>
                         <p className="text-sm text-muted-foreground mb-4">
-                            The requested story arc could not be found. It may have been deleted or you may not have permission to view it.
+                            The requested roadmap theme could not be found. It may have been deleted or you may not have permission to view it.
                         </p>
                         <button
                             onClick={() => window.history.back()}
@@ -275,4 +275,4 @@ const StoryArcDetailLayout: React.FC<StoryArcDetailLayoutProps> = ({
     );
 };
 
-export default StoryArcDetailLayout;
+export default RoadmapThemeDetailLayout;

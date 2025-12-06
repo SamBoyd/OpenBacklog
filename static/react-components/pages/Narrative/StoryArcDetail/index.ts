@@ -16,5 +16,5 @@ export { default as NarrativeContextBar } from './NarrativeContextBar';
 export { default as HeaderSection } from './HeaderSection';
 
 // Layout and Page Components (Phase 5)
-export { default as StoryArcDetailLayout } from './StoryArcDetailLayout';
-export { default as StoryArcDetail } from './StoryArcDetail';
+export { default as RoadmapThemeDetailLayout } from './RoadmapThemeDetailLayout';
+export { default as RoadmapThemeDetail } from './RoadmapThemeDetail';

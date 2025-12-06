@@ -50,7 +50,7 @@ export interface MetricsData {
  * Complete data structure for a story arc detail view.
  * Combines arc metadata, narrative context, beats, and metrics.
  */
-export interface StoryArcDetailData {
+export interface RoadmapThemeDetailData {
   arc: ThemeDto;
   hero: HeroRef | null;
   villains: VillainRef[];
@@ -163,10 +163,10 @@ export interface MetricsSectionProps {
 }
 
 /**
- * Props for the main story arc detail layout component.
+ * Props for the main roadmap theme detail layout component.
  * Orchestrates all section components and manages overall page state.
  */
-export interface StoryArcDetailLayoutProps {
+export interface RoadmapThemeDetailLayoutProps {
   arc: ThemeDto;
   hero: HeroRef | null;
   villains: VillainRef[];

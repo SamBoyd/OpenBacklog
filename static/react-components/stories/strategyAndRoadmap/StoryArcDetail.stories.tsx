@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import StoryArcDetail from '../../pages/Narrative/StoryArcDetail/StoryArcDetail';
+import RoadmapThemeDetail from '../../pages/Narrative/StoryArcDetail/RoadmapThemeDetail';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 import { useRoadmapThemeDetail } from '#hooks/useRoadmapThemeDetail.mock';
+
 const { reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
 
 import { mockWorkspace, mockWorkspacesReturn } from '#stories/example_data';
@@ -15,16 +16,16 @@ import {
   mockMetrics,
 } from './mockData';
 
-const meta: Meta<typeof StoryArcDetail> = {
-  title: 'Pages/StrategyAndRoadmap/StoryArcDetail',
-  component: StoryArcDetail,
+const meta: Meta<typeof RoadmapThemeDetail> = {
+  title: 'Pages/StrategyAndRoadmap/RoadmapThemeDetail',
+  component: RoadmapThemeDetail,
   parameters: {
     layout: 'fullscreen',
     reactRouter: reactRouterParameters({
       location: {
-        pathParams: { arcId: 'arc-1' },
+        pathParams: { themeId: 'theme-1' },
       },
-      routing: { path: '/workspace/story-bible/arc/:arcId' },
+      routing: { path: '/workspace/story-bible/theme/:themeId' },
     }),
   },
   tags: ['autodocs'],

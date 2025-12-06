@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
-import StoryArcDetailLayout from '../../pages/Narrative/StoryArcDetail/StoryArcDetailLayout';
+
+import RoadmapThemeDetailLayout from '#pages/Narrative/StoryArcDetail/RoadmapThemeDetailLayout';
+
 import {
   mockArc,
   mockShortArc,
@@ -13,9 +15,9 @@ import {
   mockHighProgressMetrics,
 } from './mockData';
 
-const meta: Meta<typeof StoryArcDetailLayout> = {
-  title: 'Components/Narrative/StoryArcDetail/StoryArcDetailLayout',
-  component: StoryArcDetailLayout,
+const meta: Meta<typeof RoadmapThemeDetailLayout> = {
+  title: 'Components/Narrative/RoadmapThemeDetail/RoadmapThemeDetailLayout',
+  component: RoadmapThemeDetailLayout,
   parameters: {
     layout: 'fullscreen',
   },
@@ -27,7 +29,7 @@ type Story = StoryObj<typeof meta>;
 
 /**
  * Full layout with all sections rendered and complete data.
- * Demonstrates the complete story arc detail page.
+ * Demonstrates the complete roadmap theme detail page.
  */
 export const FullLayout: Story = {
   args: {
@@ -125,7 +127,7 @@ export const ErrorState: Story = {
     conflicts: [],
     metrics: mockMetrics,
     isLoading: false,
-    error: 'Failed to load story arc. Please check your connection and try again.',
+    error: 'Failed to load roadmap theme. Please check your connection and try again.',
     onViewBeat: fn((initiativeId: string) => console.log('View Beat:', initiativeId)),
   },
 };

@@ -4,4 +4,4 @@ import * as actual from './useRoadmapThemeDetail';
 
 export const useRoadmapThemeDetail = fn(actual.useRoadmapThemeDetail).mockName('useRoadmapThemeDetail');
 
-export type { StoryArcDetailData, MetricsData } from './useRoadmapThemeDetail';
+export type { RoadmapThemeDetailData, MetricsData } from './useRoadmapThemeDetail';

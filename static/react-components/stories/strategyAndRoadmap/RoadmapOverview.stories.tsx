@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { vi } from 'vitest';
+
 import { RoadmapOverview } from '#pages/RoadmapOverview';
 import { mockPrioritizedThemes, mockUnprioritizedThemes, useRoadmapThemes } from '#hooks/strategyAndRoadmap/useRoadmapThemes.mock';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
@@ -7,6 +9,8 @@ import { mockStrategicPillarsReturn, useStrategicPillars } from '#hooks/useStrat
 import { mockProductOutcomesReturn, useProductOutcomes } from '#hooks/useProductOutcomes.mock';
 import { mockHeroesReturn, useHeroes } from '#hooks/useHeroes.mock';
 import { mockVillainsReturn, useVillains } from '#hooks/useVillains.mock';
+
+const mockRefetch = () => Promise.resolve({ data: [], isLoading: false, error: null });
 
 const meta: Meta<typeof RoadmapOverview> = {
   component: RoadmapOverview,
@@ -64,8 +68,8 @@ export const Loading: Story = {
       isLoadingUnprioritized: false
     });
 
-    useHeroes.mockReturnValue({ heroes: [], isLoading: true, error: null, refetch: () => {} });
-    useVillains.mockReturnValue({ villains: [], isLoading: true, error: null, refetch: () => {} });
+    useHeroes.mockReturnValue({ heroes: [], isLoading: true, error: null, refetch: mockRefetch as any });
+    useVillains.mockReturnValue({ villains: [], isLoading: true, error: null, refetch: mockRefetch as any });
   },
 };
 
@@ -83,8 +87,8 @@ export const Empty: Story = {
       isLoadingUnprioritized: false
     });
 
-    useHeroes.mockReturnValue({ heroes: [], isLoading: false, error: null, refetch: () => {} });
-    useVillains.mockReturnValue({ villains: [], isLoading: false, error: null, refetch: () => {} });
+    useHeroes.mockReturnValue({ heroes: [], isLoading: false, error: null, refetch: mockRefetch as any });
+    useVillains.mockReturnValue({ villains: [], isLoading: false, error: null, refetch: mockRefetch as any });
   },
 };
 
@@ -102,7 +106,7 @@ export const WithError: Story = {
       isLoading: false
     });
 
-    useHeroes.mockReturnValue({ heroes: [], isLoading: false, error: null, refetch: () => {} });
-    useVillains.mockReturnValue({ villains: [], isLoading: false, error: null, refetch: () => {} });
+    useHeroes.mockReturnValue({ heroes: [], isLoading: false, error: null, refetch: mockRefetch as any });
+    useVillains.mockReturnValue({ villains: [], isLoading: false, error: null, refetch: mockRefetch as any });
   },
 };

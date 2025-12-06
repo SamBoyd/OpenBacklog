@@ -2,10 +2,10 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { useRoadmapThemeDetail } from '#hooks/useRoadmapThemeDetail';
-import StoryArcDetailLayout from './StoryArcDetailLayout';
+import RoadmapThemeDetailLayout from './RoadmapThemeDetailLayout';
 
 /**
- * StoryArcDetail is the top-level page component for the story arc detail view.
+ * RoadmapThemeDetail is the top-level page component for the roadmap theme detail view.
  * It handles routing, workspace context, data fetching, and navigation.
  *
  * Route: /workspace/story-bible/theme/:themeId
@@ -13,14 +13,14 @@ import StoryArcDetailLayout from './StoryArcDetailLayout';
  * This component:
  * 1. Extracts themeId from route params
  * 2. Gets workspace ID from context
- * 3. Fetches story arc data via useRoadmapThemeDetail hook
+ * 3. Fetches roadmap theme data via useRoadmapThemeDetail hook
  * 4. Handles loading, error, and no-data states
  * 5. Wires up navigation handlers
- * 6. Renders StoryArcDetailLayout with fetched data
+ * 6. Renders RoadmapThemeDetailLayout with fetched data
  *
- * @returns {React.ReactElement} The story arc detail page
+ * @returns {React.ReactElement} The roadmap theme detail page
  */
-const StoryArcDetail = () => {
+const RoadmapThemeDetail = () => {
     const { themeId } = useParams();
     const navigate = useNavigate();
     const { currentWorkspace } = useWorkspaces();
@@ -28,7 +28,7 @@ const StoryArcDetail = () => {
     // Get workspace ID from context
     const workspaceId = currentWorkspace?.id || '';
 
-    // Fetch story arc detail data
+    // Fetch roadmap theme detail data
     const {
         arc,
         hero,
@@ -67,7 +67,7 @@ const StoryArcDetail = () => {
                             No Workspace Selected
                         </h2>
                         <p className="text-sm text-muted-foreground mb-4">
-                            Please select a workspace to view story arcs.
+                            Please select a workspace to view roadmap themes.
                         </p>
                         <button
                             onClick={() => navigate('/workspace')}
@@ -88,10 +88,10 @@ const StoryArcDetail = () => {
                 <div className="flex items-center justify-center min-h-screen p-6">
                     <div className="max-w-md w-full border border-destructive/50 rounded-lg p-8 bg-destructive/5">
                         <h2 className="text-xl font-bold text-destructive mb-3">
-                            Invalid Story Arc
+                            Invalid Roadmap theme
                         </h2>
                         <p className="text-sm text-muted-foreground mb-4">
-                            No story arc ID was provided. Please select a valid story arc.
+                            No roadmap theme ID was provided. Please select a valid roadmap theme.
                         </p>
                         <button
                             onClick={() => navigate('/workspace/story-bible')}
@@ -108,7 +108,7 @@ const StoryArcDetail = () => {
     // Render the layout with all data and handlers
     // Note: arc can be null during loading, but layout handles this with its own loading state
     return (
-        <StoryArcDetailLayout
+        <RoadmapThemeDetailLayout
             arc={arc!}
             hero={hero}
             villains={villains}
@@ -123,4 +123,4 @@ const StoryArcDetail = () => {
     );
 };
 
-export default StoryArcDetail;
+export default RoadmapThemeDetail;

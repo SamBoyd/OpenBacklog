@@ -25,7 +25,6 @@ import Villains from '#pages/Narrative/Villains';
 import Conflicts from '#pages/Narrative/Conflicts';
 import RoadmapOverview from '#pages/RoadmapOverview';
 
-import ViewInitiative from '#components/ViewInitiative';
 import ViewInitiativeWrapper from '#components/ViewInitiativeWrapper';
 import ViewTask from '#components/ViewTask';
 import NavBar from '#components/reusable/NavBar';
@@ -39,11 +38,11 @@ import AppGuard from '#components/onboarding/AppGuard';
 import ContextDocument from './ContextDocument';
 import { TasksProvider } from '#contexts/TasksContext';
 
-import '../styles/output.css';
 import { GithubReposProvider } from '#hooks/useGithubRepos';
 import StoryBiblePage from './Narrative/StoryBible';
-import { StoryArcDetail } from './Narrative/StoryArcDetail';
-import ViewStrategicInitiative from '#components/ViewStrategicInitiative';
+import { RoadmapThemeDetail } from './Narrative/StoryArcDetail';
+
+import '../styles/output.css';
 
 
 // Layout component for main app structure
@@ -76,7 +75,7 @@ export const MainContent = () => {
             <Route element={<AppGuard><Layout /></AppGuard>}>
                 <Route path="/workspace/roadmap" element={<RoadmapOverview />} />
                 <Route path="/workspace/story-bible" element={<StoryBiblePage />} />
-                <Route path="/workspace/story-bible/theme/:themeId" element={<StoryArcDetail />} />
+                <Route path="/workspace/story-bible/theme/:themeId" element={<RoadmapThemeDetail />} />
                 <Route path="/workspace/context" element={<ContextDocument />} />
                 <Route path="/workspace/tasks" element={<Tasks />} />
                 <Route path="/workspace/initiatives/:initiativeId/tasks/:taskId" element={<ViewTask />} />
