@@ -1,4 +1,6 @@
 import React from 'react';
+import { useNavigate } from 'react-router';
+
 import { RoadmapThemeDetailLayoutProps } from '#types/storyArc';
 import HeaderSection from './HeaderSection';
 import NarrativeContextBar from './NarrativeContextBar';
@@ -27,8 +29,8 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
     metrics,
     isLoading,
     error,
-    onViewBeat,
 }) => {
+    const navigate = useNavigate();
     // Handle error state
     if (error && !isLoading) {
         return (
@@ -126,7 +128,7 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
 
     const handleViewRoadmap = () => {
         // This will be wired up in the parent page component
-        console.log('View roadmap');
+        navigate('/workspace/roadmap');
     };
 
     const handleShare = () => {
@@ -161,16 +163,20 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
         console.log('Add Conflict - coming soon');
     };
 
+    const handleViewBeat = (initiativeId: string) => {
+        navigate(`/workspace/initiatives/${initiativeId}`);
+    };
+
     const handleHeroClick = (heroId: string) => {
-        console.log('Hero click:', heroId, '- coming soon');
+        navigate(`/workspace/story-bible?tab=heroes`);
     };
 
     const handleVillainClick = (villainId: string) => {
-        console.log('Villain click:', villainId, '- coming soon');
+        navigate(`/workspace/story-bible?tab=villains`);
     };
 
     const handleThemeClick = (themeId: string) => {
-        console.log('Theme click:', themeId, '- coming soon');
+        navigate(`/workspace/story-bible/theme/${themeId}`);
     };
 
     return (
@@ -217,7 +223,7 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
                             beats={beats}
                             arcId={arc.id}
                             isLoading={false}
-                            onViewBeat={onViewBeat}
+                            onViewBeat={handleViewBeat}
                             onAddBeat={handleAddBeat}
                         />
                     </div>
@@ -230,6 +236,9 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
                             villains={villains}
                             themes={themes}
                             onEditLinks={handleEditLinks}
+                            onHeroClick={handleHeroClick}
+                            onVillainClick={handleVillainClick}
+                            onThemeClick={handleThemeClick}
                         />
 
                         {/* Conflicts and Stakes */}

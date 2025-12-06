@@ -13,6 +13,9 @@ const NarrativeConnectionsSection: React.FC<NarrativeConnectionsSectionProps> = 
     villains,
     themes,
     onEditLinks,
+    onHeroClick,
+    onVillainClick,
+    onThemeClick,
 }) => {
     const getImpactColor = (impact?: string) => {
         switch (impact?.toLowerCase()) {
@@ -64,7 +67,7 @@ const NarrativeConnectionsSection: React.FC<NarrativeConnectionsSectionProps> = 
                                         </p>
                                     )}
                                     <button
-                                        disabled
+                                        onClick={() => onHeroClick?.(hero.id)}
                                         className="text-sm text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
                                         title="Coming soon"
                                     >
@@ -113,7 +116,7 @@ const NarrativeConnectionsSection: React.FC<NarrativeConnectionsSectionProps> = 
                                                 </p>
                                             )}
                                             <button
-                                                disabled
+                                                onClick={() => onVillainClick?.(villain.id)}
                                                 className="text-sm text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
                                                 title="Coming soon"
                                             >
@@ -141,7 +144,8 @@ const NarrativeConnectionsSection: React.FC<NarrativeConnectionsSectionProps> = 
                             {themes.map((theme) => (
                                 <div
                                     key={theme.id}
-                                    className="border border-border rounded-lg p-4 bg-card hover:bg-accent/30 transition-colors"
+                                    className="border border-border rounded-lg p-4 bg-card hover:bg-accent/30 transition-colors cursor-pointer"
+                                    onClick={() => onThemeClick?.(theme.id)}
                                 >
                                     <div className="flex items-start gap-3">
                                         <Star className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />

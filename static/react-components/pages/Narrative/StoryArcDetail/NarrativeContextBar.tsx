@@ -46,7 +46,6 @@ const NarrativeContextBar: React.FC<NarrativeContextBarProps> = ({
                         <span className="text-xs font-medium text-muted-foreground">Hero:</span>
                         {hero ? (
                             <button
-                                disabled
                                 onClick={() => onHeroClick?.(hero.id)}
                                 className="text-sm font-medium text-primary hover:underline disabled:opacity-70 disabled:cursor-not-allowed disabled:no-underline truncate"
                                 title="Coming soon"
@@ -68,7 +67,6 @@ const NarrativeContextBar: React.FC<NarrativeContextBarProps> = ({
                                 {displayVillains.map((villain, index) => (
                                     <React.Fragment key={villain.id}>
                                         <button
-                                            disabled
                                             onClick={() => onVillainClick?.(villain.id)}
                                             className="text-sm text-destructive hover:underline disabled:opacity-70 disabled:cursor-not-allowed disabled:no-underline truncate"
                                             title="Coming soon"
@@ -99,7 +97,6 @@ const NarrativeContextBar: React.FC<NarrativeContextBarProps> = ({
                                 {displayThemes.map((theme, index) => (
                                     <React.Fragment key={theme.id}>
                                         <button
-                                            disabled
                                             onClick={() => onThemeClick?.(theme.id)}
                                             className="text-sm text-primary hover:underline disabled:opacity-70 disabled:cursor-not-allowed disabled:no-underline truncate"
                                             title="Coming soon"

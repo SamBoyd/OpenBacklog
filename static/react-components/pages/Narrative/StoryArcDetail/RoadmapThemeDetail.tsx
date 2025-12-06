@@ -41,22 +41,6 @@ const RoadmapThemeDetail = () => {
         error,
     } = useRoadmapThemeDetail(workspaceId, themeId || '');
 
-    /**
-     * Navigate to a specific beat (initiative) detail page.
-     * @param {string} initiativeId - The initiative ID to navigate to
-     */
-    const handleViewBeat = (initiativeId: string) => {
-        navigate(`/workspace/initiatives/${initiativeId}`);
-    };
-
-    /**
-     * Navigate to the roadmap page.
-     * This is a placeholder for MVP - will be enhanced in future iterations.
-     */
-    const handleViewRoadmap = () => {
-        navigate('/workspace/roadmap');
-    };
-
     // Show error state if workspace is not available
     if (!workspaceId && !isLoading) {
         return (
@@ -118,7 +102,6 @@ const RoadmapThemeDetail = () => {
             metrics={metrics}
             isLoading={isLoading}
             error={error}
-            onViewBeat={handleViewBeat}
         />
     );
 };

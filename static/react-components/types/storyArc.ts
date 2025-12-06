@@ -122,6 +122,9 @@ export interface NarrativeConnectionsSectionProps {
   villains: VillainRef[];
   themes: ThemeDto[];
   onEditLinks?: () => void;
+  onHeroClick?: (heroId: string) => void;
+  onVillainClick?: (villainId: string) => void;
+  onThemeClick?: (themeId: string) => void;
 }
 
 /**
@@ -176,5 +179,4 @@ export interface RoadmapThemeDetailLayoutProps {
   metrics: MetricsData;
   isLoading: boolean;
   error: String | null;
-  onViewBeat: (initiativeId: string) => void;
 }
