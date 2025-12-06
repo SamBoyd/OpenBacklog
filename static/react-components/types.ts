@@ -761,9 +761,9 @@ export interface ConflictDto {
     status: ConflictStatus;
     story_arc_id: string | null;
     resolved_at: string | null;
-    resolved_by_initiative_id: string | null;
     created_at: string;
     updated_at: string;
+    resolved_by_initiative_id?: string | null;
     hero?: HeroDto;
     villain?: VillainDto;
     story_arc?: RoadmapThemeDto;
@@ -780,12 +780,12 @@ export const ConflictDtoSchema = z.object({
     status: z.nativeEnum(ConflictStatus),
     story_arc_id: z.string().uuid().nullable(),
     resolved_at: z.string().nullable(),
-    resolved_by_initiative_id: z.string().uuid().nullable(),
+    resolved_by_initiative_id: z.string().uuid().nullable().optional(),
     created_at: z.string(),
     updated_at: z.string(),
     hero: HeroDtoSchema.optional(),
     villain: VillainDtoSchema.optional(),
-    story_arc: RoadmapThemeDtoSchema.optional(),
-    resolved_by_initiative: InitiativeDtoSchema.optional(),
+    story_arc: RoadmapThemeDtoSchema.nullable().optional(),
+    resolved_by_initiative: InitiativeDtoSchema.nullable().optional(),
 });
 
