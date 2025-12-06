@@ -76,7 +76,7 @@ export const MainContent = () => {
             <Route element={<AppGuard><Layout /></AppGuard>}>
                 <Route path="/workspace/roadmap" element={<RoadmapOverview />} />
                 <Route path="/workspace/story-bible" element={<StoryBiblePage />} />
-                <Route path="/workspace/story-bible/arc/:arcId" element={<StoryArcDetail />} />
+                <Route path="/workspace/story-bible/theme/:themeId" element={<StoryArcDetail />} />
                 <Route path="/workspace/context" element={<ContextDocument />} />
                 <Route path="/workspace/tasks" element={<Tasks />} />
                 <Route path="/workspace/initiatives/:initiativeId/tasks/:taskId" element={<ViewTask />} />

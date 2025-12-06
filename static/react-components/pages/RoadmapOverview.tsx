@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
+
 import { RoadmapHeader } from '#components/strategyAndRoadmap/RoadmapHeader';
 import { RoadmapFilterControls } from '#components/strategyAndRoadmap/RoadmapFilterControls';
 import { RoadmapListView } from '#components/strategyAndRoadmap/RoadmapListView';
@@ -14,6 +16,7 @@ import { RoadmapTimelineView } from '#components/strategyAndRoadmap/RoadmapTimel
  * with narrative context including heroes and villains. Supports list, timeline, and calendar views.
  */
 export function RoadmapOverview() {
+  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspaces();
   const {
     prioritizedThemes,
@@ -24,13 +27,11 @@ export function RoadmapOverview() {
   const [currentView, setCurrentView] = useState<'timeline' | 'list' | 'calendar'>('list');
   
   const handleViewTheme = (themeId: string) => {
-    console.log('View Theme:', themeId);
-    // TODO: Navigate to theme detail view
+    navigate(`/workspace/story-bible/theme/${themeId}`);
   };
 
   const handleViewInitiatives = (themeId: string) => {
-    console.log('View Initiatives/Retrospective:', themeId);
-    // TODO: Navigate to Initiatives view
+    navigate(`/workspace/story-bible/theme/${themeId}`);
   };
 
   const handleThemeMoreOptions = (themeId: string) => {
@@ -39,13 +40,11 @@ export function RoadmapOverview() {
   };
 
   const handleViewAllHeroes = () => {
-    console.log('View All Heroes');
-    // TODO: Navigate to heroes page
+    navigate(`/workspace/story-bible?tab=heroes`)
   };
 
   const handleViewAllVillains = () => {
-    console.log('View All Villains');
-    // TODO: Navigate to villains page
+    navigate(`/workspace/story-bible?tab=villains`)
   };
 
   const handleRunConsistencyCheck = () => {

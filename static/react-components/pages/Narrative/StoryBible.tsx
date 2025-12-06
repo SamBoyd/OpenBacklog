@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
+
 import NarrativeSummaryCard from '#components/Narrative/NarrativeSummaryCard';
 import NarrativeTabList, { NarrativeTabType } from '#components/Narrative/NarrativeTabList';
 import NarrativeHeroCard from '#components/Narrative/NarrativeHeroCard';
@@ -52,6 +54,27 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
 
     const { currentWorkspace } = useWorkspaces();
     const workspaceId = currentWorkspace?.id || '';
+
+    const [searchParams ] = useSearchParams();
+
+    useEffect(() => {
+        if (searchParams.get('tab')) {
+            if (searchParams.get('tab') === 'heroes') {
+                setActiveTab('heroes');
+            } else if (searchParams.get('tab') === 'villains') {
+                setActiveTab('villains');
+            } else if (searchParams.get('tab') === 'pillars') {
+                setActiveTab('pillars');
+            } else if (searchParams.get('tab') === 'themes') {
+                setActiveTab('themes');
+            } else if (searchParams.get('tab') === 'lore') {
+                setActiveTab('lore');
+            } else if (searchParams.get('tab') === 'continuity') {
+                setActiveTab('continuity');
+            } 
+        }
+    })
+
     // Fetch all narrative data
     const {
         heroes,

@@ -8,10 +8,10 @@ import StoryArcDetailLayout from './StoryArcDetailLayout';
  * StoryArcDetail is the top-level page component for the story arc detail view.
  * It handles routing, workspace context, data fetching, and navigation.
  *
- * Route: /workspace/story-bible/arc/:arcId
+ * Route: /workspace/story-bible/theme/:themeId
  *
  * This component:
- * 1. Extracts arcId from route params
+ * 1. Extracts themeId from route params
  * 2. Gets workspace ID from context
  * 3. Fetches story arc data via useRoadmapThemeDetail hook
  * 4. Handles loading, error, and no-data states
@@ -21,7 +21,7 @@ import StoryArcDetailLayout from './StoryArcDetailLayout';
  * @returns {React.ReactElement} The story arc detail page
  */
 const StoryArcDetail = () => {
-    const { arcId } = useParams();
+    const { themeId } = useParams();
     const navigate = useNavigate();
     const { currentWorkspace } = useWorkspaces();
 
@@ -39,7 +39,7 @@ const StoryArcDetail = () => {
         metrics,
         isLoading,
         error,
-    } = useRoadmapThemeDetail(workspaceId, arcId || '');
+    } = useRoadmapThemeDetail(workspaceId, themeId || '');
 
     /**
      * Navigate to a specific beat (initiative) detail page.
@@ -81,8 +81,8 @@ const StoryArcDetail = () => {
         );
     }
 
-    // Show error state if arcId is missing
-    if (!arcId && !isLoading) {
+    // Show error state if themeId is missing
+    if (!themeId && !isLoading) {
         return (
             <div className="min-h-screen bg-background">
                 <div className="flex items-center justify-center min-h-screen p-6">
