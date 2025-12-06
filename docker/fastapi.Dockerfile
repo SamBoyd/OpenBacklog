@@ -66,23 +66,41 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install fastmcp from the git repository
 # RUN pip install --no-cache-dir git+https://github.com/jlowin/fastmcp.git@f8b896490e95cdec0f581ec1154a767c69c069cf
 
-# Copy the rest of the application (excluding items in .dockerignore)
-COPY . .
+# Copy Python source and other files (excluding react-components source)
+# This allows React-only changes to not invalidate these layers
+COPY src/ ./src/
+COPY templates/ ./templates/
+COPY alembic/ ./alembic/
+COPY alembic.ini ./
+COPY docker/ ./docker/
+
+# Copy static assets (excluding react-components source - we get build from react-builder)
+COPY static/css/ ./static/css/
+COPY static/landing_page/ ./static/landing_page/
+COPY static/github-mark/ ./static/github-mark/
+COPY static/*.png ./static/
+COPY static/*.svg ./static/
+
+# Copy root-level build files
+COPY package.json package-lock.json ./
+COPY webpack.config.js tailwind.config.js postcss.config.js ./
+
+COPY .env* ./
 
 # Build argument for cluster name (used to load .env.cluster-{name})
 ARG CLUSTER_NAME=dev
 ENV CLUSTER_NAME=$CLUSTER_NAME
 COPY .env.cluster-${CLUSTER_NAME} .env
 
+# Build the static assets
+RUN npm install
+RUN npm run build
+
 # Copy React build artifacts from Stage 1
 # We copy specific build artifacts to ensure they're properly included
 COPY --from=react-builder /app/static/react-components/build/ ./static/react-components/build/
 COPY --from=react-builder /app/static/react-components/node_modules/ ./static/react-components/node_modules/
 COPY --from=react-builder /app/static/react-components/webpack-assets.json ./static/react-components/webpack-assets.json
-
-# Build the static assets
-RUN npm install
-RUN npm run build
 
 # Expose the port the app runs on (default for uvicorn is 8000)
 EXPOSE 8000
