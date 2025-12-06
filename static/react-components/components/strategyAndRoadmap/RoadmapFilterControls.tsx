@@ -1,8 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { NoBorderButton } from '#components/reusable/Button';
 import { MultiSelectDropdown, MultiSelectOption } from '#components/reusable/MultiSelectDropdown';
 import { HeroRef, VillainRef } from '#api/productStrategy';
+
+const getCurrentQuarter = (): { quarter: number; year: number } => {
+  const now = new Date();
+  const month = now.getMonth();
+  const quarter = Math.floor(month / 3) + 1;
+  const year = now.getFullYear();
+  return { quarter, year };
+};
+
+const formatQuarterRange = (): string => {
+  const { quarter, year } = getCurrentQuarter();
+  const endYear = year + 1;
+  return `Q${quarter} ${year} - Q${quarter} ${endYear}`;
+};
 
 interface RoadmapFilterControlsProps {
   heroes?: HeroRef[];
@@ -28,6 +42,7 @@ export const RoadmapFilterControls: React.FC<RoadmapFilterControlsProps> = ({
   onZoomChange,
 }) => {
   const [zoom, setZoom] = useState<'years' | 'quarters' | 'months' | 'weeks'>('quarters');
+  const quarterRange = useMemo(() => formatQuarterRange(), []);
 
   const heroOptions: MultiSelectOption[] = heroes.map((hero) => ({
     id: hero.id,
@@ -77,15 +92,15 @@ export const RoadmapFilterControls: React.FC<RoadmapFilterControlsProps> = ({
           </span>
 
           <div className="flex items-center gap-2">
-            <NoBorderButton onClick={() => {}}>
+            <NoBorderButton disabled={true} onClick={() => {}}>
               <ChevronLeft size={16} />
             </NoBorderButton>
 
             <div className="bg-background border border-border rounded px-3 py-1.5 flex-1 min-w-48">
-              <span className="text-sm text-foreground0">Q1 2024 - Q1 2025</span>
+              <span className="text-sm text-foreground">{quarterRange}</span>
             </div>
 
-            <NoBorderButton onClick={() => {}}>
+            <NoBorderButton disabled={true} onClick={() => {}}>
               <ChevronRight size={16} />
             </NoBorderButton>
           </div>
