@@ -5,6 +5,8 @@ import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 import { mockWorkspacesReturn } from '#stories/example_data';
 import { mockStrategicPillarsReturn, useStrategicPillars } from '#hooks/useStrategicPillars.mock';
 import { mockProductOutcomesReturn, useProductOutcomes } from '#hooks/useProductOutcomes.mock';
+import { mockHeroesReturn, useHeroes } from '#hooks/useHeroes.mock';
+import { mockVillainsReturn, useVillains } from '#hooks/useVillains.mock';
 
 const meta: Meta<typeof RoadmapOverview> = {
   component: RoadmapOverview,
@@ -39,8 +41,10 @@ export const Default: Story = {
       error: null,
       isLoadingPrioritized: false,
       isLoadingUnprioritized: false
-    })
+    });
 
+    useHeroes.mockReturnValue(mockHeroesReturn);
+    useVillains.mockReturnValue(mockVillainsReturn);
     useStrategicPillars.mockReturnValue(mockStrategicPillarsReturn);
     useProductOutcomes.mockReturnValue(mockProductOutcomesReturn);
   },
@@ -59,6 +63,9 @@ export const Loading: Story = {
       isLoadingPrioritized: false,
       isLoadingUnprioritized: false
     });
+
+    useHeroes.mockReturnValue({ heroes: [], isLoading: true, error: null, refetch: () => {} });
+    useVillains.mockReturnValue({ villains: [], isLoading: true, error: null, refetch: () => {} });
   },
 };
 
@@ -75,6 +82,9 @@ export const Empty: Story = {
       isLoadingPrioritized: false,
       isLoadingUnprioritized: false
     });
+
+    useHeroes.mockReturnValue({ heroes: [], isLoading: false, error: null, refetch: () => {} });
+    useVillains.mockReturnValue({ villains: [], isLoading: false, error: null, refetch: () => {} });
   },
 };
 
@@ -91,5 +101,8 @@ export const WithError: Story = {
       error: new Error('Failed to load roadmap'),
       isLoading: false
     });
+
+    useHeroes.mockReturnValue({ heroes: [], isLoading: false, error: null, refetch: () => {} });
+    useVillains.mockReturnValue({ villains: [], isLoading: false, error: null, refetch: () => {} });
   },
 };

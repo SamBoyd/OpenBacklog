@@ -1,62 +1,71 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button, NoBorderButton } from '#components/reusable/Button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { NoBorderButton } from '#components/reusable/Button';
+import { MultiSelectDropdown, MultiSelectOption } from '#components/reusable/MultiSelectDropdown';
+import { HeroRef, VillainRef } from '#api/productStrategy';
 
 interface RoadmapFilterControlsProps {
-  onHeroFilterChange?: (heroId: string | null) => void;
-  onVillainFilterChange?: (villainId: string | null) => void;
-  onThemeFilterChange?: (themeId: string | null) => void;
-  onStatusFilterChange?: (status: string | null) => void;
-  onTimePeriodChange?: (period: string) => void;
+  heroes?: HeroRef[];
+  villains?: VillainRef[];
+  selectedHeroIds: string[];
+  selectedVillainIds: string[];
+  onHeroFilterChange: (heroIds: string[]) => void;
+  onVillainFilterChange: (villainIds: string[]) => void;
   onZoomChange?: (zoom: 'years' | 'quarters' | 'months' | 'weeks') => void;
 }
 
 /**
  * Filter controls for the roadmap overview.
- * Includes filter dropdowns, time period navigation, and zoom level controls.
- * Note: Currently UI-only, filters are non-functional.
+ * Includes filter dropdowns for heroes and villains, time period navigation, and zoom level controls.
  */
 export const RoadmapFilterControls: React.FC<RoadmapFilterControlsProps> = ({
+  heroes = [],
+  villains = [],
+  selectedHeroIds,
+  selectedVillainIds,
   onHeroFilterChange,
   onVillainFilterChange,
-  onThemeFilterChange,
-  onStatusFilterChange,
-  onTimePeriodChange,
   onZoomChange,
 }) => {
   const [zoom, setZoom] = useState<'years' | 'quarters' | 'months' | 'weeks'>('quarters');
 
+  const heroOptions: MultiSelectOption[] = heroes.map((hero) => ({
+    id: hero.id,
+    label: hero.name,
+    description: hero.is_primary ? 'Primary Hero' : undefined,
+  }));
+
+  const villainOptions: MultiSelectOption[] = villains.map((villain) => ({
+    id: villain.id,
+    label: villain.name,
+    description: villain.villain_type ? villain.villain_type.toLowerCase() : undefined,
+  }));
+
   return (
-    <div className="bg-background text-foreground   border-b border-border flex flex-col gap-4 py-4 px-8">
+    <div className="bg-background text-foreground border-b border-border flex flex-col gap-4 py-4 px-8">
       {/* Filter Row */}
       <div className="flex items-center gap-4">
         <span className="text-sm font-medium text-foreground uppercase tracking-wider">
           Filters:
         </span>
 
-        {/* Hero Filter Dropdown */}
-        <Button onClick={() => {}}>
-          <span className="text-sm text-foreground0">Hero</span>
-          <ChevronDown size={16} className="text-foreground" />
-        </Button>
+        <MultiSelectDropdown
+          label="Heroes"
+          options={heroOptions}
+          selectedIds={selectedHeroIds}
+          onChange={onHeroFilterChange}
+          placeholder="All"
+          disabled={heroes.length === 0}
+        />
 
-        {/* Villain Filter Dropdown */}
-        <Button onClick={() => {}}>
-          <span className="text-sm text-foreground0">Villain</span>
-          <ChevronDown size={16} className="text-foreground" />
-        </Button>
-
-        {/* Theme Filter Dropdown */}
-        <Button onClick={() => {}}>
-          <span className="text-sm text-foreground0">Theme</span>
-          <ChevronDown size={16} className="text-foreground" />
-        </Button>
-
-        {/* Status Filter Dropdown */}
-        <Button onClick={() => {}}>
-          <span className="text-sm text-foreground0">Status</span>
-          <ChevronDown size={16} className="text-foreground" />
-        </Button>
+        <MultiSelectDropdown
+          label="Villains"
+          options={villainOptions}
+          selectedIds={selectedVillainIds}
+          onChange={onVillainFilterChange}
+          placeholder="All"
+          disabled={villains.length === 0}
+        />
       </div>
 
       {/* Time Period & Zoom Row */}
