@@ -49,23 +49,21 @@ const StorySection: React.FC<StorySectionProps> = ({
             </div>
 
             {storyText ? (
-                <div className="bg-muted/20 rounded-lg p-8">
-                    <div
-                        className="prose prose-sm max-w-none"
-                        style={{
-                            fontSize: '16px',
-                            lineHeight: '1.7',
-                            maxWidth: '75ch',
-                            margin: '0 auto',
-                        }}
-                    >
-                        <p className="text-foreground whitespace-pre-wrap leading-relaxed">
-                            {storyText}
-                        </p>
-                    </div>
+                <div
+                    className="prose prose-sm max-w-none"
+                    style={{
+                        fontSize: '16px',
+                        lineHeight: '1.7',
+                        maxWidth: '75ch',
+                        margin: '0 auto',
+                    }}
+                >
+                    <p className="text-foreground whitespace-pre-wrap leading-relaxed">
+                        {storyText}
+                    </p>
                 </div>
             ) : (
-                <div className="border border-border rounded-lg p-8 bg-muted/20 text-center">
+                <div className="border border-border rounded-lg text-center">
                     <p className="text-sm text-muted-foreground">
                         No story text available. The narrative description will appear here.
                     </p>
