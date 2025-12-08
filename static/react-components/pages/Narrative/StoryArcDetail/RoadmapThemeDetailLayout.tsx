@@ -186,7 +186,7 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
     };
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background flex flex-col gap-4">
             {/* Sticky Header */}
             <HeaderSection
                 arcTitle={arc.name}
@@ -217,10 +217,10 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
             />
 
             {/* Main Content Area */}
-            <div className="p-6 md:p-8">
+            <div className="">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {/* Left Column (60%) - Main Content */}
-                    <div className="lg:col-span-2 space-y-8">
+                    <div className="lg:col-span-2 space-y-4">
                         {/* Story Section */}
                         <StorySection
                             storyText={arc.description || 'No story description available.'}
