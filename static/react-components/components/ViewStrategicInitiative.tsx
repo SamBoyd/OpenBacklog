@@ -11,7 +11,7 @@ import VillainCard from '#components/reusable/VillainCard';
 import StakesConflictSection from '#components/StakesConflictSection';
 import InitiativeTasksList from '#components/InitiativeTasksList';
 import { statusDisplay, TaskStatus } from '#types';
-import { Pencil, Plus, Sparkles } from 'lucide-react';
+import { Compass, Pencil, Plus, Skull, Sparkles, Target, User } from 'lucide-react';
 
 /**
  * Calculates the progress percentage from tasks
@@ -135,7 +135,7 @@ const ViewStrategicInitiative: React.FC = () => {
                     <h2 className="text-base font-normal text-foreground">
                       What This Initiative Does
                     </h2>
-                    <NoBorderButton onClick={() => {}} className="p-2">
+                    <NoBorderButton onClick={() => { }} className="p-2">
                       <Pencil size={16} className="text-muted-foreground" />
                     </NoBorderButton>
                   </div>
@@ -151,7 +151,7 @@ const ViewStrategicInitiative: React.FC = () => {
                   <h2 className="text-base font-normal text-foreground">
                     Why This Beat Matters
                   </h2>
-                  <NoBorderButton onClick={() => {}} className="p-2">
+                  <NoBorderButton onClick={() => { }} className="p-2">
                     <Pencil size={16} className="text-muted-foreground" />
                   </NoBorderButton>
                 </div>
@@ -187,12 +187,12 @@ const ViewStrategicInitiative: React.FC = () => {
                     Tasks ({scenesCount.total})
                   </h2>
                   <div className="flex items-center gap-2">
-                    <Button onClick={() => {}} className="text-sm" disabled={true}>
+                    <Button onClick={() => { }} className="text-sm" disabled={true}>
                       <Plus size={16} />
                       Add Task
                     </Button>
                     <Button
-                      onClick={() => {}}
+                      onClick={() => { }}
                       className="text-sm bg-primary text-primary-foreground hover:bg-primary/90"
                       disabled={true}
                     >
@@ -210,7 +210,7 @@ const ViewStrategicInitiative: React.FC = () => {
                 {tasks.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-border">
                     <NoBorderButton
-                      onClick={() => {}}
+                      onClick={() => { }}
                       className="w-full py-2 text-sm font-medium"
                     >
                       View All Tasks in Planning Board
@@ -229,7 +229,7 @@ const ViewStrategicInitiative: React.FC = () => {
                     <h3 className="text-base font-normal text-foreground">
                       Narrative Connections
                     </h3>
-                    <NoBorderButton onClick={() => {}} className="p-2">
+                    <NoBorderButton onClick={() => { }} className="p-2">
                       <Pencil size={16} className="text-muted-foreground" />
                     </NoBorderButton>
                   </div>
@@ -239,10 +239,12 @@ const ViewStrategicInitiative: React.FC = () => {
                     {strategicInitiative.theme && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-muted-foreground">📖</span>
+                          <span className="text-muted-foreground">
+                            <Target className="w-4 h-4"/>
+                          </span>
                           <p className="text-xs text-muted-foreground font-medium">ROADMAP THEME</p>
                         </div>
-                        <div className="bg-muted/50 border border-border rounded-lg p-3">
+                        <div className="border border-border rounded-lg p-3">
                           <p className="text-sm font-medium text-foreground">
                             {strategicInitiative.theme.name}
                           </p>
@@ -251,9 +253,14 @@ const ViewStrategicInitiative: React.FC = () => {
                               {strategicInitiative.theme.status}
                             </p>
                           )}
+                          {strategicInitiative.theme.description && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                              {strategicInitiative.theme.description}
+                            </p>
+                          )}
                           <CompactButton
-                            onClick={() => {}}
-                            className="font-medium mt-2"
+                            onClick={() => { }}
+                            className="font-medium mt-2 text-foreground"
                           >
                             View Theme Detail
                           </CompactButton>
@@ -265,10 +272,12 @@ const ViewStrategicInitiative: React.FC = () => {
                     {strategicInitiative.pillar && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-muted-foreground">🏛</span>
+                          <span className="text-muted-foreground">
+                            <Compass className="w-4 h-4"/>
+                          </span>
                           <p className="text-xs text-muted-foreground font-medium">STRATEGIC PILLAR</p>
                         </div>
-                        <div className="bg-muted/50 border border-border rounded-lg p-3">
+                        <div className="border border-border rounded-lg p-3">
                           <p className="text-sm font-medium text-foreground">
                             {strategicInitiative.pillar.name}
                           </p>
@@ -278,8 +287,8 @@ const ViewStrategicInitiative: React.FC = () => {
                             </p>
                           )}
                           <CompactButton
-                            onClick={() => {}}
-                            className="font-medium mt-2"
+                            onClick={() => { }}
+                            className="font-medium mt-2 text-foreground"
                           >
                             View Pillar Detail
                           </CompactButton>
@@ -291,7 +300,7 @@ const ViewStrategicInitiative: React.FC = () => {
                     {heroes.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-primary">👤</span>
+                          <span className="text-primary"><User size={16} /></span>
                           <p className="text-xs text-muted-foreground font-medium">HERO</p>
                         </div>
                         <HeroCard hero={heroes[0]} />
@@ -302,7 +311,7 @@ const ViewStrategicInitiative: React.FC = () => {
                     {villains.length > 0 && (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-accent-foreground">⚔️</span>
+                          <Skull className="w-4 h-4 text-destructive" />
                           <p className="text-xs text-muted-foreground font-medium">
                             VILLAINS ({villains.length})
                           </p>
@@ -330,7 +339,7 @@ const ViewStrategicInitiative: React.FC = () => {
                     <h3 className="text-base font-normal text-foreground">
                       Related Lore
                     </h3>
-                    <NoBorderButton onClick={() => {}} className="p-2">
+                    <NoBorderButton onClick={() => { }} className="p-2">
                       <Pencil size={16} className="text-muted-foreground" />
                     </NoBorderButton>
                   </div>
