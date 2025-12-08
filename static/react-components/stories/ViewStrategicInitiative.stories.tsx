@@ -2,11 +2,24 @@ import { Meta, StoryObj } from '@storybook/react';
 import ViewStrategicInitiative from '#components/ViewStrategicInitiative';
 import { useStrategicInitiative } from '#hooks/useStrategicInitiative.mock';
 import { useParams } from '#hooks/useParams.mock';
-import { StrategicInitiativeDto, HeroDto, VillainDto, ConflictDto, ConflictStatus, VillainType, InitiativeDto, TaskStatus, TaskDto } from '#types';
-import { useTasksContext } from '#contexts/TasksContext.mock';
-import { mockUseTasksContext, mockWorkspace } from '#stories/example_data';
-import { LexoRank } from 'lexorank';
-import { OrderedEntity } from '#hooks/useOrderings';
+import { StrategicInitiativeDto, HeroDto, VillainDto, ConflictDto, ConflictStatus, VillainType, InitiativeDto, TaskStatus } from '#types';
+import { mockWorkspace } from '#stories/example_data';
+
+import { LoremIpsum } from 'lorem-ipsum';
+
+const lorem = new LoremIpsum({
+  sentencesPerParagraph: {
+    max: 8,
+    min: 4
+  },
+  wordsPerSentence: {
+    max: 16,
+    min: 4
+  }
+});
+
+// @ts-ignore
+const { reactRouterParameters } = require('storybook-addon-remix-react-router');
 
 const meta: Meta<typeof ViewStrategicInitiative> = {
   title: 'Pages/StrategyAndRoadmap/ViewStrategicInitiative',
@@ -14,6 +27,12 @@ const meta: Meta<typeof ViewStrategicInitiative> = {
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
+    reactRouter: reactRouterParameters({
+      location: {
+        pathParams: { initiativeId: 'init-1' },
+      },
+      routing: { path: '/workspace/initiatives/:initiativeId/strategic' },
+    }),
   },
 };
 
@@ -26,7 +45,7 @@ const mockHero: HeroDto = {
   identifier: 'HERO-001',
   workspace_id: 'ws-1',
   name: 'Sarah, The Solo Builder',
-  description: 'Never leave your IDE to give AI the context it needs',
+  description: 'Never leave your IDE to give AI the context it needs. ' + lorem.generateParagraphs(1),
   is_primary: true,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
@@ -39,7 +58,7 @@ const mockVillain: VillainDto = {
   workspace_id: 'ws-1',
   name: 'Context Switching',
   villain_type: VillainType.WORKFLOW,
-  description: 'Constant jumping between IDE and planning tools',
+  description: 'Constant jumping between IDE and planning tools ' + lorem.generateParagraphs(1),
   severity: 4,
   is_defeated: false,
   created_at: '2024-01-01T00:00:00Z',
@@ -53,7 +72,7 @@ const mockVillain2: VillainDto = {
   workspace_id: 'ws-1',
   name: 'AI Ignorance',
   villain_type: VillainType.TECHNICAL,
-  description: 'AI agents lack product context and strategic intent',
+  description: 'AI agents lack product context and strategic intent ' + lorem.generateParagraphs(1),
   severity: 5,
   is_defeated: false,
   created_at: '2024-01-01T00:00:00Z',
@@ -66,7 +85,7 @@ const mockConflict: ConflictDto = {
   workspace_id: 'ws-1',
   hero_id: mockHero.id,
   villain_id: mockVillain.id,
-  description: 'Sarah wastes time context switching between tools, and AI can\'t help because it lacks product context.',
+  description: 'Sarah wastes time context switching between tools, and AI can\'t help because it lacks product context. ' + lorem.generateParagraphs(1),
   status: ConflictStatus.OPEN,
   story_arc_id: 'arc-1',
   resolved_at: null,
@@ -81,7 +100,7 @@ const mockTheme: any = {
   id: 'theme-1',
   workspace_id: 'ws-1',
   name: 'AI-First Product Management',
-  description: 'Enabling AI agents to understand and contribute to product development',
+  description: 'Enabling AI agents to understand and contribute to product development ' + lorem.generateParagraphs(1),
   status: 'In Progress - Act 2 (60%)',
   outcome_ids: [],
   hero_ids: [mockHero.id],
@@ -96,7 +115,7 @@ const mockPillar: any = {
   id: 'pillar-1',
   workspace_id: 'ws-1',
   name: 'Developer-First Simplicity',
-  description: 'Eliminate complexity found in enterprise tools. Focus on intuitive, developer-centered workflows that keep users in flow state.',
+  description: 'Eliminate complexity found in enterprise tools. Focus on intuitive, developer-centered workflows that keep users in flow state. ' + lorem.generateParagraphs(1),
   display_order: 1,
   outcome_ids: [],
   created_at: '2024-01-01T00:00:00Z',
@@ -109,7 +128,7 @@ const mockInitiative: InitiativeDto = {
   user_id: 'user-1',
   workspace: mockWorkspace,
   title: 'Enable ClaudeCode to read product context via MCP',
-  description: 'This initiative implements the technical foundation for AI agents to access product context directly from OpenBacklog. By creating an MCP (Model Context Protocol) server, we enable tools like ClaudeCode to query initiatives, tasks, and strategic context without requiring manual copy-paste or context switching. This is the first step toward true AI-assisted product development.',
+  description: 'This initiative implements the technical foundation for AI agents to access product context directly from OpenBacklog. By creating an MCP (Model Context Protocol) server, we enable tools like ClaudeCode to query initiatives, tasks, and strategic context without requiring manual copy-paste or context switching. This is the first step toward true AI-assisted product development. ' + lorem.generateParagraphs(1),
   type: 'FEATURE',
   status: 'IN_PROGRESS',
   properties: {},
@@ -121,7 +140,7 @@ const mockInitiative: InitiativeDto = {
       workspace: mockWorkspace,
       initiative_id: 'init-1',
       title: 'Add /get_project_vision MCP command',
-      description: 'Implement the MCP command to retrieve project vision',
+      description: 'Implement the MCP command to retrieve project vision ' + lorem.generateParagraphs(1),
       status: TaskStatus.DONE,
       type: 'FEATURE',
       properties: {},
@@ -136,7 +155,7 @@ const mockInitiative: InitiativeDto = {
       workspace: mockWorkspace,
       initiative_id: 'init-1',
       title: 'Add /get_initiatives MCP command',
-      description: 'Implement the MCP command to list all initiatives',
+      description: 'Implement the MCP command to list all initiatives ' + lorem.generateParagraphs(1),
       status: TaskStatus.DONE,
       type: 'FEATURE',
       properties: {},
@@ -151,7 +170,7 @@ const mockInitiative: InitiativeDto = {
       workspace: mockWorkspace,
       initiative_id: 'init-1',
       title: 'Add /get_task_details MCP command',
-      description: 'Implement the MCP command to get task details',
+      description: 'Implement the MCP command to get task details ' + lorem.generateParagraphs(1),
       status: TaskStatus.IN_PROGRESS,
       type: 'FEATURE',
       properties: {},
@@ -166,7 +185,7 @@ const mockInitiative: InitiativeDto = {
       workspace: mockWorkspace,
       initiative_id: 'init-1',
       title: 'Add /get_lore MCP command',
-      description: 'Implement the MCP command to retrieve lore entries',
+      description: 'Implement the MCP command to retrieve lore entries ' + lorem.generateParagraphs(1),
       status: TaskStatus.TO_DO,
       type: 'FEATURE',
       properties: {},
@@ -181,7 +200,7 @@ const mockInitiative: InitiativeDto = {
       workspace: mockWorkspace,
       initiative_id: 'init-1',
       title: 'Implement MCP authentication layer',
-      description: 'Add authentication for secure MCP access',
+      description: 'Add authentication for secure MCP access ' + lorem.generateParagraphs(1),
       status: TaskStatus.TO_DO,
       type: 'FEATURE',
       properties: {},
@@ -201,7 +220,7 @@ const mockStrategicInitiative: StrategicInitiativeDto = {
   workspace_id: 'ws-1',
   pillar_id: 'pillar-1',
   theme_id: 'theme-1',
-  description: 'Sarah is constantly breaking flow state to switch between her IDE and separate task management tools. The AI agent doesn\'t have access to the product context it needs—what to build, why, or how it fits into the broader roadmap—forcing her to manually relay this information repeatedly. By enabling ClaudeCode to read product context directly from OpenBacklog via MCP, we eliminate this context switching and empower the AI to propose better, more aligned suggestions.',
+  description: 'Sarah is constantly breaking flow state to switch between her IDE and separate task management tools. The AI agent doesn\'t have access to the product context it needs—what to build, why, or how it fits into the broader roadmap—forcing her to manually relay this information repeatedly. By enabling ClaudeCode to read product context directly from OpenBacklog via MCP, we eliminate this context switching and empower the AI to propose better, more aligned suggestions. ' + lorem.generateParagraphs(1),
   narrative_intent: 'This beat is the first step in the "AI-First Product Management" arc, establishing the read-only foundation before we enable write capabilities.',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
@@ -213,17 +232,6 @@ const mockStrategicInitiative: StrategicInitiativeDto = {
   conflicts: [mockConflict],
 };
 
-let rank = LexoRank.middle();
-const mockTasks = mockInitiative.tasks.map((task) => {
-  rank = rank.genNext();
-
-  return {
-    ...task,
-    position: rank.genNext().toString(),
-    orderingId: task.id
-  };
-});
-
 /**
  * Default story showing a fully populated strategic initiative
  * Demonstrates the new layout with initiative title as primary heading,
@@ -233,11 +241,6 @@ export const Default: Story = {
   render: () => {
     useParams.mockReturnValue({
       initiativeId: 'init-1',
-    });
-
-    useTasksContext.mockReturnValue({
-      ...mockUseTasksContext,
-      tasks: mockTasks as OrderedEntity<TaskDto>[]
     });
 
     useStrategicInitiative.mockReturnValue({
@@ -335,11 +338,6 @@ export const MinimalContext: Story = {
       initiativeId: 'init-1',
     } as any);
 
-    useTasksContext.mockReturnValue({
-      ...mockUseTasksContext,
-      tasks: mockTasks as OrderedEntity<TaskDto>[]
-    });
-
     useStrategicInitiative.mockReturnValue({
       strategicInitiative: minimalStrategicInitiative,
       isLoading: false,
@@ -382,11 +380,6 @@ export const MultipleNarrativeElements: Story = {
       initiativeId: 'init-1',
     } as any);
 
-    useTasksContext.mockReturnValue({
-      ...mockUseTasksContext,
-      tasks: mockTasks as OrderedEntity<TaskDto>[]
-    });
-
     useStrategicInitiative.mockReturnValue({
       strategicInitiative: enrichedInitiative,
       isLoading: false,
@@ -416,11 +409,6 @@ export const NoTasks: Story = {
 
     useParams.mockReturnValue({
       initiativeId: 'init-1',
-    });
-
-    useTasksContext.mockReturnValue({
-      ...mockUseTasksContext,
-      tasks: []
     });
 
     useStrategicInitiative.mockReturnValue({
@@ -461,23 +449,8 @@ export const CompletedInitiative: Story = {
       initiative: completedInitiative,
     };
 
-    let completedRank = LexoRank.middle();
-    const completedMockTasks = completedTasks.map((task) => {
-      completedRank = completedRank.genNext();
-      return {
-        ...task,
-        position: completedRank.genNext().toString(),
-        orderingId: task.id
-      };
-    });
-
     useParams.mockReturnValue({
       initiativeId: 'init-1',
-    });
-
-    useTasksContext.mockReturnValue({
-      ...mockUseTasksContext,
-      tasks: completedMockTasks as OrderedEntity<TaskDto>[]
     });
 
     useStrategicInitiative.mockReturnValue({

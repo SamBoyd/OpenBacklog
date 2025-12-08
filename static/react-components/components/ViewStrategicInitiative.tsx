@@ -1,5 +1,6 @@
 import React from 'react';
 import { useParams } from '#hooks/useParams';
+import { useNavigate } from 'react-router';
 import { useStrategicInitiative } from '#hooks/useStrategicInitiative';
 import ItemView from '#components/reusable/ItemView';
 import { Button, NoBorderButton, CompactButton } from '#components/reusable/Button';
@@ -8,7 +9,7 @@ import InitiativeStatusBadge from '#components/reusable/InitiativeStatusBadge';
 import HeroCard from '#components/reusable/HeroCard';
 import VillainCard from '#components/reusable/VillainCard';
 import StakesConflictSection from '#components/StakesConflictSection';
-import TasksList from '#components/TasksList';
+import InitiativeTasksList from '#components/InitiativeTasksList';
 import { statusDisplay, TaskStatus } from '#types';
 import { Pencil, Plus, Sparkles } from 'lucide-react';
 
@@ -30,9 +31,20 @@ const calculateProgress = (tasks: any[] | undefined): number => {
  */
 const ViewStrategicInitiative: React.FC = () => {
   const { initiativeId } = useParams();
+  const navigate = useNavigate();
   const { strategicInitiative, isLoading, error } = useStrategicInitiative(
     initiativeId || ''
   );
+
+  /**
+   * Handles navigation to task detail view
+   * @param {string} taskId - The ID of the task to view
+   */
+  const handleTaskClick = (taskId: string) => {
+    if (initiativeId) {
+      navigate(`/workspace/initiatives/${initiativeId}/tasks/${taskId}`);
+    }
+  };
 
   if (!initiativeId) {
     return <div className="p-6">Initiative ID not found</div>;
@@ -175,13 +187,14 @@ const ViewStrategicInitiative: React.FC = () => {
                     Tasks ({scenesCount.total})
                   </h2>
                   <div className="flex items-center gap-2">
-                    <Button onClick={() => {}} className="text-sm">
+                    <Button onClick={() => {}} className="text-sm" disabled={true}>
                       <Plus size={16} />
                       Add Task
                     </Button>
                     <Button
                       onClick={() => {}}
                       className="text-sm bg-primary text-primary-foreground hover:bg-primary/90"
+                      disabled={true}
                     >
                       <Sparkles size={16} />
                       Decompose Task
@@ -189,19 +202,10 @@ const ViewStrategicInitiative: React.FC = () => {
                   </div>
                 </div>
 
-                {tasks.length > 0 ? (
-                  <TasksList
-                    initiativeId={initiativeId}
-                    reloadCounter={0}
-                    filterToStatus={[TaskStatus.TO_DO, TaskStatus.IN_PROGRESS, TaskStatus.DONE]}
-                  />
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-sm text-muted-foreground">
-                      No tasks have been defined yet
-                    </p>
-                  </div>
-                )}
+                <InitiativeTasksList
+                  tasks={tasks}
+                  onTaskClick={handleTaskClick}
+                />
 
                 {tasks.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-border">
