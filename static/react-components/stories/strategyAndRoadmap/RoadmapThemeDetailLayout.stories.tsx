@@ -13,6 +13,9 @@ import {
   mockConflicts,
   mockMetrics,
   mockHighProgressMetrics,
+  mockOutcomes,
+  mockPillars,
+  mockVisionText,
 } from './mockData';
 
 const meta: Meta<typeof RoadmapThemeDetailLayout> = {
@@ -39,10 +42,15 @@ export const FullLayout: Story = {
     themes: mockThemes,
     beats: mockBeats,
     conflicts: mockConflicts,
+    outcomes: mockOutcomes,
+    pillars: mockPillars,
+    visionText: mockVisionText,
     metrics: mockMetrics,
     isLoading: false,
     error: null,
-    onViewBeat: fn((initiativeId: string) => console.log('View Beat:', initiativeId)),
+    onViewOutcome: fn((outcomeId: string) => console.log('View Outcome:', outcomeId)),
+    onViewHero: fn((heroId: string) => console.log('View Hero:', heroId)),
+    onViewVillain: fn((villainId: string) => console.log('View Villain:', villainId)),
   },
 };
 
@@ -58,10 +66,15 @@ export const MobileLayout: Story = {
     themes: mockThemes.slice(0, 2),
     beats: mockBeats.slice(0, 2),
     conflicts: mockConflicts.slice(0, 1),
+    outcomes: mockOutcomes.slice(0, 2),
+    pillars: mockPillars,
+    visionText: mockVisionText,
     metrics: mockMetrics,
     isLoading: false,
     error: null,
-    onViewBeat: fn((initiativeId: string) => console.log('View Beat:', initiativeId)),
+    onViewOutcome: fn((outcomeId: string) => console.log('View Outcome:', outcomeId)),
+    onViewHero: fn((heroId: string) => console.log('View Hero:', heroId)),
+    onViewVillain: fn((villainId: string) => console.log('View Villain:', villainId)),
   },
   parameters: {
     viewport: {
@@ -82,10 +95,15 @@ export const TabletLayout: Story = {
     themes: mockThemes.slice(0, 2),
     beats: mockBeats.slice(0, 3),
     conflicts: mockConflicts.slice(0, 2),
+    outcomes: mockOutcomes,
+    pillars: mockPillars,
+    visionText: mockVisionText,
     metrics: mockHighProgressMetrics,
     isLoading: false,
     error: null,
-    onViewBeat: fn((initiativeId: string) => console.log('View Beat:', initiativeId)),
+    onViewOutcome: fn((outcomeId: string) => console.log('View Outcome:', outcomeId)),
+    onViewHero: fn((heroId: string) => console.log('View Hero:', heroId)),
+    onViewVillain: fn((villainId: string) => console.log('View Villain:', villainId)),
   },
   parameters: {
     viewport: {
@@ -106,10 +124,15 @@ export const LoadingState: Story = {
     themes: [],
     beats: [],
     conflicts: [],
+    outcomes: [],
+    pillars: [],
+    visionText: null,
     metrics: mockMetrics,
     isLoading: true,
     error: null,
-    onViewBeat: fn((initiativeId: string) => console.log('View Beat:', initiativeId)),
+    onViewOutcome: fn((outcomeId: string) => console.log('View Outcome:', outcomeId)),
+    onViewHero: fn((heroId: string) => console.log('View Hero:', heroId)),
+    onViewVillain: fn((villainId: string) => console.log('View Villain:', villainId)),
   },
 };
 
@@ -125,9 +148,14 @@ export const ErrorState: Story = {
     themes: [],
     beats: [],
     conflicts: [],
+    outcomes: [],
+    pillars: [],
+    visionText: null,
     metrics: mockMetrics,
     isLoading: false,
     error: 'Failed to load roadmap theme. Please check your connection and try again.',
-    onViewBeat: fn((initiativeId: string) => console.log('View Beat:', initiativeId)),
+    onViewOutcome: fn((outcomeId: string) => console.log('View Outcome:', outcomeId)),
+    onViewHero: fn((heroId: string) => console.log('View Hero:', heroId)),
+    onViewVillain: fn((villainId: string) => console.log('View Villain:', villainId)),
   },
 };

@@ -3,10 +3,85 @@
  * Provides realistic test data covering various states and edge cases.
  */
 
-import { MetricsData } from '#types/storyArc';
-import { ThemeDto, HeroRef, VillainRef } from '#api/productStrategy';
+import { LoremIpsum } from "lorem-ipsum";
+
+import { MetricsData, OutcomeRef } from '#types/storyArc';
+import { ThemeDto, HeroRef, VillainRef, OutcomeDto, PillarDto } from '#api/productStrategy';
 import { ConflictDto, VillainType, ConflictStatus, HeroDto, VillainDto } from '#types';
 import { BeatItem } from '#hooks/initiatives/useInitiativesByTheme';
+
+const lorem = new LoremIpsum({
+  sentencesPerParagraph: {
+    max: 8,
+    min: 4
+  },
+  wordsPerSentence: {
+    max: 16,
+    min: 4
+  }
+});
+
+// Mock Vision Text
+export const mockVisionText = 'Build the AI-native product management layer that enables developers and AI assistants to maintain shared context without breaking flow state.';
+
+// Mock Outcome Data
+export const mockOutcomes: OutcomeDto[] = [
+  {
+    id: 'outcome-1',
+    name: 'AI assistants can query product context natively',
+    description: 'Enable Claude Code and other AI tools to access product decisions, user stories, and technical context through MCP integration.',
+    workspace_id: 'workspace-1',
+    display_order: 0,
+    pillar_ids: ['pillar-1', 'pillar-2'],
+    created_at: '2025-01-15T10:00:00Z',
+    updated_at: '2025-01-15T10:00:00Z'
+  },
+  {
+    id: 'outcome-2',
+    name: 'Narrative consistency maintained over time',
+    description: 'Product story remains coherent as features evolve, with health metrics tracking alignment between vision and implementation.',
+    workspace_id: 'workspace-1',
+    display_order: 1,
+    pillar_ids: ['pillar-1'],
+    created_at: '2025-01-16T10:00:00Z',
+    updated_at: '2025-01-16T10:00:00Z'
+  },
+  {
+    id: 'outcome-3',
+    name: 'Zero context-switching for developers',
+    description: 'Developers stay in flow state by having all product context accessible within their IDE environment.',
+    workspace_id: 'workspace-1',
+    display_order: 0,
+    pillar_ids: ['pillar-3'],
+    created_at: '2025-01-17T10:00:00Z',
+    updated_at: '2025-01-17T10:00:00Z'
+  },
+];
+
+// Mock Pillar Data
+export const mockPillars: PillarDto[] = [
+  {
+    id: 'pillar-1',
+    name: 'AI-Native Product Management',
+    description: 'Build product management tools designed from the ground up for AI collaboration.',
+    workspace_id: 'workspace-1',
+    display_order: 0,
+    outcome_ids: ['outcome-1', 'outcome-2'],
+    created_at: '2025-01-15T10:00:00Z',
+    updated_at: '2025-01-15T10:00:00Z',
+  },
+  {
+    id: 'pillar-3',
+    name: 'Developer Experience First',
+    description: 'Prioritize the needs of developers over administrative overhead.',
+    workspace_id: 'workspace-1',
+    display_order: 2,
+    outcome_ids: ['outcome-3'],
+    created_at: '2025-01-18T10:00:00Z',
+    updated_at: '2025-01-18T10:00:00Z',
+  },
+];
+
 
 // Mock Hero Data
 export const mockHero: HeroRef = {
@@ -133,7 +208,7 @@ export const mockBeats: BeatItem[] = [
     initiativeId: 'initiative-1',
     identifier: 'BEAT-1',
     title: 'MCP Server Foundation',
-    description: 'Build the core MCP server infrastructure',
+    description: `Build the core MCP server infrastructure. ${lorem.generateParagraphs(7)}`,
     status: 'done',
     narrativeIntent: 'Establish the technical foundation for AI integration',
     strategicDescription: 'Core infrastructure enabling AI integration',
@@ -151,7 +226,7 @@ export const mockBeats: BeatItem[] = [
     initiativeId: 'initiative-2',
     identifier: 'BEAT-2',
     title: 'Context Query API',
-    description: 'Enable AI to query product context',
+    description: `Enable AI to query product context. ${lorem.generateParagraphs(7)}`,
     status: 'in_progress',
     narrativeIntent: 'Allow AI assistants to understand product decisions',
     strategicDescription: 'Query interface for AI context access',
@@ -170,7 +245,7 @@ export const mockBeats: BeatItem[] = [
     initiativeId: 'initiative-3',
     identifier: 'BEAT-3',
     title: 'Narrative Health Metrics',
-    description: 'Track narrative consistency over time',
+    description: `Track narrative consistency over time. ${lorem.generateParagraphs(7)}`,
     status: 'in_progress',
     narrativeIntent: 'Provide visibility into story coherence',
     strategicDescription: 'Health monitoring and analytics',
@@ -188,7 +263,7 @@ export const mockBeats: BeatItem[] = [
     initiativeId: 'initiative-4',
     identifier: 'BEAT-4',
     title: 'Claude Code Integration',
-    description: 'Deep integration with Claude Code IDE',
+    description: `Deep integration with Claude Code IDE. ${lorem.generateParagraphs(7)}`,
     status: 'todo',
     narrativeIntent: 'Seamless workflow for developers using AI assistants',
     strategicDescription: 'IDE integration for developer workflow',

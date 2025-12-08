@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router';
 
 import { RoadmapThemeDetailLayoutProps } from '#types/storyArc';
 import HeaderSection from './HeaderSection';
-import NarrativeContextBar from './NarrativeContextBar';
 import StorySection from './StorySection';
 import BeatsSection from './BeatsSection';
-import NarrativeConnectionsSection from './NarrativeConnectionsSection';
 import ConflictsStakesSection from './ConflictsStakesSection';
 import PlaceholderSection from './PlaceholderSection';
 import MetricsSection from './MetricsSection';
+import StrategicContextSection from './StrategicContextSection';
+import CharactersSection from './CharactersSection';
 
 /**
  * RoadmapThemeDetailLayout orchestrates all section components into a responsive 2-column layout.
@@ -26,9 +26,15 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
     themes,
     beats,
     conflicts,
+    outcomes,
+    pillars,
+    visionText,
     metrics,
     isLoading,
     error,
+    onViewOutcome,
+    onViewHero,
+    onViewVillain,
 }) => {
     const navigate = useNavigate();
     // Handle error state
@@ -193,16 +199,21 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
                 onDelete={handleDelete}
             />
 
-            {/* Sticky Narrative Context Bar */}
-            <NarrativeContextBar
+            {/* Strategic Context */}
+            <StrategicContextSection
+                visionText={visionText}
+                outcomes={outcomes}
+                pillars={pillars}
+                progressPercent={metrics.progressPercent}
+                onViewOutcome={onViewOutcome}
+            />
+
+            {/* Characters */}
+            <CharactersSection
                 hero={hero}
                 villains={villains}
-                themes={themes}
-                progressPercent={metrics.progressPercent}
-                healthPercent={metrics.healthPercent}
-                onHeroClick={handleHeroClick}
-                onVillainClick={handleVillainClick}
-                onThemeClick={handleThemeClick}
+                onViewHero={onViewHero}
+                onViewVillain={onViewVillain}
             />
 
             {/* Main Content Area */}
@@ -230,17 +241,6 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
 
                     {/* Right Sidebar (40%) - Sticky on Desktop */}
                     <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-[200px] lg:self-start">
-                        {/* Narrative Connections */}
-                        <NarrativeConnectionsSection
-                            hero={hero}
-                            villains={villains}
-                            themes={themes}
-                            onEditLinks={handleEditLinks}
-                            onHeroClick={handleHeroClick}
-                            onVillainClick={handleVillainClick}
-                            onThemeClick={handleThemeClick}
-                        />
-
                         {/* Conflicts and Stakes */}
                         <ConflictsStakesSection
                             conflicts={conflicts}

@@ -3,8 +3,12 @@ import { useRoadmapThemeById } from '#hooks/useRoadmapThemeById';
 import { useInitiativesByTheme, BeatItem } from '#hooks/initiatives/useInitiativesByTheme';
 import { useConflicts } from '#hooks/useConflicts';
 import { useRoadmapThemes } from '#hooks/useRoadmapThemes';
-import { ThemeDto, HeroRef, VillainRef } from '#api/productStrategy';
+import { useProductVision } from '#hooks/useProductVision';
+import { useProductOutcomes } from '#hooks/useProductOutcomes';
+import { useStrategicPillars } from '#hooks/useStrategicPillars';
+import { ThemeDto, HeroRef, VillainRef, PillarDto, OutcomeDto } from '#api/productStrategy';
 import { ConflictDto } from '#types';
+import { OutcomeRef } from '#types/storyArc';
 
 /**
  * Metrics data derived from the roadmap theme's beats and tasks.
@@ -32,6 +36,9 @@ export interface RoadmapThemeDetailData {
   themes: ThemeDto[]; // All other themes in the workspace
   beats: BeatItem[]; // Strategic initiatives as story beats
   conflicts: ConflictDto[]; // Conflicts filtered by arc ID
+  outcomes: OutcomeDto[]; // Outcomes linked to this theme
+  pillars: PillarDto[]; // Strategic pillars linked to this theme
+  visionText: string | null; // Product vision text
   metrics: MetricsData;
   isLoading: boolean;
   error: string | null;
@@ -130,6 +137,27 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
     error: themesError,
   } = useRoadmapThemes(workspaceId);
 
+  // Fetch workspace vision
+  const {
+    vision,
+    isLoading: isLoadingVision,
+    error: visionError,
+  } = useProductVision(workspaceId);
+
+  // Fetch all product outcomes
+  const {
+    outcomes: allOutcomes,
+    isLoading: isLoadingOutcomes,
+    error: outcomesError,
+  } = useProductOutcomes(workspaceId);
+
+  // Fetch all strategic pillars
+  const {
+    pillars: allPillars,
+    isLoading: isLoadingPillars,
+    error: pillarsError,
+  } = useStrategicPillars(workspaceId);
+
   // Filter conflicts by arc ID
   const conflicts = useMemo(() => {
     if (!allConflicts) return [];
@@ -142,6 +170,27 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
     return allThemes.filter(theme => theme.id !== arcId);
   }, [allThemes, arcId]);
 
+  // Get outcomes linked to this theme
+  const outcomes = useMemo(() => {
+    if (!arc || !allOutcomes) return [];
+    // Filter outcomes by theme's outcome_ids
+    const themeOutcomeIds = arc.outcome_ids || [];
+    return allOutcomes.filter(outcome => themeOutcomeIds.includes(outcome.id));
+  }, [arc, allOutcomes]);
+
+  // Get pillars linked to this theme
+  const pillars = useMemo(() => {
+    if (!arc || !allPillars) return [];
+    // Filter pillars by theme's pillars_ids
+    const themeOutcomeIds = arc.outcome_ids || [];
+    return allPillars.filter(pillar => themeOutcomeIds.includes(pillar.id));
+  }, [arc, allPillars]);
+
+  // Get vision text
+  const visionText = useMemo(() => {
+    return vision?.vision_text || null;
+  }, [vision]);
+
   // Get primary hero (first one in the list, or null if none)
   const hero = useMemo(() => {
     return arcHeroes.length > 0 ? arcHeroes[0] : null;
@@ -153,7 +202,7 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
   }, [beats, arc]);
 
   // Aggregate loading and error states
-  const isLoading = isLoadingArc || isLoadingBeats || isLoadingConflicts || isLoadingThemes;
+  const isLoading = isLoadingArc || isLoadingBeats || isLoadingConflicts || isLoadingThemes || isLoadingVision || isLoadingOutcomes;
 
   // Combine errors - convert string errors to Error objects
   let combinedError: string | null = null;
@@ -165,6 +214,10 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
     combinedError = conflictsError;
   } else if (themesError) {
     combinedError = themesError instanceof Error ? String(themesError) : themesError;
+  } else if (visionError) {
+    combinedError = visionError instanceof Error ? String(visionError) : visionError;
+  } else if (outcomesError) {
+    combinedError = outcomesError instanceof Error ? String(outcomesError) : outcomesError;
   }
 
   return {
@@ -174,6 +227,9 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
     themes: otherThemes,
     beats,
     conflicts,
+    outcomes,
+    pillars,
+    visionText,
     metrics,
     isLoading,
     error: combinedError,

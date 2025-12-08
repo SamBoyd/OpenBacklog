@@ -36,6 +36,9 @@ const RoadmapThemeDetail = () => {
         themes,
         beats,
         conflicts,
+        outcomes,
+        pillars,
+        visionText,
         metrics,
         isLoading,
         error,
@@ -89,6 +92,19 @@ const RoadmapThemeDetail = () => {
         );
     }
 
+    // Callback handlers
+    const handleViewOutcome = (outcomeId: string) => {
+        navigate(`/workspace/outcomes/${outcomeId}`);
+    };
+
+    const handleViewHero = (heroId: string) => {
+        navigate(`/workspace/story-bible?tab=heroes`);
+    };
+
+    const handleViewVillain = (villainId: string) => {
+        navigate(`/workspace/story-bible?tab=villains`);
+    };
+
     // Render the layout with all data and handlers
     // Note: arc can be null during loading, but layout handles this with its own loading state
     return (
@@ -99,9 +115,15 @@ const RoadmapThemeDetail = () => {
             themes={themes}
             beats={beats}
             conflicts={conflicts}
+            outcomes={outcomes}
+            pillars={pillars}
+            visionText={visionText}
             metrics={metrics}
             isLoading={isLoading}
             error={error}
+            onViewOutcome={handleViewOutcome}
+            onViewHero={handleViewHero}
+            onViewVillain={handleViewVillain}
         />
     );
 };

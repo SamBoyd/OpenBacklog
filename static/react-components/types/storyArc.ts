@@ -6,12 +6,22 @@
  */
 
 // Import types from other modules
-import type { ThemeDto, HeroRef, VillainRef } from '#api/productStrategy';
+import type { ThemeDto, HeroRef, VillainRef, OutcomeDto, PillarDto } from '#api/productStrategy';
 import type { ConflictDto, TaskDto, InitiativeDto } from '#types';
 
 // Re-export commonly used types for convenience
-export type { ThemeDto, HeroRef, VillainRef } from '#api/productStrategy';
+export type { ThemeDto, HeroRef, VillainRef, OutcomeDto } from '#api/productStrategy';
 export type { ConflictDto, TaskDto, InitiativeDto } from '#types';
+
+/**
+ * Reference to an outcome with minimal data.
+ * Used for displaying outcomes in strategic context.
+ */
+export interface OutcomeRef {
+  id: string;
+  name: string;
+  description: string | null;
+}
 
 /**
  * Represents a beat (initiative) in a story arc with narrative context.
@@ -57,6 +67,8 @@ export interface RoadmapThemeDetailData {
   themes: ThemeDto[];
   beats: BeatItem[];
   conflicts: ConflictDto[];
+  outcomes: OutcomeRef[];
+  visionText: string | null;
   metrics: MetricsData;
 }
 
@@ -166,6 +178,29 @@ export interface MetricsSectionProps {
 }
 
 /**
+ * Props for the strategic context section component.
+ * Displays product vision, outcomes, and progress.
+ */
+export interface StrategicContextSectionProps {
+  visionText: string | null;
+  outcomes: OutcomeDto[];
+  pillars: PillarDto[];
+  progressPercent: number;
+  onViewOutcome?: (outcomeId: string) => void;
+}
+
+/**
+ * Props for the characters section component.
+ * Displays hero and villains with quick access links.
+ */
+export interface CharactersSectionProps {
+  hero: HeroRef | null;
+  villains: VillainRef[];
+  onViewHero?: (heroId: string) => void;
+  onViewVillain?: (villainId: string) => void;
+}
+
+/**
  * Props for the main roadmap theme detail layout component.
  * Orchestrates all section components and manages overall page state.
  */
@@ -176,7 +211,13 @@ export interface RoadmapThemeDetailLayoutProps {
   themes: ThemeDto[];
   beats: BeatItem[];
   conflicts: ConflictDto[];
+  outcomes: OutcomeDto[];
+  pillars: PillarDto[];
+  visionText: string | null;
   metrics: MetricsData;
   isLoading: boolean;
   error: String | null;
+  onViewOutcome?: (outcomeId: string) => void;
+  onViewHero?: (heroId: string) => void;
+  onViewVillain?: (villainId: string) => void;
 }

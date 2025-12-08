@@ -14,6 +14,9 @@ import {
   mockBeats,
   mockConflicts,
   mockMetrics,
+  mockOutcomes,
+  mockVisionText,
+  mockPillars,
 } from './mockData';
 
 const meta: Meta<typeof RoadmapThemeDetail> = {
@@ -59,6 +62,9 @@ export const Loaded: Story = {
         metrics: mockMetrics,
         isLoading: false,
         error: null,
+        outcomes: mockOutcomes,
+        pillars: mockPillars,
+        visionText: mockVisionText,
       });
       return <Story />;
     },
@@ -82,6 +88,9 @@ export const Loading: Story = {
         metrics: mockMetrics,
         isLoading: true,
         error: null,
+        outcomes: [],
+        visionText: null,
+        pillars: [],
       });
       return <Story />;
     },
@@ -105,6 +114,9 @@ export const Error: Story = {
         metrics: mockMetrics,
         isLoading: false,
         error: 'Failed to load story arc. The server is not responding.',
+        outcomes: [],
+        visionText: null,
+        pillars: [],
       });
       return <Story />;
     },
@@ -128,6 +140,9 @@ export const NoArc: Story = {
         metrics: mockMetrics,
         isLoading: false,
         error: null,
+        outcomes: [],
+        visionText: null,
+        pillars: [],
       });
       return <Story />;
     },
@@ -162,6 +177,9 @@ export const NoWorkspace: Story = {
         metrics: mockMetrics,
         isLoading: false,
         error: null,
+        outcomes: [],
+        visionText: null,
+        pillars: [],
       });
       return <Story />;
     },
