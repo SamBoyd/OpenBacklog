@@ -46,6 +46,30 @@ const ViewStrategicInitiative: React.FC = () => {
     }
   };
 
+  const handleViewTheme = (themeId: string) => {
+    if (initiativeId) {
+      navigate(`/workspace/story-bible/theme/${themeId}`);
+    }
+  };
+
+  const handleViewPillar = (pillarId: string) => {
+    if (initiativeId) {
+      navigate(`/workspace/story-bible/pillar/${pillarId}`);
+    }
+  };
+
+  const handleViewHero = (heroId: string) => {
+    if (initiativeId) {
+      navigate(`/workspace/story-bible?tab=heroes`);
+    }
+  };
+
+  const handleViewVillain = (villainId: string) => {
+    if (initiativeId) {
+      navigate(`/workspace/story-bible?tab=villains`);
+    }
+  };
+
   if (!initiativeId) {
     return <div className="p-6">Initiative ID not found</div>;
   }
@@ -135,7 +159,7 @@ const ViewStrategicInitiative: React.FC = () => {
                     <h2 className="text-base font-normal text-foreground">
                       What This Initiative Does
                     </h2>
-                    <NoBorderButton onClick={() => { }} className="p-2">
+                    <NoBorderButton disabled={true} onClick={() => { }} className="p-2">
                       <Pencil size={16} className="text-muted-foreground" />
                     </NoBorderButton>
                   </div>
@@ -151,7 +175,7 @@ const ViewStrategicInitiative: React.FC = () => {
                   <h2 className="text-base font-normal text-foreground">
                     Why This Beat Matters
                   </h2>
-                  <NoBorderButton onClick={() => { }} className="p-2">
+                  <NoBorderButton disabled={true} onClick={() => { }} className="p-2">
                     <Pencil size={16} className="text-muted-foreground" />
                   </NoBorderButton>
                 </div>
@@ -206,17 +230,6 @@ const ViewStrategicInitiative: React.FC = () => {
                   tasks={tasks}
                   onTaskClick={handleTaskClick}
                 />
-
-                {tasks.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <NoBorderButton
-                      onClick={() => { }}
-                      className="w-full py-2 text-sm font-medium"
-                    >
-                      View All Tasks in Planning Board
-                    </NoBorderButton>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -229,7 +242,7 @@ const ViewStrategicInitiative: React.FC = () => {
                     <h3 className="text-base font-normal text-foreground">
                       Narrative Connections
                     </h3>
-                    <NoBorderButton onClick={() => { }} className="p-2">
+                    <NoBorderButton disabled={true} onClick={() => { }} className="p-2">
                       <Pencil size={16} className="text-muted-foreground" />
                     </NoBorderButton>
                   </div>
@@ -259,7 +272,7 @@ const ViewStrategicInitiative: React.FC = () => {
                             </p>
                           )}
                           <CompactButton
-                            onClick={() => { }}
+                            onClick={() => handleViewTheme(strategicInitiative.theme.id)}
                             className="font-medium mt-2 text-foreground"
                           >
                             View Theme Detail
@@ -287,7 +300,7 @@ const ViewStrategicInitiative: React.FC = () => {
                             </p>
                           )}
                           <CompactButton
-                            onClick={() => { }}
+                            onClick={() => handleViewPillar(strategicInitiative.pillar.id)}
                             className="font-medium mt-2 text-foreground"
                           >
                             View Pillar Detail
@@ -303,7 +316,10 @@ const ViewStrategicInitiative: React.FC = () => {
                           <span className="text-primary"><User size={16} /></span>
                           <p className="text-xs text-muted-foreground font-medium">HERO</p>
                         </div>
-                        <HeroCard hero={heroes[0]} />
+                        <HeroCard 
+                          hero={heroes[0]}
+                          onViewDetail={() => handleViewHero(heroes[0].id)}
+                        />
                       </div>
                     )}
 
@@ -318,7 +334,11 @@ const ViewStrategicInitiative: React.FC = () => {
                         </div>
                         <div className="space-y-2">
                           {villains.map((villain) => (
-                            <VillainCard key={villain.id} villain={villain} />
+                            <VillainCard 
+                              key={villain.id} 
+                              villain={villain} 
+                              onViewDetail={() => handleViewVillain(villain.id)}
+                            />
                           ))}
                         </div>
                       </div>
@@ -339,7 +359,7 @@ const ViewStrategicInitiative: React.FC = () => {
                     <h3 className="text-base font-normal text-foreground">
                       Related Lore
                     </h3>
-                    <NoBorderButton onClick={() => { }} className="p-2">
+                    <NoBorderButton disabled={true} onClick={() => { }} className="p-2">
                       <Pencil size={16} className="text-muted-foreground" />
                     </NoBorderButton>
                   </div>
