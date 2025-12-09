@@ -106,7 +106,7 @@ const NarrativeTabList: React.FC<NarrativeTabListProps> = ({
                         <div className="flex items-center justify-center gap-2">
                             <span className="text-sm font-medium">{tab.label}</span>
                             <span
-                                className="inline-flex items-center justify-center min-w-[24px] h-[22px] px-2 py-0.5 rounded bg-muted text-muted-foreground text-xs font-medium"
+                                className="inline-flex items-center justify-center min-w-[24px] h-[22px] px-2 py-0.5 rounded bg-background text-muted-foreground text-xs font-medium"
                                 data-testid={`${dataTestId}-${tab.id}-badge`}
                             >
                                 {tab.count}
