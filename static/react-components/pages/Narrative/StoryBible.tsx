@@ -11,6 +11,7 @@ import { useRoadmapThemes } from '#hooks/useRoadmapThemes';
 import { useHeroes } from '#hooks/useHeroes';
 import { useVillains } from '#hooks/useVillains';
 import { useWorkspaces } from '#hooks/useWorkspaces';
+import { useProductOutcomes } from '#hooks/useProductOutcomes';
 
 /**
  * Props for StoryBiblePage component.
@@ -57,6 +58,9 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
 
     const [searchParams ] = useSearchParams();
 
+    // Fetch product outcomes
+    const { outcomes } = useProductOutcomes(workspaceId);
+
     useEffect(() => {
         if (searchParams.get('tab')) {
             if (searchParams.get('tab') === 'heroes') {
@@ -98,6 +102,10 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
 
     const handleTabChange = (tab: NarrativeTabType) => {
         setActiveTab(tab);
+    };
+
+    const getOutcomesForPillar = (pillarOutcomeIds: string[]) => {
+        return outcomes.filter(o => pillarOutcomeIds.includes(o.id));
     };
 
     const handleHeroToggle = (heroId: string, expanded: boolean) => {
@@ -246,6 +254,7 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                                             key={pillar.id}
                                             pillar={pillar}
                                             outcomeCount={pillar.outcome_ids?.length || 0}
+                                            outcomes={getOutcomesForPillar(pillar.outcome_ids || [])}
                                             isExpanded={expandedPillarId === pillar.id}
                                             onToggleExpand={(expanded) => handlePillarToggle(pillar.id, expanded)}
                                         />

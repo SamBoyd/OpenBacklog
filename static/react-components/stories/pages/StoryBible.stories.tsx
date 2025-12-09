@@ -7,10 +7,12 @@ import { useStrategicPillars } from '#hooks/useStrategicPillars.mock';
 import { useRoadmapThemes } from '#hooks/useRoadmapThemes.mock';
 import { HeroDto } from '#types';
 import { VillainDto, VillainType } from '#types';
-import { PillarDto } from '#api/productStrategy';
+import { OutcomeReorderRequest, PillarDto } from '#api/productStrategy';
 import { ThemeDto } from '#api/productStrategy';
 import { mockWorkspace } from '#stories/example_data';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
+import { mockOutcomes } from '#stories/strategyAndRoadmap/mockData';
+import { useProductOutcomes } from '#hooks/useProductOutcomes.mock';
 
 const mockNarrativeSummary = `OpenBacklog is pioneering a new category: the AI-native product management layer. We're building for solo developers and small teams who work alongside AI coding assistants like Claude Code, who need their product context to be immediately accessible to both humans and AI without breaking flow state.
 
@@ -196,6 +198,28 @@ const meta: Meta<typeof StoryBiblePage> = {
                 reorderPillars: fn(),
                 isReordering: false,
                 reorderError: null,
+            });
+
+            useProductOutcomes.mockReturnValue({
+                outcomes: mockOutcomes,
+                isLoading: false,
+                error: null,
+                createOutcome: fn(),
+                isCreating: false,
+                createError: null,
+                updateOutcome: fn(),
+                isUpdating: false,
+                updateError: null,
+                deleteOutcome: function (outcomeId: string): void {
+                    throw new Error('Function not implemented.');
+                },
+                isDeleting: false,
+                deleteError: null,
+                reorderOutcomes: function (request: OutcomeReorderRequest): void {
+                    throw new Error('Function not implemented.');
+                },
+                isReordering: false,
+                reorderError: null
             });
 
             useRoadmapThemes.mockReturnValue({

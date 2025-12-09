@@ -1,7 +1,40 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
 import StrategicPillarCard from '#components/Narrative/StrategicPillarCard';
-import { PillarDto } from '#api/productStrategy';
+import { PillarDto, OutcomeDto } from '#api/productStrategy';
+
+const mockOutcomes: OutcomeDto[] = [
+    {
+        id: 'outcome-1',
+        workspace_id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'Improved Collaboration Features',
+        description: 'Implement real-time collaboration tools that allow teams to work together seamlessly.',
+        display_order: 1,
+        pillar_ids: ['650e8400-e29b-41d4-a716-446655440001'],
+        created_at: '2025-01-15T11:00:00Z',
+        updated_at: '2025-01-15T11:00:00Z',
+    },
+    {
+        id: 'outcome-2',
+        workspace_id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'Enhanced API Documentation',
+        description: 'Create comprehensive API documentation with examples and best practices.',
+        display_order: 2,
+        pillar_ids: ['650e8400-e29b-41d4-a716-446655440001'],
+        created_at: '2025-01-15T12:00:00Z',
+        updated_at: '2025-01-15T12:00:00Z',
+    },
+    {
+        id: 'outcome-3',
+        workspace_id: '550e8400-e29b-41d4-a716-446655440000',
+        name: 'CLI Tool Enhancements',
+        description: 'Improve command-line interface with better error messages and user guidance.',
+        display_order: 3,
+        pillar_ids: ['650e8400-e29b-41d4-a716-446655440002'],
+        created_at: '2025-01-16T15:30:00Z',
+        updated_at: '2025-01-16T15:30:00Z',
+    },
+];
 
 const mockPillar: PillarDto = {
     id: '650e8400-e29b-41d4-a716-446655440001',
@@ -47,6 +80,9 @@ const meta: Meta<typeof StrategicPillarCard> = {
             control: { type: 'number', min: 0, max: 10 },
             description: 'Number of linked outcomes',
         },
+        outcomes: {
+            description: 'Array of outcome objects linked to this pillar',
+        },
         isExpanded: {
             control: 'boolean',
             description: 'Whether card is expanded',
@@ -72,17 +108,19 @@ export const Default: Story = {
     args: {
         pillar: mockPillar,
         outcomeCount: 2,
+        outcomes: [mockOutcomes[0], mockOutcomes[1]],
         isExpanded: false,
     },
 };
 
 /**
- * Expanded pillar card showing full content.
+ * Expanded pillar card showing full content with outcomes.
  */
 export const Expanded: Story = {
     args: {
         pillar: mockPillar,
         outcomeCount: 2,
+        outcomes: [mockOutcomes[0], mockOutcomes[1]],
         isExpanded: true,
     },
 };
@@ -94,6 +132,7 @@ export const MinimalInfo: Story = {
     args: {
         pillar: mockPillarMinimal,
         outcomeCount: 1,
+        outcomes: [mockOutcomes[2]],
         isExpanded: false,
     },
 };
@@ -105,23 +144,25 @@ export const NoOutcomes: Story = {
     args: {
         pillar: mockPillar,
         outcomeCount: 0,
+        outcomes: [],
         isExpanded: false,
     },
 };
 
 /**
- * Pillar card with high outcome count.
+ * Pillar card with high outcome count (expanded to show multiple outcomes).
  */
 export const ManyOutcomes: Story = {
     args: {
         pillar: mockPillar,
         outcomeCount: 8,
-        isExpanded: false,
+        outcomes: [mockOutcomes[0], mockOutcomes[1]],
+        isExpanded: true,
     },
 };
 
 /**
- * Interactive pillar card with expand functionality.
+ * Interactive pillar card with expand functionality and outcomes.
  */
 export const Interactive: Story = {
     render: (args) => {
@@ -137,11 +178,12 @@ export const Interactive: Story = {
     args: {
         pillar: mockPillar,
         outcomeCount: 2,
+        outcomes: [mockOutcomes[0], mockOutcomes[1]],
     },
 };
 
 /**
- * Multiple pillar cards together.
+ * Multiple pillar cards together with outcomes.
  */
 export const MultipleCards: Story = {
     render: () => (
@@ -149,11 +191,13 @@ export const MultipleCards: Story = {
             <StrategicPillarCard
                 pillar={mockPillar}
                 outcomeCount={2}
+                outcomes={[mockOutcomes[0], mockOutcomes[1]]}
                 isExpanded={false}
             />
             <StrategicPillarCard
                 pillar={mockPillarMinimal}
                 outcomeCount={1}
+                outcomes={[mockOutcomes[2]]}
                 isExpanded={false}
             />
         </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { PillarDto } from '#api/productStrategy';
+import { PillarDto, OutcomeDto } from '#api/productStrategy';
 import Card from '../reusable/Card';
 
 /**
@@ -14,6 +14,10 @@ export interface StrategicPillarCardProps {
      * Number of outcomes linked to this pillar
      */
     outcomeCount?: number;
+    /**
+     * The outcomes linked to this pillar
+     */
+    outcomes?: OutcomeDto[];
     /**
      * Whether the card is expanded
      */
@@ -60,6 +64,7 @@ const truncateDescription = (description: string | null, maxLength: number = 100
 const StrategicPillarCard: React.FC<StrategicPillarCardProps> = ({
     pillar,
     outcomeCount = 0,
+    outcomes = [],
     isExpanded = false,
     onToggleExpand,
     onClick,
@@ -118,6 +123,23 @@ const StrategicPillarCard: React.FC<StrategicPillarCardProps> = ({
                         <div>
                             <h4 className="text-xs font-medium text-muted-foreground mb-2">Description:</h4>
                             <p className="text-sm text-foreground leading-relaxed">{pillar.description}</p>
+                        </div>
+                    )}
+                    {outcomes && outcomes.length > 0 && (
+                        <div>
+                            <h4 className="text-xs font-medium text-muted-foreground mb-2">Linked Outcomes:</h4>
+                            <ul className="space-y-2">
+                                {outcomes.map(outcome => (
+                                    <li key={outcome.id} className="text-sm">
+                                        <span className="font-medium text-foreground">{outcome.name}</span>
+                                        {outcome.description && (
+                                            <p className="text-xs text-muted-foreground mt-0.5">
+                                                {truncateDescription(outcome.description, 80)}
+                                            </p>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     )}
                 </div>
