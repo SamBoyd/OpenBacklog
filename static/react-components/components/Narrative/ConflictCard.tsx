@@ -30,7 +30,7 @@ function getStatusBadgeClasses(status: ConflictStatus): string {
         case ConflictStatus.RESOLVED:
             return 'bg-success text-success-foreground';
         default:
-            return 'bg-muted text-muted-foreground';
+            return 'bg-muted/10 text-muted-foreground';
     }
 }
 
@@ -111,7 +111,7 @@ const ConflictCard: React.FC<ConflictCardProps> = ({
 
                 {/* VS Separator */}
                 <div className="flex-shrink-0">
-                    <div className="px-3 py-1 rounded-full bg-muted text-muted-foreground font-bold text-xs">
+                    <div className="px-3 py-1 rounded-full bg-muted/10 text-muted-foreground font-bold text-xs">
                         VS
                     </div>
                 </div>

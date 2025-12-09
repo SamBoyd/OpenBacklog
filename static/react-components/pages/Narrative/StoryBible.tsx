@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router';
 import NarrativeSummaryCard from '#components/Narrative/NarrativeSummaryCard';
 import NarrativeTabList, { NarrativeTabType } from '#components/Narrative/NarrativeTabList';
 import NarrativeHeroCard from '#components/Narrative/NarrativeHeroCard';
+import NarrativeVillainCard from '#components/Narrative/NarrativeVillainCard';
 import StrategicPillarCard from '#components/Narrative/StrategicPillarCard';
 import RoadmapThemeCard from '#components/Narrative/RoadmapThemeCard';
 import { useStrategicPillars } from '#hooks/useStrategicPillars';
@@ -12,7 +13,6 @@ import { useHeroes } from '#hooks/useHeroes';
 import { useVillains } from '#hooks/useVillains';
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { useProductOutcomes } from '#hooks/useProductOutcomes';
-import { Button, CompactButton } from '#components/reusable/Button';
 
 /**
  * Props for StoryBiblePage component.
@@ -26,14 +26,6 @@ export interface StoryBiblePageProps {
      * Narrative health percentage
      */
     healthPercentage?: number;
-    /**
-     * Callback when Edit is clicked
-     */
-    onEditNarrative?: () => void;
-    /**
-     * Callback when Regenerate is clicked
-     */
-    onRegenerateNarrative?: () => void;
 }
 
 /**
@@ -45,8 +37,6 @@ export interface StoryBiblePageProps {
 const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
     narrativeSummary = '',
     healthPercentage = 72,
-    onEditNarrative,
-    onRegenerateNarrative,
 }) => {
     const [activeTab, setActiveTab] = useState<NarrativeTabType>('heroes');
     const [expandedHeroId, setExpandedHeroId] = useState<string | null>(null);
@@ -63,22 +53,11 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
     const { outcomes } = useProductOutcomes(workspaceId);
 
     useEffect(() => {
-        if (searchParams.get('tab')) {
-            if (searchParams.get('tab') === 'heroes') {
-                setActiveTab('heroes');
-            } else if (searchParams.get('tab') === 'villains') {
-                setActiveTab('villains');
-            } else if (searchParams.get('tab') === 'pillars') {
-                setActiveTab('pillars');
-            } else if (searchParams.get('tab') === 'themes') {
-                setActiveTab('themes');
-            } else if (searchParams.get('tab') === 'lore') {
-                setActiveTab('lore');
-            } else if (searchParams.get('tab') === 'continuity') {
-                setActiveTab('continuity');
-            } 
+        const tab = searchParams.get('tab');
+        if (tab && ['heroes', 'villains', 'pillars', 'themes'].includes(tab)) {
+            setActiveTab(tab as NarrativeTabType);
         }
-    })
+    }, [searchParams])
 
     // Fetch all narrative data
     const {
@@ -165,18 +144,15 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
     };
 
     return (
-        <div className="flex flex-col gap-8 p-6 bg-background min-h-screen">
+        <div className="flex flex-col gap-6 p-6 bg-background min-h-screen">
             {/* Narrative Summary Card */}
             <NarrativeSummaryCard
                 summary={narrativeSummary}
                 healthPercentage={healthPercentage}
-                needsAttention={healthPercentage < 80}
-                onEdit={onEditNarrative}
-                onRegenerate={onRegenerateNarrative}
             />
 
             {/* Tabbed Content Section */}
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4">
                 {/* Tab List */}
                 <NarrativeTabList
                     activeTab={activeTab}
@@ -185,29 +161,26 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                     villainCount={villains.length}
                     pillarCount={pillars.length}
                     themeCount={themes.length}
-                    loreCount={0}
-                    continuityCount={0}
                 />
 
                 {/* Tab Content */}
                 <div>
                     {/* Heroes Tab */}
                     {activeTab === 'heroes' && (
-                        <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-foreground">Heroes</h2>
-                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-                                    + Add Hero
-                                </Button>
+                                <p className="text-sm text-muted-foreground">{heroes.length} defined</p>
                             </div>
                             {heroesLoading ? (
                                 <div className="text-center py-12 text-muted-foreground">Loading heroes...</div>
                             ) : heroes.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    No heroes defined yet. Add one to get started.
+                                <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-lg">
+                                    <p className="text-sm">No heroes defined yet.</p>
+                                    <p className="text-xs mt-1">Heroes represent your target users and their needs.</p>
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-4">
+                                <div className="flex flex-col gap-3">
                                     {heroes.map((hero) => (
                                         <NarrativeHeroCard
                                             key={hero.id}
@@ -225,63 +198,31 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
 
                     {/* Villains Tab */}
                     {activeTab === 'villains' && (
-                        <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-foreground">Villains</h2>
-                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-                                    + Add Villain
-                                </Button>
+                                <p className="text-sm text-muted-foreground">{villains.length} defined</p>
                             </div>
                             {villainsLoading ? (
                                 <div className="text-center py-12 text-muted-foreground">Loading villains...</div>
                             ) : villains.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    No villains defined yet. Add one to get started.
+                                <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-lg">
+                                    <p className="text-sm">No villains defined yet.</p>
+                                    <p className="text-xs mt-1">Villains represent obstacles and problems your heroes face.</p>
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-4">
+                                <div className="flex flex-col gap-3">
                                     {villains.map((villain) => {
                                         const { themeCount, heroCount } = getVillainCounts(villain.id);
                                         return (
-                                            <div
+                                            <NarrativeVillainCard
                                                 key={villain.id}
-                                                className="border border-border p-6 rounded-lg hover:bg-accent/30 transition-colors"
-                                            >
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div>
-                                                        <h3 className="text-base font-semibold text-foreground">{villain.name}</h3>
-                                                        <p className="text-sm text-muted-foreground">{villain.villain_type}</p>
-                                                    </div>
-                                                    <CompactButton
-                                                        onClick={() => handleVillainToggle(villain.id, expandedVillainId !== villain.id)}
-                                                        className="p-2 rounded-lg text-muted-foreground hover:bg-accent/50 transition-colors"
-                                                    >
-                                                        <span className={`text-lg transition-transform ${expandedVillainId === villain.id ? 'rotate-90' : ''}`}>
-                                                            ▼
-                                                        </span>
-                                                    </CompactButton>
-                                                </div>
-                                                <div className="flex gap-4 mb-3">
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-xs text-muted-foreground">Confronted by</span>
-                                                        <span className="text-sm font-semibold text-foreground">
-                                                            {themeCount} theme{themeCount !== 1 ? 's' : ''}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-xs text-muted-foreground">Opposes</span>
-                                                        <span className="text-sm font-semibold text-primary">
-                                                            {heroCount} hero{heroCount !== 1 ? 'es' : ''}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <p className="text-sm text-muted-foreground line-clamp-2">{villain.description}</p>
-                                                {expandedVillainId === villain.id && (
-                                                    <div className="mt-4 pt-4 border-t border-border">
-                                                        <p className="text-sm text-foreground leading-relaxed">{villain.description}</p>
-                                                    </div>
-                                                )}
-                                            </div>
+                                                villain={villain}
+                                                themeCount={themeCount}
+                                                heroCount={heroCount}
+                                                isExpanded={expandedVillainId === villain.id}
+                                                onToggleExpand={(expanded) => handleVillainToggle(villain.id, expanded)}
+                                            />
                                         );
                                     })}
                                 </div>
@@ -291,21 +232,20 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
 
                     {/* Pillars Tab */}
                     {activeTab === 'pillars' && (
-                        <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-foreground">Strategic Pillars</h2>
-                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-                                    + Add Pillar
-                                </Button>
+                                <p className="text-sm text-muted-foreground">{pillars.length} defined</p>
                             </div>
                             {pillarsLoading ? (
                                 <div className="text-center py-12 text-muted-foreground">Loading pillars...</div>
                             ) : pillars.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    No pillars defined yet. Add one to get started.
+                                <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-lg">
+                                    <p className="text-sm">No strategic pillars defined yet.</p>
+                                    <p className="text-xs mt-1">Pillars represent the foundational areas of your product strategy.</p>
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-4">
+                                <div className="flex flex-col gap-3">
                                     {pillars.map((pillar) => (
                                         <StrategicPillarCard
                                             key={pillar.id}
@@ -323,21 +263,20 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
 
                     {/* Themes Tab */}
                     {activeTab === 'themes' && (
-                        <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-foreground">Roadmap Themes</h2>
-                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-                                    + Add Theme
-                                </Button>
+                                <p className="text-sm text-muted-foreground">{themes.length} defined</p>
                             </div>
                             {themesLoading ? (
                                 <div className="text-center py-12 text-muted-foreground">Loading themes...</div>
                             ) : themes.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    No themes defined yet. Add one to get started.
+                                <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-lg">
+                                    <p className="text-sm">No roadmap themes defined yet.</p>
+                                    <p className="text-xs mt-1">Themes represent strategic initiatives that connect heroes and villains.</p>
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-4">
+                                <div className="flex flex-col gap-3">
                                     {themes.map((theme) => (
                                         <RoadmapThemeCard
                                             key={theme.id}
@@ -349,36 +288,6 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                                     ))}
                                 </div>
                             )}
-                        </div>
-                    )}
-
-                    {/* Lore Tab */}
-                    {activeTab === 'lore' && (
-                        <div className="flex flex-col gap-6">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-lg font-semibold text-foreground">Lore</h2>
-                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-                                    + Add Lore
-                                </Button>
-                            </div>
-                            <div className="text-center py-12 text-muted-foreground">
-                                No lore defined yet. Add one to get started.
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Continuity Tab */}
-                    {activeTab === 'continuity' && (
-                        <div className="flex flex-col gap-6">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-lg font-semibold text-foreground">Continuity</h2>
-                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-                                    + Add Item
-                                </Button>
-                            </div>
-                            <div className="text-center py-12 text-muted-foreground">
-                                No continuity items defined yet. Add one to get started.
-                            </div>
                         </div>
                     )}
                 </div>

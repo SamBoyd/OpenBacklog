@@ -33,7 +33,7 @@ function getStatusBadgeClasses(status: ConflictStatus): string {
         case ConflictStatus.RESOLVED:
             return 'bg-success text-success-foreground';
         default:
-            return 'bg-muted text-muted-foreground';
+            return 'bg-muted/10 text-muted-foreground';
     }
 }
 
@@ -116,7 +116,7 @@ const ConflictDetail: React.FC<ConflictDetailProps> = ({
                     </div>
 
                     {/* Hero vs Villain Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-muted rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-muted/10 rounded-lg">
                         {/* Hero */}
                         <div className="space-y-2">
                             <h3 className="text-sm font-semibold text-muted-foreground uppercase">
@@ -198,7 +198,7 @@ const ConflictDetail: React.FC<ConflictDetailProps> = ({
                             <h3 className="text-sm font-semibold text-muted-foreground uppercase">
                                 Theme
                             </h3>
-                            <div className="p-3 bg-muted rounded">
+                            <div className="p-3 bg-muted/10 rounded">
                                 <div className="font-medium">{conflict.story_arc.title}</div>
                                 <div className="text-sm text-muted-foreground font-mono">
                                     {conflict.story_arc.identifier}

@@ -19,7 +19,7 @@ const meta: Meta<typeof NarrativeTabList> = {
     argTypes: {
         activeTab: {
             control: 'select',
-            options: ['heroes', 'villains', 'pillars', 'themes', 'lore', 'continuity'],
+            options: ['heroes', 'villains', 'pillars', 'themes'],
             description: 'Currently active tab',
         },
         heroCount: {
@@ -37,14 +37,6 @@ const meta: Meta<typeof NarrativeTabList> = {
         themeCount: {
             control: { type: 'number', min: 0, max: 10 },
             description: 'Number of themes',
-        },
-        loreCount: {
-            control: { type: 'number', min: 0, max: 10 },
-            description: 'Number of lore items',
-        },
-        continuityCount: {
-            control: { type: 'number', min: 0, max: 10 },
-            description: 'Number of continuity items',
         },
         onTabChange: {
             action: 'tab changed',
@@ -66,8 +58,6 @@ export const Default: Story = {
         villainCount: 2,
         pillarCount: 2,
         themeCount: 2,
-        loreCount: 3,
-        continuityCount: 4,
     },
 };
 
@@ -81,8 +71,6 @@ export const VillainsActive: Story = {
         villainCount: 2,
         pillarCount: 2,
         themeCount: 2,
-        loreCount: 3,
-        continuityCount: 4,
     },
 };
 
@@ -96,8 +84,6 @@ export const PillarsActive: Story = {
         villainCount: 2,
         pillarCount: 2,
         themeCount: 2,
-        loreCount: 3,
-        continuityCount: 4,
     },
 };
 
@@ -111,8 +97,6 @@ export const ThemesActive: Story = {
         villainCount: 2,
         pillarCount: 2,
         themeCount: 2,
-        loreCount: 3,
-        continuityCount: 4,
     },
 };
 
@@ -135,8 +119,6 @@ export const Interactive: Story = {
         villainCount: 2,
         pillarCount: 2,
         themeCount: 2,
-        loreCount: 3,
-        continuityCount: 4,
     },
 };
 
@@ -150,8 +132,6 @@ export const EmptyCounts: Story = {
         villainCount: 0,
         pillarCount: 0,
         themeCount: 0,
-        loreCount: 0,
-        continuityCount: 0,
     },
 };
 
@@ -165,7 +145,5 @@ export const HighCounts: Story = {
         villainCount: 8,
         pillarCount: 6,
         themeCount: 9,
-        loreCount: 15,
-        continuityCount: 12,
     },
 };

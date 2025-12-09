@@ -30,18 +30,6 @@ const meta: Meta<typeof NarrativeSummaryCard> = {
             control: { type: 'number', min: 0, max: 100 },
             description: 'Narrative health percentage',
         },
-        needsAttention: {
-            control: 'boolean',
-            description: 'Whether narrative needs attention',
-        },
-        onEdit: {
-            action: 'edit clicked',
-            description: 'Callback when Edit is clicked',
-        },
-        onRegenerate: {
-            action: 'regenerate clicked',
-            description: 'Callback when Regenerate is clicked',
-        },
     },
 };
 
@@ -49,35 +37,32 @@ export default meta;
 type Story = StoryObj<typeof NarrativeSummaryCard>;
 
 /**
- * Default narrative summary card with good health.
+ * Default narrative summary card with moderate health.
  */
 export const Default: Story = {
     args: {
         summary: mockNarrativeSummary,
         healthPercentage: 72,
-        needsAttention: true,
     },
 };
 
 /**
- * Narrative summary with excellent health.
+ * Narrative summary with excellent health (green indicator).
  */
 export const GoodHealth: Story = {
     args: {
         summary: mockNarrativeSummary,
         healthPercentage: 95,
-        needsAttention: false,
     },
 };
 
 /**
- * Narrative summary with poor health.
+ * Narrative summary with poor health (red indicator).
  */
 export const PoorHealth: Story = {
     args: {
         summary: mockNarrativeSummary,
         healthPercentage: 40,
-        needsAttention: true,
     },
 };
 
@@ -88,19 +73,15 @@ export const ShortSummary: Story = {
     args: {
         summary: 'Build the best product management tool for AI-native teams.',
         healthPercentage: 85,
-        needsAttention: false,
     },
 };
 
 /**
- * Narrative summary with callbacks.
+ * Narrative summary with empty summary (shows empty state).
  */
-export const WithCallbacks: Story = {
+export const EmptySummary: Story = {
     args: {
-        summary: mockNarrativeSummary,
-        healthPercentage: 72,
-        needsAttention: true,
-        onEdit: () => console.log('Edit clicked'),
-        onRegenerate: () => console.log('Regenerate clicked'),
+        summary: '',
+        healthPercentage: 50,
     },
 };

@@ -26,7 +26,7 @@ const mockHeroes: HeroDto[] = [
         identifier: 'H-2003',
         workspace_id: 'ws-001',
         name: 'Sarah, The Solo Builder',
-        description: 'A solo developer who juggles multiple projects alongside an AI coding assistant. She needs to keep product context accessible without breaking flow state.',
+        description: 'A solo developer who juggles multiple projects alongside an AI coding assistant. She needs to keep product context accessible without breaking flow state. Sarah works best in deep focus sessions and needs tools that respect her flow rather than interrupt it.',
         is_primary: true,
         created_at: '2025-01-15T10:00:00Z',
         updated_at: '2025-01-15T10:00:00Z',
@@ -36,7 +36,7 @@ const mockHeroes: HeroDto[] = [
         identifier: 'H-2004',
         workspace_id: 'ws-001',
         name: 'Alex, The AI-Augmented PM',
-        description: 'Product Manager leveraging AI for documentation and decision support.',
+        description: 'Product Manager leveraging AI for documentation and decision support. Alex bridges the gap between technical teams and stakeholders, using AI to accelerate documentation and maintain alignment.',
         is_primary: false,
         created_at: '2025-01-16T14:30:00Z',
         updated_at: '2025-01-16T14:30:00Z',
@@ -46,7 +46,7 @@ const mockHeroes: HeroDto[] = [
         identifier: 'H-2005',
         workspace_id: 'ws-001',
         name: 'Morgan, The Indie Hacker',
-        description: 'Entrepreneur bootstrapping a startup. Needs product management without the overhead.',
+        description: 'Entrepreneur bootstrapping a startup. Needs product management without the overhead. Morgan wears many hats and values simplicity and speed over process.',
         is_primary: false,
         created_at: '2025-01-17T09:00:00Z',
         updated_at: '2025-01-17T09:00:00Z',
@@ -60,7 +60,7 @@ const mockVillains: VillainDto[] = [
         user_id: 'user-001',
         workspace_id: 'ws-001',
         name: 'Context Fragmentation',
-        description: 'Product information scattered across multiple tools, making it hard for AI to understand what to build.',
+        description: 'Product information scattered across multiple tools, making it hard for AI to understand what to build. This villain causes repeated context loss and forces developers to re-explain decisions.',
         villain_type: VillainType.EXTERNAL,
         severity: 5,
         is_defeated: false,
@@ -73,12 +73,25 @@ const mockVillains: VillainDto[] = [
         user_id: 'user-001',
         workspace_id: 'ws-001',
         name: 'Manual Documentation Overhead',
-        description: 'Traditional PM tools require constant manual updates, distracting from actual product work.',
+        description: 'Traditional PM tools require constant manual updates, distracting from actual product work. Documentation becomes stale quickly, creating a vicious cycle of outdated information.',
         villain_type: VillainType.WORKFLOW,
         severity: 4,
         is_defeated: false,
         created_at: '2025-01-16T14:30:00Z',
         updated_at: '2025-01-16T14:30:00Z',
+    },
+    {
+        id: '650e8400-e29b-41d4-a716-446655440003',
+        identifier: 'V-2003',
+        user_id: 'user-001',
+        workspace_id: 'ws-001',
+        name: 'Tool Sprawl',
+        description: 'The proliferation of specialized tools that each solve one problem but create integration headaches. Every new tool adds cognitive overhead and context switching costs.',
+        villain_type: VillainType.TECHNICAL,
+        severity: 3,
+        is_defeated: false,
+        created_at: '2025-01-17T09:00:00Z',
+        updated_at: '2025-01-17T09:00:00Z',
     },
 ];
 
@@ -87,7 +100,7 @@ const mockPillars: PillarDto[] = [
         id: '750e8400-e29b-41d4-a716-446655440001',
         workspace_id: 'ws-001',
         name: 'AI-Native Product Management',
-        description: 'Build product management tools designed from the ground up for AI collaboration.',
+        description: 'Build product management tools designed from the ground up for AI collaboration. Every feature should be queryable and understandable by AI assistants.',
         display_order: 1,
         outcome_ids: ['outcome-1', 'outcome-2'],
         created_at: '2025-01-15T10:00:00Z',
@@ -97,11 +110,21 @@ const mockPillars: PillarDto[] = [
         id: '750e8400-e29b-41d4-a716-446655440002',
         workspace_id: 'ws-001',
         name: 'Developer Experience First',
-        description: 'Prioritize the needs of developers over administrative overhead.',
+        description: 'Prioritize the needs of developers over administrative overhead. Minimize clicks, maximize keyboard shortcuts, and respect flow state.',
         display_order: 2,
         outcome_ids: ['outcome-3'],
         created_at: '2025-01-16T14:30:00Z',
         updated_at: '2025-01-16T14:30:00Z',
+    },
+    {
+        id: '750e8400-e29b-41d4-a716-446655440003',
+        workspace_id: 'ws-001',
+        name: 'Narrative Coherence',
+        description: 'Maintain a consistent product story that evolves over time. Every decision should connect back to the core narrative of who we serve and why.',
+        display_order: 3,
+        outcome_ids: [],
+        created_at: '2025-01-17T09:00:00Z',
+        updated_at: '2025-01-17T09:00:00Z',
     },
 ];
 
@@ -110,7 +133,7 @@ const mockThemes: ThemeDto[] = [
         id: '850e8400-e29b-41d4-a716-446655440001',
         workspace_id: 'ws-001',
         name: 'MCP Integration for AI Context',
-        description: 'Enable AI assistants to query product context natively through MCP server integration.',
+        description: 'Enable AI assistants to query product context natively through MCP server integration. This allows tools like Claude Code to understand the product roadmap, user personas, and technical decisions without manual context sharing.',
         outcome_ids: ['outcome-1', 'outcome-2'],
         hero_ids: [mockHeroes[0].id, mockHeroes[1].id],
         villain_ids: [mockVillains[0].id, mockVillains[1].id],
@@ -121,12 +144,23 @@ const mockThemes: ThemeDto[] = [
         id: '850e8400-e29b-41d4-a716-446655440002',
         workspace_id: 'ws-001',
         name: 'Narrative Health Monitoring',
-        description: 'Provide visibility into narrative consistency over time with health metrics and coverage scores.',
+        description: 'Provide visibility into narrative consistency over time with health metrics and coverage scores. Track how well the product story is maintained as the team builds new features.',
         outcome_ids: ['outcome-3'],
         hero_ids: [mockHeroes[0].id],
         villain_ids: [mockVillains[0].id],
         created_at: '2025-01-16T14:30:00Z',
         updated_at: '2025-01-16T14:30:00Z',
+    },
+    {
+        id: '850e8400-e29b-41d4-a716-446655440003',
+        workspace_id: 'ws-001',
+        name: 'Story-Driven Backlog Management',
+        description: 'Transform traditional backlog items into narrative beats that connect to the larger product story. Each task becomes part of a coherent arc rather than an isolated ticket.',
+        outcome_ids: [],
+        hero_ids: [mockHeroes[2].id],
+        villain_ids: [mockVillains[2].id],
+        created_at: '2025-01-17T09:00:00Z',
+        updated_at: '2025-01-17T09:00:00Z',
     },
 ];
 
@@ -144,14 +178,6 @@ const meta: Meta<typeof StoryBiblePage> = {
         healthPercentage: {
             control: { type: 'number', min: 0, max: 100 },
             description: 'Narrative health percentage',
-        },
-        onEditNarrative: {
-            action: 'edit narrative clicked',
-            description: 'Callback when Edit is clicked',
-        },
-        onRegenerateNarrative: {
-            action: 'regenerate narrative clicked',
-            description: 'Callback when Regenerate is clicked',
         },
     },
     decorators: [
@@ -223,8 +249,8 @@ const meta: Meta<typeof StoryBiblePage> = {
             });
 
             useRoadmapThemes.mockReturnValue({
-                prioritizedThemes: [mockThemes[0]],
-                unprioritizedThemes: [mockThemes[1]],
+                prioritizedThemes: [mockThemes[0], mockThemes[1]],
+                unprioritizedThemes: [mockThemes[2]],
                 isLoadingPrioritized: false,
                 isLoadingUnprioritized: false,
                 isLoading: false,
@@ -271,23 +297,21 @@ export const PoorHealth: Story = {
 };
 
 /**
- * Story Bible page with callbacks.
- */
-export const WithCallbacks: Story = {
-    args: {
-        narrativeSummary: mockNarrativeSummary,
-        healthPercentage: 72,
-        onEditNarrative: () => console.log('Edit narrative clicked'),
-        onRegenerateNarrative: () => console.log('Regenerate narrative clicked'),
-    },
-};
-
-/**
  * Story Bible page with short narrative.
  */
 export const ShortNarrative: Story = {
     args: {
         narrativeSummary: 'Build the best AI-native product management tool for developers.',
         healthPercentage: 85,
+    },
+};
+
+/**
+ * Story Bible page with no narrative.
+ */
+export const NoNarrative: Story = {
+    args: {
+        narrativeSummary: '',
+        healthPercentage: 50,
     },
 };

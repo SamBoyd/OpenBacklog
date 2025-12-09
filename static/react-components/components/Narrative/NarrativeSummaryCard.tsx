@@ -1,5 +1,6 @@
 import React from 'react';
 import Card from '#components/reusable/Card';
+import { BookOpenIcon } from 'lucide-react';
 
 /**
  * Props for NarrativeSummaryCard component.
@@ -14,18 +15,6 @@ export interface NarrativeSummaryCardProps {
      */
     healthPercentage?: number;
     /**
-     * Whether narrative needs attention
-     */
-    needsAttention?: boolean;
-    /**
-     * Callback when Edit button is clicked
-     */
-    onEdit?: () => void;
-    /**
-     * Callback when Regenerate button is clicked
-     */
-    onRegenerate?: () => void;
-    /**
      * Additional CSS classes
      */
     className?: string;
@@ -36,6 +25,39 @@ export interface NarrativeSummaryCardProps {
 }
 
 /**
+ * Returns health status color based on percentage.
+ * @param {number} percentage - Health percentage (0-100)
+ * @returns {string} Tailwind color class
+ */
+const getHealthColor = (percentage: number): string => {
+    if (percentage >= 80) return 'text-success';
+    if (percentage >= 50) return 'text-amber-500';
+    return 'text-destructive';
+};
+
+/**
+ * Returns health bar color based on percentage.
+ * @param {number} percentage - Health percentage (0-100)
+ * @returns {string} Tailwind background color class
+ */
+const getHealthBarColor = (percentage: number): string => {
+    if (percentage >= 80) return 'bg-success';
+    if (percentage >= 50) return 'bg-amber-500';
+    return 'bg-destructive';
+};
+
+/**
+ * Returns health status label based on percentage.
+ * @param {number} percentage - Health percentage (0-100)
+ * @returns {string} Status label
+ */
+const getHealthLabel = (percentage: number): string => {
+    if (percentage >= 80) return 'Healthy';
+    if (percentage >= 50) return 'Needs Attention';
+    return 'At Risk';
+};
+
+/**
  * NarrativeSummaryCard displays the product narrative summary with health indicator.
  * @param {NarrativeSummaryCardProps} props - Component props
  * @returns {React.ReactElement} The NarrativeSummaryCard component
@@ -43,12 +65,13 @@ export interface NarrativeSummaryCardProps {
 const NarrativeSummaryCard: React.FC<NarrativeSummaryCardProps> = ({
     summary,
     healthPercentage = 72,
-    needsAttention = true,
-    onEdit,
-    onRegenerate,
     className = '',
     dataTestId = 'narrative-summary-card',
 }) => {
+    const healthColor = getHealthColor(healthPercentage);
+    const healthBarColor = getHealthBarColor(healthPercentage);
+    const healthLabel = getHealthLabel(healthPercentage);
+
     return (
         <Card
             className={`border border-border p-6 ${className}`}
@@ -56,57 +79,49 @@ const NarrativeSummaryCard: React.FC<NarrativeSummaryCardProps> = ({
         >
             {/* Header Section */}
             <div className="flex items-start justify-between mb-6">
-                <h2 className="text-base font-medium text-foreground" data-testid={`${dataTestId}-title`}>
-                    What story are we telling?
-                </h2>
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                        <BookOpenIcon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-semibold text-foreground" data-testid={`${dataTestId}-title`}>
+                            Product Narrative
+                        </h2>
+                        <p className="text-sm text-muted-foreground">The story we're telling</p>
+                    </div>
+                </div>
 
                 {/* Narrative Health Section */}
-                <div className="text-right">
-                    <div className="text-sm text-muted-foreground mb-1">Narrative Health</div>
-                    <div className="flex items-end gap-2">
-                        {/* Progress Bar */}
-                        <div className="w-32 h-2 bg-muted rounded-full overflow-hidden" data-testid={`${dataTestId}-health-bar`}>
-                            <div
-                                className="h-full bg-foreground transition-all"
-                                style={{ width: `${healthPercentage}%` }}
-                            />
-                        </div>
-                        <div className="text-sm font-medium text-amber-500 min-w-fit" data-testid={`${dataTestId}-health-percentage`}>
+                <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Narrative Health</span>
+                        <span className={`text-sm font-semibold ${healthColor}`} data-testid={`${dataTestId}-health-percentage`}>
                             {healthPercentage}%
-                        </div>
+                        </span>
                     </div>
-                    {needsAttention && (
-                        <div className="text-xs text-muted-foreground mt-1">Needs Attention</div>
-                    )}
+                    <div className="w-32 h-1.5 bg-muted/10 rounded-full overflow-hidden" data-testid={`${dataTestId}-health-bar`}>
+                        <div
+                            className={`h-full ${healthBarColor} transition-all duration-300`}
+                            style={{ width: `${healthPercentage}%` }}
+                        />
+                    </div>
+                    <span className={`text-xs ${healthColor}`}>{healthLabel}</span>
                 </div>
             </div>
 
             {/* Summary Text */}
-            <div className="prose prose-sm max-w-none mb-6" data-testid={`${dataTestId}-summary`}>
-                <p className="text-base text-foreground leading-relaxed whitespace-pre-wrap">
-                    {summary}
-                </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2" data-testid={`${dataTestId}-actions`}>
-                <button
-                    onClick={onEdit}
-                    className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-accent/50 transition-colors"
-                    data-testid={`${dataTestId}-edit-button`}
-                >
-                    <span>✏️</span>
-                    <span>Edit</span>
-                </button>
-                <button
-                    onClick={onRegenerate}
-                    className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg text-sm font-medium text-foreground hover:bg-accent/50 transition-colors"
-                    data-testid={`${dataTestId}-regenerate-button`}
-                >
-                    <span>🔄</span>
-                    <span>Regenerate</span>
-                </button>
-            </div>
+            {summary ? (
+                <div className="prose prose-sm max-w-none" data-testid={`${dataTestId}-summary`}>
+                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                        {summary}
+                    </p>
+                </div>
+            ) : (
+                <div className="text-center py-8 text-muted-foreground" data-testid={`${dataTestId}-empty`}>
+                    <p className="text-sm">No narrative summary defined yet.</p>
+                    <p className="text-xs mt-1">Add heroes, villains, and themes to build your product story.</p>
+                </div>
+            )}
         </Card>
     );
 };
