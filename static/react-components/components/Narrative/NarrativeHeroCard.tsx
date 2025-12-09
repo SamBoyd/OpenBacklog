@@ -1,6 +1,8 @@
 import React from 'react';
 import { HeroDto } from '#types';
 import Card from '../reusable/Card';
+import { CompactButton } from '#components/reusable/Button';
+import { ChevronDownIcon } from 'lucide-react';
 
 /**
  * Props for NarrativeHeroCard component.
@@ -11,9 +13,9 @@ export interface NarrativeHeroCardProps {
      */
     hero: HeroDto;
     /**
-     * Number of story arcs this hero is featured in
+     * Number of roadmap themes this hero is featured in
      */
-    arcCount?: number;
+    roadmapThemeCount?: number;
     /**
      * Number of villains opposing this hero
      */
@@ -48,7 +50,7 @@ export interface NarrativeHeroCardProps {
  */
 const NarrativeHeroCard: React.FC<NarrativeHeroCardProps> = ({
     hero,
-    arcCount = 0,
+    roadmapThemeCount = 0,
     villainCount = 0,
     isExpanded = false,
     onToggleExpand,
@@ -78,15 +80,15 @@ const NarrativeHeroCard: React.FC<NarrativeHeroCardProps> = ({
                     </p>
                 </div>
                 {/* Expand/Collapse Button */}
-                <button
+                <CompactButton
                     onClick={handleToggle}
                     className="p-2 rounded-lg text-muted-foreground hover:bg-accent/50 transition-colors flex-shrink-0"
                     data-testid={`${dataTestId}-expand-button`}
                 >
-                    <span className={`text-lg transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                        ▼
+                    <span className={`text-lg transform ${isExpanded ? 'rotate-180' : 'rotate-0'}`}>
+                        <ChevronDownIcon />
                     </span>
-                </button>
+                </CompactButton>
             </div>
 
             {/* Core Promise Section */}
@@ -99,9 +101,9 @@ const NarrativeHeroCard: React.FC<NarrativeHeroCardProps> = ({
 
             {/* Stats Section */}
             <div className="flex gap-4" data-testid={`${dataTestId}-stats`}>
-                <div className="flex items-center gap-1" data-testid={`${dataTestId}-arc-count`}>
+                <div className="flex items-center gap-1" data-testid={`${dataTestId}-roadmapTheme-count`}>
                     <span className="text-xs text-muted-foreground">Featured in</span>
-                    <span className="text-sm font-semibold text-foreground">{arcCount} arc{arcCount !== 1 ? 's' : ''}</span>
+                    <span className="text-sm font-semibold text-foreground">{roadmapThemeCount} theme{roadmapThemeCount !== 1 ? 's' : ''}</span>
                 </div>
                 <div className="flex items-center gap-1" data-testid={`${dataTestId}-villain-count`}>
                     <span className="text-xs text-muted-foreground">Opposed by</span>

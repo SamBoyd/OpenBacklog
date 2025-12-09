@@ -43,9 +43,9 @@ const meta: Meta<typeof NarrativeHeroCard> = {
         hero: {
             description: 'The hero object to display',
         },
-        arcCount: {
+        roadmapThemeCount: {
             control: { type: 'number', min: 0, max: 10 },
-            description: 'Number of story arcs featuring this hero',
+            description: 'Number of roadmap themes featuring this hero',
         },
         villainCount: {
             control: { type: 'number', min: 0, max: 10 },
@@ -75,7 +75,7 @@ type Story = StoryObj<typeof NarrativeHeroCard>;
 export const Default: Story = {
     args: {
         hero: mockHero,
-        arcCount: 2,
+        roadmapThemeCount: 2,
         villainCount: 2,
         isExpanded: false,
     },
@@ -87,7 +87,7 @@ export const Default: Story = {
 export const Expanded: Story = {
     args: {
         hero: mockHero,
-        arcCount: 2,
+        roadmapThemeCount: 2,
         villainCount: 2,
         isExpanded: true,
     },
@@ -99,7 +99,7 @@ export const Expanded: Story = {
 export const ShortDescription: Story = {
     args: {
         hero: mockHeroShort,
-        arcCount: 1,
+        roadmapThemeCount: 1,
         villainCount: 1,
         isExpanded: false,
     },
@@ -111,7 +111,7 @@ export const ShortDescription: Story = {
 export const NoVillains: Story = {
     args: {
         hero: mockHero,
-        arcCount: 2,
+        roadmapThemeCount: 2,
         villainCount: 0,
         isExpanded: false,
     },
@@ -120,10 +120,10 @@ export const NoVillains: Story = {
 /**
  * Hero card with high arc count.
  */
-export const HighArcCount: Story = {
+export const HighThemeCount: Story = {
     args: {
         hero: mockHero,
-        arcCount: 5,
+        roadmapThemeCount: 5,
         villainCount: 3,
         isExpanded: false,
     },
@@ -145,7 +145,7 @@ export const Interactive: Story = {
     },
     args: {
         hero: mockHero,
-        arcCount: 2,
+        roadmapThemeCount: 2,
         villainCount: 2,
     },
 };
@@ -158,13 +158,13 @@ export const MultipleCards: Story = {
         <div className="flex flex-col gap-4 max-w-2xl">
             <NarrativeHeroCard
                 hero={mockHero}
-                arcCount={2}
+                roadmapThemeCount={2}
                 villainCount={2}
                 isExpanded={false}
             />
             <NarrativeHeroCard
                 hero={mockHeroShort}
-                arcCount={1}
+                roadmapThemeCount={1}
                 villainCount={1}
                 isExpanded={false}
             />

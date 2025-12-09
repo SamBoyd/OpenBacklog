@@ -4,7 +4,7 @@ import StoryBiblePage from '#pages/Narrative/StoryBible';
 import { useHeroes } from '#hooks/useHeroes.mock';
 import { useVillains } from '#hooks/useVillains.mock';
 import { useStrategicPillars } from '#hooks/useStrategicPillars.mock';
-import { useRoadmapThemes } from '#hooks/useRoadmapThemes.mock';
+import { useRoadmapThemes } from '#hooks/strategyAndRoadmap/useRoadmapThemes.mock';
 import { HeroDto } from '#types';
 import { VillainDto, VillainType } from '#types';
 import { OutcomeReorderRequest, PillarDto } from '#api/productStrategy';
@@ -112,8 +112,8 @@ const mockThemes: ThemeDto[] = [
         name: 'MCP Integration for AI Context',
         description: 'Enable AI assistants to query product context natively through MCP server integration.',
         outcome_ids: ['outcome-1', 'outcome-2'],
-        hero_ids: [],
-        villain_ids: [],
+        hero_ids: [mockHeroes[0].id, mockHeroes[1].id],
+        villain_ids: [mockVillains[0].id, mockVillains[1].id],
         created_at: '2025-01-15T10:00:00Z',
         updated_at: '2025-01-15T10:00:00Z',
     },
@@ -123,8 +123,8 @@ const mockThemes: ThemeDto[] = [
         name: 'Narrative Health Monitoring',
         description: 'Provide visibility into narrative consistency over time with health metrics and coverage scores.',
         outcome_ids: ['outcome-3'],
-        hero_ids: [],
-        villain_ids: [],
+        hero_ids: [mockHeroes[0].id],
+        villain_ids: [mockVillains[0].id],
         created_at: '2025-01-16T14:30:00Z',
         updated_at: '2025-01-16T14:30:00Z',
     },
@@ -223,21 +223,12 @@ const meta: Meta<typeof StoryBiblePage> = {
             });
 
             useRoadmapThemes.mockReturnValue({
-                themes: mockThemes,
+                prioritizedThemes: [mockThemes[0]],
+                unprioritizedThemes: [mockThemes[1]],
+                isLoadingPrioritized: false,
+                isLoadingUnprioritized: false,
                 isLoading: false,
                 error: null,
-                createTheme: fn(),
-                isCreating: false,
-                createError: null,
-                updateTheme: fn(),
-                isUpdating: false,
-                updateError: null,
-                deleteTheme: fn(),
-                isDeleting: false,
-                deleteError: null,
-                reorderThemes: fn(),
-                isReordering: false,
-                reorderError: null,
             });
 
             return <Story />;

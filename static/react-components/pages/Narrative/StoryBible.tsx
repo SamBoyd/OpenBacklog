@@ -7,11 +7,12 @@ import NarrativeHeroCard from '#components/Narrative/NarrativeHeroCard';
 import StrategicPillarCard from '#components/Narrative/StrategicPillarCard';
 import RoadmapThemeCard from '#components/Narrative/RoadmapThemeCard';
 import { useStrategicPillars } from '#hooks/useStrategicPillars';
-import { useRoadmapThemes } from '#hooks/useRoadmapThemes';
+import { useRoadmapThemes } from '#hooks/strategyAndRoadmap/useRoadmapThemes';
 import { useHeroes } from '#hooks/useHeroes';
 import { useVillains } from '#hooks/useVillains';
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { useProductOutcomes } from '#hooks/useProductOutcomes';
+import { Button, CompactButton } from '#components/reusable/Button';
 
 /**
  * Props for StoryBiblePage component.
@@ -96,9 +97,14 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
     } = useStrategicPillars(workspaceId);
 
     const {
-        themes,
-        isLoading: themesLoading,
+        prioritizedThemes,
+        unprioritizedThemes,
+        isLoadingPrioritized: prioritizedThemesLoading,
+        isLoadingUnprioritized: unprioritizedThemesLoading,
     } = useRoadmapThemes(workspaceId);
+
+    const themesLoading = prioritizedThemesLoading || unprioritizedThemesLoading;
+    const themes = [...prioritizedThemes, ...unprioritizedThemes];
 
     const handleTabChange = (tab: NarrativeTabType) => {
         setActiveTab(tab);
@@ -106,6 +112,40 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
 
     const getOutcomesForPillar = (pillarOutcomeIds: string[]) => {
         return outcomes.filter(o => pillarOutcomeIds.includes(o.id));
+    };
+
+    const getRoadmapThemeCountForHero = (heroId: string): number => {
+        return themes.filter(theme => theme.hero_ids?.includes(heroId) ?? false).length;
+    };
+
+    const getVillainCountForHero = (heroId: string): number => {
+        // Get all themes where this hero is featured
+        const heroThemes = themes.filter(theme => theme.hero_ids?.includes(heroId) ?? false);
+
+        // Collect unique villain IDs from all these themes
+        const uniqueVillainIds = new Set<string>();
+        heroThemes.forEach(theme => {
+            theme.villain_ids?.forEach(villainId => uniqueVillainIds.add(villainId));
+        });
+
+        return uniqueVillainIds.size;
+    };
+
+    const getVillainCounts = (villainId: string) => {
+        const themesWithVillain = themes.filter(theme =>
+            theme.villain_ids?.includes(villainId) ?? false
+        );
+
+        const themeCount = themesWithVillain.length;
+
+        const uniqueHeroIds = new Set<string>();
+        themesWithVillain.forEach(theme => {
+            theme.hero_ids?.forEach(heroId => uniqueHeroIds.add(heroId));
+        });
+
+        const heroCount = uniqueHeroIds.size;
+
+        return { themeCount, heroCount };
     };
 
     const handleHeroToggle = (heroId: string, expanded: boolean) => {
@@ -156,9 +196,9 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                         <div className="flex flex-col gap-6">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-foreground">Heroes</h2>
-                                <button className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
                                     + Add Hero
-                                </button>
+                                </Button>
                             </div>
                             {heroesLoading ? (
                                 <div className="text-center py-12 text-muted-foreground">Loading heroes...</div>
@@ -172,8 +212,8 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                                         <NarrativeHeroCard
                                             key={hero.id}
                                             hero={hero}
-                                            arcCount={0}
-                                            villainCount={0}
+                                            roadmapThemeCount={getRoadmapThemeCountForHero(hero.id)}
+                                            villainCount={getVillainCountForHero(hero.id)}
                                             isExpanded={expandedHeroId === hero.id}
                                             onToggleExpand={(expanded) => handleHeroToggle(hero.id, expanded)}
                                         />
@@ -188,9 +228,9 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                         <div className="flex flex-col gap-6">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-foreground">Villains</h2>
-                                <button className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
                                     + Add Villain
-                                </button>
+                                </Button>
                             </div>
                             {villainsLoading ? (
                                 <div className="text-center py-12 text-muted-foreground">Loading villains...</div>
@@ -200,33 +240,50 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-4">
-                                    {villains.map((villain) => (
-                                        <div
-                                            key={villain.id}
-                                            className="border border-border p-6 rounded-lg hover:bg-accent/30 transition-colors"
-                                        >
-                                            <div className="flex items-start justify-between mb-2">
-                                                <div>
-                                                    <h3 className="text-base font-semibold text-foreground">{villain.name}</h3>
-                                                    <p className="text-sm text-muted-foreground">{villain.villain_type}</p>
+                                    {villains.map((villain) => {
+                                        const { themeCount, heroCount } = getVillainCounts(villain.id);
+                                        return (
+                                            <div
+                                                key={villain.id}
+                                                className="border border-border p-6 rounded-lg hover:bg-accent/30 transition-colors"
+                                            >
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div>
+                                                        <h3 className="text-base font-semibold text-foreground">{villain.name}</h3>
+                                                        <p className="text-sm text-muted-foreground">{villain.villain_type}</p>
+                                                    </div>
+                                                    <CompactButton
+                                                        onClick={() => handleVillainToggle(villain.id, expandedVillainId !== villain.id)}
+                                                        className="p-2 rounded-lg text-muted-foreground hover:bg-accent/50 transition-colors"
+                                                    >
+                                                        <span className={`text-lg transition-transform ${expandedVillainId === villain.id ? 'rotate-90' : ''}`}>
+                                                            ▼
+                                                        </span>
+                                                    </CompactButton>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleVillainToggle(villain.id, expandedVillainId !== villain.id)}
-                                                    className="p-2 rounded-lg text-muted-foreground hover:bg-accent/50 transition-colors"
-                                                >
-                                                    <span className={`text-lg transition-transform ${expandedVillainId === villain.id ? 'rotate-180' : ''}`}>
-                                                        ▼
-                                                    </span>
-                                                </button>
+                                                <div className="flex gap-4 mb-3">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-xs text-muted-foreground">Confronted by</span>
+                                                        <span className="text-sm font-semibold text-foreground">
+                                                            {themeCount} theme{themeCount !== 1 ? 's' : ''}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-xs text-muted-foreground">Opposes</span>
+                                                        <span className="text-sm font-semibold text-primary">
+                                                            {heroCount} hero{heroCount !== 1 ? 'es' : ''}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground line-clamp-2">{villain.description}</p>
+                                                {expandedVillainId === villain.id && (
+                                                    <div className="mt-4 pt-4 border-t border-border">
+                                                        <p className="text-sm text-foreground leading-relaxed">{villain.description}</p>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <p className="text-sm text-muted-foreground line-clamp-2">{villain.description}</p>
-                                            {expandedVillainId === villain.id && (
-                                                <div className="mt-4 pt-4 border-t border-border">
-                                                    <p className="text-sm text-foreground leading-relaxed">{villain.description}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -237,9 +294,9 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                         <div className="flex flex-col gap-6">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-foreground">Strategic Pillars</h2>
-                                <button className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
                                     + Add Pillar
-                                </button>
+                                </Button>
                             </div>
                             {pillarsLoading ? (
                                 <div className="text-center py-12 text-muted-foreground">Loading pillars...</div>
@@ -269,9 +326,9 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                         <div className="flex flex-col gap-6">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-foreground">Roadmap Themes</h2>
-                                <button className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
                                     + Add Theme
-                                </button>
+                                </Button>
                             </div>
                             {themesLoading ? (
                                 <div className="text-center py-12 text-muted-foreground">Loading themes...</div>
@@ -300,9 +357,9 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                         <div className="flex flex-col gap-6">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-foreground">Lore</h2>
-                                <button className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
                                     + Add Lore
-                                </button>
+                                </Button>
                             </div>
                             <div className="text-center py-12 text-muted-foreground">
                                 No lore defined yet. Add one to get started.
@@ -315,9 +372,9 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
                         <div className="flex flex-col gap-6">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-foreground">Continuity</h2>
-                                <button className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+                                <Button onClick={()=>{}} className="px-4 py-2 bg-foreground text-background rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
                                     + Add Item
-                                </button>
+                                </Button>
                             </div>
                             <div className="text-center py-12 text-muted-foreground">
                                 No continuity items defined yet. Add one to get started.
