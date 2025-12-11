@@ -303,7 +303,7 @@ Returns comprehensive framework for defining a strategic initiative with narrati
 
 ---
 
-### `submit_strategic_initiative(title, description, hero_ids, villain_ids, conflict_ids, pillar_id, theme_id, narrative_intent, status)`
+### `submit_strategic_initiative(title, implementation_description, hero_ids, villain_ids, conflict_ids, pillar_id, theme_id, narrative_intent, status, strategic_description)`
 
 Submits a strategic initiative with optional narrative connections.
 
@@ -313,7 +313,7 @@ Creates both an Initiative and its StrategicInitiative context in one operation.
 
 **Parameters:**
 - `title` (required): Initiative title (e.g., "Smart Context Switching")
-- `description` (required): What this initiative delivers
+- `implementation_description` (required): What this initiative delivers and how it will be built. This is the practical description of the work involved - the "what".
 - `hero_ids` (optional): List of hero UUIDs this initiative helps
 - `villain_ids` (optional): List of villain UUIDs this initiative confronts
 - `conflict_ids` (optional): List of conflict UUIDs this initiative addresses
@@ -321,6 +321,7 @@ Creates both an Initiative and its StrategicInitiative context in one operation.
 - `theme_id` (optional): Roadmap theme UUID for placement
 - `narrative_intent` (optional): Why this initiative matters narratively
 - `status` (optional): Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG
+- `strategic_description` (optional): How this initiative connects to the larger product strategy. Explains the "why" - user needs addressed, strategic alignment, and how it fits into the bigger picture. Defaults to `implementation_description` if not provided.
 
 **Returns:**
 ```json
@@ -430,7 +431,7 @@ Accepts a flexible query that tries multiple lookup strategies:
 
 ---
 
-### `update_strategic_initiative(query, title, description, status, hero_ids, villain_ids, conflict_ids, pillar_id, theme_id, narrative_intent)`
+### `update_strategic_initiative(query, title, implementation_description, status, hero_ids, villain_ids, conflict_ids, pillar_id, theme_id, narrative_intent, strategic_description)`
 
 Updates an existing strategic initiative's fields.
 
@@ -444,7 +445,7 @@ Accepts a flexible query that tries multiple lookup strategies:
 **Parameters:**
 - `query` (required): Strategic initiative ID, initiative ID, or initiative identifier
 - `title` (optional): New initiative title
-- `description` (optional): New initiative description
+- `implementation_description` (optional): New description of what this initiative delivers and how it will be built - the practical "what"
 - `status` (optional): New status (BACKLOG, TO_DO, IN_PROGRESS)
 - `hero_ids` (optional): New list of hero UUIDs (replaces existing)
 - `villain_ids` (optional): New list of villain UUIDs (replaces existing)
@@ -452,6 +453,7 @@ Accepts a flexible query that tries multiple lookup strategies:
 - `pillar_id` (optional): New strategic pillar UUID (use "null" to unlink)
 - `theme_id` (optional): New roadmap theme UUID (use "null" to unlink)
 - `narrative_intent` (optional): New narrative intent
+- `strategic_description` (optional): New description of how this initiative connects to the larger product strategy - the "why"
 
 **Returns:**
 ```json
@@ -478,7 +480,8 @@ Accepts a flexible query that tries multiple lookup strategies:
 ```
 
 **Use Cases:**
-- Updating initiative titles, descriptions, or status
+- Updating initiative titles, implementation descriptions, or status
+- Updating strategic descriptions separately from implementation details
 - Changing narrative connections (heroes, villains, conflicts)
 - Re-linking to different pillars or themes
 - Updating narrative intent
@@ -887,6 +890,35 @@ Framework similar to vision with pillar-specific criteria:
 - Enables product outcomes
 - 3-5 pillars recommended
 - Each has name and description
+
+---
+
+#### `get_strategic_pillars()`
+
+Lists all strategic pillars for the workspace.
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "pillar",
+  "message": "Found N strategic pillar(s)",
+  "data": {
+    "pillars": [
+      {
+        "id": "<uuid>",
+        "name": "...",
+        "description": "..."
+      }
+    ]
+  }
+}
+```
+
+**Use Cases:**
+- Viewing current strategic pillars
+- Checking available pillars before linking outcomes
+- Strategic foundation review
 
 ---
 

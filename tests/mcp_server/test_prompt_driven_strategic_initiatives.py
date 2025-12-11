@@ -1,6 +1,7 @@
 """Comprehensive tests for prompt-driven strategic initiative workflow MCP tools."""
 
 import uuid
+from typing import List
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,14 +19,16 @@ from src.mcp_server.prompt_driven_tools.strategic_initiatives import (
     submit_strategic_initiative,
     update_strategic_initiative,
 )
-from src.models import Initiative, InitiativeStatus, Workspace
-from src.narrative.aggregates.conflict import Conflict, ConflictStatus
+from src.mcp_server.prompt_driven_tools.utils.validation_runner import (
+    validate_strategic_initiative_constraints,
+)
+from src.models import Initiative, InitiativeStatus, User, Workspace
 from src.narrative.aggregates.hero import Hero
-from src.narrative.aggregates.villain import Villain
+from src.narrative.aggregates.villain import Villain, VillainType
 from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
-from src.strategic_planning.aggregates.product_outcome import ProductOutcome
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.exceptions import DomainException
+from src.strategic_planning.services.event_publisher import EventPublisher
 
 
 class TestGetStrategicInitiativeDefinitionFramework:
@@ -212,21 +215,78 @@ class TestGetStrategicInitiativeDefinitionFramework:
             == "Context Switching"
         )
 
+    @pytest.mark.asyncio
+    async def test_framework_includes_available_entities_from_db(
+        self, workspace: Workspace, session: Session, user: User
+    ):
+        """Test that framework includes available heroes, villains, pillars, themes from database."""
+        publisher = EventPublisher(session)
+
+        Hero.define_hero(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Test Hero",
+            description="A test hero",
+            is_primary=True,
+            session=session,
+            publisher=publisher,
+        )
+
+        Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Test Villain",
+            villain_type=VillainType.WORKFLOW,
+            description="A test villain",
+            severity=3,
+            session=session,
+            publisher=publisher,
+        )
+
+        StrategicPillar.define_pillar(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Test Pillar",
+            description="A test pillar",
+            display_order=0,
+            session=session,
+            publisher=publisher,
+        )
+
+        session.commit()
+
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_workspace_id_from_request"
+        ) as mock_get_workspace:
+            mock_get_workspace.return_value = workspace.id
+
+            result = await get_strategic_initiative_definition_framework.fn()
+
+        current_state = result["current_state"]
+        assert_that(current_state["hero_count"], equal_to(1))
+        assert_that(current_state["villain_count"], equal_to(1))
+        assert_that(current_state["pillar_count"], equal_to(1))
+        assert len(current_state["available_heroes"]) == 1
+        assert len(current_state["available_villains"]) == 1
+        assert len(current_state["available_pillars"]) == 1
+
 
 class TestSubmitStrategicInitiative:
     """Test suite for submit_strategic_initiative tool."""
 
     @pytest.mark.asyncio
     async def test_submit_creates_initiative_successfully(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test that submit successfully creates initiative."""
         title = "Smart Context Switching"
-        description = "Auto-save and restore IDE context when switching between tasks"
+        impl_description = (
+            "Auto-save and restore IDE context when switching between tasks"
+        )
 
         result = await submit_strategic_initiative.fn(
             title=title,
-            description=description,
+            implementation_description=impl_description,
             status="BACKLOG",
         )
 
@@ -240,12 +300,12 @@ class TestSubmitStrategicInitiative:
         # Verify initiative was created
         initiative = session.query(Initiative).filter_by(title=title).first()
         assert initiative is not None
-        assert initiative.description == description
+        assert initiative.description == impl_description
         assert initiative.status == InitiativeStatus.BACKLOG
 
     @pytest.mark.asyncio
     async def test_submit_with_narrative_connections(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test that submit creates initiative with narrative connections."""
         # Setup hero, villain, and pillar
@@ -283,11 +343,13 @@ class TestSubmitStrategicInitiative:
         session.refresh(pillar)
 
         title = "Smart Context Switching"
-        description = "Auto-save and restore IDE context when switching between tasks"
+        impl_description = (
+            "Auto-save and restore IDE context when switching between tasks"
+        )
 
         result = await submit_strategic_initiative.fn(
             title=title,
-            description=description,
+            implementation_description=impl_description,
             hero_ids=[str(hero.id)],
             villain_ids=[str(villain.id)],
             pillar_id=str(pillar.id),
@@ -319,7 +381,7 @@ class TestSubmitStrategicInitiative:
 
             result = await submit_strategic_initiative.fn(
                 title="Test Initiative",
-                description="Test description",
+                implementation_description="Test description",
                 status="INVALID_STATUS",
             )
 
@@ -331,14 +393,14 @@ class TestSubmitStrategicInitiative:
 
     @pytest.mark.asyncio
     async def test_submit_with_nonexistent_hero(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test that submit gracefully handles invalid hero IDs."""
         fake_hero_id = str(uuid.uuid4())
 
         result = await submit_strategic_initiative.fn(
             title="Test Initiative",
-            description="Test description",
+            implementation_description="Test description",
             hero_ids=[fake_hero_id],
         )
 
@@ -350,7 +412,7 @@ class TestSubmitStrategicInitiative:
 
     @pytest.mark.asyncio
     async def test_submit_handles_domain_exception(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test that submit handles domain validation errors."""
         with patch(
@@ -360,7 +422,7 @@ class TestSubmitStrategicInitiative:
 
             result = await submit_strategic_initiative.fn(
                 title="",
-                description="Test description",
+                implementation_description="Test description",
             )
 
         # Verify error response
@@ -396,11 +458,11 @@ class TestGetStrategicInitiatives:
 
     @pytest.mark.asyncio
     async def test_get_multiple_initiatives(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test getting multiple strategic initiatives."""
         # Create multiple initiatives
-        initiatives = []
+        initiatives: List[Initiative] = []
         for i in range(3):
             initiative = Initiative(
                 title=f"Initiative {i}",
@@ -438,13 +500,47 @@ class TestGetStrategicInitiatives:
         )
         assert len(result["data"]["strategic_initiatives"]) == 3
 
+    @pytest.mark.asyncio
+    async def test_returns_strategic_initiatives_with_narrative_summary(
+        self, workspace: Workspace, session: Session, user: User
+    ):
+        """Test that tool returns strategic initiatives with narrative summaries."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_auth_context"
+        ) as mock_get_auth:
+            mock_get_auth.return_value = (
+                str(user.id),
+                str(workspace.id),
+            )
+
+            await submit_strategic_initiative.fn(
+                title="Test Initiative for Retrieval",
+                implementation_description="Testing retrieval functionality",
+                narrative_intent="Test narrative intent",
+            )
+
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_workspace_id_from_request"
+        ) as mock_get_workspace:
+            mock_get_workspace.return_value = workspace.id
+
+            result = await get_strategic_initiatives.fn()
+
+        assert_that(result["status"], equal_to("success"))
+        assert len(result["data"]["strategic_initiatives"]) > 0
+
+        initiative_data = result["data"]["strategic_initiatives"][0]
+        assert "initiative" in initiative_data
+        assert "strategic_context" in initiative_data
+        assert "narrative_summary" in initiative_data
+
 
 class TestGetStrategicInitiative:
     """Test suite for get_strategic_initiative tool."""
 
     @pytest.mark.asyncio
     async def test_get_by_identifier(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test getting initiative by identifier."""
         initiative = Initiative(
@@ -476,7 +572,9 @@ class TestGetStrategicInitiative:
         assert_that(result["data"]["initiative"]["title"], equal_to("Test Initiative"))
 
     @pytest.mark.asyncio
-    async def test_get_by_uuid(self, session: Session, user, workspace: Workspace):
+    async def test_get_by_uuid(
+        self, session: Session, user: User, workspace: Workspace
+    ):
         """Test getting initiative by UUID."""
         initiative = Initiative(
             title="Test Initiative",
@@ -519,15 +617,80 @@ class TestGetStrategicInitiative:
         )
         assert "not found" in result["error_message"]
 
+    @pytest.mark.asyncio
+    async def test_finds_by_strategic_initiative_id(
+        self, workspace: Workspace, session: Session, user: User
+    ):
+        """Test lookup by strategic initiative UUID."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_auth_context"
+        ) as mock_get_auth:
+            mock_get_auth.return_value = (
+                str(user.id),
+                str(workspace.id),
+            )
+
+            create_result = await submit_strategic_initiative.fn(
+                title="Initiative for ID Lookup",
+                implementation_description="Testing lookup by strategic initiative ID",
+            )
+
+        strategic_initiative_id = create_result["data"]["strategic_context"]["id"]
+
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_workspace_id_from_request"
+        ) as mock_get_workspace:
+            mock_get_workspace.return_value = workspace.id
+
+            result = await get_strategic_initiative.fn(query=strategic_initiative_id)
+
+        assert_that(result["status"], equal_to("success"))
+        assert_that(result["data"]["id"], equal_to(strategic_initiative_id))
+        assert_that(
+            result["data"]["initiative"]["title"], equal_to("Initiative for ID Lookup")
+        )
+
+    @pytest.mark.asyncio
+    async def test_returns_narrative_summary(
+        self, workspace: Workspace, session: Session, user: User
+    ):
+        """Test that response includes narrative summary."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_auth_context"
+        ) as mock_get_auth:
+            mock_get_auth.return_value = (
+                str(user.id),
+                str(workspace.id),
+            )
+
+            create_result = await submit_strategic_initiative.fn(
+                title="Initiative with Narrative",
+                implementation_description="Testing narrative summary in response",
+                narrative_intent="To prove the tool works",
+            )
+
+        initiative_id = create_result["data"]["initiative"]["id"]
+
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_workspace_id_from_request"
+        ) as mock_get_workspace:
+            mock_get_workspace.return_value = workspace.id
+
+            result = await get_strategic_initiative.fn(query=initiative_id)
+
+        assert_that(result["status"], equal_to("success"))
+        assert "narrative_summary" in result["data"]
+        assert "To prove the tool works" in result["data"]["narrative_summary"]
+
 
 class TestUpdateStrategicInitiative:
     """Test suite for update_strategic_initiative tool."""
 
     @pytest.mark.asyncio
-    async def test_update_title_and_description(
-        self, session: Session, user, workspace: Workspace
+    async def test_update_title_and_implementation_description(
+        self, session: Session, user: User, workspace: Workspace
     ):
-        """Test updating initiative title and description."""
+        """Test updating initiative title and implementation description."""
         initiative = Initiative(
             title="Original Title",
             description="Original description",
@@ -549,12 +712,12 @@ class TestUpdateStrategicInitiative:
         session.commit()
 
         new_title = "Updated Title"
-        new_description = "Updated description"
+        new_impl_description = "Updated implementation description"
 
         result = await update_strategic_initiative.fn(
             query=initiative.identifier,
             title=new_title,
-            description=new_description,
+            implementation_description=new_impl_description,
         )
 
         # Verify response
@@ -565,10 +728,12 @@ class TestUpdateStrategicInitiative:
         # Verify updates in database
         session.refresh(initiative)
         assert initiative.title == new_title
-        assert initiative.description == new_description
+        assert initiative.description == new_impl_description
 
     @pytest.mark.asyncio
-    async def test_update_status(self, session: Session, user, workspace: Workspace):
+    async def test_update_status(
+        self, session: Session, user: User, workspace: Workspace
+    ):
         """Test updating initiative status."""
         from src.models import ContextType
         from src.services.ordering_service import OrderingService
@@ -623,7 +788,7 @@ class TestUpdateStrategicInitiative:
 
     @pytest.mark.asyncio
     async def test_update_narrative_intent(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test updating narrative intent."""
         initiative = Initiative(
@@ -665,7 +830,7 @@ class TestUpdateStrategicInitiative:
 
     @pytest.mark.asyncio
     async def test_update_with_no_changes(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test update with no fields provided."""
         initiative = Initiative(
@@ -716,7 +881,7 @@ class TestDeleteStrategicInitiative:
 
     @pytest.mark.asyncio
     async def test_delete_initiative_by_identifier(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test deleting initiative by identifier."""
         initiative = Initiative(
@@ -758,7 +923,7 @@ class TestDeleteStrategicInitiative:
 
     @pytest.mark.asyncio
     async def test_delete_initiative_by_uuid(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test deleting initiative by UUID."""
         initiative = Initiative(
@@ -812,7 +977,7 @@ class TestStrategicInitiativeNarrativeSummary:
 
     @pytest.mark.asyncio
     async def test_narrative_summary_with_all_connections(
-        self, session: Session, user, workspace: Workspace
+        self, session: Session, user: User, workspace: Workspace
     ):
         """Test that narrative summary includes all connections."""
         # Create strategic entities
@@ -889,7 +1054,9 @@ class TestStrategicInitiativeErrors:
         )
 
     @pytest.mark.asyncio
-    async def test_submit_with_mcp_context_error(self, user, workspace: Workspace):
+    async def test_submit_with_mcp_context_error(
+        self, user: User, workspace: Workspace
+    ):
         """Test that submit handles authentication context errors."""
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_auth_context"
@@ -900,10 +1067,230 @@ class TestStrategicInitiativeErrors:
 
             result = await submit_strategic_initiative.fn(
                 title="Test Initiative",
-                description="Test description",
+                implementation_description="Test description",
             )
 
         # Verify error response
         assert_that(
             result, has_entries({"status": "error", "type": "strategic_initiative"})
         )
+
+
+class TestValidationConstraints:
+    """Test suite for validate_strategic_initiative_constraints function."""
+
+    def test_validates_title_required(
+        self, workspace: Workspace, session: Session, user: User
+    ):
+        """Test that empty title raises DomainException."""
+        with pytest.raises(DomainException) as exc_info:
+            validate_strategic_initiative_constraints(
+                workspace_id=workspace.id,
+                title="",
+                description="Test description",
+                hero_ids=[],
+                villain_ids=[],
+                conflict_ids=[],
+                pillar_id=None,
+                theme_id=None,
+                narrative_intent=None,
+                session=session,
+            )
+
+        assert "Title is required" in str(exc_info.value)
+
+    def test_validates_description_required(
+        self, workspace: Workspace, session: Session, user: User
+    ):
+        """Test that empty description raises DomainException."""
+        with pytest.raises(DomainException) as exc_info:
+            validate_strategic_initiative_constraints(
+                workspace_id=workspace.id,
+                title="Test Title",
+                description="",
+                hero_ids=[],
+                villain_ids=[],
+                conflict_ids=[],
+                pillar_id=None,
+                theme_id=None,
+                narrative_intent=None,
+                session=session,
+            )
+
+        assert "Description is required" in str(exc_info.value)
+
+    def test_returns_warnings_for_invalid_hero_ids(
+        self, workspace: Workspace, session: Session, user: User
+    ):
+        """Test that invalid hero IDs result in warnings, not errors."""
+        invalid_id = str(uuid.uuid4())
+
+        result = validate_strategic_initiative_constraints(
+            workspace_id=workspace.id,
+            title="Test Title",
+            description="Test description",
+            hero_ids=[invalid_id],
+            villain_ids=[],
+            conflict_ids=[],
+            pillar_id=None,
+            theme_id=None,
+            narrative_intent=None,
+            session=session,
+        )
+
+        assert len(result["valid_hero_ids"]) == 0
+        assert len(result["warnings"]) == 1
+        assert "Hero ID" in result["warnings"][0]
+        assert "not found" in result["warnings"][0]
+
+    def test_validates_real_hero_ids(
+        self, workspace: Workspace, session: Session, user: User
+    ):
+        """Test that valid hero IDs are returned in valid_hero_ids."""
+        publisher = EventPublisher(session)
+        hero = Hero.define_hero(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Valid Hero",
+            description="A valid hero for testing",
+            is_primary=False,
+            session=session,
+            publisher=publisher,
+        )
+        session.commit()
+
+        result = validate_strategic_initiative_constraints(
+            workspace_id=workspace.id,
+            title="Test Title",
+            description="Test description",
+            hero_ids=[str(hero.id)],
+            villain_ids=[],
+            conflict_ids=[],
+            pillar_id=None,
+            theme_id=None,
+            narrative_intent=None,
+            session=session,
+        )
+
+        assert len(result["valid_hero_ids"]) == 1
+        assert_that(result["valid_hero_ids"][0], equal_to(hero.id))
+        assert len(result["warnings"]) == 0
+
+
+class TestDescriptionFieldsSeparation:
+    """Test suite for verifying implementation and strategic descriptions are stored independently."""
+
+    @pytest.mark.asyncio
+    async def test_submit_stores_both_descriptions_independently(
+        self, session: Session, user: User, workspace: Workspace
+    ):
+        """Test that submit stores implementation and strategic descriptions in separate fields."""
+        title = "Test Initiative With Both Descriptions"
+        impl_desc = "This describes how we will implement the feature"
+        strategic_desc = "This explains how it connects to our strategy"
+
+        result = await submit_strategic_initiative.fn(
+            title=title,
+            implementation_description=impl_desc,
+            strategic_description=strategic_desc,
+        )
+
+        assert_that(
+            result, has_entries({"status": "success", "type": "strategic_initiative"})
+        )
+
+        initiative = session.query(Initiative).filter_by(title=title).first()
+        assert initiative is not None
+        assert initiative.description == impl_desc
+
+        strategic_init = (
+            session.query(StrategicInitiative)
+            .filter_by(initiative_id=initiative.id)
+            .first()
+        )
+        assert strategic_init is not None
+        assert strategic_init.description == strategic_desc
+
+    @pytest.mark.asyncio
+    async def test_submit_uses_impl_description_as_fallback_for_strategic(
+        self, session: Session, user: User, workspace: Workspace
+    ):
+        """Test that implementation_description is used as fallback when strategic_description is not provided."""
+        title = "Test Initiative Fallback Description"
+        impl_desc = "This is the implementation description"
+
+        result = await submit_strategic_initiative.fn(
+            title=title,
+            implementation_description=impl_desc,
+        )
+
+        assert_that(
+            result, has_entries({"status": "success", "type": "strategic_initiative"})
+        )
+
+        initiative = session.query(Initiative).filter_by(title=title).first()
+        assert initiative is not None
+        assert initiative.description == impl_desc
+
+        strategic_init = (
+            session.query(StrategicInitiative)
+            .filter_by(initiative_id=initiative.id)
+            .first()
+        )
+        assert strategic_init is not None
+        assert strategic_init.description is None
+
+    @pytest.mark.asyncio
+    async def test_update_can_modify_descriptions_independently(
+        self, session: Session, user: User, workspace: Workspace
+    ):
+        """Test that update can modify implementation and strategic descriptions independently."""
+        initiative = Initiative(
+            title="Initiative for Independent Updates",
+            description="Original implementation description",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+        )
+        session.add(initiative)
+        session.commit()
+        session.refresh(initiative)
+
+        strategic_init = StrategicInitiative(
+            initiative_id=initiative.id,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            description="Original strategic description",
+        )
+        session.add(strategic_init)
+        session.commit()
+
+        new_impl_desc = "Updated implementation description"
+        result = await update_strategic_initiative.fn(
+            query=initiative.identifier,
+            implementation_description=new_impl_desc,
+        )
+
+        assert_that(
+            result, has_entries({"status": "success", "type": "strategic_initiative"})
+        )
+
+        session.refresh(initiative)
+        session.refresh(strategic_init)
+        assert initiative.description == new_impl_desc
+        assert strategic_init.description == "Original strategic description"
+
+        new_strategic_desc = "Updated strategic description"
+        result = await update_strategic_initiative.fn(
+            query=initiative.identifier,
+            strategic_description=new_strategic_desc,
+        )
+
+        assert_that(
+            result, has_entries({"status": "success", "type": "strategic_initiative"})
+        )
+
+        session.refresh(initiative)
+        session.refresh(strategic_init)
+        assert initiative.description == new_impl_desc
+        assert strategic_init.description == new_strategic_desc

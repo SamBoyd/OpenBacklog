@@ -33,7 +33,7 @@ from src.mcp_server.prompt_driven_tools.utils import (
 from src.mcp_server.prompt_driven_tools.utils.validation_runner import (
     validate_strategic_initiative_constraints,
 )
-from src.models import InitiativeStatus
+from src.models import Initiative, InitiativeStatus
 from src.narrative.aggregates.conflict import Conflict, ConflictStatus
 from src.narrative.services.hero_service import HeroService
 from src.narrative.services.villain_service import VillainService
@@ -299,7 +299,8 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
 @mcp.tool()
 async def submit_strategic_initiative(
     title: str,
-    description: str,
+    implementation_description: str,
+    strategic_description: Optional[str] = None,
     hero_ids: Optional[List[str]] = None,
     villain_ids: Optional[List[str]] = None,
     conflict_ids: Optional[List[str]] = None,
@@ -324,7 +325,12 @@ async def submit_strategic_initiative(
 
     Args:
         title: Initiative title (e.g., "Smart Context Switching")
-        description: What this initiative delivers
+        implementation_description: What this initiative delivers and how it will be
+            built. This is the practical description of the work involved - the "what".
+        strategic_description: How this initiative connects to the larger product
+            strategy. Explains the "why" - user needs addressed, strategic alignment,
+            and how it fits into the bigger picture. If not provided, defaults to
+            implementation_description. (optional)
         hero_ids: List of hero UUIDs this initiative helps (optional)
         villain_ids: List of villain UUIDs this initiative confronts (optional)
         conflict_ids: List of conflict UUIDs this initiative addresses (optional)
@@ -339,7 +345,8 @@ async def submit_strategic_initiative(
     Example:
         >>> result = await submit_strategic_initiative(
         ...     title="Smart Context Switching",
-        ...     description="Auto-save and restore IDE context...",
+        ...     implementation_description="Auto-save and restore IDE context...",
+        ...     strategic_description="Addresses user need for seamless workflow...",
         ...     hero_ids=["uuid-of-sarah"],
         ...     villain_ids=["uuid-of-context-switching"],
         ...     pillar_id="uuid-of-ide-integration-pillar",
@@ -380,7 +387,7 @@ async def submit_strategic_initiative(
         validation_result = validate_strategic_initiative_constraints(
             workspace_id=workspace_id,
             title=title,
-            description=description,
+            description=implementation_description,
             hero_ids=hero_ids,
             villain_ids=villain_ids,
             conflict_ids=conflict_ids,
@@ -419,7 +426,7 @@ async def submit_strategic_initiative(
         controller = InitiativeController(session)
         initiative = controller.create_initiative(
             title=title,
-            description=description,
+            description=implementation_description,
             user_id=user_id,
             workspace_id=workspace_id,
             status=initiative_status,
@@ -433,7 +440,7 @@ async def submit_strategic_initiative(
             user_id=user_id,
             pillar_id=valid_pillar_id,
             theme_id=valid_theme_id,
-            description=description,
+            description=strategic_description,
             narrative_intent=narrative_intent,
             session=session,
             hero_ids=valid_hero_ids,
@@ -557,7 +564,169 @@ async def get_strategic_initiatives() -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def get_strategic_initiative(query: str) -> Dict[str, Any]:
+async def get_active_strategic_initiatives() -> Dict[str, Any]:
+    """Retrieve all strategic initiatives with IN_PROGRESS status.
+
+    Returns initiatives that are currently active and available for work,
+    with their full narrative connections (heroes, villains, pillars, themes).
+
+    Initiatives without a StrategicInitiative record will have one auto-created
+    with minimal context to ensure all initiatives are visible.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Returns:
+        List of active strategic initiatives with full narrative context
+    """
+    session = SessionLocal()
+    try:
+        user_id_str, workspace_id_str = get_auth_context(
+            session, requires_workspace=True
+        )
+        if workspace_id_str is None:
+            raise MCPContextError(
+                "Workspace not found.",
+                error_type="workspace_error",
+            )
+
+        user_id = uuid.UUID(user_id_str)
+        workspace_uuid = uuid.UUID(workspace_id_str)
+
+        logger.info(
+            f"Getting active strategic initiatives for workspace {workspace_uuid}"
+        )
+
+        active_initiatives = (
+            session.query(Initiative)
+            .filter_by(workspace_id=workspace_uuid, status=InitiativeStatus.IN_PROGRESS)
+            .order_by(Initiative.updated_at.desc())
+            .all()
+        )
+
+        initiatives_data = []
+        for initiative in active_initiatives:
+            si = _ensure_strategic_context(session, initiative, user_id)
+
+            initiative_data = {
+                "id": str(si.id),
+                "initiative": {
+                    "id": str(initiative.id),
+                    "title": initiative.title,
+                    "description": initiative.description,
+                    "identifier": initiative.identifier,
+                    "status": initiative.status.value,
+                },
+                "strategic_context": serialize_strategic_initiative(si),
+                "narrative_summary": _build_narrative_summary(si),
+            }
+            initiatives_data.append(initiative_data)
+
+        session.commit()
+
+        return build_success_response(
+            entity_type="strategic_initiative",
+            message=f"Found {len(initiatives_data)} active strategic initiative(s)",
+            data={"strategic_initiatives": initiatives_data},
+        )
+
+    except MCPContextError as e:
+        logger.warning(f"Context error: {e}")
+        return build_error_response("strategic_initiative", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("strategic_initiative", str(e))
+    except Exception as e:
+        logger.exception(f"Error getting active strategic initiatives: {e}")
+        return build_error_response("strategic_initiative", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def search_strategic_initiatives(query: str) -> Dict[str, Any]:
+    """Search for strategic initiatives by title, description, or identifier.
+
+    Searches initiatives and returns them with their full narrative connections
+    (heroes, villains, pillars, themes). Uses ILIKE for case-insensitive matching.
+
+    Initiatives without a StrategicInitiative record will have one auto-created
+    with minimal context to ensure all initiatives are visible.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        query: Search string to match against title, description, or identifier
+
+    Returns:
+        List of matching strategic initiatives with full narrative context
+    """
+    session = SessionLocal()
+    try:
+        user_id_str, workspace_id_str = get_auth_context(
+            session, requires_workspace=True
+        )
+        if workspace_id_str is None:
+            raise MCPContextError(
+                "Workspace not found.",
+                error_type="workspace_error",
+            )
+
+        user_id = uuid.UUID(user_id_str)
+        workspace_uuid = uuid.UUID(workspace_id_str)
+
+        logger.info(
+            f"Searching strategic initiatives for '{query}' in workspace {workspace_uuid}"
+        )
+
+        controller = InitiativeController(session)
+        initiatives = controller.search_initiatives(user_id, workspace_uuid, query)
+
+        initiatives_data = []
+        for initiative in initiatives:
+            si = _ensure_strategic_context(session, initiative, user_id)
+
+            initiative_data = {
+                "id": str(si.id),
+                "initiative": {
+                    "id": str(initiative.id),
+                    "title": initiative.title,
+                    "description": initiative.description,
+                    "identifier": initiative.identifier,
+                    "status": initiative.status.value,
+                },
+                "strategic_context": serialize_strategic_initiative(si),
+                "narrative_summary": _build_narrative_summary(si),
+            }
+            initiatives_data.append(initiative_data)
+
+        session.commit()
+
+        return build_success_response(
+            entity_type="strategic_initiative",
+            message=f"Found {len(initiatives_data)} strategic initiative(s) matching '{query}'",
+            data={"strategic_initiatives": initiatives_data},
+        )
+
+    except MCPContextError as e:
+        logger.warning(f"Context error: {e}")
+        return build_error_response("strategic_initiative", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("strategic_initiative", str(e))
+    except Exception as e:
+        logger.exception(f"Error searching strategic initiatives: {e}")
+        return build_error_response("strategic_initiative", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def get_strategic_initiative(
+    query: str,
+    include_tasks: bool = False,
+) -> Dict[str, Any]:
     """Retrieve a single strategic initiative by ID or identifier.
 
     Accepts a flexible query that tries multiple lookup strategies:
@@ -570,9 +739,10 @@ async def get_strategic_initiative(query: str) -> Dict[str, Any]:
 
     Args:
         query: Strategic initiative ID, initiative ID, or initiative identifier
+        include_tasks: If True, include the initiative's tasks in the response
 
     Returns:
-        Strategic initiative with full narrative context, or error if not found
+        Strategic initiative with full narrative context, optionally with tasks
     """
     session = SessionLocal()
     try:
@@ -591,22 +761,47 @@ async def get_strategic_initiative(query: str) -> Dict[str, Any]:
                 f"Strategic initiative not found for query: {query}",
             )
 
-        initiative_data = {
+        initiative = strategic_initiative.initiative
+        initiative_data: Dict[str, Any] = {
             "id": str(strategic_initiative.id),
             "initiative": {
-                "id": str(strategic_initiative.initiative.id),
-                "title": strategic_initiative.initiative.title,
-                "description": strategic_initiative.initiative.description,
-                "identifier": strategic_initiative.initiative.identifier,
-                "status": strategic_initiative.initiative.status.value,
+                "id": str(initiative.id),
+                "title": initiative.title,
+                "description": initiative.description,
+                "identifier": initiative.identifier,
+                "status": initiative.status.value,
             },
             "strategic_context": serialize_strategic_initiative(strategic_initiative),
             "narrative_summary": _build_narrative_summary(strategic_initiative),
         }
 
+        if include_tasks:
+            tasks_data = [
+                {
+                    "id": str(task.id),
+                    "title": task.title,
+                    "description": task.description,
+                    "identifier": task.identifier,
+                    "status": task.status.value,
+                    "type": task.type,
+                    "created_at": (
+                        task.created_at.isoformat() if task.created_at else None
+                    ),
+                    "updated_at": (
+                        task.updated_at.isoformat() if task.updated_at else None
+                    ),
+                }
+                for task in initiative.tasks
+            ]
+            initiative_data["tasks"] = tasks_data
+
+        message = f"Found strategic initiative: {initiative.title}"
+        if include_tasks:
+            message += f" with {len(initiative.tasks)} task(s)"
+
         return build_success_response(
             entity_type="strategic_initiative",
-            message=f"Found strategic initiative: {strategic_initiative.initiative.title}",
+            message=message,
             data=initiative_data,
         )
 
@@ -618,6 +813,50 @@ async def get_strategic_initiative(query: str) -> Dict[str, Any]:
         return build_error_response("strategic_initiative", f"Server error: {str(e)}")
     finally:
         session.close()
+
+
+def _ensure_strategic_context(
+    session: Session,
+    initiative: Initiative,
+    user_id: uuid.UUID,
+) -> StrategicInitiative:
+    """Get or create StrategicInitiative for an initiative.
+
+    This helper ensures every Initiative has an associated StrategicInitiative,
+    auto-creating one with minimal context if it doesn't exist.
+
+    Args:
+        session: Database session
+        initiative: The Initiative entity to ensure has strategic context
+        user_id: User ID for the strategic initiative if created
+
+    Returns:
+        The existing or newly created StrategicInitiative
+    """
+    si = (
+        session.query(StrategicInitiative)
+        .options(
+            selectinload(StrategicInitiative.initiative),
+            selectinload(StrategicInitiative.strategic_pillar),
+            selectinload(StrategicInitiative.roadmap_theme),
+            selectinload(StrategicInitiative.heroes),
+            selectinload(StrategicInitiative.villains),
+            selectinload(StrategicInitiative.conflicts),
+        )
+        .filter_by(initiative_id=initiative.id)
+        .first()
+    )
+    if not si:
+        si = StrategicInitiative(
+            initiative_id=initiative.id,
+            workspace_id=initiative.workspace_id,
+            user_id=user_id,
+            description=initiative.description,
+        )
+        session.add(si)
+        session.flush()
+        session.refresh(si)
+    return si
 
 
 def _build_narrative_summary(si: StrategicInitiative) -> str:
@@ -668,8 +907,6 @@ def _lookup_strategic_initiative(
 
     Returns the StrategicInitiative with eager-loaded relationships, or None if not found.
     """
-    from src.models import Initiative
-
     strategic_initiative = None
     eager_options = _get_strategic_initiative_eager_load_options()
 
@@ -715,7 +952,7 @@ def _lookup_strategic_initiative(
 async def update_strategic_initiative(
     query: str,
     title: Optional[str] = None,
-    description: Optional[str] = None,
+    implementation_description: Optional[str] = None,
     status: Optional[str] = None,
     hero_ids: Optional[List[str]] = None,
     villain_ids: Optional[List[str]] = None,
@@ -723,6 +960,7 @@ async def update_strategic_initiative(
     pillar_id: Optional[str] = None,
     theme_id: Optional[str] = None,
     narrative_intent: Optional[str] = None,
+    strategic_description: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Update an existing strategic initiative's fields.
 
@@ -740,7 +978,8 @@ async def update_strategic_initiative(
     Args:
         query: Strategic initiative ID, initiative ID, or initiative identifier
         title: New initiative title (optional)
-        description: New initiative description (optional)
+        implementation_description: New description of what this initiative delivers
+            and how it will be built - the practical "what" (optional)
         status: New status (BACKLOG, TO_DO, IN_PROGRESS) (optional)
         hero_ids: New list of hero UUIDs (replaces existing) (optional)
         villain_ids: New list of villain UUIDs (replaces existing) (optional)
@@ -748,6 +987,8 @@ async def update_strategic_initiative(
         pillar_id: New strategic pillar UUID (optional, use "null" to unlink)
         theme_id: New roadmap theme UUID (optional, use "null" to unlink)
         narrative_intent: New narrative intent (optional)
+        strategic_description: New description of how this initiative connects to
+            the larger product strategy - the "why" (optional)
 
     Returns:
         Success response with updated initiative
@@ -756,6 +997,8 @@ async def update_strategic_initiative(
         >>> result = await update_strategic_initiative(
         ...     query="I-1001",
         ...     title="Updated Title",
+        ...     implementation_description="New implementation details...",
+        ...     strategic_description="Updated strategic context...",
         ...     status="IN_PROGRESS",
         ... )
     """
@@ -777,11 +1020,11 @@ async def update_strategic_initiative(
             f"Updating strategic initiative '{query}' for workspace {workspace_id}"
         )
 
-        # Check if at least one field is being updated
         has_updates = any(
             [
                 title is not None,
-                description is not None,
+                implementation_description is not None,
+                strategic_description is not None,
                 status is not None,
                 hero_ids is not None,
                 villain_ids is not None,
@@ -812,8 +1055,11 @@ async def update_strategic_initiative(
         warnings = []
         initiative = strategic_initiative.initiative
 
-        # Update Initiative fields using controller
-        if title is not None or description is not None or status is not None:
+        if (
+            title is not None
+            or implementation_description is not None
+            or status is not None
+        ):
             controller = InitiativeController(session)
 
             initiative_status = None
@@ -831,7 +1077,7 @@ async def update_strategic_initiative(
                 initiative_id=initiative.id,
                 user_id=user_id,
                 title=title,
-                description=description,
+                description=implementation_description,
                 status=initiative_status,
             )
 
@@ -891,8 +1137,10 @@ async def update_strategic_initiative(
                 except ValueError:
                     warnings.append(f"Invalid theme_id format: {theme_id}")
 
-        final_description = (
-            description if description is not None else strategic_initiative.description
+        final_strategic_description = (
+            strategic_description
+            if strategic_description is not None
+            else strategic_initiative.description
         )
         final_narrative_intent = (
             narrative_intent
@@ -900,12 +1148,11 @@ async def update_strategic_initiative(
             else strategic_initiative.narrative_intent
         )
 
-        # Update strategic context if any of these fields changed
         if any(
             [
                 pillar_id is not None,
                 theme_id is not None,
-                description is not None,
+                strategic_description is not None,
                 narrative_intent is not None,
             ]
         ):
@@ -913,7 +1160,7 @@ async def update_strategic_initiative(
                 publisher=publisher,
                 pillar_id=final_pillar_id,
                 theme_id=final_theme_id,
-                description=final_description,
+                description=final_strategic_description,
                 narrative_intent=final_narrative_intent,
             )
 

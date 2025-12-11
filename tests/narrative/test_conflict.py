@@ -11,7 +11,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from src.models import Workspace
+from src.models import User, Workspace
 from src.narrative.aggregates.conflict import Conflict, ConflictStatus
 from src.narrative.aggregates.hero import Hero
 from src.narrative.aggregates.villain import Villain, VillainType
@@ -23,7 +23,7 @@ class TestConflict:
     """Unit tests for Conflict aggregate."""
 
     @pytest.fixture
-    def workspace(self, user, session: Session):
+    def workspace(self, user: User, session: Session):
         """Create a workspace for testing."""
         workspace = Workspace(
             id=uuid.uuid4(),
@@ -43,7 +43,11 @@ class TestConflict:
 
     @pytest.fixture
     def hero(
-        self, workspace: Workspace, user, session: Session, mock_publisher: MagicMock
+        self,
+        workspace: Workspace,
+        user: User,
+        session: Session,
+        mock_publisher: MagicMock,
     ):
         """Create a Hero instance for testing."""
         hero = Hero.define_hero(
@@ -61,7 +65,11 @@ class TestConflict:
 
     @pytest.fixture
     def villain(
-        self, workspace: Workspace, user, session: Session, mock_publisher: MagicMock
+        self,
+        workspace: Workspace,
+        user: User,
+        session: Session,
+        mock_publisher: MagicMock,
     ):
         """Create a Villain instance for testing."""
         villain = Villain.define_villain(
@@ -82,7 +90,7 @@ class TestConflict:
     def conflict(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         hero: Hero,
         villain: Villain,
         session: Session,
@@ -95,7 +103,7 @@ class TestConflict:
             hero_id=hero.id,
             villain_id=villain.id,
             description="Sarah cannot access product context from IDE.",
-            story_arc_id=None,
+            roadmap_theme_id=None,
             session=session,
             publisher=mock_publisher,
         )
@@ -106,7 +114,7 @@ class TestConflict:
     def test_create_conflict_success(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         hero: Hero,
         villain: Villain,
         session: Session,
@@ -121,7 +129,7 @@ class TestConflict:
             hero_id=hero.id,
             villain_id=villain.id,
             description=description,
-            story_arc_id=None,
+            roadmap_theme_id=None,
             session=session,
             publisher=mock_publisher,
         )
@@ -139,7 +147,7 @@ class TestConflict:
     def test_create_conflict_description_validation_empty(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         hero: Hero,
         villain: Villain,
         session: Session,
@@ -153,7 +161,7 @@ class TestConflict:
                 hero_id=hero.id,
                 villain_id=villain.id,
                 description="",
-                story_arc_id=None,
+                roadmap_theme_id=None,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -163,7 +171,7 @@ class TestConflict:
     def test_create_conflict_description_validation_too_long(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         hero: Hero,
         villain: Villain,
         session: Session,
@@ -179,7 +187,7 @@ class TestConflict:
                 hero_id=hero.id,
                 villain_id=villain.id,
                 description=long_description,
-                story_arc_id=None,
+                roadmap_theme_id=None,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -190,7 +198,7 @@ class TestConflict:
     def test_create_conflict_validates_hero_exists(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         villain: Villain,
         session: Session,
         mock_publisher: MagicMock,
@@ -205,7 +213,7 @@ class TestConflict:
                 hero_id=fake_hero_id,
                 villain_id=villain.id,
                 description="Valid description",
-                story_arc_id=None,
+                roadmap_theme_id=None,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -216,7 +224,7 @@ class TestConflict:
     def test_create_conflict_validates_villain_exists(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         hero: Hero,
         session: Session,
         mock_publisher: MagicMock,
@@ -231,7 +239,7 @@ class TestConflict:
                 hero_id=hero.id,
                 villain_id=fake_villain_id,
                 description="Valid description",
-                story_arc_id=None,
+                roadmap_theme_id=None,
                 session=session,
                 publisher=mock_publisher,
             )
@@ -242,7 +250,7 @@ class TestConflict:
     def test_create_conflict_defaults_to_open_status(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         hero: Hero,
         villain: Villain,
         session: Session,
@@ -255,7 +263,7 @@ class TestConflict:
             hero_id=hero.id,
             villain_id=villain.id,
             description="Valid description",
-            story_arc_id=None,
+            roadmap_theme_id=None,
             session=session,
             publisher=mock_publisher,
         )
@@ -265,7 +273,7 @@ class TestConflict:
     def test_create_conflict_emits_conflict_created_event(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         hero: Hero,
         villain: Villain,
         session: Session,
@@ -282,7 +290,7 @@ class TestConflict:
             hero_id=hero.id,
             villain_id=villain.id,
             description=description,
-            story_arc_id=None,
+            roadmap_theme_id=None,
             session=session,
             publisher=mock_publisher,
         )
@@ -379,7 +387,7 @@ class TestConflict:
     def test_unique_constraint_enforced_for_workspace_identifier(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         hero: Hero,
         villain: Villain,
         session: Session,
@@ -392,7 +400,7 @@ class TestConflict:
             hero_id=hero.id,
             villain_id=villain.id,
             description="Conflict 1",
-            story_arc_id=None,
+            roadmap_theme_id=None,
             session=session,
             publisher=mock_publisher,
         )
@@ -416,7 +424,7 @@ class TestConflict:
     def test_conflict_stores_correctly_in_database(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         hero: Hero,
         villain: Villain,
         mock_publisher: MagicMock,
@@ -431,7 +439,7 @@ class TestConflict:
             hero_id=hero.id,
             villain_id=villain.id,
             description=description,
-            story_arc_id=None,
+            roadmap_theme_id=None,
             session=session,
             publisher=mock_publisher,
         )

@@ -30,7 +30,6 @@ mcp = FastMCP(
 
 from src.mcp_server.checklist_tools import *
 from src.mcp_server.healthcheck_tool import *
-from src.mcp_server.initiative_tools import *
 from src.mcp_server.onboarding_prompts import *
 from src.mcp_server.prompt_driven_tools import *
 from src.mcp_server.slash_commands import *
