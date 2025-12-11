@@ -519,14 +519,7 @@ async def get_strategic_initiatives() -> Dict[str, Any]:
 
         strategic_initiatives = (
             session.query(StrategicInitiative)
-            .options(
-                selectinload(StrategicInitiative.initiative),
-                selectinload(StrategicInitiative.strategic_pillar),
-                selectinload(StrategicInitiative.roadmap_theme),
-                selectinload(StrategicInitiative.heroes),
-                selectinload(StrategicInitiative.villains),
-                selectinload(StrategicInitiative.conflicts),
-            )
+            .options(*_get_strategic_initiative_eager_load_options())
             .filter_by(workspace_id=workspace_uuid)
             .all()
         )
@@ -588,65 +581,9 @@ async def get_strategic_initiative(query: str) -> Dict[str, Any]:
             f"Getting strategic initiative for query '{query}' in workspace {workspace_uuid}"
         )
 
-        strategic_initiative = None
-
-        try:
-            query_uuid = uuid.UUID(query)
-
-            strategic_initiative = (
-                session.query(StrategicInitiative)
-                .options(
-                    selectinload(StrategicInitiative.initiative),
-                    selectinload(StrategicInitiative.strategic_pillar),
-                    selectinload(StrategicInitiative.roadmap_theme),
-                    selectinload(StrategicInitiative.heroes),
-                    selectinload(StrategicInitiative.villains),
-                    selectinload(StrategicInitiative.conflicts),
-                )
-                .filter_by(id=query_uuid, workspace_id=workspace_uuid)
-                .first()
-            )
-
-            if not strategic_initiative:
-                strategic_initiative = (
-                    session.query(StrategicInitiative)
-                    .options(
-                        selectinload(StrategicInitiative.initiative),
-                        selectinload(StrategicInitiative.strategic_pillar),
-                        selectinload(StrategicInitiative.roadmap_theme),
-                        selectinload(StrategicInitiative.heroes),
-                        selectinload(StrategicInitiative.villains),
-                        selectinload(StrategicInitiative.conflicts),
-                    )
-                    .filter_by(initiative_id=query_uuid, workspace_id=workspace_uuid)
-                    .first()
-                )
-        except ValueError:
-            pass
-
-        if not strategic_initiative:
-            from src.models import Initiative
-
-            initiative = (
-                session.query(Initiative)
-                .filter_by(identifier=query, workspace_id=workspace_uuid)
-                .first()
-            )
-
-            if initiative:
-                strategic_initiative = (
-                    session.query(StrategicInitiative)
-                    .options(
-                        selectinload(StrategicInitiative.initiative),
-                        selectinload(StrategicInitiative.strategic_pillar),
-                        selectinload(StrategicInitiative.roadmap_theme),
-                        selectinload(StrategicInitiative.heroes),
-                        selectinload(StrategicInitiative.villains),
-                        selectinload(StrategicInitiative.conflicts),
-                    )
-                    .filter_by(initiative_id=initiative.id, workspace_id=workspace_uuid)
-                    .first()
-                )
+        strategic_initiative = _lookup_strategic_initiative(
+            session, query, workspace_uuid
+        )
 
         if not strategic_initiative:
             return build_error_response(
@@ -707,56 +644,56 @@ def _build_narrative_summary(si: StrategicInitiative) -> str:
     return " | ".join(parts) if parts else "No narrative connections yet"
 
 
+def _get_strategic_initiative_eager_load_options():
+    """Return common selectinload options for StrategicInitiative queries."""
+    return [
+        selectinload(StrategicInitiative.initiative),
+        selectinload(StrategicInitiative.strategic_pillar),
+        selectinload(StrategicInitiative.roadmap_theme),
+        selectinload(StrategicInitiative.heroes),
+        selectinload(StrategicInitiative.villains),
+        selectinload(StrategicInitiative.conflicts),
+    ]
+
+
 def _lookup_strategic_initiative(
     session: Session, query: str, workspace_uuid: uuid.UUID
 ) -> Optional[StrategicInitiative]:
     """Look up a strategic initiative using flexible query (UUID or identifier).
 
-    Returns the StrategicInitiative or None if not found.
-    """
-    strategic_initiative = None
+    Tries multiple lookup strategies:
+    1. First tries as StrategicInitiative UUID
+    2. Then tries as Initiative UUID
+    3. Finally tries as Initiative identifier (e.g., "I-1001")
 
-    # Try as UUID first
+    Returns the StrategicInitiative with eager-loaded relationships, or None if not found.
+    """
+    from src.models import Initiative
+
+    strategic_initiative = None
+    eager_options = _get_strategic_initiative_eager_load_options()
+
     try:
         query_uuid = uuid.UUID(query)
 
-        # Try as StrategicInitiative.id
         strategic_initiative = (
             session.query(StrategicInitiative)
-            .options(
-                selectinload(StrategicInitiative.initiative),
-                selectinload(StrategicInitiative.strategic_pillar),
-                selectinload(StrategicInitiative.roadmap_theme),
-                selectinload(StrategicInitiative.heroes),
-                selectinload(StrategicInitiative.villains),
-                selectinload(StrategicInitiative.conflicts),
-            )
+            .options(*eager_options)
             .filter_by(id=query_uuid, workspace_id=workspace_uuid)
             .first()
         )
 
-        # Try as Initiative.id
         if not strategic_initiative:
             strategic_initiative = (
                 session.query(StrategicInitiative)
-                .options(
-                    selectinload(StrategicInitiative.initiative),
-                    selectinload(StrategicInitiative.strategic_pillar),
-                    selectinload(StrategicInitiative.roadmap_theme),
-                    selectinload(StrategicInitiative.heroes),
-                    selectinload(StrategicInitiative.villains),
-                    selectinload(StrategicInitiative.conflicts),
-                )
+                .options(*eager_options)
                 .filter_by(initiative_id=query_uuid, workspace_id=workspace_uuid)
                 .first()
             )
     except ValueError:
         pass
 
-    # Try as Initiative.identifier
     if not strategic_initiative:
-        from src.models import Initiative
-
         initiative = (
             session.query(Initiative)
             .filter_by(identifier=query, workspace_id=workspace_uuid)
@@ -766,14 +703,7 @@ def _lookup_strategic_initiative(
         if initiative:
             strategic_initiative = (
                 session.query(StrategicInitiative)
-                .options(
-                    selectinload(StrategicInitiative.initiative),
-                    selectinload(StrategicInitiative.strategic_pillar),
-                    selectinload(StrategicInitiative.roadmap_theme),
-                    selectinload(StrategicInitiative.heroes),
-                    selectinload(StrategicInitiative.villains),
-                    selectinload(StrategicInitiative.conflicts),
-                )
+                .options(*eager_options)
                 .filter_by(initiative_id=initiative.id, workspace_id=workspace_uuid)
                 .first()
             )
