@@ -232,7 +232,7 @@ async def create_conflict(
     hero_identifier: str,
     villain_identifier: str,
     description: str,
-    story_arc_id: Optional[str] = None,
+    roadmap_theme_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Creates a new conflict between a hero and villain.
 
@@ -246,7 +246,7 @@ async def create_conflict(
         hero_identifier: Human-readable hero identifier (e.g., "H-2003")
         villain_identifier: Human-readable villain identifier (e.g., "V-2003")
         description: Rich description including conflict statement, impact, and stakes
-        story_arc_id: Optional UUID of story arc addressing this conflict
+        roadmap_theme_id: Optional UUID of story arc addressing this conflict
 
     Returns:
         Success response with created conflict
@@ -256,7 +256,7 @@ async def create_conflict(
         ...     hero_identifier="H-2003",
         ...     villain_identifier="V-2003",
         ...     description="Sarah cannot access product context from IDE...",
-        ...     story_arc_id="..."
+        ...     roadmap_theme_id="..."
         ... )
     """
     session = SessionLocal()
@@ -275,13 +275,13 @@ async def create_conflict(
             villain_identifier, uuid.UUID(workspace_id)
         )
 
-        story_arc_uuid = None
-        if story_arc_id:
+        roadmap_theme_uuid = None
+        if roadmap_theme_id:
             try:
-                story_arc_uuid = uuid.UUID(story_arc_id)
+                roadmap_theme_uuid = uuid.UUID(roadmap_theme_id)
             except ValueError:
                 return build_error_response(
-                    "conflict", f"Invalid story_arc_id format: {story_arc_id}"
+                    "conflict", f"Invalid story_arc_id format: {roadmap_theme_id}"
                 )
 
         conflict = Conflict.create_conflict(
@@ -290,7 +290,7 @@ async def create_conflict(
             hero_id=hero.id,
             villain_id=villain.id,
             description=description,
-            story_arc_id=story_arc_uuid,
+            roadmap_theme_id=roadmap_theme_uuid,
             session=session,
             publisher=publisher,
         )
@@ -302,8 +302,8 @@ async def create_conflict(
             f"Hero: {hero.name} ({hero_identifier}) vs Villain: {villain.name} ({villain_identifier})",
         ]
 
-        if story_arc_id:
-            next_steps.append(f"Conflict linked to story arc {story_arc_id}")
+        if roadmap_theme_id:
+            next_steps.append(f"Conflict linked to story arc {roadmap_theme_id}")
         else:
             next_steps.append(
                 "Consider linking this conflict to a story arc for better tracking"
@@ -540,7 +540,7 @@ async def update_conflict(
 
         conflict.update_conflict(
             description=final_description,
-            story_arc_id=final_roadmap_theme_id,
+            roadmap_theme_id=final_roadmap_theme_id,
             publisher=publisher,
         )
 

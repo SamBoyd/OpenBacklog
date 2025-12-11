@@ -208,7 +208,7 @@ class Conflict(Base):
         hero_id: uuid.UUID,
         villain_id: uuid.UUID,
         description: str,
-        story_arc_id: uuid.UUID | None,
+        roadmap_theme_id: uuid.UUID | None,
         session: Session,
         publisher: "EventPublisher",
     ) -> "Conflict":
@@ -224,7 +224,7 @@ class Conflict(Base):
             hero_id: UUID of the hero experiencing the conflict
             villain_id: UUID of the villain creating the conflict
             description: Conflict description (1-2000 characters, required)
-            story_arc_id: Optional UUID of story arc addressing this conflict
+            roadmap_theme_id: Optional UUID of roadmap_theme addressing this conflict
             session: Database session for persistence
             publisher: EventPublisher instance for emitting domain events
 
@@ -241,7 +241,7 @@ class Conflict(Base):
             ...     hero_id=hero.id,
             ...     villain_id=villain.id,
             ...     description="Sarah cannot access context from IDE...",
-            ...     story_arc_id=None,
+            ...     roadmap_theme_id=None,
             ...     session=session,
             ...     publisher=publisher
             ... )
@@ -266,7 +266,7 @@ class Conflict(Base):
             villain_id=villain_id,
             description=description,
             status=ConflictStatus.OPEN.value,
-            story_arc_id=story_arc_id,
+            story_arc_id=roadmap_theme_id,
         )
 
         session.add(conflict)
@@ -281,7 +281,7 @@ class Conflict(Base):
                 "hero_id": str(hero_id),
                 "villain_id": str(villain_id),
                 "description": description,
-                "story_arc_id": str(story_arc_id) if story_arc_id else None,
+                "roadmap_theme_id": str(roadmap_theme_id) if roadmap_theme_id else None,
             },
         )
         publisher.publish(event, workspace_id=str(workspace_id))
@@ -291,17 +291,17 @@ class Conflict(Base):
     def update_conflict(
         self,
         description: str,
-        story_arc_id: uuid.UUID | None,
+        roadmap_theme_id: uuid.UUID | None,
         publisher: "EventPublisher",
     ) -> None:
         """Update an existing conflict.
 
-        This method updates the conflict's description and story_arc_id after validation
+        This method updates the conflict's description and roadmap_theme_id after validation
         and emits a ConflictUpdated domain event.
 
         Args:
             description: Updated conflict description (1-2000 characters)
-            story_arc_id: Updated story arc ID (can be None to unlink)
+            roadmap_theme_id: Updated story arc ID (can be None to unlink)
             publisher: EventPublisher instance for emitting domain events
 
         Raises:
@@ -310,14 +310,14 @@ class Conflict(Base):
         Example:
             >>> conflict.update_conflict(
             ...     description="Updated description of the conflict...",
-            ...     story_arc_id=theme.id,
+            ...     roadmap_theme_id=theme.id,
             ...     publisher=publisher
             ... )
         """
         Conflict._validate_description(description)
 
         self.description = description
-        self.story_arc_id = story_arc_id
+        self.story_arc_id = roadmap_theme_id
         self.updated_at = datetime.now(timezone.utc)
 
         event = DomainEvent(
@@ -327,7 +327,7 @@ class Conflict(Base):
             payload={
                 "workspace_id": str(self.workspace_id),
                 "description": description,
-                "story_arc_id": str(story_arc_id) if story_arc_id else None,
+                "roadmap_theme_id": str(roadmap_theme_id) if roadmap_theme_id else None,
             },
         )
         publisher.publish(event, workspace_id=str(self.workspace_id))
