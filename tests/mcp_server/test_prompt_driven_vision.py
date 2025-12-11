@@ -7,12 +7,105 @@ import pytest
 from hamcrest import assert_that, equal_to, has_entries, has_key
 
 from src.mcp_server.prompt_driven_tools.product_vision import (
+    get_vision,
     get_vision_definition_framework,
     submit_product_vision,
 )
 from src.models import Workspace
 from src.strategic_planning.aggregates.product_vision import ProductVision
 from src.strategic_planning.exceptions import DomainException
+
+
+class TestGetVision:
+    """Test suite for get_vision tool."""
+
+    @pytest.mark.asyncio
+    async def test_get_vision_success(self):
+        """Test that get_vision returns vision when exists."""
+        vision_text = "Enable developers to manage tasks without leaving their IDE"
+
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            mock_vision = MagicMock(spec=ProductVision)
+            mock_vision.id = uuid.uuid4()
+            mock_vision.vision_text = vision_text
+            mock_vision.created_at = None
+            mock_vision.updated_at = None
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.return_value = mock_vision
+
+                result = await get_vision.fn()
+
+        assert_that(result, has_entries({"status": "success", "type": "vision"}))
+        assert_that(result, has_key("data"))
+        assert_that(result["data"]["vision_text"], equal_to(vision_text))
+
+    @pytest.mark.asyncio
+    async def test_get_vision_not_found(self):
+        """Test that get_vision returns error when no vision defined."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.return_value = None
+
+                result = await get_vision.fn()
+
+        assert_that(result, has_entries({"status": "error", "type": "vision"}))
+        assert_that(result, has_key("error_message"))
+        assert "No vision defined" in result["error_message"]
+
+    @pytest.mark.asyncio
+    async def test_get_vision_handles_workspace_error(self):
+        """Test that get_vision handles invalid workspace."""
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.get_workspace_id_from_request"
+            ) as mock_get_workspace_id,
+        ):
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+            mock_get_workspace_id.side_effect = ValueError("Invalid workspace ID")
+
+            result = await get_vision.fn()
+
+        assert_that(result, has_entries({"status": "error", "type": "vision"}))
+        assert_that(result, has_key("error_message"))
+
+    @pytest.mark.asyncio
+    async def test_get_vision_handles_generic_exception(self):
+        """Test that get_vision handles unexpected exceptions gracefully."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.side_effect = Exception("Unexpected database error")
+
+                result = await get_vision.fn()
+
+        assert_that(result, has_entries({"status": "error", "type": "vision"}))
+        assert_that(result, has_key("error_message"))
+        assert "Server error" in result["error_message"]
 
 
 class TestGetVisionDefinitionFramework:

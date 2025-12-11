@@ -347,3 +347,49 @@ async def submit_product_vision(
         return build_error_response("vision", f"Server error: {str(e)}")
     finally:
         session.close()
+
+
+@mcp.tool()
+async def get_vision() -> Dict[str, Any]:
+    """Retrieves the current product vision for the workspace.
+
+    Returns the vision statement if one has been defined, or an error
+    if no vision exists yet.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Returns:
+        Success response with vision data, or error if no vision defined
+
+    Example:
+        >>> result = await get_vision()
+        >>> print(result["data"]["vision_text"])
+    """
+    session = SessionLocal()
+    try:
+        workspace_uuid = get_workspace_id_from_request()
+        logger.info(f"Getting product vision for workspace {workspace_uuid}")
+
+        vision = strategic_controller.get_workspace_vision(workspace_uuid, session)
+
+        if not vision:
+            return build_error_response(
+                "vision",
+                "No vision defined yet. Use get_vision_definition_framework() to start defining one.",
+            )
+
+        return build_success_response(
+            entity_type="vision",
+            message="Retrieved product vision",
+            data=serialize_vision(vision),
+        )
+
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("vision", str(e))
+    except Exception as e:
+        logger.exception(f"Error getting vision: {e}")
+        return build_error_response("vision", f"Server error: {str(e)}")
+    finally:
+        session.close()

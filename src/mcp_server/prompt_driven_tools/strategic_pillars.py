@@ -388,6 +388,71 @@ async def get_strategic_pillars() -> Dict[str, Any]:
 
 
 @mcp.tool()
+async def get_strategic_pillar(pillar_id: str) -> Dict[str, Any]:
+    """Retrieves a single strategic pillar with linked outcomes.
+
+    Returns the pillar with its full details including all linked
+    product outcomes for comprehensive context.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        pillar_id: UUID of the strategic pillar
+
+    Returns:
+        Pillar details with linked outcomes
+
+    Example:
+        >>> result = await get_strategic_pillar(pillar_id="...")
+        >>> print(result["data"]["linked_outcomes"])
+    """
+    session = SessionLocal()
+    try:
+        _, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(
+            f"Getting strategic pillar {pillar_id} for workspace {workspace_id}"
+        )
+
+        pillar_uuid = validate_uuid(pillar_id, "pillar_id")
+
+        pillar = (
+            session.query(StrategicPillar)
+            .filter_by(id=pillar_uuid, workspace_id=uuid.UUID(workspace_id))
+            .first()
+        )
+
+        if not pillar:
+            return build_error_response(
+                "pillar", f"Strategic pillar {pillar_id} not found"
+            )
+
+        from src.mcp_server.prompt_driven_tools.utils import serialize_outcome
+
+        pillar_data = serialize_pillar(pillar)
+        pillar_data["linked_outcomes"] = [
+            serialize_outcome(outcome) for outcome in pillar.outcomes
+        ]
+
+        return build_success_response(
+            entity_type="pillar",
+            message=f"Retrieved strategic pillar '{pillar.name}'",
+            data=pillar_data,
+        )
+
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("pillar", str(e))
+    except MCPContextError as e:
+        return build_error_response("pillar", str(e))
+    except Exception as e:
+        logger.exception(f"Error getting strategic pillar: {e}")
+        return build_error_response("pillar", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
 async def submit_strategic_pillar(
     name: str,
     description: str,

@@ -391,6 +391,105 @@ Retrieves all strategic initiatives with their narrative connections.
 
 ---
 
+### `get_active_strategic_initiatives()`
+
+Retrieves all strategic initiatives with IN_PROGRESS status.
+
+Returns initiatives that are currently active and available for work, with their full narrative connections (heroes, villains, pillars, themes).
+
+Initiatives without a StrategicInitiative record will have one auto-created with minimal context to ensure all initiatives are visible.
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "strategic_initiative",
+  "message": "Found N active strategic initiative(s)",
+  "data": {
+    "strategic_initiatives": [
+      {
+        "id": "<uuid>",
+        "initiative": {
+          "id": "<uuid>",
+          "title": "...",
+          "description": "...",
+          "identifier": "I-1001",
+          "status": "IN_PROGRESS"
+        },
+        "strategic_context": {
+          "heroes": [/* linked heroes */],
+          "villains": [/* linked villains */],
+          "conflicts": [/* linked conflicts */],
+          "pillar": {/* linked pillar */},
+          "theme": {/* linked theme */},
+          "narrative_intent": "..."
+        },
+        "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Pillar: Deep IDE Integration"
+      }
+    ]
+  }
+}
+```
+
+**Use Cases:**
+- Starting workflow to select an initiative to work on
+- Listing current active work with full strategic context
+- Initiative selection with narrative awareness
+- Filtering to only in-progress work
+
+---
+
+### `search_strategic_initiatives(query: str)`
+
+Searches for strategic initiatives by title, description, or identifier.
+
+Searches initiatives and returns them with their full narrative connections (heroes, villains, pillars, themes). Uses case-insensitive matching.
+
+Initiatives without a StrategicInitiative record will have one auto-created with minimal context to ensure all initiatives are visible.
+
+**Parameters:**
+- `query`: Search string to match against title, description, or identifier
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "strategic_initiative",
+  "message": "Found N strategic initiative(s) matching 'query'",
+  "data": {
+    "strategic_initiatives": [
+      {
+        "id": "<uuid>",
+        "initiative": {
+          "id": "<uuid>",
+          "title": "...",
+          "description": "...",
+          "identifier": "I-1001",
+          "status": "IN_PROGRESS"
+        },
+        "strategic_context": {
+          "heroes": [/* linked heroes */],
+          "villains": [/* linked villains */],
+          "conflicts": [/* linked conflicts */],
+          "pillar": {/* linked pillar */},
+          "theme": {/* linked theme */},
+          "narrative_intent": "..."
+        },
+        "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Pillar: Deep IDE Integration"
+      }
+    ]
+  }
+}
+```
+
+**Use Cases:**
+- Finding specific initiatives by keyword
+- Searching by initiative identifier (e.g., "I-1001")
+- Locating initiatives related to a topic
+- Quick lookup with full narrative context
+
+---
+
 ### `get_strategic_initiative(query: str)`
 
 Retrieves a single strategic initiative by ID or identifier.
@@ -878,6 +977,36 @@ Success response with saved vision data and next steps.
 
 ---
 
+#### `get_vision()`
+
+Retrieves the current product vision for the workspace.
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "vision",
+  "message": "Retrieved product vision",
+  "data": {
+    "id": "<uuid>",
+    "workspace_id": "<uuid>",
+    "vision_text": "...",
+    "created_at": "...",
+    "updated_at": "..."
+  }
+}
+```
+
+**Error Response:**
+Returns error if no vision is defined yet.
+
+**Use Cases:**
+- Quick retrieval of current vision without framework overhead
+- Checking if vision exists before other operations
+- Displaying current vision to users
+
+---
+
 ### Strategic Pillars
 
 #### `get_pillar_definition_framework(workspace_id: str)`
@@ -919,6 +1048,43 @@ Lists all strategic pillars for the workspace.
 - Viewing current strategic pillars
 - Checking available pillars before linking outcomes
 - Strategic foundation review
+
+---
+
+#### `get_strategic_pillar(pillar_id: str)`
+
+Retrieves a single strategic pillar with linked outcomes.
+
+Returns the pillar with its full details including all linked product outcomes for comprehensive context.
+
+**Parameters:**
+- `pillar_id`: UUID of the strategic pillar
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "pillar",
+  "message": "Retrieved strategic pillar 'Pillar Name'",
+  "data": {
+    "id": "<uuid>",
+    "name": "...",
+    "description": "...",
+    "linked_outcomes": [
+      {
+        "id": "<uuid>",
+        "name": "...",
+        "description": "..."
+      }
+    ]
+  }
+}
+```
+
+**Use Cases:**
+- Getting full pillar details with linked outcomes
+- Understanding pillar-outcome relationships
+- Reviewing strategic alignment
 
 ---
 
@@ -1706,6 +1872,49 @@ Retrieves all villains for a workspace.
 
 **Returns:**
 List of villains with full details including identifier, name, villain_type, severity, is_defeated status.
+
+---
+
+#### `get_villain_details(villain_identifier: str)`
+
+Retrieves full villain details including battle summary.
+
+Returns enriched villain data including counts of conflicts, linked themes, and initiatives confronting this villain.
+
+**Parameters:**
+- `villain_identifier`: Human-readable identifier (e.g., "V-2003")
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "villain",
+  "message": "Retrieved villain details for Context Switching",
+  "data": {
+    "id": "<uuid>",
+    "identifier": "V-2003",
+    "name": "Context Switching",
+    "villain_type": "WORKFLOW",
+    "description": "...",
+    "severity": 4,
+    "is_defeated": false,
+    "battle_summary": {
+      "conflict_count": 2,
+      "theme_count": 1,
+      "initiative_count": 3,
+      "active_conflicts": [/* conflict details */],
+      "linked_themes": [/* theme details */],
+      "confronting_initiatives": [/* initiative details */]
+    }
+  }
+}
+```
+
+**Use Cases:**
+- Getting comprehensive villain context
+- Understanding what initiatives are fighting this villain
+- Reviewing conflicts and themes related to a villain
+- Strategic planning around specific problems
 
 ---
 

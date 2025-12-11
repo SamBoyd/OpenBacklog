@@ -4,7 +4,7 @@ This service orchestrates villain operations and handles identifier lookups.
 """
 
 import uuid
-from typing import List
+from typing import Dict, List
 
 from sqlalchemy.orm import Session
 
@@ -102,3 +102,50 @@ class VillainService:
             .order_by(Villain.created_at)
             .all()
         )
+
+    def get_villain_battle_summary(self, villain_id: uuid.UUID) -> Dict[str, int]:
+        """Generate battle summary for a villain.
+
+        Returns information about the villain's conflicts, linked themes,
+        and initiatives that confront this villain.
+
+        Args:
+            villain_id: UUID of the villain
+
+        Returns:
+            Dictionary containing:
+            - open_conflicts_count: Number of open conflicts
+            - escalating_conflicts_count: Number of escalating conflicts
+            - resolving_conflicts_count: Number of resolving conflicts
+            - resolved_conflicts_count: Number of resolved conflicts
+            - total_conflicts_count: Total number of conflicts
+            - linked_themes_count: Number of themes targeting this villain
+            - initiatives_confronting_count: Number of initiatives confronting villain
+
+        Raises:
+            DomainException: If villain not found
+
+        Example:
+            >>> summary = service.get_villain_battle_summary(villain.id)
+        """
+        villain = self.session.query(Villain).filter_by(id=villain_id).first()
+
+        if not villain:
+            raise DomainException(f"Villain with id {villain_id} not found")
+
+        open_conflicts = [c for c in villain.conflicts if c.status == "OPEN"]
+        escalating_conflicts = [
+            c for c in villain.conflicts if c.status == "ESCALATING"
+        ]
+        resolving_conflicts = [c for c in villain.conflicts if c.status == "RESOLVING"]
+        resolved_conflicts = [c for c in villain.conflicts if c.status == "RESOLVED"]
+
+        return {
+            "open_conflicts_count": len(open_conflicts),
+            "escalating_conflicts_count": len(escalating_conflicts),
+            "resolving_conflicts_count": len(resolving_conflicts),
+            "resolved_conflicts_count": len(resolved_conflicts),
+            "total_conflicts_count": len(villain.conflicts),
+            "linked_themes_count": len(villain.roadmap_themes),
+            "initiatives_confronting_count": len(villain.strategic_initiatives),
+        }

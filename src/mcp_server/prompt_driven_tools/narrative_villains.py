@@ -343,6 +343,63 @@ async def get_villains() -> Dict[str, Any]:
 
 
 @mcp.tool()
+async def get_villain_details(villain_identifier: str) -> Dict[str, Any]:
+    """Retrieves full villain details including battle summary.
+
+    Returns enriched villain data including counts of conflicts,
+    linked themes, and initiatives confronting this villain.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        villain_identifier: Human-readable identifier (e.g., "V-2003")
+
+    Returns:
+        Villain details + battle summary (conflicts, themes, initiatives)
+
+    Example:
+        >>> result = await get_villain_details(villain_identifier="V-2003")
+        >>> print(result["data"]["battle_summary"])
+    """
+    session = SessionLocal()
+    try:
+        workspace_uuid = get_workspace_id_from_request()
+        logger.info(
+            f"Getting villain details for {villain_identifier} in workspace {workspace_uuid}"
+        )
+
+        publisher = EventPublisher(session)
+        villain_service = VillainService(session, publisher)
+        villain = villain_service.get_villain_by_identifier(
+            villain_identifier, workspace_uuid
+        )
+
+        battle_summary = villain_service.get_villain_battle_summary(villain.id)
+
+        villain_data = serialize_villain(villain)
+        villain_data["battle_summary"] = battle_summary
+
+        return build_success_response(
+            entity_type="villain",
+            message=f"Retrieved villain details for {villain.name}",
+            data=villain_data,
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain error: {e}")
+        return build_error_response("villain", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("villain", str(e))
+    except Exception as e:
+        logger.exception(f"Error getting villain details: {e}")
+        return build_error_response("villain", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
 async def mark_villain_defeated(villain_identifier: str) -> Dict[str, Any]:
     """Marks a villain as defeated.
 

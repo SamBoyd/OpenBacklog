@@ -16,6 +16,7 @@ from src.mcp_server.auth_utils import MCPContextError
 from src.mcp_server.prompt_driven_tools.narrative_villains import (
     delete_villain,
     get_villain_definition_framework,
+    get_villain_details,
     get_villains,
     mark_villain_defeated,
     submit_villain,
@@ -25,6 +26,130 @@ from src.models import Workspace
 from src.narrative.aggregates.villain import Villain, VillainType
 from src.narrative.exceptions import DomainException
 from src.strategic_planning.services.event_publisher import EventPublisher
+
+
+class TestGetVillainDetails:
+    """Test suite for get_villain_details MCP tool."""
+
+    @pytest.fixture
+    def workspace(self, user, session):
+        """Create a workspace for testing."""
+        workspace = Workspace(
+            id=uuid.uuid4(),
+            name="Test Workspace",
+            description="A test workspace",
+            user_id=user.id,
+        )
+        session.add(workspace)
+        session.commit()
+        session.refresh(workspace)
+        return workspace
+
+    @pytest.fixture
+    def mock_publisher(self):
+        """Mock EventPublisher for testing."""
+        return MagicMock(spec=EventPublisher)
+
+    @pytest.fixture
+    def villain(self, workspace, user, session, mock_publisher):
+        """Create a villain for testing."""
+        villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Context Switching",
+            villain_type=VillainType.WORKFLOW,
+            description="Jumping between tools breaks flow state",
+            severity=5,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(villain)
+        return villain
+
+    @pytest.mark.asyncio
+    async def test_get_villain_details_success(self, session, workspace, villain):
+        """Test successfully retrieving villain details."""
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
+            ) as mock_get_ws,
+        ):
+            mock_session_local.return_value = session
+            mock_get_ws.return_value = str(workspace.id)
+
+            result = await get_villain_details.fn(villain_identifier=villain.identifier)
+
+        assert_that(result, has_entries({"status": "success", "type": "villain"}))
+        assert_that(result["data"]["name"], equal_to(villain.name))
+        assert_that(result["data"]["identifier"], equal_to(villain.identifier))
+
+    @pytest.mark.asyncio
+    async def test_get_villain_details_includes_battle_summary(
+        self, session, workspace, villain
+    ):
+        """Test that villain details include battle summary."""
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
+            ) as mock_get_ws,
+        ):
+            mock_session_local.return_value = session
+            mock_get_ws.return_value = str(workspace.id)
+
+            result = await get_villain_details.fn(villain_identifier=villain.identifier)
+
+        assert_that(result["data"], has_key("battle_summary"))
+        battle_summary = result["data"]["battle_summary"]
+        assert_that(battle_summary, has_key("open_conflicts_count"))
+        assert_that(battle_summary, has_key("resolved_conflicts_count"))
+        assert_that(battle_summary, has_key("total_conflicts_count"))
+        assert_that(battle_summary, has_key("linked_themes_count"))
+        assert_that(battle_summary, has_key("initiatives_confronting_count"))
+
+    @pytest.mark.asyncio
+    async def test_get_villain_details_not_found(self, session, workspace):
+        """Test error when villain not found."""
+        fake_identifier = "V-9999"
+
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
+            ) as mock_get_ws,
+        ):
+            mock_session_local.return_value = session
+            mock_get_ws.return_value = str(workspace.id)
+
+            result = await get_villain_details.fn(villain_identifier=fake_identifier)
+
+        assert_that(result, has_entries({"status": "error", "type": "villain"}))
+
+    @pytest.mark.asyncio
+    async def test_get_villain_details_handles_workspace_error(self, session, villain):
+        """Test handling of workspace error."""
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
+            ) as mock_get_ws,
+        ):
+            mock_session_local.return_value = session
+            mock_get_ws.side_effect = ValueError("Invalid workspace ID")
+
+            result = await get_villain_details.fn(villain_identifier=villain.identifier)
+
+        assert_that(result, has_entries({"status": "error", "type": "villain"}))
 
 
 class TestGetVillainDefinitionFramework:

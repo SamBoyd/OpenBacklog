@@ -9,11 +9,132 @@ from sqlalchemy.orm import Session
 
 from src.mcp_server.prompt_driven_tools.strategic_pillars import (
     get_pillar_definition_framework,
+    get_strategic_pillar,
     submit_strategic_pillar,
 )
 from src.models import Workspace
+from src.strategic_planning import controller as strategic_controller
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.exceptions import DomainException
+from src.strategic_planning.services.event_publisher import EventPublisher
+
+
+class TestGetStrategicPillar:
+    """Test suite for get_strategic_pillar tool."""
+
+    @pytest.fixture
+    def pillar(self, workspace, user, session):
+        """Create a pillar for testing."""
+        pillar = strategic_controller.create_strategic_pillar(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Deep IDE Integration",
+            description="Strategy: Seamless developer workflow. Anti-Strategy: No web/mobile.",
+            session=session,
+        )
+        session.commit()
+        session.refresh(pillar)
+        return pillar
+
+    @pytest.mark.asyncio
+    async def test_get_strategic_pillar_success(self, session, user, workspace, pillar):
+        """Test successfully retrieving a strategic pillar."""
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.get_auth_context"
+            ) as mock_auth,
+        ):
+            mock_session_local.return_value = session
+            mock_auth.return_value = (str(user.id), str(workspace.id))
+
+            result = await get_strategic_pillar.fn(pillar_id=str(pillar.id))
+
+        assert_that(result, has_entries({"status": "success", "type": "pillar"}))
+        assert_that(result["data"]["name"], equal_to(pillar.name))
+        assert_that(result["data"]["id"], equal_to(str(pillar.id)))
+
+    @pytest.mark.asyncio
+    async def test_get_strategic_pillar_includes_linked_outcomes(
+        self, session, user, workspace, pillar
+    ):
+        """Test that pillar details include linked outcomes."""
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.get_auth_context"
+            ) as mock_auth,
+        ):
+            mock_session_local.return_value = session
+            mock_auth.return_value = (str(user.id), str(workspace.id))
+
+            result = await get_strategic_pillar.fn(pillar_id=str(pillar.id))
+
+        assert_that(result["data"], has_key("linked_outcomes"))
+        assert isinstance(result["data"]["linked_outcomes"], list)
+
+    @pytest.mark.asyncio
+    async def test_get_strategic_pillar_not_found(self, session, user, workspace):
+        """Test error when pillar not found."""
+        fake_id = str(uuid.uuid4())
+
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.get_auth_context"
+            ) as mock_auth,
+        ):
+            mock_session_local.return_value = session
+            mock_auth.return_value = (str(user.id), str(workspace.id))
+
+            result = await get_strategic_pillar.fn(pillar_id=fake_id)
+
+        assert_that(result, has_entries({"status": "error", "type": "pillar"}))
+        assert "not found" in result["error_message"]
+
+    @pytest.mark.asyncio
+    async def test_get_strategic_pillar_invalid_uuid(self, session, user, workspace):
+        """Test error when invalid UUID provided."""
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.get_auth_context"
+            ) as mock_auth,
+        ):
+            mock_session_local.return_value = session
+            mock_auth.return_value = (str(user.id), str(workspace.id))
+
+            result = await get_strategic_pillar.fn(pillar_id="invalid-uuid")
+
+        assert_that(result, has_entries({"status": "error", "type": "pillar"}))
+
+    @pytest.mark.asyncio
+    async def test_get_strategic_pillar_mcp_context_error(self, session, pillar):
+        """Test handling of MCPContextError."""
+        from src.mcp_server.auth_utils import MCPContextError
+
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.get_auth_context"
+            ) as mock_auth,
+        ):
+            mock_session_local.return_value = session
+            mock_auth.side_effect = MCPContextError("No workspace in context")
+
+            result = await get_strategic_pillar.fn(pillar_id=str(pillar.id))
+
+        assert_that(result, has_entries({"status": "error", "type": "pillar"}))
 
 
 class TestGetPillarDefinitionFramework:
