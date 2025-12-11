@@ -5,8 +5,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from hamcrest import assert_that, equal_to, has_entries, has_key
+from sqlalchemy.orm import Session
 
-from src.mcp_server.prompt_driven_tools.strategic_foundation import (
+from src.mcp_server.prompt_driven_tools.strategic_pillars import (
     get_pillar_definition_framework,
     submit_strategic_pillar,
 )
@@ -22,13 +23,13 @@ class TestGetPillarDefinitionFramework:
     async def test_framework_returns_complete_structure(self):
         """Test that framework returns all required fields."""
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.strategic_pillars.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_strategic_pillars"
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.strategic_controller.get_strategic_pillars"
             ) as mock_get_pillars:
                 mock_get_pillars.return_value = []
 
@@ -50,7 +51,7 @@ class TestGetPillarDefinitionFramework:
     async def test_framework_includes_existing_pillars(self):
         """Test that framework includes current pillars."""
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.strategic_pillars.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
@@ -63,7 +64,7 @@ class TestGetPillarDefinitionFramework:
             mock_pillar.anti_strategy = "No web-first"
 
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_strategic_pillars"
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.strategic_controller.get_strategic_pillars"
             ) as mock_get_pillars:
                 mock_get_pillars.return_value = [mock_pillar]
 
@@ -80,7 +81,7 @@ class TestSubmitStrategicPillar:
 
     @pytest.mark.asyncio
     async def test_submit_creates_pillar_successfully(
-        self, session, workspace: Workspace
+        self, session: Session, workspace: Workspace
     ):
         """Test that submit successfully creates pillar via controller."""
         name = "Deep IDE Integration"
@@ -97,13 +98,13 @@ class TestSubmitStrategicPillar:
     async def test_submit_handles_domain_exception(self):
         """Test that submit handles domain validation errors."""
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.strategic_pillars.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.create_strategic_pillar"
+                "src.mcp_server.prompt_driven_tools.strategic_pillars.strategic_controller.create_strategic_pillar"
             ) as mock_create:
                 mock_create.side_effect = DomainException("Pillar limit exceeded")
 

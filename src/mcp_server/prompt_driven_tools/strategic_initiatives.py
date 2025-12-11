@@ -11,7 +11,7 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import Session, selectinload
 
 from src.db import SessionLocal
 from src.initiative_management.aggregates.strategic_initiative import (
@@ -215,7 +215,7 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
             },
         )
 
-        current_state = {
+        current_state: Dict[str, Any] = {
             "available_heroes": [
                 {
                     "id": str(hero.id),
@@ -240,7 +240,9 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
                 {
                     "id": str(pillar.id),
                     "name": pillar.name,
-                    "description": pillar.description[:100],
+                    "description": (
+                        pillar.description[:100] if pillar.description else ""
+                    ),
                 }
                 for pillar in pillars
             ],
@@ -703,3 +705,413 @@ def _build_narrative_summary(si: StrategicInitiative) -> str:
         parts.append(f"Why: {si.narrative_intent}")
 
     return " | ".join(parts) if parts else "No narrative connections yet"
+
+
+def _lookup_strategic_initiative(
+    session: Session, query: str, workspace_uuid: uuid.UUID
+) -> Optional[StrategicInitiative]:
+    """Look up a strategic initiative using flexible query (UUID or identifier).
+
+    Returns the StrategicInitiative or None if not found.
+    """
+    strategic_initiative = None
+
+    # Try as UUID first
+    try:
+        query_uuid = uuid.UUID(query)
+
+        # Try as StrategicInitiative.id
+        strategic_initiative = (
+            session.query(StrategicInitiative)
+            .options(
+                selectinload(StrategicInitiative.initiative),
+                selectinload(StrategicInitiative.strategic_pillar),
+                selectinload(StrategicInitiative.roadmap_theme),
+                selectinload(StrategicInitiative.heroes),
+                selectinload(StrategicInitiative.villains),
+                selectinload(StrategicInitiative.conflicts),
+            )
+            .filter_by(id=query_uuid, workspace_id=workspace_uuid)
+            .first()
+        )
+
+        # Try as Initiative.id
+        if not strategic_initiative:
+            strategic_initiative = (
+                session.query(StrategicInitiative)
+                .options(
+                    selectinload(StrategicInitiative.initiative),
+                    selectinload(StrategicInitiative.strategic_pillar),
+                    selectinload(StrategicInitiative.roadmap_theme),
+                    selectinload(StrategicInitiative.heroes),
+                    selectinload(StrategicInitiative.villains),
+                    selectinload(StrategicInitiative.conflicts),
+                )
+                .filter_by(initiative_id=query_uuid, workspace_id=workspace_uuid)
+                .first()
+            )
+    except ValueError:
+        pass
+
+    # Try as Initiative.identifier
+    if not strategic_initiative:
+        from src.models import Initiative
+
+        initiative = (
+            session.query(Initiative)
+            .filter_by(identifier=query, workspace_id=workspace_uuid)
+            .first()
+        )
+
+        if initiative:
+            strategic_initiative = (
+                session.query(StrategicInitiative)
+                .options(
+                    selectinload(StrategicInitiative.initiative),
+                    selectinload(StrategicInitiative.strategic_pillar),
+                    selectinload(StrategicInitiative.roadmap_theme),
+                    selectinload(StrategicInitiative.heroes),
+                    selectinload(StrategicInitiative.villains),
+                    selectinload(StrategicInitiative.conflicts),
+                )
+                .filter_by(initiative_id=initiative.id, workspace_id=workspace_uuid)
+                .first()
+            )
+
+    return strategic_initiative
+
+
+@mcp.tool()
+async def update_strategic_initiative(
+    query: str,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    status: Optional[str] = None,
+    hero_ids: Optional[List[str]] = None,
+    villain_ids: Optional[List[str]] = None,
+    conflict_ids: Optional[List[str]] = None,
+    pillar_id: Optional[str] = None,
+    theme_id: Optional[str] = None,
+    narrative_intent: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Update an existing strategic initiative's fields.
+
+    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
+
+    Accepts a flexible query that tries multiple lookup strategies:
+    1. First tries as StrategicInitiative UUID
+    2. Then tries as Initiative UUID
+    3. Finally tries as Initiative identifier (e.g., "I-1001")
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        query: Strategic initiative ID, initiative ID, or initiative identifier
+        title: New initiative title (optional)
+        description: New initiative description (optional)
+        status: New status (BACKLOG, TO_DO, IN_PROGRESS) (optional)
+        hero_ids: New list of hero UUIDs (replaces existing) (optional)
+        villain_ids: New list of villain UUIDs (replaces existing) (optional)
+        conflict_ids: New list of conflict UUIDs (replaces existing) (optional)
+        pillar_id: New strategic pillar UUID (optional, use "null" to unlink)
+        theme_id: New roadmap theme UUID (optional, use "null" to unlink)
+        narrative_intent: New narrative intent (optional)
+
+    Returns:
+        Success response with updated initiative
+
+    Example:
+        >>> result = await update_strategic_initiative(
+        ...     query="I-1001",
+        ...     title="Updated Title",
+        ...     status="IN_PROGRESS",
+        ... )
+    """
+    session = SessionLocal()
+    try:
+        user_id_str, workspace_id_str = get_auth_context(
+            session, requires_workspace=True
+        )
+        if workspace_id_str is None:
+            raise MCPContextError(
+                "Workspace not found.",
+                error_type="workspace_error",
+            )
+
+        user_id = uuid.UUID(user_id_str)
+        workspace_id = uuid.UUID(workspace_id_str)
+
+        logger.info(
+            f"Updating strategic initiative '{query}' for workspace {workspace_id}"
+        )
+
+        # Check if at least one field is being updated
+        has_updates = any(
+            [
+                title is not None,
+                description is not None,
+                status is not None,
+                hero_ids is not None,
+                villain_ids is not None,
+                conflict_ids is not None,
+                pillar_id is not None,
+                theme_id is not None,
+                narrative_intent is not None,
+            ]
+        )
+
+        if not has_updates:
+            return build_error_response(
+                "strategic_initiative",
+                "At least one field must be provided for update",
+            )
+
+        # Look up the strategic initiative
+        strategic_initiative = _lookup_strategic_initiative(
+            session, query, workspace_id
+        )
+
+        if not strategic_initiative:
+            return build_error_response(
+                "strategic_initiative",
+                f"Strategic initiative not found for query: {query}",
+            )
+
+        warnings = []
+        initiative = strategic_initiative.initiative
+
+        # Update Initiative fields using controller
+        if title is not None or description is not None or status is not None:
+            controller = InitiativeController(session)
+
+            initiative_status = None
+            if status is not None:
+                try:
+                    initiative_status = InitiativeStatus(status.upper())
+                except ValueError:
+                    valid_statuses = ", ".join(s.value for s in InitiativeStatus)
+                    return build_error_response(
+                        "strategic_initiative",
+                        f"Invalid status '{status}'. Valid statuses are: {valid_statuses}",
+                    )
+
+            controller.update_initiative(
+                initiative_id=initiative.id,
+                user_id=user_id,
+                title=title,
+                description=description,
+                status=initiative_status,
+            )
+
+        # Update strategic context via aggregate method
+        publisher = EventPublisher(session)
+
+        # Validate and prepare narrative link updates
+        if hero_ids is not None or villain_ids is not None or conflict_ids is not None:
+            validation_result = validate_strategic_initiative_constraints(
+                workspace_id=workspace_id,
+                title=initiative.title,
+                description=initiative.description,
+                hero_ids=hero_ids or [],
+                villain_ids=villain_ids or [],
+                conflict_ids=conflict_ids or [],
+                pillar_id=(
+                    pillar_id if pillar_id and pillar_id.lower() != "null" else None
+                ),
+                theme_id=theme_id if theme_id and theme_id.lower() != "null" else None,
+                narrative_intent=narrative_intent,
+                session=session,
+            )
+
+            if hero_ids is not None:
+                strategic_initiative.link_heroes(
+                    validation_result["valid_hero_ids"], session
+                )
+            if villain_ids is not None:
+                strategic_initiative.link_villains(
+                    validation_result["valid_villain_ids"], session
+                )
+            if conflict_ids is not None:
+                strategic_initiative.link_conflicts(
+                    validation_result["valid_conflict_ids"], session
+                )
+
+            warnings.extend(validation_result.get("warnings", []))
+
+        # Update pillar/theme/narrative_intent
+        final_pillar_id = strategic_initiative.pillar_id
+        if pillar_id is not None:
+            if pillar_id.lower() == "null" or pillar_id == "":
+                final_pillar_id = None
+            else:
+                try:
+                    final_pillar_id = uuid.UUID(pillar_id)
+                except ValueError:
+                    warnings.append(f"Invalid pillar_id format: {pillar_id}")
+
+        final_theme_id = strategic_initiative.theme_id
+        if theme_id is not None:
+            if theme_id.lower() == "null" or theme_id == "":
+                final_theme_id = None
+            else:
+                try:
+                    final_theme_id = uuid.UUID(theme_id)
+                except ValueError:
+                    warnings.append(f"Invalid theme_id format: {theme_id}")
+
+        final_description = (
+            description if description is not None else strategic_initiative.description
+        )
+        final_narrative_intent = (
+            narrative_intent
+            if narrative_intent is not None
+            else strategic_initiative.narrative_intent
+        )
+
+        # Update strategic context if any of these fields changed
+        if any(
+            [
+                pillar_id is not None,
+                theme_id is not None,
+                description is not None,
+                narrative_intent is not None,
+            ]
+        ):
+            strategic_initiative.update_strategic_context(
+                publisher=publisher,
+                pillar_id=final_pillar_id,
+                theme_id=final_theme_id,
+                description=final_description,
+                narrative_intent=final_narrative_intent,
+            )
+
+        session.commit()
+        session.refresh(strategic_initiative)
+        session.refresh(initiative)
+
+        initiative_data = {
+            "id": str(strategic_initiative.id),
+            "initiative": {
+                "id": str(initiative.id),
+                "title": initiative.title,
+                "description": initiative.description,
+                "identifier": initiative.identifier,
+                "status": initiative.status.value,
+            },
+            "strategic_context": serialize_strategic_initiative(strategic_initiative),
+            "narrative_summary": _build_narrative_summary(strategic_initiative),
+        }
+
+        return build_success_response(
+            entity_type="strategic_initiative",
+            message=f"Updated strategic initiative {initiative.identifier}",
+            data=initiative_data,
+            next_steps=[
+                f"Strategic initiative '{initiative.title}' updated successfully"
+            ],
+            warnings=warnings if warnings else None,
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain validation error: {e}")
+        return build_error_response("strategic_initiative", str(e))
+    except MCPContextError as e:
+        logger.warning(f"Context error: {e}")
+        return build_error_response("strategic_initiative", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("strategic_initiative", str(e))
+    except Exception as e:
+        logger.exception(f"Error updating strategic initiative: {e}")
+        return build_error_response("strategic_initiative", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def delete_strategic_initiative(query: str) -> Dict[str, Any]:
+    """Delete a strategic initiative permanently.
+
+    IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
+    This deletes both the Initiative and its StrategicInitiative context.
+
+    Accepts a flexible query that tries multiple lookup strategies:
+    1. First tries as StrategicInitiative UUID
+    2. Then tries as Initiative UUID
+    3. Finally tries as Initiative identifier (e.g., "I-1001")
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        query: Strategic initiative ID, initiative ID, or initiative identifier
+
+    Returns:
+        Success response confirming deletion
+
+    Example:
+        >>> result = await delete_strategic_initiative(query="I-1001")
+    """
+    session = SessionLocal()
+    try:
+        user_id_str, workspace_id_str = get_auth_context(
+            session, requires_workspace=True
+        )
+        if workspace_id_str is None:
+            raise MCPContextError(
+                "Workspace not found.",
+                error_type="workspace_error",
+            )
+
+        user_id = uuid.UUID(user_id_str)
+        workspace_id = uuid.UUID(workspace_id_str)
+
+        logger.info(
+            f"Deleting strategic initiative '{query}' for workspace {workspace_id}"
+        )
+
+        # Look up the strategic initiative
+        strategic_initiative = _lookup_strategic_initiative(
+            session, query, workspace_id
+        )
+
+        if not strategic_initiative:
+            return build_error_response(
+                "strategic_initiative",
+                f"Strategic initiative not found for query: {query}",
+            )
+
+        initiative = strategic_initiative.initiative
+        initiative_id = str(initiative.id)
+        initiative_identifier = initiative.identifier
+        initiative_title = initiative.title
+
+        # Delete the initiative using the controller (StrategicInitiative cascades)
+        controller = InitiativeController(session)
+        controller.delete_initiative(initiative.id, user_id)
+
+        return build_success_response(
+            entity_type="strategic_initiative",
+            message=f"Deleted strategic initiative {initiative_identifier} ({initiative_title})",
+            data={
+                "deleted_identifier": initiative_identifier,
+                "deleted_id": initiative_id,
+            },
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain error: {e}")
+        return build_error_response("strategic_initiative", str(e))
+    except MCPContextError as e:
+        logger.warning(f"Context error: {e}")
+        return build_error_response("strategic_initiative", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("strategic_initiative", str(e))
+    except Exception as e:
+        logger.exception(f"Error deleting strategic initiative: {e}")
+        return build_error_response("strategic_initiative", f"Server error: {str(e)}")
+    finally:
+        session.close()

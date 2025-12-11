@@ -52,16 +52,42 @@ def mock_get_auth_context(request, user, workspace):
         patch("src.mcp_server.task_tools.get_auth_context"),
         patch("src.mcp_server.checklist_tools.get_auth_context"),
         # Prompt-driven tools also use get_auth_context
-        patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.get_auth_context"
-        ),
+        patch("src.mcp_server.prompt_driven_tools.product_outcomes.get_auth_context"),
+        patch("src.mcp_server.prompt_driven_tools.product_vision.get_auth_context"),
+        patch("src.mcp_server.prompt_driven_tools.strategic_pillars.get_auth_context"),
         patch("src.mcp_server.prompt_driven_tools.roadmap_themes.get_auth_context"),
+        patch(
+            "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_auth_context"
+        ),
+        patch("src.mcp_server.prompt_driven_tools.narrative_heroes.get_auth_context"),
+        patch("src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"),
+        patch(
+            "src.mcp_server.prompt_driven_tools.narrative_conflicts.get_auth_context"
+        ),
         # Prompt-driven tools use get_workspace_id_from_request
         patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.get_workspace_id_from_request"
+            "src.mcp_server.prompt_driven_tools.product_outcomes.get_workspace_id_from_request"
+        ),
+        patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.get_workspace_id_from_request"
+        ),
+        patch(
+            "src.mcp_server.prompt_driven_tools.strategic_pillars.get_workspace_id_from_request"
         ),
         patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.get_workspace_id_from_request"
+        ),
+        patch(
+            "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_workspace_id_from_request"
+        ),
+        patch(
+            "src.mcp_server.prompt_driven_tools.narrative_heroes.get_workspace_id_from_request"
+        ),
+        patch(
+            "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
+        ),
+        patch(
+            "src.mcp_server.prompt_driven_tools.narrative_conflicts.get_workspace_id_from_request"
         ),
         patch(
             "src.mcp_server.prompt_driven_tools.utilities.get_workspace_id_from_request"
@@ -71,16 +97,16 @@ def mock_get_auth_context(request, user, workspace):
     ]
 
     mocks = [p.start() for p in patches]
-    # First 7 mocks return (user_id, workspace_id) tuple
-    for mock in mocks[:7]:
+    # First 12 mocks return (user_id, workspace_id) tuple
+    for mock in mocks[:12]:
         mock.return_value = (str(user.id), str(workspace.id))
 
-    # Mocks 7-9 return just workspace.id (UUID)
-    for mock in mocks[7:10]:
+    # Mocks 12-19 return just workspace.id (UUID)
+    for mock in mocks[12:20]:
         mock.return_value = workspace.id
 
     # Last mock returns user.id (UUID)
-    mocks[10].return_value = user.id
+    mocks[20].return_value = user.id
 
     yield mocks
 

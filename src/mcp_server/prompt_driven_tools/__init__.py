@@ -11,9 +11,11 @@ from src.mcp_server.prompt_driven_tools.narrative_conflicts import *
 from src.mcp_server.prompt_driven_tools.narrative_heroes import *
 from src.mcp_server.prompt_driven_tools.narrative_recap import *
 from src.mcp_server.prompt_driven_tools.narrative_villains import *
+from src.mcp_server.prompt_driven_tools.product_outcomes import *
+from src.mcp_server.prompt_driven_tools.product_vision import *
 from src.mcp_server.prompt_driven_tools.roadmap_themes import *
-from src.mcp_server.prompt_driven_tools.strategic_foundation import *
 from src.mcp_server.prompt_driven_tools.strategic_initiatives import *
+from src.mcp_server.prompt_driven_tools.strategic_pillars import *
 from src.mcp_server.prompt_driven_tools.utilities import *
 
 __all__ = [

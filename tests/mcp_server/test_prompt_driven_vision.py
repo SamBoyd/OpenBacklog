@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from hamcrest import assert_that, equal_to, has_entries, has_key
 
-from src.mcp_server.prompt_driven_tools.strategic_foundation import (
+from src.mcp_server.prompt_driven_tools.product_vision import (
     get_vision_definition_framework,
     submit_product_vision,
 )
@@ -22,14 +22,14 @@ class TestGetVisionDefinitionFramework:
     async def test_framework_returns_complete_structure(self):
         """Test that framework returns all required fields."""
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
             # Mock get_workspace_vision to return None (no existing vision)
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_workspace_vision"
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
@@ -54,7 +54,7 @@ class TestGetVisionDefinitionFramework:
         existing_vision = "Enable developers to manage tasks without leaving their IDE"
 
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
@@ -65,7 +65,7 @@ class TestGetVisionDefinitionFramework:
             mock_vision.created_at = None
 
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_workspace_vision"
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
             ) as mock_get_vision:
                 mock_get_vision.return_value = mock_vision
 
@@ -82,10 +82,10 @@ class TestGetVisionDefinitionFramework:
         """Test that framework handles invalid workspace_id."""
         with (
             patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+                "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
             ) as mock_session_local,
             patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.get_workspace_id_from_request"
+                "src.mcp_server.prompt_driven_tools.product_vision.get_workspace_id_from_request"
             ) as mock_get_workspace_id,
         ):
             mock_session = MagicMock()
@@ -108,7 +108,7 @@ class TestSubmitProductVision:
         vision_text = "Enable developers to manage tasks without leaving their IDE"
 
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
@@ -122,7 +122,7 @@ class TestSubmitProductVision:
             mock_vision.updated_at = None
 
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.upsert_workspace_vision"
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.upsert_workspace_vision"
             ) as mock_upsert:
                 mock_upsert.return_value = mock_vision
 
@@ -142,14 +142,14 @@ class TestSubmitProductVision:
         vision_text = ""  # Invalid: too short
 
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
             # Mock controller to raise DomainException
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.upsert_workspace_vision"
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.upsert_workspace_vision"
             ) as mock_upsert:
                 mock_upsert.side_effect = DomainException(
                     "Vision text must be 1-1000 characters"
@@ -166,10 +166,10 @@ class TestSubmitProductVision:
         """Test that submit handles invalid workspace_id."""
         with (
             patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+                "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
             ) as mock_session_local,
             patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.get_workspace_id_from_request"
+                "src.mcp_server.prompt_driven_tools.product_vision.get_workspace_id_from_request"
             ) as mock_get_workspace_id,
         ):
             mock_session = MagicMock()
@@ -190,13 +190,13 @@ class TestVisionFrameworkNaturalLanguageMapping:
     async def test_framework_includes_conversation_guidelines(self):
         """Test that vision framework includes conversation guidelines."""
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_workspace_vision"
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
@@ -212,13 +212,13 @@ class TestVisionFrameworkNaturalLanguageMapping:
     async def test_framework_includes_natural_questions(self):
         """Test that vision framework includes natural question mappings."""
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_workspace_vision"
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
@@ -236,13 +236,13 @@ class TestVisionFrameworkNaturalLanguageMapping:
     async def test_framework_includes_extraction_guidance(self):
         """Test that vision framework includes extraction guidance."""
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_workspace_vision"
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
@@ -260,13 +260,13 @@ class TestVisionFrameworkNaturalLanguageMapping:
     async def test_framework_includes_inference_examples(self):
         """Test that vision framework includes inference examples."""
         with patch(
-            "src.mcp_server.prompt_driven_tools.strategic_foundation.SessionLocal"
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
         ) as mock_session_local:
             mock_session = MagicMock()
             mock_session_local.return_value = mock_session
 
             with patch(
-                "src.mcp_server.prompt_driven_tools.strategic_foundation.strategic_controller.get_workspace_vision"
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
@@ -279,3 +279,203 @@ class TestVisionFrameworkNaturalLanguageMapping:
         first_example = result["inference_examples"][0]
         assert_that(first_example, has_key("user_says"))
         assert_that(first_example, has_key("inferences"))
+
+
+class TestSubmitProductVisionAdditional:
+    """Additional test cases for submit_product_vision error handling."""
+
+    @pytest.mark.asyncio
+    async def test_submit_handles_validation_error(self):
+        """Test that submit handles validation constraint errors."""
+        vision_text = "Too short"
+
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.validate_vision_constraints"
+            ) as mock_validate:
+                mock_validate.side_effect = ValueError(
+                    "Vision text must be 50+ characters"
+                )
+
+                result = await submit_product_vision.fn(vision_text)
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "vision"}))
+        assert_that(result, has_key("error_message"))
+
+    @pytest.mark.asyncio
+    async def test_submit_handles_mcp_context_error(self):
+        """Test that submit handles authentication context errors."""
+        vision_text = "Enable developers to manage tasks without leaving their IDE"
+
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.get_auth_context"
+            ) as mock_auth:
+                from src.mcp_server.auth_utils import MCPContextError
+
+                mock_auth.side_effect = MCPContextError("No workspace in context")
+
+                result = await submit_product_vision.fn(vision_text)
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "vision"}))
+        assert_that(result, has_key("error_message"))
+
+    @pytest.mark.asyncio
+    async def test_submit_handles_generic_exception(self):
+        """Test that submit handles unexpected exceptions gracefully."""
+        vision_text = "Enable developers to manage tasks without leaving their IDE"
+
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.upsert_workspace_vision"
+            ) as mock_upsert:
+                mock_upsert.side_effect = Exception("Unexpected database error")
+
+                result = await submit_product_vision.fn(vision_text)
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "vision"}))
+        assert_that(result, has_key("error_message"))
+
+    @pytest.mark.asyncio
+    async def test_submit_response_includes_next_steps(self):
+        """Test that successful submit response includes next_steps guidance."""
+        vision_text = "Enable developers to manage tasks without leaving their IDE"
+
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            mock_vision = MagicMock(spec=ProductVision)
+            mock_vision.id = uuid.uuid4()
+            mock_vision.vision_text = vision_text
+            mock_vision.created_at = None
+            mock_vision.updated_at = None
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.upsert_workspace_vision"
+            ) as mock_upsert:
+                mock_upsert.return_value = mock_vision
+
+                result = await submit_product_vision.fn(vision_text)
+
+        # Verify next_steps are present and guide to pillars
+        assert_that(result, has_key("next_steps"))
+        assert isinstance(result["next_steps"], list)
+        assert len(result["next_steps"]) > 0
+
+        # Verify that next steps mention pillars (the natural next workflow step)
+        next_steps_text = " ".join(result["next_steps"])
+        assert "pillar" in next_steps_text.lower()
+
+
+class TestVisionFrameworkContent:
+    """Test suite for vision framework content quality."""
+
+    @pytest.mark.asyncio
+    async def test_framework_includes_criteria(self):
+        """Test that vision framework includes well-defined criteria."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.return_value = None
+
+                result = await get_vision_definition_framework.fn()
+
+        assert_that(result, has_key("criteria"))
+        assert isinstance(result["criteria"], list)
+        assert len(result["criteria"]) > 0
+
+    @pytest.mark.asyncio
+    async def test_framework_includes_examples(self):
+        """Test that vision framework includes concrete examples."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.return_value = None
+
+                result = await get_vision_definition_framework.fn()
+
+        assert_that(result, has_key("examples"))
+        assert isinstance(result["examples"], list)
+        assert len(result["examples"]) > 0
+
+        # Verify example structure
+        first_example = result["examples"][0]
+        assert_that(first_example, has_key("text"))
+        assert_that(first_example, has_key("why_good"))
+
+    @pytest.mark.asyncio
+    async def test_framework_includes_anti_patterns(self):
+        """Test that vision framework includes anti-patterns for guidance."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.return_value = None
+
+                result = await get_vision_definition_framework.fn()
+
+        assert_that(result, has_key("anti_patterns"))
+        assert isinstance(result["anti_patterns"], list)
+        assert len(result["anti_patterns"]) > 0
+
+        # Verify anti-pattern structure
+        first_pattern = result["anti_patterns"][0]
+        assert_that(first_pattern, has_key("example"))
+        assert_that(first_pattern, has_key("why_bad"))
+        assert_that(first_pattern, has_key("better"))
+
+    @pytest.mark.asyncio
+    async def test_framework_entity_type_is_vision(self):
+        """Test that framework correctly identifies itself as vision type."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.product_vision.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.product_vision.strategic_controller.get_workspace_vision"
+            ) as mock_get_vision:
+                mock_get_vision.return_value = None
+
+                result = await get_vision_definition_framework.fn()
+
+        assert_that(result["entity_type"], equal_to("vision"))

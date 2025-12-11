@@ -9,12 +9,17 @@ from sqlalchemy.orm.session import Session
 
 from src.mcp_server.prompt_driven_tools.roadmap_themes import (
     connect_theme_to_outcomes,
+    delete_roadmap_theme,
     deprioritize_workstream,
     get_prioritization_context,
+    get_roadmap_themes,
     get_theme_exploration_framework,
+    link_theme_to_hero,
+    link_theme_to_villain,
     organize_roadmap,
     prioritize_workstream,
     submit_roadmap_theme,
+    update_roadmap_theme,
 )
 from src.models import Workspace
 from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
@@ -539,3 +544,408 @@ class TestUtilityTools:
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
         assert_that(result, has_key("data"))
         assert_that(result, has_key("next_steps"))
+
+
+class TestGetRoadmapThemes:
+    """Test suite for get_roadmap_themes tool."""
+
+    @pytest.mark.asyncio
+    async def test_get_themes_returns_empty_list(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that get_roadmap_themes returns empty list when no themes exist."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.get_roadmap_themes"
+            ) as mock_get_themes:
+                mock_get_themes.return_value = []
+
+                result = await get_roadmap_themes.fn()
+
+        # Verify success response with empty list
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(result["data"]["themes"], equal_to([]))
+
+    @pytest.mark.asyncio
+    async def test_get_themes_returns_list_of_themes(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that get_roadmap_themes returns list of existing themes."""
+        # Create test themes
+        theme1 = RoadmapTheme(
+            name="Test Theme 1",
+            description="Problem 1",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        theme2 = RoadmapTheme(
+            name="Test Theme 2",
+            description="Problem 2",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme1)
+        session.add(theme2)
+        session.commit()
+
+        result = await get_roadmap_themes.fn()
+
+        # Verify success response with themes
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(len(result["data"]["themes"]), equal_to(2))
+
+    @pytest.mark.asyncio
+    async def test_get_themes_handles_error(self):
+        """Test that get_roadmap_themes handles errors gracefully."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.get_roadmap_themes"
+            ) as mock_get_themes:
+                mock_get_themes.side_effect = Exception("Database error")
+
+                result = await get_roadmap_themes.fn()
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+
+class TestUpdateRoadmapTheme:
+    """Test suite for update_roadmap_theme tool."""
+
+    @pytest.mark.asyncio
+    async def test_update_theme_with_all_fields(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that update_roadmap_theme updates all fields successfully."""
+        # Create test theme
+        theme = RoadmapTheme(
+            name="Original Theme",
+            description="Original problem",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+        session.commit()
+
+        # Create outcome
+        outcome = ProductOutcome(
+            name="Test Outcome",
+            description="Test outcome",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+            display_order=0,
+        )
+        session.add(outcome)
+        session.commit()
+
+        result = await update_roadmap_theme.fn(
+            str(theme.id),
+            name="Updated Theme",
+            description="Updated problem",
+            outcome_ids=[str(outcome.id)],
+        )
+
+        # Verify success response
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(result, has_key("data"))
+        assert_that(result, has_key("next_steps"))
+        assert_that(result["data"]["name"], equal_to("Updated Theme"))
+
+    @pytest.mark.asyncio
+    async def test_update_theme_with_name_only(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that update_roadmap_theme updates only name when provided."""
+        # Create test theme
+        theme = RoadmapTheme(
+            name="Original Theme",
+            description="Original problem",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+        session.commit()
+
+        result = await update_roadmap_theme.fn(str(theme.id), name="Updated Theme")
+
+        # Verify success response
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(result["data"]["name"], equal_to("Updated Theme"))
+
+    @pytest.mark.asyncio
+    async def test_update_theme_with_description_only(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that update_roadmap_theme updates only description when provided."""
+        # Create test theme
+        theme = RoadmapTheme(
+            name="Test Theme",
+            description="Original problem",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+        session.commit()
+
+        result = await update_roadmap_theme.fn(
+            str(theme.id),
+            description="Updated problem",
+        )
+
+        # Verify success response
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+
+    @pytest.mark.asyncio
+    async def test_update_theme_requires_at_least_one_field(self):
+        """Test that update_roadmap_theme requires at least one field."""
+        theme_id = str(uuid.uuid4())
+
+        result = await update_roadmap_theme.fn(theme_id)
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+    @pytest.mark.asyncio
+    async def test_update_theme_not_found(self):
+        """Test that update_roadmap_theme handles theme not found."""
+        theme_id = str(uuid.uuid4())
+
+        result = await update_roadmap_theme.fn(theme_id, name="Updated Name")
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+    @pytest.mark.asyncio
+    async def test_update_theme_with_invalid_outcome_id(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that update_roadmap_theme handles invalid outcome IDs."""
+        # Create test theme
+        theme = RoadmapTheme(
+            name="Test Theme",
+            description="Problem",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+        session.commit()
+
+        result = await update_roadmap_theme.fn(
+            str(theme.id),
+            outcome_ids=["not-a-valid-uuid"],
+        )
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+
+class TestDeleteRoadmapTheme:
+    """Test suite for delete_roadmap_theme tool."""
+
+    @pytest.mark.asyncio
+    async def test_delete_theme_succeeds(self, session: Session, workspace: Workspace):
+        """Test that delete_roadmap_theme removes theme successfully."""
+        # Create test theme
+        theme = RoadmapTheme(
+            name="Test Theme",
+            description="Problem",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+        session.commit()
+        theme_id = str(theme.id)
+
+        result = await delete_roadmap_theme.fn(theme_id)
+
+        # Verify success response
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(result["data"]["deleted_id"], equal_to(theme_id))
+
+        # Verify theme is actually deleted
+        deleted_theme = (
+            session.query(RoadmapTheme).filter_by(id=uuid.UUID(theme_id)).first()
+        )
+        assert_that(deleted_theme, equal_to(None))
+
+    @pytest.mark.asyncio
+    async def test_delete_theme_not_found(self):
+        """Test that delete_roadmap_theme handles theme not found."""
+        theme_id = str(uuid.uuid4())
+
+        result = await delete_roadmap_theme.fn(theme_id)
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+    @pytest.mark.asyncio
+    async def test_delete_theme_with_invalid_id(self):
+        """Test that delete_roadmap_theme handles invalid theme ID."""
+        result = await delete_roadmap_theme.fn("not-a-valid-uuid")
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+
+class TestLinkThemeToHero:
+    """Test suite for link_theme_to_hero tool."""
+
+    @pytest.mark.asyncio
+    async def test_link_theme_to_hero_succeeds(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that link_theme_to_hero successfully links theme to hero."""
+        from src.narrative.aggregates.hero import Hero
+        from src.strategic_planning.services.event_publisher import EventPublisher
+
+        # Create test theme
+        theme = RoadmapTheme(
+            name="Test Theme",
+            description="Problem",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+
+        # Create test hero using define_hero class method
+        publisher = EventPublisher(session)
+        hero = Hero.define_hero(
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+            name="Test Hero",
+            description="Test hero description",
+            is_primary=True,
+            session=session,
+            publisher=publisher,
+        )
+        session.commit()
+        session.refresh(theme)
+
+        result = await link_theme_to_hero.fn(str(theme.id), hero.identifier)
+
+        # Verify success response
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(result, has_key("data"))
+        assert_that(
+            result["message"],
+            equal_to(
+                f"Theme 'Test Theme' linked to hero 'Test Hero' ({hero.identifier})"
+            ),
+        )
+
+    @pytest.mark.asyncio
+    async def test_link_theme_to_hero_not_found(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that link_theme_to_hero handles hero not found."""
+        # Create test theme
+        theme = RoadmapTheme(
+            name="Test Theme",
+            description="Problem",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+        session.commit()
+
+        result = await link_theme_to_hero.fn(str(theme.id), "H-99999")
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+    @pytest.mark.asyncio
+    async def test_link_theme_to_hero_theme_not_found(self):
+        """Test that link_theme_to_hero handles theme not found."""
+        theme_id = str(uuid.uuid4())
+
+        result = await link_theme_to_hero.fn(theme_id, "H-1001")
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+
+class TestLinkThemeToVillain:
+    """Test suite for link_theme_to_villain tool."""
+
+    @pytest.mark.asyncio
+    async def test_link_theme_to_villain_succeeds(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that link_theme_to_villain successfully links theme to villain."""
+        from src.narrative.aggregates.villain import Villain, VillainType
+        from src.strategic_planning.services.event_publisher import EventPublisher
+
+        # Create test theme
+        theme = RoadmapTheme(
+            name="Test Theme",
+            description="Problem",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+
+        # Create test villain using define_villain class method
+        publisher = EventPublisher(session)
+        villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+            name="Test Villain",
+            description="Test villain description",
+            villain_type=VillainType.EXTERNAL,
+            severity=3,
+            session=session,
+            publisher=publisher,
+        )
+        session.commit()
+
+        result = await link_theme_to_villain.fn(str(theme.id), villain.identifier)
+
+        # Verify success response
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(result, has_key("data"))
+        assert_that(
+            result["message"],
+            equal_to(
+                f"Theme 'Test Theme' linked to villain 'Test Villain' ({villain.identifier})"
+            ),
+        )
+
+    @pytest.mark.asyncio
+    async def test_link_theme_to_villain_not_found(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that link_theme_to_villain handles villain not found."""
+        # Create test theme
+        theme = RoadmapTheme(
+            name="Test Theme",
+            description="Problem",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+        session.commit()
+
+        result = await link_theme_to_villain.fn(str(theme.id), "V-99999")
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+    @pytest.mark.asyncio
+    async def test_link_theme_to_villain_theme_not_found(self):
+        """Test that link_theme_to_villain handles theme not found."""
+        theme_id = str(uuid.uuid4())
+
+        result = await link_theme_to_villain.fn(theme_id, "V-1001")
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))

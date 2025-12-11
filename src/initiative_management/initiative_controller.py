@@ -113,6 +113,82 @@ class InitiativeController:
                 exc_info=True,
             )
 
+    def update_initiative(
+        self,
+        initiative_id: uuid.UUID,
+        user_id: uuid.UUID,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        status: Optional[InitiativeStatus] = None,
+    ) -> Initiative:
+        """
+        Update an existing initiative's fields.
+
+        Args:
+            initiative_id: The initiative ID to update
+            user_id: The user ID to verify ownership
+            title: New title (optional)
+            description: New description (optional)
+            status: New status (optional)
+
+        Returns:
+            Updated Initiative object
+
+        Raises:
+            InitiativeNotFoundError: If initiative not found or doesn't belong to user
+            InitiativeControllerError: If update fails
+        """
+        try:
+            initiative = (
+                self.db.query(Initiative)
+                .filter(Initiative.id == initiative_id, Initiative.user_id == user_id)
+                .first()
+            )
+            if not initiative:
+                raise InitiativeNotFoundError(
+                    f"Initiative {initiative_id} not found for user {user_id}"
+                )
+
+            old_status = initiative.status
+
+            if title is not None:
+                initiative.title = title
+            if description is not None:
+                initiative.description = description
+            if status is not None and status != old_status:
+                initiative.status = status
+                # Handle ordering when status changes
+                self.ordering_service.move_item_across_lists(
+                    src_context_type=ContextType.STATUS_LIST,
+                    src_context_id=None,
+                    dest_context_type=ContextType.STATUS_LIST,
+                    dest_context_id=None,
+                    item=initiative,
+                    after_id=None,
+                    before_id=None,
+                )
+
+            self.db.commit()
+            self.db.refresh(initiative)
+
+            logger.info(f"Updated initiative {initiative_id} for user {user_id}")
+            return initiative
+
+        except InitiativeNotFoundError as e:
+            raise e
+        except OrderingServiceError as e:
+            self.db.rollback()
+            logger.error(f"Failed to update initiative ordering: {e}")
+            raise InitiativeControllerError(f"Failed to update initiative: {e}")
+        except IntegrityError as e:
+            self.db.rollback()
+            logger.error(f"Database integrity error updating initiative: {e}")
+            raise InitiativeControllerError(f"Failed to update initiative: {e}")
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Unexpected error updating initiative: {e}")
+            raise InitiativeControllerError(f"Failed to update initiative: {e}")
+
     def delete_initiative(self, initiative_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         try:
             initiative = (

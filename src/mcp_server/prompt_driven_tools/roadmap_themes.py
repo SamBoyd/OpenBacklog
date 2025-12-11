@@ -982,3 +982,226 @@ async def link_theme_to_villain(
         return build_error_response("theme", str(e))
     finally:
         session.close()
+
+
+# ============================================================================
+# Roadmap Theme CRUD Tools
+# ============================================================================
+
+
+@mcp.tool()
+async def get_roadmap_themes() -> Dict[str, Any]:
+    """List all roadmap themes for the workspace.
+
+    Returns both prioritized and unprioritized themes with full details.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Returns:
+        List of roadmap themes with full details
+
+    Example:
+        >>> result = await get_roadmap_themes()
+        >>> print(result["data"]["themes"])
+    """
+    session = SessionLocal()
+    try:
+        workspace_uuid = get_workspace_id_from_request()
+        logger.info(f"Getting roadmap themes for workspace {workspace_uuid}")
+
+        themes = roadmap_controller.get_roadmap_themes(workspace_uuid, session)
+
+        return build_success_response(
+            entity_type="theme",
+            message=f"Found {len(themes)} roadmap theme(s)",
+            data={
+                "themes": [serialize_theme(theme) for theme in themes],
+            },
+        )
+
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("theme", str(e))
+    except Exception as e:
+        logger.exception(f"Error getting roadmap themes: {e}")
+        return build_error_response("theme", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def update_roadmap_theme(
+    theme_id: str,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    outcome_ids: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """Update an existing roadmap theme.
+
+    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        theme_id: UUID of the roadmap theme to update
+        name: New theme name (optional, 1-100 characters)
+        description: New theme description (optional)
+        outcome_ids: List of outcome UUIDs to link (optional, replaces existing links)
+
+    Returns:
+        Success response with updated theme
+
+    Example:
+        >>> result = await update_roadmap_theme(
+        ...     theme_id="...",
+        ...     name="Updated Theme Name",
+        ...     description="Updated description with problem statement, hypothesis...",
+        ...     outcome_ids=["outcome-uuid-1", "outcome-uuid-2"]
+        ... )
+    """
+    session = SessionLocal()
+    try:
+        _, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(f"Updating roadmap theme {theme_id} for workspace {workspace_id}")
+
+        if name is None and description is None and outcome_ids is None:
+            return build_error_response(
+                "theme",
+                "At least one field (name, description, outcome_ids) must be provided",
+            )
+
+        theme_uuid = validate_uuid(theme_id, "theme_id")
+        workspace_uuid = uuid.UUID(workspace_id)
+
+        # Get theme first to check existence and get current values
+        theme = (
+            session.query(roadmap_controller.RoadmapTheme)
+            .filter_by(id=theme_uuid, workspace_id=workspace_uuid)
+            .first()
+        )
+
+        if not theme:
+            return build_error_response("theme", f"Roadmap theme {theme_id} not found")
+
+        # Merge with existing values
+        final_name = name if name is not None else theme.name
+        final_description = (
+            description if description is not None else theme.description
+        )
+
+        # Convert outcome_ids to UUIDs if provided
+        outcome_uuids = None
+        if outcome_ids is not None:
+            outcome_uuids = []
+            for oid in outcome_ids:
+                outcome_uuids.append(validate_uuid(oid, "outcome_id"))
+
+        # Use controller to update
+        updated_theme = roadmap_controller.update_roadmap_theme(
+            theme_id=theme_uuid,
+            workspace_id=workspace_uuid,
+            name=final_name,
+            description=final_description,
+            outcome_ids=(
+                outcome_uuids
+                if outcome_uuids is not None
+                else [o.id for o in theme.outcomes]
+            ),
+            session=session,
+        )
+
+        # Calculate alignment score for response
+        all_outcomes = strategic_controller.get_product_outcomes(
+            workspace_uuid, session
+        )
+        alignment_score = calculate_alignment_score(updated_theme, len(all_outcomes))
+
+        next_steps = [f"Roadmap theme '{updated_theme.name}' updated successfully"]
+        if outcome_ids is not None:
+            next_steps.append(f"Theme now linked to {len(outcome_ids)} outcome(s)")
+        next_steps.append(f"Strategic alignment score: {alignment_score:.2f}")
+
+        return build_success_response(
+            entity_type="theme",
+            message=f"Updated roadmap theme '{updated_theme.name}'",
+            data=serialize_theme(updated_theme),
+            next_steps=next_steps,
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain validation error: {e}")
+        return build_error_response("theme", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("theme", str(e))
+    except MCPContextError as e:
+        return build_error_response("theme", str(e))
+    except Exception as e:
+        logger.exception(f"Error updating roadmap theme: {e}")
+        return build_error_response("theme", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def delete_roadmap_theme(theme_id: str) -> Dict[str, Any]:
+    """Delete a roadmap theme permanently.
+
+    IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
+    This will also unlink the theme from any associated outcomes, heroes, and villains.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        theme_id: UUID of the roadmap theme to delete
+
+    Returns:
+        Success response confirming deletion
+
+    Example:
+        >>> result = await delete_roadmap_theme(theme_id="...")
+    """
+    session = SessionLocal()
+    try:
+        _, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(f"Deleting roadmap theme {theme_id} for workspace {workspace_id}")
+
+        theme_uuid = validate_uuid(theme_id, "theme_id")
+
+        theme = (
+            session.query(roadmap_controller.RoadmapTheme)
+            .filter_by(id=theme_uuid, workspace_id=uuid.UUID(workspace_id))
+            .first()
+        )
+
+        if not theme:
+            return build_error_response("theme", f"Roadmap theme {theme_id} not found")
+
+        theme_name = theme.name
+
+        session.delete(theme)
+        session.commit()
+
+        return build_success_response(
+            entity_type="theme",
+            message=f"Deleted roadmap theme '{theme_name}'",
+            data={"deleted_id": theme_id},
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain error: {e}")
+        return build_error_response("theme", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("theme", str(e))
+    except MCPContextError as e:
+        return build_error_response("theme", str(e))
+    except Exception as e:
+        logger.exception(f"Error deleting roadmap theme: {e}")
+        return build_error_response("theme", f"Server error: {str(e)}")
+    finally:
+        session.close()
