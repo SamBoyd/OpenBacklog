@@ -187,17 +187,11 @@ class TestSubmitRoadmapTheme:
         # Override the conftest mock to raise ValueError for this test
         # mock_get_auth_context[6] is the mock for roadmap_themes.get_auth_context
         original_side_effect = mock_get_auth_context[
-            6
+            8
         ].side_effect  # pyright: ignore[reportUnknownVariableType]
-        mock_get_auth_context[6].side_effect = ValueError("Invalid workspace ID")
+        mock_get_auth_context[8].side_effect = ValueError("Invalid workspace ID")
 
-        with patch(
-            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
-
-            result = await submit_roadmap_theme.fn("Theme Name", "Problem statement")
+        result = await submit_roadmap_theme.fn("Theme Name", "Problem statement")
 
         # Reset the mock for other tests
         mock_get_auth_context[6].side_effect = original_side_effect
