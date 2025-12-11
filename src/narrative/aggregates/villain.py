@@ -306,6 +306,67 @@ class Villain(Base):
 
         return villain
 
+    def update_villain(
+        self,
+        name: str,
+        villain_type: VillainType,
+        description: str,
+        severity: int,
+        is_defeated: bool,
+        publisher: "EventPublisher",
+    ) -> None:
+        """Update an existing villain.
+
+        This method updates the villain's fields after validation and emits
+        a VillainUpdated domain event.
+
+        Args:
+            name: Updated villain name (1-100 characters, unique per workspace)
+            villain_type: Updated villain type (enum)
+            description: Updated villain description (1-2000 characters)
+            severity: Updated severity (1-5)
+            is_defeated: Whether the villain is defeated
+            publisher: EventPublisher instance for emitting domain events
+
+        Raises:
+            DomainException: If any field violates validation rules
+
+        Example:
+            >>> villain.update_villain(
+            ...     name="Context Switching",
+            ...     villain_type=VillainType.WORKFLOW,
+            ...     description="Updated description...",
+            ...     severity=4,
+            ...     is_defeated=False,
+            ...     publisher=publisher
+            ... )
+        """
+        Villain._validate_name(name)
+        Villain._validate_description(description)
+        Villain._validate_severity(severity)
+
+        self.name = name
+        self.villain_type = villain_type.value
+        self.description = description
+        self.severity = severity
+        self.is_defeated = is_defeated
+        self.updated_at = datetime.now(timezone.utc)
+
+        event = DomainEvent(
+            user_id=self.user_id,
+            event_type="VillainUpdated",
+            aggregate_id=self.id,
+            payload={
+                "workspace_id": str(self.workspace_id),
+                "name": name,
+                "villain_type": villain_type.value,
+                "description": description,
+                "severity": severity,
+                "is_defeated": is_defeated,
+            },
+        )
+        publisher.publish(event, workspace_id=str(self.workspace_id))
+
     def mark_defeated(
         self,
         publisher: "EventPublisher",

@@ -8,7 +8,7 @@ Pattern: Get Framework → Claude + User Collaborate → Submit Result
 
 import logging
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from src.db import SessionLocal
 from src.mcp_server.auth_utils import MCPContextError, get_auth_context
@@ -390,6 +390,182 @@ async def mark_villain_defeated(villain_identifier: str) -> Dict[str, Any]:
         return build_error_response("villain", str(e))
     except Exception as e:
         logger.exception(f"Error marking villain defeated: {e}")
+        return build_error_response("villain", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def update_villain(
+    villain_identifier: str,
+    name: Optional[str] = None,
+    villain_type: Optional[str] = None,
+    description: Optional[str] = None,
+    severity: Optional[int] = None,
+    is_defeated: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """Update an existing villain's fields.
+
+    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        villain_identifier: Human-readable identifier (e.g., "V-2003")
+        name: New villain name (optional)
+        villain_type: New type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER) (optional)
+        description: New villain description (optional)
+        severity: New severity 1-5 (optional)
+        is_defeated: Whether the villain is defeated (optional)
+
+    Returns:
+        Success response with updated villain
+
+    Example:
+        >>> result = await update_villain(
+        ...     villain_identifier="V-2003",
+        ...     name="Context Switching (Updated)",
+        ...     severity=4,
+        ... )
+    """
+    session = SessionLocal()
+    try:
+        _, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(
+            f"Updating villain {villain_identifier} for workspace {workspace_id}"
+        )
+
+        if (
+            name is None
+            and villain_type is None
+            and description is None
+            and severity is None
+            and is_defeated is None
+        ):
+            return build_error_response(
+                "villain",
+                "At least one field (name, villain_type, description, severity) must be provided",
+            )
+
+        publisher = EventPublisher(session)
+        villain_service = VillainService(session, publisher)
+        villain = villain_service.get_villain_by_identifier(
+            villain_identifier, uuid.UUID(workspace_id)
+        )
+
+        final_name = name if name is not None else villain.name
+        final_description = (
+            description if description is not None else villain.description
+        )
+        final_severity = severity if severity is not None else villain.severity
+        final_is_defeated = (
+            is_defeated if is_defeated is not None else villain.is_defeated
+        )
+
+        if villain_type is not None:
+            try:
+                final_villain_type = VillainType[villain_type.upper()]
+            except KeyError:
+                valid_types = ", ".join([vt.name for vt in VillainType])
+                return build_error_response(
+                    "villain",
+                    f"Invalid villain_type '{villain_type}'. Must be one of: {valid_types}",
+                )
+        else:
+            final_villain_type = VillainType[villain.villain_type]
+
+        villain.update_villain(
+            name=final_name,
+            villain_type=final_villain_type,
+            description=final_description,
+            severity=final_severity,
+            is_defeated=final_is_defeated,
+            publisher=publisher,
+        )
+        session.add(villain)
+        session.commit()
+        session.refresh(villain)
+
+        return build_success_response(
+            entity_type="villain",
+            message=f"Updated villain {villain.identifier}",
+            data=serialize_villain(villain),
+            next_steps=[
+                f"Villain '{villain.name}' ({villain.identifier}) updated successfully"
+            ],
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain validation error: {e}")
+        return build_error_response("villain", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("villain", str(e))
+    except MCPContextError as e:
+        return build_error_response("villain", str(e))
+    except Exception as e:
+        logger.exception(f"Error updating villain: {e}")
+        return build_error_response("villain", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def delete_villain(villain_identifier: str) -> Dict[str, Any]:
+    """Delete a villain permanently.
+
+    IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
+    This will also remove the villain from any linked conflicts and story arcs.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        villain_identifier: Human-readable identifier (e.g., "V-2003")
+
+    Returns:
+        Success response confirming deletion
+
+    Example:
+        >>> result = await delete_villain(villain_identifier="V-2003")
+    """
+    session = SessionLocal()
+    try:
+        _, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(
+            f"Deleting villain {villain_identifier} for workspace {workspace_id}"
+        )
+
+        publisher = EventPublisher(session)
+        villain_service = VillainService(session, publisher)
+        villain = villain_service.get_villain_by_identifier(
+            villain_identifier, uuid.UUID(workspace_id)
+        )
+
+        villain_name = villain.name
+        villain_id = str(villain.id)
+
+        session.delete(villain)
+        session.commit()
+
+        return build_success_response(
+            entity_type="villain",
+            message=f"Deleted villain {villain_identifier} ({villain_name})",
+            data={"deleted_identifier": villain_identifier, "deleted_id": villain_id},
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain error: {e}")
+        return build_error_response("villain", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("villain", str(e))
+    except MCPContextError as e:
+        return build_error_response("villain", str(e))
+    except Exception as e:
+        logger.exception(f"Error deleting villain: {e}")
         return build_error_response("villain", f"Server error: {str(e)}")
     finally:
         session.close()
