@@ -16,6 +16,10 @@ This document provides a comprehensive overview of all tools and resources avail
 10. [Roadmap Management Tools](#roadmap-management-tools)
 11. [Utility Tools](#utility-tools)
 12. [Prompts](#prompts)
+13. [Narrative Layer Tools](#narrative-layer-tools)
+14. [Error Handling](#error-handling)
+15. [Best Practices](#best-practices)
+16. [Architecture Notes](#architecture-notes)
 
 ---
 
@@ -426,6 +430,95 @@ Accepts a flexible query that tries multiple lookup strategies:
 
 ---
 
+### `update_strategic_initiative(query, title, description, status, hero_ids, villain_ids, conflict_ids, pillar_id, theme_id, narrative_intent)`
+
+Updates an existing strategic initiative's fields.
+
+**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
+
+Accepts a flexible query that tries multiple lookup strategies:
+1. First tries as StrategicInitiative UUID
+2. Then tries as Initiative UUID
+3. Finally tries as Initiative identifier (e.g., "I-1001")
+
+**Parameters:**
+- `query` (required): Strategic initiative ID, initiative ID, or initiative identifier
+- `title` (optional): New initiative title
+- `description` (optional): New initiative description
+- `status` (optional): New status (BACKLOG, TO_DO, IN_PROGRESS)
+- `hero_ids` (optional): New list of hero UUIDs (replaces existing)
+- `villain_ids` (optional): New list of villain UUIDs (replaces existing)
+- `conflict_ids` (optional): New list of conflict UUIDs (replaces existing)
+- `pillar_id` (optional): New strategic pillar UUID (use "null" to unlink)
+- `theme_id` (optional): New roadmap theme UUID (use "null" to unlink)
+- `narrative_intent` (optional): New narrative intent
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "strategic_initiative",
+  "message": "Updated strategic initiative I-1001",
+  "data": {
+    "id": "<uuid>",
+    "initiative": {
+      "id": "<uuid>",
+      "title": "...",
+      "description": "...",
+      "identifier": "I-1001",
+      "status": "IN_PROGRESS"
+    },
+    "strategic_context": {/* full strategic initiative details */},
+    "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Why: ..."
+  },
+  "next_steps": [
+    "Strategic initiative 'Title' updated successfully"
+  ]
+}
+```
+
+**Use Cases:**
+- Updating initiative titles, descriptions, or status
+- Changing narrative connections (heroes, villains, conflicts)
+- Re-linking to different pillars or themes
+- Updating narrative intent
+
+---
+
+### `delete_strategic_initiative(query: str)`
+
+Deletes a strategic initiative permanently.
+
+**Important:** Confirm with user BEFORE calling - this action cannot be undone. This deletes both the Initiative and its StrategicInitiative context.
+
+Accepts a flexible query that tries multiple lookup strategies:
+1. First tries as StrategicInitiative UUID
+2. Then tries as Initiative UUID
+3. Finally tries as Initiative identifier (e.g., "I-1001")
+
+**Parameters:**
+- `query`: Strategic initiative ID, initiative ID, or initiative identifier
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "strategic_initiative",
+  "message": "Deleted strategic initiative I-1001 (Initiative Title)",
+  "data": {
+    "deleted_identifier": "I-1001",
+    "deleted_id": "<uuid>"
+  }
+}
+```
+
+**Use Cases:**
+- Removing obsolete initiatives
+- Strategic planning cleanup
+- Removing duplicate initiatives
+
+---
+
 ## Task Management Tools
 
 ### `get_initiative_tasks(initiative_id: str)`
@@ -812,6 +905,95 @@ Success response with saved pillar data and next steps.
 
 ---
 
+#### `get_strategic_pillars()`
+
+Lists all strategic pillars for the workspace.
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "pillar",
+  "message": "Found N strategic pillar(s)",
+  "data": {
+    "pillars": [
+      {
+        "id": "<uuid>",
+        "name": "...",
+        "description": "..."
+      }
+    ]
+  }
+}
+```
+
+**Use Cases:**
+- Viewing all defined strategic pillars
+- Getting pillar IDs for linking to outcomes
+- Strategic planning review
+
+---
+
+#### `update_strategic_pillar(pillar_id: str, name: str | None, description: str | None)`
+
+Updates an existing strategic pillar.
+
+**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
+
+**Parameters:**
+- `pillar_id`: UUID of the strategic pillar to update
+- `name`: New pillar name (optional, 1-100 characters)
+- `description`: New pillar description (optional, 1-3000 characters)
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "pillar",
+  "message": "Updated strategic pillar 'Pillar Name'",
+  "data": {
+    "id": "<uuid>",
+    "name": "...",
+    "description": "..."
+  }
+}
+```
+
+**Use Cases:**
+- Refining pillar descriptions
+- Updating strategy and anti-strategy
+- Renaming pillars
+
+---
+
+#### `delete_strategic_pillar(pillar_id: str)`
+
+Deletes a strategic pillar permanently.
+
+**Important:** Confirm with user BEFORE calling - this action cannot be undone. This will also unlink the pillar from any associated outcomes and initiatives.
+
+**Parameters:**
+- `pillar_id`: UUID of the strategic pillar to delete
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "pillar",
+  "message": "Deleted strategic pillar 'Pillar Name'",
+  "data": {
+    "deleted_id": "<uuid>"
+  }
+}
+```
+
+**Use Cases:**
+- Removing obsolete pillars
+- Strategic foundation cleanup
+- Consolidating overlapping pillars
+
+---
+
 ### Product Outcomes
 
 #### `get_outcome_definition_framework(workspace_id: str)`
@@ -840,6 +1022,102 @@ Submits a refined product outcome.
 
 **Returns:**
 Success response with saved outcome data and next steps.
+
+---
+
+#### `get_product_outcomes()`
+
+Lists all product outcomes for the workspace.
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "outcome",
+  "message": "Found N product outcome(s)",
+  "data": {
+    "outcomes": [
+      {
+        "id": "<uuid>",
+        "name": "...",
+        "description": "...",
+        "pillars": [/* linked pillars */]
+      }
+    ]
+  }
+}
+```
+
+**Use Cases:**
+- Viewing all defined product outcomes
+- Getting outcome IDs for linking to themes
+- Strategic planning review
+
+---
+
+#### `update_product_outcome(outcome_id: str, name: str | None, description: str | None, pillar_ids: List[str] | None)`
+
+Updates an existing product outcome.
+
+**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
+
+**Parameters:**
+- `outcome_id`: UUID of the product outcome to update
+- `name`: New outcome name (optional, 1-150 characters)
+- `description`: New outcome description (optional, 1-3000 characters)
+- `pillar_ids`: List of pillar UUIDs to link (optional, replaces existing links)
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "outcome",
+  "message": "Updated product outcome 'Outcome Name'",
+  "data": {
+    "id": "<uuid>",
+    "name": "...",
+    "description": "...",
+    "pillars": [/* linked pillars */]
+  },
+  "next_steps": [
+    "Product outcome 'Outcome Name' updated successfully",
+    "Outcome now linked to N pillar(s)"
+  ]
+}
+```
+
+**Use Cases:**
+- Updating metrics, baselines, or targets
+- Changing pillar linkages
+- Refining outcome descriptions
+
+---
+
+#### `delete_product_outcome(outcome_id: str)`
+
+Deletes a product outcome permanently.
+
+**Important:** Confirm with user BEFORE calling - this action cannot be undone. This will also unlink the outcome from any associated pillars and themes.
+
+**Parameters:**
+- `outcome_id`: UUID of the product outcome to delete
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "outcome",
+  "message": "Deleted product outcome 'Outcome Name'",
+  "data": {
+    "deleted_id": "<uuid>"
+  }
+}
+```
+
+**Use Cases:**
+- Removing obsolete outcomes
+- Strategic foundation cleanup
+- Consolidating overlapping outcomes
 
 ---
 
@@ -948,6 +1226,109 @@ Links a roadmap theme to product outcomes for alignment tracking.
 
 **Returns:**
 Success response with alignment score.
+
+---
+
+#### `get_roadmap_themes()`
+
+Lists all roadmap themes for the workspace (both prioritized and unprioritized).
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "theme",
+  "message": "Found N roadmap theme(s)",
+  "data": {
+    "themes": [
+      {
+        "id": "<uuid>",
+        "name": "...",
+        "description": "...",
+        "is_prioritized": true,
+        "priority_order": 0,
+        "outcomes": [/* linked outcomes */],
+        "hero_id": "<uuid>",
+        "primary_villain_id": "<uuid>"
+      }
+    ]
+  }
+}
+```
+
+**Use Cases:**
+- Viewing all themes (prioritized and unprioritized)
+- Getting theme IDs for linking to initiatives
+- Roadmap planning review
+
+---
+
+#### `update_roadmap_theme(theme_id: str, name: str | None, description: str | None, outcome_ids: List[str] | None)`
+
+Updates an existing roadmap theme.
+
+**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
+
+**Parameters:**
+- `theme_id`: UUID of the roadmap theme to update
+- `name`: New theme name (optional, 1-100 characters)
+- `description`: New theme description (optional)
+- `outcome_ids`: List of outcome UUIDs to link (optional, replaces existing links)
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "theme",
+  "message": "Updated roadmap theme 'Theme Name'",
+  "data": {
+    "id": "<uuid>",
+    "name": "...",
+    "description": "...",
+    "is_prioritized": true,
+    "priority_order": 0,
+    "outcomes": [/* linked outcomes */]
+  },
+  "next_steps": [
+    "Roadmap theme 'Theme Name' updated successfully",
+    "Theme now linked to N outcome(s)",
+    "Strategic alignment score: 0.75"
+  ]
+}
+```
+
+**Use Cases:**
+- Updating problem statement, hypothesis, or metrics
+- Changing outcome linkages
+- Refining theme descriptions
+
+---
+
+#### `delete_roadmap_theme(theme_id: str)`
+
+Deletes a roadmap theme permanently.
+
+**Important:** Confirm with user BEFORE calling - this action cannot be undone. This will also unlink the theme from any associated outcomes, heroes, and villains.
+
+**Parameters:**
+- `theme_id`: UUID of the roadmap theme to delete
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "theme",
+  "message": "Deleted roadmap theme 'Theme Name'",
+  "data": {
+    "deleted_id": "<uuid>"
+  }
+}
+```
+
+**Use Cases:**
+- Removing obsolete themes
+- Roadmap cleanup
+- Consolidating overlapping themes
 
 ---
 
@@ -1186,6 +1567,74 @@ Hero details + journey summary (active arcs, open conflicts).
 
 ---
 
+#### `update_hero(hero_identifier: str, name: str | None, description: str | None, is_primary: bool | None)`
+
+Updates an existing hero's fields.
+
+**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
+
+**Parameters:**
+- `hero_identifier`: Human-readable identifier (e.g., "H-2003")
+- `name`: New hero name (optional)
+- `description`: New hero description (optional)
+- `is_primary`: Whether this is the primary hero (optional)
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "hero",
+  "message": "Updated hero H-2003",
+  "data": {
+    "id": "<uuid>",
+    "identifier": "H-2003",
+    "name": "...",
+    "description": "...",
+    "is_primary": true
+  },
+  "next_steps": [
+    "Hero 'Sarah' (H-2003) updated successfully",
+    "This hero is now set as your primary hero"
+  ]
+}
+```
+
+**Use Cases:**
+- Refining hero descriptions
+- Updating motivations, pains, or context
+- Changing primary hero designation
+
+---
+
+#### `delete_hero(hero_identifier: str)`
+
+Deletes a hero permanently.
+
+**Important:** Confirm with user BEFORE calling - this action cannot be undone. This will also remove the hero from any linked story arcs and conflicts.
+
+**Parameters:**
+- `hero_identifier`: Human-readable identifier (e.g., "H-2003")
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "hero",
+  "message": "Deleted hero H-2003 (Sarah)",
+  "data": {
+    "deleted_identifier": "H-2003",
+    "deleted_id": "<uuid>"
+  }
+}
+```
+
+**Use Cases:**
+- Removing obsolete personas
+- Narrative cleanup
+- Consolidating overlapping heroes
+
+---
+
 ### Villain Management
 
 #### `get_villain_definition_framework()`
@@ -1240,6 +1689,78 @@ Success response with updated villain.
 
 ---
 
+#### `update_villain(villain_identifier: str, name: str | None, villain_type: str | None, description: str | None, severity: int | None, is_defeated: bool | None)`
+
+Updates an existing villain's fields.
+
+**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
+
+**Parameters:**
+- `villain_identifier`: Human-readable identifier (e.g., "V-2003")
+- `name`: New villain name (optional)
+- `villain_type`: New type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER) (optional)
+- `description`: New villain description (optional)
+- `severity`: New severity 1-5 (optional)
+- `is_defeated`: Whether the villain is defeated (optional)
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "villain",
+  "message": "Updated villain V-2003",
+  "data": {
+    "id": "<uuid>",
+    "identifier": "V-2003",
+    "name": "...",
+    "villain_type": "WORKFLOW",
+    "description": "...",
+    "severity": 4,
+    "is_defeated": false
+  },
+  "next_steps": [
+    "Villain 'Context Switching' (V-2003) updated successfully"
+  ]
+}
+```
+
+**Use Cases:**
+- Refining villain descriptions
+- Updating severity assessments
+- Changing villain type
+- Marking villains as defeated/undefeated
+
+---
+
+#### `delete_villain(villain_identifier: str)`
+
+Deletes a villain permanently.
+
+**Important:** Confirm with user BEFORE calling - this action cannot be undone. This will also remove the villain from any linked conflicts and story arcs.
+
+**Parameters:**
+- `villain_identifier`: Human-readable identifier (e.g., "V-2003")
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "villain",
+  "message": "Deleted villain V-2003 (Context Switching)",
+  "data": {
+    "deleted_identifier": "V-2003",
+    "deleted_id": "<uuid>"
+  }
+}
+```
+
+**Use Cases:**
+- Removing obsolete villains
+- Narrative cleanup
+- Consolidating overlapping villains
+
+---
+
 ### Conflict Management
 
 #### `get_conflict_creation_framework()`
@@ -1290,6 +1811,74 @@ Marks a conflict as resolved by an initiative.
 
 **Returns:**
 Success response with updated conflict.
+
+---
+
+#### `update_conflict(conflict_identifier: str, description: str | None, roadmap_theme_id: str | None)`
+
+Updates an existing conflict's fields.
+
+**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
+
+**Parameters:**
+- `conflict_identifier`: Human-readable identifier (e.g., "C-2003")
+- `description`: New conflict description (optional)
+- `roadmap_theme_id`: New roadmap theme ID to link (optional, use "null" to unlink)
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "conflict",
+  "message": "Updated conflict C-2003",
+  "data": {
+    "id": "<uuid>",
+    "identifier": "C-2003",
+    "hero_id": "<uuid>",
+    "villain_id": "<uuid>",
+    "description": "...",
+    "status": "OPEN",
+    "story_arc_id": "<uuid>"
+  },
+  "next_steps": [
+    "Conflict 'C-2003' updated successfully"
+  ]
+}
+```
+
+**Use Cases:**
+- Refining conflict descriptions
+- Linking/unlinking conflicts to story arcs
+- Updating impact or stakes
+
+---
+
+#### `delete_conflict(conflict_identifier: str)`
+
+Deletes a conflict permanently.
+
+**Important:** Confirm with user BEFORE calling - this action cannot be undone.
+
+**Parameters:**
+- `conflict_identifier`: Human-readable identifier (e.g., "C-2003")
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "conflict",
+  "message": "Deleted conflict C-2003",
+  "data": {
+    "deleted_identifier": "C-2003",
+    "deleted_id": "<uuid>"
+  }
+}
+```
+
+**Use Cases:**
+- Removing obsolete conflicts
+- Narrative cleanup
+- Removing duplicate conflicts
 
 ---
 
