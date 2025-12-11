@@ -288,6 +288,50 @@ class Conflict(Base):
 
         return conflict
 
+    def update_conflict(
+        self,
+        description: str,
+        story_arc_id: uuid.UUID | None,
+        publisher: "EventPublisher",
+    ) -> None:
+        """Update an existing conflict.
+
+        This method updates the conflict's description and story_arc_id after validation
+        and emits a ConflictUpdated domain event.
+
+        Args:
+            description: Updated conflict description (1-2000 characters)
+            story_arc_id: Updated story arc ID (can be None to unlink)
+            publisher: EventPublisher instance for emitting domain events
+
+        Raises:
+            DomainException: If description violates validation rules
+
+        Example:
+            >>> conflict.update_conflict(
+            ...     description="Updated description of the conflict...",
+            ...     story_arc_id=theme.id,
+            ...     publisher=publisher
+            ... )
+        """
+        Conflict._validate_description(description)
+
+        self.description = description
+        self.story_arc_id = story_arc_id
+        self.updated_at = datetime.now(timezone.utc)
+
+        event = DomainEvent(
+            user_id=self.user_id,
+            event_type="ConflictUpdated",
+            aggregate_id=self.id,
+            payload={
+                "workspace_id": str(self.workspace_id),
+                "description": description,
+                "story_arc_id": str(story_arc_id) if story_arc_id else None,
+            },
+        )
+        publisher.publish(event, workspace_id=str(self.workspace_id))
+
     def mark_resolving(
         self,
         publisher: "EventPublisher",

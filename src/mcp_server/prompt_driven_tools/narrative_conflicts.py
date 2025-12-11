@@ -471,3 +471,156 @@ async def mark_conflict_resolved(
         return build_error_response("conflict", f"Server error: {str(e)}")
     finally:
         session.close()
+
+
+@mcp.tool()
+async def update_conflict(
+    conflict_identifier: str,
+    description: Optional[str] = None,
+    roadmap_theme_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Update an existing conflict's fields.
+
+    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        conflict_identifier: Human-readable identifier (e.g., "C-2003")
+        description: New conflict description (optional)
+        roadmap_theme_id: New roadmap theme ID to link (optional, use "null" to unlink)
+
+    Returns:
+        Success response with updated conflict
+
+    Example:
+        >>> result = await update_conflict(
+        ...     conflict_identifier="C-2003",
+        ...     description="Updated conflict description...",
+        ... )
+    """
+    session = SessionLocal()
+    try:
+        _, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(
+            f"Updating conflict {conflict_identifier} for workspace {workspace_id}"
+        )
+
+        if description is None and roadmap_theme_id is None:
+            return build_error_response(
+                "conflict",
+                "At least one field (description, roadmap_theme_id) must be provided",
+            )
+
+        publisher = EventPublisher(session)
+        conflict_service = ConflictService(session, publisher)
+        conflict = conflict_service.get_conflict_by_identifier(
+            conflict_identifier, uuid.UUID(workspace_id)
+        )
+
+        final_description = (
+            description if description is not None else conflict.description
+        )
+
+        if roadmap_theme_id is not None:
+            if roadmap_theme_id.lower() == "null" or roadmap_theme_id == "":
+                final_roadmap_theme_id = None
+            else:
+                try:
+                    final_roadmap_theme_id = uuid.UUID(roadmap_theme_id)
+                except ValueError:
+                    return build_error_response(
+                        "conflict",
+                        f"Invalid roadmap_theme_id format: {roadmap_theme_id}. Use a valid UUID or 'null' to unlink.",
+                    )
+        else:
+            final_roadmap_theme_id = conflict.story_arc_id
+
+        conflict.update_conflict(
+            description=final_description,
+            story_arc_id=final_roadmap_theme_id,
+            publisher=publisher,
+        )
+
+        session.commit()
+        session.refresh(conflict)
+
+        return build_success_response(
+            entity_type="conflict",
+            message=f"Updated conflict {conflict.identifier}",
+            data=serialize_conflict(conflict),
+            next_steps=[f"Conflict '{conflict.identifier}' updated successfully"],
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain validation error: {e}")
+        return build_error_response("conflict", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("conflict", str(e))
+    except MCPContextError as e:
+        return build_error_response("conflict", str(e))
+    except Exception as e:
+        logger.exception(f"Error updating conflict: {e}")
+        return build_error_response("conflict", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def delete_conflict(conflict_identifier: str) -> Dict[str, Any]:
+    """Delete a conflict permanently.
+
+    IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        conflict_identifier: Human-readable identifier (e.g., "C-2003")
+
+    Returns:
+        Success response confirming deletion
+
+    Example:
+        >>> result = await delete_conflict(conflict_identifier="C-2003")
+    """
+    session = SessionLocal()
+    try:
+        _, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(
+            f"Deleting conflict {conflict_identifier} for workspace {workspace_id}"
+        )
+
+        publisher = EventPublisher(session)
+        conflict_service = ConflictService(session, publisher)
+        conflict = conflict_service.get_conflict_by_identifier(
+            conflict_identifier, uuid.UUID(workspace_id)
+        )
+
+        conflict_id = str(conflict.id)
+
+        session.delete(conflict)
+        session.commit()
+
+        return build_success_response(
+            entity_type="conflict",
+            message=f"Deleted conflict {conflict_identifier}",
+            data={"deleted_identifier": conflict_identifier, "deleted_id": conflict_id},
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain error: {e}")
+        return build_error_response("conflict", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("conflict", str(e))
+    except MCPContextError as e:
+        return build_error_response("conflict", str(e))
+    except Exception as e:
+        logger.exception(f"Error deleting conflict: {e}")
+        return build_error_response("conflict", f"Server error: {str(e)}")
+    finally:
+        session.close()
