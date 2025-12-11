@@ -406,3 +406,158 @@ async def get_hero_details(hero_identifier: str) -> Dict[str, Any]:
         return build_error_response("hero", f"Server error: {str(e)}")
     finally:
         session.close()
+
+
+@mcp.tool()
+async def update_hero(
+    hero_identifier: str,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    is_primary: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """Update an existing hero's fields.
+
+    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        hero_identifier: Human-readable identifier (e.g., "H-2003")
+        name: New hero name (optional)
+        description: New hero description (optional)
+        is_primary: Whether this is the primary hero (optional)
+
+    Returns:
+        Success response with updated hero
+
+    Example:
+        >>> result = await update_hero(
+        ...     hero_identifier="H-2003",
+        ...     name="Sarah, The Senior Builder",
+        ...     description="Updated description...",
+        ... )
+    """
+    session = SessionLocal()
+    try:
+        _, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(f"Updating hero {hero_identifier} for workspace {workspace_id}")
+
+        if name is None and description is None and is_primary is None:
+            return build_error_response(
+                "hero",
+                "At least one field (name, description, is_primary) must be provided",
+            )
+
+        publisher = EventPublisher(session)
+        hero_service = HeroService(session, publisher)
+        hero = hero_service.get_hero_by_identifier(
+            hero_identifier, uuid.UUID(workspace_id)
+        )
+
+        final_name = name if name is not None else hero.name
+        final_description = description if description is not None else hero.description
+        final_is_primary = is_primary if is_primary is not None else hero.is_primary
+
+        if final_is_primary and not hero.is_primary:
+            existing_primary = hero_service.get_primary_hero(uuid.UUID(workspace_id))
+            if existing_primary and existing_primary.id != hero.id:
+                existing_primary.update_hero(
+                    name=existing_primary.name,
+                    description=existing_primary.description,
+                    is_primary=False,
+                    publisher=publisher,
+                )
+
+        hero.update_hero(
+            name=final_name,
+            description=final_description,
+            is_primary=final_is_primary,
+            publisher=publisher,
+        )
+
+        session.commit()
+        session.refresh(hero)
+
+        next_steps = [f"Hero '{hero.name}' ({hero.identifier}) updated successfully"]
+        if is_primary and final_is_primary:
+            next_steps.append("This hero is now set as your primary hero")
+
+        return build_success_response(
+            entity_type="hero",
+            message=f"Updated hero {hero.identifier}",
+            data=serialize_hero(hero),
+            next_steps=next_steps,
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain validation error: {e}")
+        return build_error_response("hero", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("hero", str(e))
+    except MCPContextError as e:
+        return build_error_response("hero", str(e))
+    except Exception as e:
+        logger.exception(f"Error updating hero: {e}")
+        return build_error_response("hero", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def delete_hero(hero_identifier: str) -> Dict[str, Any]:
+    """Delete a hero permanently.
+
+    IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
+    This will also remove the hero from any linked story arcs and conflicts.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        hero_identifier: Human-readable identifier (e.g., "H-2003")
+
+    Returns:
+        Success response confirming deletion
+
+    Example:
+        >>> result = await delete_hero(hero_identifier="H-2003")
+    """
+    session = SessionLocal()
+    try:
+        _, workspace_id = get_auth_context(session, requires_workspace=True)
+        logger.info(f"Deleting hero {hero_identifier} for workspace {workspace_id}")
+
+        publisher = EventPublisher(session)
+        hero_service = HeroService(session, publisher)
+        hero = hero_service.get_hero_by_identifier(
+            hero_identifier, uuid.UUID(workspace_id)
+        )
+
+        hero_name = hero.name
+        hero_id = str(hero.id)
+
+        session.delete(hero)
+        session.commit()
+
+        return build_success_response(
+            entity_type="hero",
+            message=f"Deleted hero {hero_identifier} ({hero_name})",
+            data={"deleted_identifier": hero_identifier, "deleted_id": hero_id},
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain error: {e}")
+        return build_error_response("hero", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("hero", str(e))
+    except MCPContextError as e:
+        return build_error_response("hero", str(e))
+    except Exception as e:
+        logger.exception(f"Error deleting hero: {e}")
+        return build_error_response("hero", f"Server error: {str(e)}")
+    finally:
+        session.close()
