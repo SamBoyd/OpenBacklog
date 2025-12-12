@@ -8,10 +8,11 @@ import uuid
 from unittest.mock import MagicMock
 
 import pytest
+from hamcrest import assert_that, equal_to
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from src.models import Workspace
+from src.models import User, Workspace
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.exceptions import DomainException
 from src.strategic_planning.services.event_publisher import EventPublisher
@@ -21,7 +22,7 @@ class TestStrategicPillar:
     """Unit tests for StrategicPillar aggregate."""
 
     @pytest.fixture
-    def workspace(self, user, session: Session):
+    def workspace(self, user: User, session: Session):
         """Create a workspace for testing."""
         workspace = Workspace(
             id=uuid.uuid4(),
@@ -58,6 +59,7 @@ class TestStrategicPillar:
         """Test that validate_pillar_limit() raises exception when 5 pillars exist."""
         for i in range(5):
             pillar = StrategicPillar(
+                identifier=f"P-00{i+1}",
                 user_id=uuid.uuid4(),
                 workspace_id=workspace.id,
                 name=f"Pillar {i}",
@@ -79,6 +81,7 @@ class TestStrategicPillar:
         """Test that validate_pillar_limit() passes when < 5 pillars exist."""
         for i in range(4):
             pillar = StrategicPillar(
+                identifier=f"P-00{i+1}",
                 user_id=uuid.uuid4(),
                 workspace_id=workspace.id,
                 name=f"Pillar {i}",
@@ -92,7 +95,7 @@ class TestStrategicPillar:
     def test_define_pillar_validates_name_minimum_length(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -113,7 +116,7 @@ class TestStrategicPillar:
     def test_define_pillar_validates_name_maximum_length(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -137,7 +140,7 @@ class TestStrategicPillar:
     def test_define_pillar_validates_description_maximum_length(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -161,7 +164,7 @@ class TestStrategicPillar:
     def test_define_pillar_validates_display_order_range(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -195,7 +198,7 @@ class TestStrategicPillar:
     def test_define_pillar_accepts_valid_input(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -221,7 +224,7 @@ class TestStrategicPillar:
     def test_define_pillar_accepts_none_for_optional_fields(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -244,7 +247,7 @@ class TestStrategicPillar:
     def test_define_pillar_emits_strategic_pillar_defined_event(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -377,6 +380,7 @@ class TestStrategicPillar:
     ):
         """Test that (workspace_id, name) unique constraint is enforced."""
         pillar1 = StrategicPillar(
+            identifier=f"P-001",
             user_id=uuid.uuid4(),
             workspace_id=workspace.id,
             name="Developer Experience",
@@ -386,6 +390,7 @@ class TestStrategicPillar:
         session.commit()
 
         pillar2 = StrategicPillar(
+            identifier="P-002",
             user_id=uuid.uuid4(),
             workspace_id=workspace.id,
             name="Developer Experience",
@@ -399,7 +404,7 @@ class TestStrategicPillar:
     def test_pillar_stores_correctly_in_database(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         mock_publisher: MagicMock,
         session: Session,
     ):
@@ -430,3 +435,60 @@ class TestStrategicPillar:
         assert saved_pillar.description == description
         assert saved_pillar.display_order == display_order
         assert saved_pillar.workspace_id == workspace.id
+
+    def test_identifier_auto_generated_on_create(
+        self,
+        workspace: Workspace,
+        user: User,
+        mock_publisher: MagicMock,
+        session: Session,
+    ):
+        """Test that identifier is auto-generated in P-001 format on create."""
+        pillar = StrategicPillar.define_pillar(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Test Pillar",
+            description="Test description",
+            display_order=0,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(pillar)
+
+        assert_that(pillar.identifier, equal_to("P-001"))
+
+    def test_identifier_increments_sequentially(
+        self,
+        workspace: Workspace,
+        user: User,
+        mock_publisher: MagicMock,
+        session: Session,
+    ):
+        """Test that identifiers increment sequentially for same user."""
+        pillar1 = StrategicPillar.define_pillar(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Pillar One",
+            description=None,
+            display_order=0,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(pillar1)
+
+        pillar2 = StrategicPillar.define_pillar(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Pillar Two",
+            description=None,
+            display_order=1,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(pillar2)
+
+        assert_that(pillar1.identifier, equal_to("P-001"))
+        assert_that(pillar2.identifier, equal_to("P-002"))

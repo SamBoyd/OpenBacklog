@@ -40,6 +40,7 @@ class ProductOutcome(Base):
 
     Attributes:
         id: Unique identifier for the outcome
+        identifier: Human-readable identifier (e.g., "O-001")
         workspace_id: Foreign key to workspace
         name: Outcome name (1-150 characters, unique per workspace)
         description: Optional outcome description (1-3000 characters)
@@ -58,6 +59,11 @@ class ProductOutcome(Base):
             "name",
             name="uq_product_outcomes_workspace_id_name",
         ),
+        UniqueConstraint(
+            "workspace_id",
+            "identifier",
+            name="uq_product_outcomes_workspace_id_identifier",
+        ),
         {"schema": "dev"},
     )
 
@@ -66,6 +72,11 @@ class ProductOutcome(Base):
         primary_key=True,
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
+    )
+
+    identifier: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(

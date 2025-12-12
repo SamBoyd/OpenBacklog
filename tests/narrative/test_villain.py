@@ -8,10 +8,11 @@ import uuid
 from unittest.mock import MagicMock
 
 import pytest
+from hamcrest import assert_that, equal_to
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from src.models import Workspace
+from src.models import User, Workspace
 from src.narrative.aggregates.villain import Villain, VillainType
 from src.narrative.exceptions import DomainException
 from src.strategic_planning.services.event_publisher import EventPublisher
@@ -21,7 +22,7 @@ class TestVillain:
     """Unit tests for Villain aggregate."""
 
     @pytest.fixture
-    def workspace(self, user, session: Session):
+    def workspace(self, user: User, session: Session):
         """Create a workspace for testing."""
         workspace = Workspace(
             id=uuid.uuid4(),
@@ -41,7 +42,11 @@ class TestVillain:
 
     @pytest.fixture
     def villain(
-        self, workspace: Workspace, user, session: Session, mock_publisher: MagicMock
+        self,
+        workspace: Workspace,
+        user: User,
+        session: Session,
+        mock_publisher: MagicMock,
     ):
         """Create a Villain instance for testing."""
         villain = Villain.define_villain(
@@ -61,7 +66,7 @@ class TestVillain:
     def test_define_villain_success(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -96,7 +101,7 @@ class TestVillain:
     def test_define_villain_name_validation_empty(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -118,7 +123,7 @@ class TestVillain:
     def test_define_villain_name_validation_too_long(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -143,7 +148,7 @@ class TestVillain:
     def test_define_villain_description_validation_empty(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -165,7 +170,7 @@ class TestVillain:
     def test_define_villain_description_validation_too_long(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -190,7 +195,7 @@ class TestVillain:
     def test_define_villain_severity_validation_low(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -212,7 +217,7 @@ class TestVillain:
     def test_define_villain_severity_validation_high(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -234,7 +239,7 @@ class TestVillain:
     def test_define_villain_emits_villain_identified_event(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -306,7 +311,7 @@ class TestVillain:
     def test_unique_constraint_enforced_for_workspace_name(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -341,7 +346,7 @@ class TestVillain:
     def test_unique_constraint_enforced_for_workspace_identifier(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         session: Session,
         mock_publisher: MagicMock,
     ):
@@ -376,7 +381,7 @@ class TestVillain:
     def test_villain_stores_correctly_in_database(
         self,
         workspace: Workspace,
-        user,
+        user: User,
         mock_publisher: MagicMock,
         session: Session,
     ):
@@ -720,12 +725,50 @@ class TestVillain:
         )
         session.commit()
 
-        refreshed_villain = (
+        refreshed_villain: Villain = (
             session.query(Villain).filter(Villain.id == villain.id).first()
         )
 
+        assert refreshed_villain is not None
         assert refreshed_villain.name == new_name
         assert refreshed_villain.villain_type == new_type.value
         assert refreshed_villain.description == new_description
         assert refreshed_villain.severity == new_severity
         assert refreshed_villain.is_defeated is False
+
+    def test_identifier_increments_sequentially(
+        self,
+        workspace: Workspace,
+        user: User,
+        mock_publisher: MagicMock,
+        session: Session,
+    ):
+        """Test that identifiers increment sequentially for same user."""
+        villain1 = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Villain One",
+            villain_type=VillainType.WORKFLOW,
+            description="First villain",
+            severity=3,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(villain1)
+
+        villain2 = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Villain Two",
+            villain_type=VillainType.TECHNICAL,
+            description="Second villain",
+            severity=4,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(villain2)
+
+        assert_that(villain1.identifier, equal_to("V-001"))
+        assert_that(villain2.identifier, equal_to("V-002"))

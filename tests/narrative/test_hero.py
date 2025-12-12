@@ -8,6 +8,7 @@ import uuid
 from unittest.mock import MagicMock
 
 import pytest
+from hamcrest import assert_that, equal_to
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -360,3 +361,38 @@ class TestHero:
         assert saved_hero.description == description
         assert saved_hero.is_primary == is_primary
         assert saved_hero.workspace_id == workspace.id
+
+    def test_identifier_increments_sequentially(
+        self,
+        workspace: Workspace,
+        user,
+        mock_publisher: MagicMock,
+        session: Session,
+    ):
+        """Test that identifiers increment sequentially for same user."""
+        hero1 = Hero.define_hero(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Hero One",
+            description="First hero",
+            is_primary=True,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(hero1)
+
+        hero2 = Hero.define_hero(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Hero Two",
+            description="Second hero",
+            is_primary=False,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(hero2)
+
+        assert_that(hero1.identifier, equal_to("H-001"))
+        assert_that(hero2.identifier, equal_to("H-002"))

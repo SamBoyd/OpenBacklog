@@ -8,6 +8,7 @@ import uuid
 from unittest.mock import MagicMock
 
 import pytest
+from hamcrest import assert_that, equal_to
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -456,3 +457,42 @@ class TestConflict:
         assert saved_conflict.hero_id == hero.id
         assert saved_conflict.villain_id == villain.id
         assert saved_conflict.workspace_id == workspace.id
+
+    def test_identifier_increments_sequentially(
+        self,
+        workspace: Workspace,
+        user: User,
+        hero: Hero,
+        villain: Villain,
+        mock_publisher: MagicMock,
+        session: Session,
+    ):
+        """Test that identifiers increment sequentially for same user."""
+        conflict1 = Conflict.create_conflict(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            hero_id=hero.id,
+            villain_id=villain.id,
+            description="First conflict",
+            roadmap_theme_id=None,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(conflict1)
+
+        conflict2 = Conflict.create_conflict(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            hero_id=hero.id,
+            villain_id=villain.id,
+            description="Second conflict",
+            roadmap_theme_id=None,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(conflict2)
+
+        assert_that(conflict1.identifier, equal_to("C-001"))
+        assert_that(conflict2.identifier, equal_to("C-002"))

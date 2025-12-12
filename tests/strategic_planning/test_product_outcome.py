@@ -8,6 +8,7 @@ import uuid
 from unittest.mock import MagicMock
 
 import pytest
+from hamcrest import assert_that, equal_to
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -503,3 +504,60 @@ class TestProductOutcome:
         assert saved_outcome.description == description
         assert saved_outcome.display_order == display_order
         assert saved_outcome.workspace_id == workspace.id
+
+    def test_identifier_auto_generated_on_create(
+        self,
+        workspace: Workspace,
+        user: User,
+        mock_publisher: MagicMock,
+        session: Session,
+    ):
+        """Test that identifier is auto-generated in O-001 format on create."""
+        outcome = ProductOutcome.map_outcome(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Test Outcome",
+            description="Test description",
+            display_order=0,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(outcome)
+
+        assert_that(outcome.identifier, equal_to("O-001"))
+
+    def test_identifier_increments_sequentially(
+        self,
+        workspace: Workspace,
+        user: User,
+        mock_publisher: MagicMock,
+        session: Session,
+    ):
+        """Test that identifiers increment sequentially for same user."""
+        outcome1 = ProductOutcome.map_outcome(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Outcome One",
+            description=None,
+            display_order=0,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(outcome1)
+
+        outcome2 = ProductOutcome.map_outcome(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Outcome Two",
+            description=None,
+            display_order=1,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(outcome2)
+
+        assert_that(outcome1.identifier, equal_to("O-001"))
+        assert_that(outcome2.identifier, equal_to("O-002"))

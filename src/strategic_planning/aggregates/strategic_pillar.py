@@ -42,6 +42,7 @@ class StrategicPillar(Base):
 
     Attributes:
         id: Unique identifier for the pillar
+        identifier: Human-readable identifier (e.g., "P-001")
         workspace_id: Foreign key to workspace
         name: Pillar name (1-100 characters, unique per workspace)
         description: Optional pillar description (1-3000 characters)
@@ -59,6 +60,11 @@ class StrategicPillar(Base):
             "name",
             name="uq_strategic_pillars_workspace_id_name",
         ),
+        UniqueConstraint(
+            "workspace_id",
+            "identifier",
+            name="uq_strategic_pillars_workspace_id_identifier",
+        ),
         {"schema": "dev"},
     )
 
@@ -67,6 +73,11 @@ class StrategicPillar(Base):
         primary_key=True,
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
+    )
+
+    identifier: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(

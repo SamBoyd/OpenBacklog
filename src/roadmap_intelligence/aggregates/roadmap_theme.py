@@ -38,6 +38,7 @@ class RoadmapTheme(Base):
 
     Attributes:
         id: Unique identifier for the theme
+        identifier: Human-readable identifier (e.g., "T-001")
         workspace_id: Foreign key to workspace
         name: Theme name (1-100 characters, unique per workspace)
         description: Theme description (1-4000 characters, required)
@@ -57,6 +58,11 @@ class RoadmapTheme(Base):
             "name",
             name="uq_roadmap_themes_workspace_id_name",
         ),
+        UniqueConstraint(
+            "workspace_id",
+            "identifier",
+            name="uq_roadmap_themes_workspace_id_identifier",
+        ),
         {"schema": "dev"},
     )
 
@@ -65,6 +71,11 @@ class RoadmapTheme(Base):
         primary_key=True,
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
+    )
+
+    identifier: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(

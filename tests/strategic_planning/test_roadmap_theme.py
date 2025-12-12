@@ -8,6 +8,7 @@ import uuid
 from unittest.mock import MagicMock
 
 import pytest
+from hamcrest import assert_that, equal_to
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -585,3 +586,57 @@ class TestRoadmapTheme:
 
         assert len(derived_pillars) == 1
         assert derived_pillars[0].id == pillar1.id
+
+    def test_identifier_auto_generated_on_create(
+        self,
+        workspace: Workspace,
+        user: User,
+        mock_publisher: MagicMock,
+        session: Session,
+    ):
+        """Test that identifier is auto-generated in T-001 format on create."""
+        theme = RoadmapTheme.define_theme(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Test Theme",
+            description="Test description",
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(theme)
+
+        assert_that(theme.identifier, equal_to("T-001"))
+
+    def test_identifier_increments_sequentially(
+        self,
+        workspace: Workspace,
+        user: User,
+        mock_publisher: MagicMock,
+        session: Session,
+    ):
+        """Test that identifiers increment sequentially for same user."""
+        theme1 = RoadmapTheme.define_theme(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Theme One",
+            description="Description One",
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(theme1)
+
+        theme2 = RoadmapTheme.define_theme(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Theme Two",
+            description="Description Two",
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(theme2)
+
+        assert_that(theme1.identifier, equal_to("T-001"))
+        assert_that(theme2.identifier, equal_to("T-002"))
