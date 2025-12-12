@@ -949,7 +949,7 @@ These fields help Claude Code conduct natural product conversations without expo
 
 ### Vision Management
 
-#### `get_vision_definition_framework(workspace_id: str)`
+#### `get_vision_definition_framework()`
 
 Returns comprehensive framework for defining a product vision through collaborative refinement.
 
@@ -964,12 +964,11 @@ Framework dict with all standard fields plus vision-specific criteria.
 
 ---
 
-#### `submit_product_vision(workspace_id: str, vision_text: str)`
+#### `submit_product_vision(vision_text: str)`
 
 Submits refined product vision to workspace.
 
 **Parameters:**
-- `workspace_id`: UUID of workspace
 - `vision_text`: Refined vision statement
 
 **Returns:**
@@ -1009,7 +1008,7 @@ Returns error if no vision is defined yet.
 
 ### Strategic Pillars
 
-#### `get_pillar_definition_framework(workspace_id: str)`
+#### `get_pillar_definition_framework()`
 
 Returns framework for defining strategic pillars (differentiators).
 
@@ -1166,7 +1165,7 @@ Deletes a strategic pillar permanently.
 
 ### Product Outcomes
 
-#### `get_outcome_definition_framework(workspace_id: str)`
+#### `get_outcome_definition_framework()`
 
 Returns framework for defining measurable product outcomes.
 
@@ -1295,7 +1294,7 @@ Deletes a product outcome permanently.
 
 ### Theme Exploration
 
-#### `get_theme_exploration_framework(workspace_id: str)`
+#### `get_theme_exploration_framework()`
 
 Returns framework for defining hypothesis-driven roadmap themes.
 
@@ -1330,7 +1329,7 @@ Success response with theme data and next steps.
 
 ### Prioritization
 
-#### `get_prioritization_context(workspace_id: str)`
+#### `get_prioritization_context()`
 
 Returns context for prioritizing roadmap themes.
 
@@ -1346,25 +1345,24 @@ Returns context for prioritizing roadmap themes.
 
 ---
 
-#### `prioritize_workstream(workspace_id: str, theme_id: str)`
+#### `prioritize_workstream(theme_id: str, priority_position: int)`
 
-Moves a theme to prioritized (active) status.
+Adds a theme to the prioritized roadmap at a specified position.
 
 **Parameters:**
-- `workspace_id`: UUID of workspace
 - `theme_id`: UUID of theme to prioritize
+- `priority_position`: Position in the prioritized list (0-indexed)
 
 **Returns:**
 Success response confirming prioritization.
 
 ---
 
-#### `deprioritize_workstream(workspace_id: str, theme_id: str)`
+#### `deprioritize_workstream(theme_id: str)`
 
 Moves a theme back to backlog (unprioritized).
 
 **Parameters:**
-- `workspace_id`: UUID of workspace
 - `theme_id`: UUID of theme to deprioritize
 
 **Returns:**
@@ -1372,25 +1370,23 @@ Success response confirming deprioritization.
 
 ---
 
-#### `organize_roadmap(workspace_id: str, prioritized_theme_ids: List[str])`
+#### `organize_roadmap(theme_order: Dict[str, int])`
 
 Reorders prioritized themes in the roadmap.
 
 **Parameters:**
-- `workspace_id`: UUID of workspace
-- `prioritized_theme_ids`: Ordered list of theme UUIDs
+- `theme_order`: Dict mapping theme_id (str) to new position (int). Must include ALL prioritized themes.
 
 **Returns:**
 Success response with new ordering.
 
 ---
 
-#### `connect_theme_to_outcomes(workspace_id: str, theme_id: str, outcome_ids: List[str])`
+#### `connect_theme_to_outcomes(theme_id: str, outcome_ids: List[str])`
 
 Links a roadmap theme to product outcomes for alignment tracking.
 
 **Parameters:**
-- `workspace_id`: UUID of workspace
 - `theme_id`: UUID of theme
 - `outcome_ids`: List of outcome UUIDs to link
 
@@ -1504,7 +1500,7 @@ Deletes a roadmap theme permanently.
 
 ## Utility Tools
 
-### `review_strategic_foundation(workspace_id: str)`
+### `review_strategic_foundation()`
 
 Analyzes completeness and quality of workspace strategic foundation.
 
@@ -1529,12 +1525,11 @@ Analyzes completeness and quality of workspace strategic foundation.
 
 ---
 
-### `connect_outcome_to_pillars(workspace_id: str, outcome_id: str, pillar_ids: List[str])`
+### `connect_outcome_to_pillars(outcome_id: str, pillar_ids: List[str])`
 
 Links a product outcome to strategic pillars for validation.
 
 **Parameters:**
-- `workspace_id`: UUID of workspace
 - `outcome_id`: UUID of outcome
 - `pillar_ids`: List of pillar UUIDs
 
