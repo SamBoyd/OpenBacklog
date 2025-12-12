@@ -1103,34 +1103,6 @@ Success response with saved pillar data and next steps.
 
 ---
 
-#### `get_strategic_pillars()`
-
-Lists all strategic pillars for the workspace.
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "pillar",
-  "message": "Found N strategic pillar(s)",
-  "data": {
-    "pillars": [
-      {
-        "id": "<uuid>",
-        "name": "...",
-        "description": "..."
-      }
-    ]
-  }
-}
-```
-
-**Use Cases:**
-- Viewing all defined strategic pillars
-- Getting pillar IDs for linking to outcomes
-- Strategic planning review
-
----
 
 #### `update_strategic_pillar(pillar_id: str, name: str | None, description: str | None)`
 
