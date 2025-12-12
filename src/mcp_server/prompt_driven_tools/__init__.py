@@ -22,12 +22,12 @@ __all__ = [
     # Strategic Foundation - Vision
     "get_vision_definition_framework",
     "submit_product_vision",
-    "get_vision",
+    "get_vision_details",
     # Strategic Foundation - Pillars
     "get_pillar_definition_framework",
     "submit_strategic_pillar",
     "get_strategic_pillars",
-    "get_strategic_pillar",
+    "get_strategic_pillar_details",
     "update_strategic_pillar",
     "delete_strategic_pillar",
     # Strategic Foundation - Outcomes
@@ -81,7 +81,7 @@ __all__ = [
     "get_strategic_initiatives",
     "get_active_strategic_initiatives",
     "search_strategic_initiatives",
-    "get_strategic_initiative",
+    "get_strategic_initiative_details",
     "update_strategic_initiative",
     "delete_strategic_initiative",
     # Utility Tools

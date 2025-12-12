@@ -350,7 +350,7 @@ async def submit_product_vision(
 
 
 @mcp.tool()
-async def get_vision() -> Dict[str, Any]:
+async def get_vision_details() -> Dict[str, Any]:
     """Retrieves the current product vision for the workspace.
 
     Returns the vision statement if one has been defined, or an error
@@ -363,7 +363,7 @@ async def get_vision() -> Dict[str, Any]:
         Success response with vision data, or error if no vision defined
 
     Example:
-        >>> result = await get_vision()
+        >>> result = await get_vision_details()
         >>> print(result["data"]["vision_text"])
     """
     session = SessionLocal()

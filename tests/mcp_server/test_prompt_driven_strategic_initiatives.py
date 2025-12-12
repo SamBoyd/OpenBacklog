@@ -13,8 +13,8 @@ from src.initiative_management.aggregates.strategic_initiative import (
 )
 from src.mcp_server.prompt_driven_tools.strategic_initiatives import (
     delete_strategic_initiative,
-    get_strategic_initiative,
     get_strategic_initiative_definition_framework,
+    get_strategic_initiative_details,
     get_strategic_initiatives,
     submit_strategic_initiative,
     update_strategic_initiative,
@@ -535,8 +535,8 @@ class TestGetStrategicInitiatives:
         assert "narrative_summary" in initiative_data
 
 
-class TestGetStrategicInitiative:
-    """Test suite for get_strategic_initiative tool."""
+class TestGetStrategicInitiativeDetails:
+    """Test suite for get_strategic_initiative_details tool."""
 
     @pytest.mark.asyncio
     async def test_get_by_identifier(
@@ -563,7 +563,7 @@ class TestGetStrategicInitiative:
         session.add(strategic_init)
         session.commit()
 
-        result = await get_strategic_initiative.fn(initiative.identifier)
+        result = await get_strategic_initiative_details.fn(initiative.identifier)
 
         # Verify response
         assert_that(
@@ -596,7 +596,7 @@ class TestGetStrategicInitiative:
         session.add(strategic_init)
         session.commit()
 
-        result = await get_strategic_initiative.fn(str(initiative.id))
+        result = await get_strategic_initiative_details.fn(str(initiative.id))
 
         # Verify response
         assert_that(
@@ -609,7 +609,7 @@ class TestGetStrategicInitiative:
         """Test getting nonexistent initiative."""
         fake_id = str(uuid.uuid4())
 
-        result = await get_strategic_initiative.fn(fake_id)
+        result = await get_strategic_initiative_details.fn(fake_id)
 
         # Verify error response
         assert_that(
@@ -642,7 +642,9 @@ class TestGetStrategicInitiative:
         ) as mock_get_workspace:
             mock_get_workspace.return_value = workspace.id
 
-            result = await get_strategic_initiative.fn(query=strategic_initiative_id)
+            result = await get_strategic_initiative_details.fn(
+                query=strategic_initiative_id
+            )
 
         assert_that(result["status"], equal_to("success"))
         assert_that(result["data"]["id"], equal_to(strategic_initiative_id))
@@ -676,7 +678,7 @@ class TestGetStrategicInitiative:
         ) as mock_get_workspace:
             mock_get_workspace.return_value = workspace.id
 
-            result = await get_strategic_initiative.fn(query=initiative_id)
+            result = await get_strategic_initiative_details.fn(query=initiative_id)
 
         assert_that(result["status"], equal_to("success"))
         assert "narrative_summary" in result["data"]
@@ -1026,7 +1028,7 @@ class TestStrategicInitiativeNarrativeSummary:
         session.add(strategic_init)
         session.commit()
 
-        result = await get_strategic_initiative.fn(initiative.identifier)
+        result = await get_strategic_initiative_details.fn(initiative.identifier)
 
         # Verify narrative summary includes strategic elements
         narrative_summary = result["data"]["narrative_summary"]

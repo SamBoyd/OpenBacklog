@@ -388,7 +388,7 @@ async def get_strategic_pillars() -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def get_strategic_pillar(pillar_id: str) -> Dict[str, Any]:
+async def get_strategic_pillar_details(pillar_id: str) -> Dict[str, Any]:
     """Retrieves a single strategic pillar with linked outcomes.
 
     Returns the pillar with its full details including all linked
@@ -404,7 +404,7 @@ async def get_strategic_pillar(pillar_id: str) -> Dict[str, Any]:
         Pillar details with linked outcomes
 
     Example:
-        >>> result = await get_strategic_pillar(pillar_id="...")
+        >>> result = await get_strategic_pillar_details(pillar_id="...")
         >>> print(result["data"]["linked_outcomes"])
     """
     session = SessionLocal()

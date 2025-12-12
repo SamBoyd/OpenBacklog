@@ -490,7 +490,7 @@ Initiatives without a StrategicInitiative record will have one auto-created with
 
 ---
 
-### `get_strategic_initiative(query: str)`
+### `get_strategic_initiative_details(query: str)`
 
 Retrieves a single strategic initiative by ID or identifier.
 
@@ -977,7 +977,7 @@ Success response with saved vision data and next steps.
 
 ---
 
-#### `get_vision()`
+#### `get_vision_details()`
 
 Retrieves the current product vision for the workspace.
 
@@ -1051,7 +1051,7 @@ Lists all strategic pillars for the workspace.
 
 ---
 
-#### `get_strategic_pillar(pillar_id: str)`
+#### `get_strategic_pillar_details(pillar_id: str)`
 
 Retrieves a single strategic pillar with linked outcomes.
 

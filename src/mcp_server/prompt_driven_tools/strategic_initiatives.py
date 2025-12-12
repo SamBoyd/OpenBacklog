@@ -723,7 +723,7 @@ async def search_strategic_initiatives(query: str) -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def get_strategic_initiative(
+async def get_strategic_initiative_details(
     query: str,
     include_tasks: bool = False,
 ) -> Dict[str, Any]:
