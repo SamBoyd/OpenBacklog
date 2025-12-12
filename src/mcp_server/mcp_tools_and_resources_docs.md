@@ -8,18 +8,17 @@ This document provides a comprehensive overview of all tools and resources avail
 2. [Authentication](#authentication)
 3. [Core Workflow Tools](#core-workflow-tools)
 4. [Workspace Management Tools](#workspace-management-tools)
-5. [Initiative Management Tools](#initiative-management-tools)
-6. [Strategic Initiative Tools](#strategic-initiative-tools)
-7. [Task Management Tools](#task-management-tools)
-8. [Checklist Management Tools](#checklist-management-tools)
-9. [Strategic Planning Tools](#strategic-planning-tools)
-10. [Roadmap Management Tools](#roadmap-management-tools)
-11. [Utility Tools](#utility-tools)
-12. [Prompts](#prompts)
-13. [Narrative Layer Tools](#narrative-layer-tools)
-14. [Error Handling](#error-handling)
-15. [Best Practices](#best-practices)
-16. [Architecture Notes](#architecture-notes)
+5. [Strategic Initiative Tools](#strategic-initiative-tools)
+6. [Task Management Tools](#task-management-tools)
+7. [Checklist Management Tools](#checklist-management-tools)
+8. [Strategic Planning Tools](#strategic-planning-tools)
+9. [Roadmap Management Tools](#roadmap-management-tools)
+10. [Utility Tools](#utility-tools)
+11. [Prompts](#prompts)
+12. [Narrative Layer Tools](#narrative-layer-tools)
+13. [Error Handling](#error-handling)
+14. [Best Practices](#best-practices)
+15. [Architecture Notes](#architecture-notes)
 
 ---
 
@@ -155,116 +154,6 @@ Claude Code calls: create_workspace(name="My SaaS Product", description="")
 
 ---
 
-## Initiative Management Tools
-
-### `create_initiative()`
-
-Create a new initiative for the user.
-
-**Parameters:**
-  - title: Title for the initiative
-  - description: Description for the initiative
-  - status: Optional status string (defaults to BACKLOG) - Options: BACKLOG, TO_DO, IN_PROGRESS
-
-**Returns**
-```json
-{
-  "status": "success",
-  "type": "initiative",
-  "message": "Created initiative 'Initiative Title'",
-  "data": [
-    {
-      "id": "<uuid>",
-      "title": "Initiative Title",
-      "description": "Initiative description",
-      "identifier": "INIT-001",
-      "status": "IN_PROGRESS",
-      "workspace_id": "<workspace_uuid>",
-      ...
-    }
-  ]
-}
-```
-
-### `get_active_initiatives()`
-
-Fetches all initiatives with 'IN_PROGRESS' status.
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "initiative",
-  "message": "Found N active initiatives",
-  "data": [
-    {
-      "id": "<uuid>",
-      "title": "Initiative Title",
-      "description": "Initiative description",
-      "identifier": "INIT-001",
-      "status": "IN_PROGRESS",
-      "workspace_id": "<workspace_uuid>",
-      ...
-    }
-  ]
-}
-```
-
-**Use Cases:**
-- Starting workflow to select initiative to work on
-- Listing current active work
-- Initiative selection prompts
-
----
-
-### `search_initiatives(query: str)`
-
-Searches initiatives by title, description, and identifier using PostgreSQL full-text search.
-
-**Parameters:**
-- `query`: Search string (will be URL-encoded)
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "initiative",
-  "data": [/* matching initiatives */]
-}
-```
-
-**Use Cases:**
-- Finding specific initiatives
-- Fuzzy search by keywords
-- Locating initiatives by identifier
-
----
-
-### `get_initiative_details(initiative_id: str)`
-
-Retrieves complete initiative context including all associated tasks.
-
-**Parameters:**
-- `initiative_id`: UUID of the initiative
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "initiative_details",
-  "message": "Retrieved comprehensive initiative context...",
-  "initiative": {/* initiative object */},
-  "tasks": [/* array of task objects */]
-}
-```
-
-**Use Cases:**
-- Getting full initiative context
-- Planning work across multiple tasks
-- Understanding task dependencies
-
----
-
 ## Strategic Initiative Tools
 
 Strategic initiative tools follow the **prompt-driven collaboration pattern**:
@@ -303,22 +192,22 @@ Returns comprehensive framework for defining a strategic initiative with narrati
 
 ---
 
-### `submit_strategic_initiative(title, implementation_description, hero_ids, villain_ids, conflict_ids, pillar_id, theme_id, narrative_intent, status, strategic_description)`
+### `submit_strategic_initiative(title, implementation_description, hero_identifiers, villain_identifiers, conflict_identifiers, pillar_identifier, theme_identifier, narrative_intent, status, strategic_description)`
 
 Submits a strategic initiative with optional narrative connections.
 
-Creates both an Initiative and its StrategicInitiative context in one operation. Uses graceful degradation: invalid narrative IDs are skipped with warnings rather than failing.
+Creates both an Initiative and its StrategicInitiative context in one operation. Uses graceful degradation: invalid identifiers are skipped with warnings rather than failing.
 
 **Important:** Reflect the initiative back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
 
 **Parameters:**
 - `title` (required): Initiative title (e.g., "Smart Context Switching")
 - `implementation_description` (required): What this initiative delivers and how it will be built. This is the practical description of the work involved - the "what".
-- `hero_ids` (optional): List of hero UUIDs this initiative helps
-- `villain_ids` (optional): List of villain UUIDs this initiative confronts
-- `conflict_ids` (optional): List of conflict UUIDs this initiative addresses
-- `pillar_id` (optional): Strategic pillar UUID for alignment
-- `theme_id` (optional): Roadmap theme UUID for placement
+- `hero_identifiers` (optional): List of hero identifiers (e.g., ["H-001", "H-002"]) this initiative helps
+- `villain_identifiers` (optional): List of villain identifiers (e.g., ["V-001"]) this initiative confronts
+- `conflict_identifiers` (optional): List of conflict identifiers (e.g., ["C-001"]) this initiative addresses
+- `pillar_identifier` (optional): Strategic pillar identifier (e.g., "P-001") for alignment
+- `theme_identifier` (optional): Roadmap theme identifier (e.g., "T-001") for placement
 - `narrative_intent` (optional): Why this initiative matters narratively
 - `status` (optional): Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG
 - `strategic_description` (optional): How this initiative connects to the larger product strategy. Explains the "why" - user needs addressed, strategic alignment, and how it fits into the bigger picture. Defaults to `implementation_description` if not provided.
@@ -331,9 +220,8 @@ Creates both an Initiative and its StrategicInitiative context in one operation.
   "message": "Strategic initiative created with narrative connections",
   "data": {
     "initiative": {
-      "id": "<uuid>",
-      "title": "...",
       "identifier": "I-1001",
+      "title": "...",
       "status": "BACKLOG"
     },
     "strategic_context": {/* full strategic initiative details */}
@@ -361,20 +249,18 @@ Retrieves all strategic initiatives with their narrative connections.
   "data": {
     "strategic_initiatives": [
       {
-        "id": "<uuid>",
         "initiative": {
-          "id": "<uuid>",
+          "identifier": "I-1001",
           "title": "...",
           "description": "...",
-          "identifier": "I-1001",
           "status": "IN_PROGRESS"
         },
         "strategic_context": {
-          "heroes": [/* linked heroes */],
-          "villains": [/* linked villains */],
-          "conflicts": [/* linked conflicts */],
-          "pillar": {/* linked pillar */},
-          "theme": {/* linked theme */},
+          "heroes": [/* linked heroes with identifiers */],
+          "villains": [/* linked villains with identifiers */],
+          "conflicts": [/* linked conflicts with identifiers */],
+          "pillar": {/* linked pillar with identifier */},
+          "theme": {/* linked theme with identifier */},
           "narrative_intent": "..."
         },
         "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Pillar: Deep IDE Integration"
@@ -408,20 +294,18 @@ Initiatives without a StrategicInitiative record will have one auto-created with
   "data": {
     "strategic_initiatives": [
       {
-        "id": "<uuid>",
         "initiative": {
-          "id": "<uuid>",
+          "identifier": "I-1001",
           "title": "...",
           "description": "...",
-          "identifier": "I-1001",
           "status": "IN_PROGRESS"
         },
         "strategic_context": {
-          "heroes": [/* linked heroes */],
-          "villains": [/* linked villains */],
-          "conflicts": [/* linked conflicts */],
-          "pillar": {/* linked pillar */},
-          "theme": {/* linked theme */},
+          "heroes": [/* linked heroes with identifiers */],
+          "villains": [/* linked villains with identifiers */],
+          "conflicts": [/* linked conflicts with identifiers */],
+          "pillar": {/* linked pillar with identifier */},
+          "theme": {/* linked theme with identifier */},
           "narrative_intent": "..."
         },
         "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Pillar: Deep IDE Integration"
@@ -459,20 +343,18 @@ Initiatives without a StrategicInitiative record will have one auto-created with
   "data": {
     "strategic_initiatives": [
       {
-        "id": "<uuid>",
         "initiative": {
-          "id": "<uuid>",
+          "identifier": "I-1001",
           "title": "...",
           "description": "...",
-          "identifier": "I-1001",
           "status": "IN_PROGRESS"
         },
         "strategic_context": {
-          "heroes": [/* linked heroes */],
-          "villains": [/* linked villains */],
-          "conflicts": [/* linked conflicts */],
-          "pillar": {/* linked pillar */},
-          "theme": {/* linked theme */},
+          "heroes": [/* linked heroes with identifiers */],
+          "villains": [/* linked villains with identifiers */],
+          "conflicts": [/* linked conflicts with identifiers */],
+          "pillar": {/* linked pillar with identifier */},
+          "theme": {/* linked theme with identifier */},
           "narrative_intent": "..."
         },
         "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Pillar: Deep IDE Integration"
@@ -509,12 +391,10 @@ Accepts a flexible query that tries multiple lookup strategies:
   "type": "strategic_initiative",
   "message": "Found strategic initiative: Title",
   "data": {
-    "id": "<uuid>",
     "initiative": {
-      "id": "<uuid>",
+      "identifier": "I-1001",
       "title": "...",
       "description": "...",
-      "identifier": "I-1001",
       "status": "IN_PROGRESS"
     },
     "strategic_context": {/* full strategic initiative details */},
@@ -530,27 +410,27 @@ Accepts a flexible query that tries multiple lookup strategies:
 
 ---
 
-### `update_strategic_initiative(query, title, implementation_description, status, hero_ids, villain_ids, conflict_ids, pillar_id, theme_id, narrative_intent, strategic_description)`
+### `update_strategic_initiative(initiative_identifier, title, implementation_description, status, hero_identifiers, villain_identifiers, conflict_identifiers, pillar_identifier, theme_identifier, narrative_intent, strategic_description)`
 
 Updates an existing strategic initiative's fields.
 
 **Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
 
-Accepts a flexible query that tries multiple lookup strategies:
-1. First tries as StrategicInitiative UUID
-2. Then tries as Initiative UUID
-3. Finally tries as Initiative identifier (e.g., "I-1001")
+Accepts a flexible identifier that tries multiple lookup strategies:
+1. First tries as initiative identifier (e.g., "I-1001")
+2. Then tries as StrategicInitiative UUID
+3. Finally tries as Initiative UUID
 
 **Parameters:**
-- `query` (required): Strategic initiative ID, initiative ID, or initiative identifier
+- `initiative_identifier` (required): Initiative identifier (e.g., "I-1001")
 - `title` (optional): New initiative title
 - `implementation_description` (optional): New description of what this initiative delivers and how it will be built - the practical "what"
 - `status` (optional): New status (BACKLOG, TO_DO, IN_PROGRESS)
-- `hero_ids` (optional): New list of hero UUIDs (replaces existing)
-- `villain_ids` (optional): New list of villain UUIDs (replaces existing)
-- `conflict_ids` (optional): New list of conflict UUIDs (replaces existing)
-- `pillar_id` (optional): New strategic pillar UUID (use "null" to unlink)
-- `theme_id` (optional): New roadmap theme UUID (use "null" to unlink)
+- `hero_identifiers` (optional): New list of hero identifiers (e.g., ["H-001"]) - replaces existing
+- `villain_identifiers` (optional): New list of villain identifiers (e.g., ["V-001"]) - replaces existing
+- `conflict_identifiers` (optional): New list of conflict identifiers (e.g., ["C-001"]) - replaces existing
+- `pillar_identifier` (optional): New strategic pillar identifier (e.g., "P-001") - use "null" to unlink
+- `theme_identifier` (optional): New roadmap theme identifier (e.g., "T-001") - use "null" to unlink
 - `narrative_intent` (optional): New narrative intent
 - `strategic_description` (optional): New description of how this initiative connects to the larger product strategy - the "why"
 
@@ -561,12 +441,10 @@ Accepts a flexible query that tries multiple lookup strategies:
   "type": "strategic_initiative",
   "message": "Updated strategic initiative I-1001",
   "data": {
-    "id": "<uuid>",
     "initiative": {
-      "id": "<uuid>",
+      "identifier": "I-1001",
       "title": "...",
       "description": "...",
-      "identifier": "I-1001",
       "status": "IN_PROGRESS"
     },
     "strategic_context": {/* full strategic initiative details */},
@@ -608,8 +486,7 @@ Accepts a flexible query that tries multiple lookup strategies:
   "type": "strategic_initiative",
   "message": "Deleted strategic initiative I-1001 (Initiative Title)",
   "data": {
-    "deleted_identifier": "I-1001",
-    "deleted_id": "<uuid>"
+    "deleted_identifier": "I-1001"
   }
 }
 ```
@@ -623,12 +500,12 @@ Accepts a flexible query that tries multiple lookup strategies:
 
 ## Task Management Tools
 
-### `get_initiative_tasks(initiative_id: str)`
+### `get_initiative_tasks(initiative_identifier: str)`
 
 Retrieves all tasks for a specific initiative.
 
 **Parameters:**
-- `initiative_id`: UUID of the initiative
+- `initiative_identifier`: Initiative identifier (e.g., "I-1001")
 
 **Returns:**
 ```json
@@ -636,7 +513,7 @@ Retrieves all tasks for a specific initiative.
   "status": "success",
   "type": "task",
   "message": "Found N tasks for initiative...",
-  "initiative_id": "<initiative_uuid>",
+  "initiative_identifier": "I-1001",
   "data": [/* array of tasks */]
 }
 ```
@@ -1034,7 +911,7 @@ Lists all strategic pillars for the workspace.
   "data": {
     "pillars": [
       {
-        "id": "<uuid>",
+        "identifier": "P-001",
         "name": "...",
         "description": "..."
       }
@@ -1050,14 +927,14 @@ Lists all strategic pillars for the workspace.
 
 ---
 
-#### `get_strategic_pillar_details(pillar_id: str)`
+#### `get_strategic_pillar_details(pillar_identifier: str)`
 
 Retrieves a single strategic pillar with linked outcomes.
 
 Returns the pillar with its full details including all linked product outcomes for comprehensive context.
 
 **Parameters:**
-- `pillar_id`: UUID of the strategic pillar
+- `pillar_identifier`: Human-readable identifier (e.g., "P-001")
 
 **Returns:**
 ```json
@@ -1066,12 +943,12 @@ Returns the pillar with its full details including all linked product outcomes f
   "type": "pillar",
   "message": "Retrieved strategic pillar 'Pillar Name'",
   "data": {
-    "id": "<uuid>",
+    "identifier": "P-001",
     "name": "...",
     "description": "...",
     "linked_outcomes": [
       {
-        "id": "<uuid>",
+        "identifier": "O-001",
         "name": "...",
         "description": "..."
       }
@@ -1103,14 +980,14 @@ Success response with saved pillar data and next steps.
 ---
 
 
-#### `update_strategic_pillar(pillar_id: str, name: str | None, description: str | None)`
+#### `update_strategic_pillar(pillar_identifier: str, name: str | None, description: str | None)`
 
 Updates an existing strategic pillar.
 
 **Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
 
 **Parameters:**
-- `pillar_id`: UUID of the strategic pillar to update
+- `pillar_identifier`: Human-readable identifier (e.g., "P-001")
 - `name`: New pillar name (optional, 1-100 characters)
 - `description`: New pillar description (optional, 1-3000 characters)
 
@@ -1121,7 +998,7 @@ Updates an existing strategic pillar.
   "type": "pillar",
   "message": "Updated strategic pillar 'Pillar Name'",
   "data": {
-    "id": "<uuid>",
+    "identifier": "P-001",
     "name": "...",
     "description": "..."
   }
@@ -1135,23 +1012,23 @@ Updates an existing strategic pillar.
 
 ---
 
-#### `delete_strategic_pillar(pillar_id: str)`
+#### `delete_strategic_pillar(pillar_identifier: str)`
 
 Deletes a strategic pillar permanently.
 
 **Important:** Confirm with user BEFORE calling - this action cannot be undone. This will also unlink the pillar from any associated outcomes and initiatives.
 
 **Parameters:**
-- `pillar_id`: UUID of the strategic pillar to delete
+- `pillar_identifier`: Human-readable identifier (e.g., "P-001")
 
 **Returns:**
 ```json
 {
   "status": "success",
   "type": "pillar",
-  "message": "Deleted strategic pillar 'Pillar Name'",
+  "message": "Deleted strategic pillar 'Pillar Name' (P-001)",
   "data": {
-    "deleted_id": "<uuid>"
+    "deleted_identifier": "P-001"
   }
 }
 ```
@@ -1178,7 +1055,7 @@ Framework with outcome-specific guidance:
 
 ---
 
-#### `submit_product_outcome(name: str, description: str, pillar_ids: List[str] | None)`
+#### `submit_product_outcome(name: str, description: str, pillar_identifiers: List[str] | None)`
 
 Submits a refined product outcome.
 
@@ -1187,7 +1064,7 @@ Submits a refined product outcome.
 - `description`: Outcome description including goal, baseline, target, and timeline (required)
   - Should include: specific metric, baseline value, target value, and timeline
   - Example: "Goal: Increase daily active IDE plugin users. Baseline: 30% of users daily active. Target: 80% daily active. Timeline: 6 months."
-- `pillar_ids`: Optional list of pillar UUIDs to link (recommended for strategic alignment)
+- `pillar_identifiers`: Optional list of pillar identifiers (e.g., ["P-001", "P-002"]) to link (recommended for strategic alignment)
 
 **Returns:**
 Success response with saved outcome data and next steps.
@@ -1207,10 +1084,10 @@ Lists all product outcomes for the workspace.
   "data": {
     "outcomes": [
       {
-        "id": "<uuid>",
+        "identifier": "O-001",
         "name": "...",
         "description": "...",
-        "pillars": [/* linked pillars */]
+        "pillars": [/* linked pillars with identifiers */]
       }
     ]
   }
@@ -1224,17 +1101,17 @@ Lists all product outcomes for the workspace.
 
 ---
 
-#### `update_product_outcome(outcome_id: str, name: str | None, description: str | None, pillar_ids: List[str] | None)`
+#### `update_product_outcome(outcome_identifier: str, name: str | None, description: str | None, pillar_identifiers: List[str] | None)`
 
 Updates an existing product outcome.
 
 **Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
 
 **Parameters:**
-- `outcome_id`: UUID of the product outcome to update
+- `outcome_identifier`: Human-readable identifier (e.g., "O-001")
 - `name`: New outcome name (optional, 1-150 characters)
 - `description`: New outcome description (optional, 1-3000 characters)
-- `pillar_ids`: List of pillar UUIDs to link (optional, replaces existing links)
+- `pillar_identifiers`: List of pillar identifiers (e.g., "P-001") to link (optional, replaces existing links)
 
 **Returns:**
 ```json
@@ -1243,10 +1120,10 @@ Updates an existing product outcome.
   "type": "outcome",
   "message": "Updated product outcome 'Outcome Name'",
   "data": {
-    "id": "<uuid>",
+    "identifier": "O-001",
     "name": "...",
     "description": "...",
-    "pillars": [/* linked pillars */]
+    "pillars": [/* linked pillars with identifiers */]
   },
   "next_steps": [
     "Product outcome 'Outcome Name' updated successfully",
@@ -1262,23 +1139,23 @@ Updates an existing product outcome.
 
 ---
 
-#### `delete_product_outcome(outcome_id: str)`
+#### `delete_product_outcome(outcome_identifier: str)`
 
 Deletes a product outcome permanently.
 
 **Important:** Confirm with user BEFORE calling - this action cannot be undone. This will also unlink the outcome from any associated pillars and themes.
 
 **Parameters:**
-- `outcome_id`: UUID of the product outcome to delete
+- `outcome_identifier`: Human-readable identifier (e.g., "O-001")
 
 **Returns:**
 ```json
 {
   "status": "success",
   "type": "outcome",
-  "message": "Deleted product outcome 'Outcome Name'",
+  "message": "Deleted product outcome 'Outcome Name' (O-001)",
   "data": {
-    "deleted_id": "<uuid>"
+    "deleted_identifier": "O-001"
   }
 }
 ```
@@ -1309,7 +1186,7 @@ Framework with:
 
 ---
 
-#### `submit_roadmap_theme(name: str, description: str, outcome_ids: List[str] | None, hero_identifier: str | None, primary_villain_identifier: str | None)`
+#### `submit_roadmap_theme(name: str, description: str, outcome_identifiers: List[str] | None, hero_identifier: str | None, primary_villain_identifier: str | None)`
 
 Submits a refined roadmap theme.
 
@@ -1318,9 +1195,9 @@ Submits a refined roadmap theme.
 - `description`: Theme description including problem statement, hypothesis, metrics, and timeline (required)
   - Should include: specific problem, testable hypothesis, indicative metrics, and timeline
   - Example: "Problem Statement: New users abandon setup (40% drop-off). Hypothesis: Smart defaults will increase completion from 40% to 70%. Indicative Metrics: Setup completion rate. Timeline: 6 months."
-- `outcome_ids`: Optional list of outcome UUIDs to link (recommended for strategic alignment)
-- `hero_identifier`: Optional human-readable hero identifier (e.g., "H-2003") to link who benefits
-- `primary_villain_identifier`: Optional human-readable villain identifier (e.g., "V-2003") to link what problem is solved
+- `outcome_identifiers`: Optional list of outcome identifiers (e.g., ["O-001", "O-002"]) to link (recommended for strategic alignment)
+- `hero_identifier`: Optional human-readable hero identifier (e.g., "H-001") to link who benefits
+- `primary_villain_identifier`: Optional human-readable villain identifier (e.g., "V-001") to link what problem is solved
 
 **Returns:**
 Success response with theme data and next steps.
@@ -1345,12 +1222,12 @@ Returns context for prioritizing roadmap themes.
 
 ---
 
-#### `prioritize_workstream(theme_id: str, priority_position: int)`
+#### `prioritize_workstream(theme_identifier: str, priority_position: int)`
 
 Adds a theme to the prioritized roadmap at a specified position.
 
 **Parameters:**
-- `theme_id`: UUID of theme to prioritize
+- `theme_identifier`: Human-readable identifier (e.g., "T-001")
 - `priority_position`: Position in the prioritized list (0-indexed)
 
 **Returns:**
@@ -1358,12 +1235,12 @@ Success response confirming prioritization.
 
 ---
 
-#### `deprioritize_workstream(theme_id: str)`
+#### `deprioritize_workstream(theme_identifier: str)`
 
 Moves a theme back to backlog (unprioritized).
 
 **Parameters:**
-- `theme_id`: UUID of theme to deprioritize
+- `theme_identifier`: Human-readable identifier (e.g., "T-001")
 
 **Returns:**
 Success response confirming deprioritization.
@@ -1375,20 +1252,20 @@ Success response confirming deprioritization.
 Reorders prioritized themes in the roadmap.
 
 **Parameters:**
-- `theme_order`: Dict mapping theme_id (str) to new position (int). Must include ALL prioritized themes.
+- `theme_order`: Dict mapping theme_identifier (str) to new position (int). Must include ALL prioritized themes.
 
 **Returns:**
 Success response with new ordering.
 
 ---
 
-#### `connect_theme_to_outcomes(theme_id: str, outcome_ids: List[str])`
+#### `connect_theme_to_outcomes(theme_identifier: str, outcome_identifiers: List[str])`
 
 Links a roadmap theme to product outcomes for alignment tracking.
 
 **Parameters:**
-- `theme_id`: UUID of theme
-- `outcome_ids`: List of outcome UUIDs to link
+- `theme_identifier`: Human-readable identifier (e.g., "T-001")
+- `outcome_identifiers`: List of outcome identifiers (e.g., ["O-001", "O-002"])
 
 **Returns:**
 Success response with alignment score.
@@ -1408,14 +1285,14 @@ Lists all roadmap themes for the workspace (both prioritized and unprioritized).
   "data": {
     "themes": [
       {
-        "id": "<uuid>",
+        "identifier": "T-001",
         "name": "...",
         "description": "...",
         "is_prioritized": true,
         "priority_order": 0,
-        "outcomes": [/* linked outcomes */],
-        "hero_id": "<uuid>",
-        "primary_villain_id": "<uuid>"
+        "outcomes": [/* linked outcomes with identifiers */],
+        "hero_identifier": "H-001",
+        "primary_villain_identifier": "V-001"
       }
     ]
   }
@@ -1429,17 +1306,17 @@ Lists all roadmap themes for the workspace (both prioritized and unprioritized).
 
 ---
 
-#### `update_roadmap_theme(theme_id: str, name: str | None, description: str | None, outcome_ids: List[str] | None)`
+#### `update_roadmap_theme(theme_identifier: str, name: str | None, description: str | None, outcome_identifiers: List[str] | None)`
 
 Updates an existing roadmap theme.
 
 **Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
 
 **Parameters:**
-- `theme_id`: UUID of the roadmap theme to update
+- `theme_identifier`: Human-readable identifier (e.g., "T-001")
 - `name`: New theme name (optional, 1-100 characters)
 - `description`: New theme description (optional)
-- `outcome_ids`: List of outcome UUIDs to link (optional, replaces existing links)
+- `outcome_identifiers`: List of outcome identifiers (e.g., "O-001") to link (optional, replaces existing links)
 
 **Returns:**
 ```json
@@ -1448,12 +1325,12 @@ Updates an existing roadmap theme.
   "type": "theme",
   "message": "Updated roadmap theme 'Theme Name'",
   "data": {
-    "id": "<uuid>",
+    "identifier": "T-001",
     "name": "...",
     "description": "...",
     "is_prioritized": true,
     "priority_order": 0,
-    "outcomes": [/* linked outcomes */]
+    "outcomes": [/* linked outcomes with identifiers */]
   },
   "next_steps": [
     "Roadmap theme 'Theme Name' updated successfully",
@@ -1470,23 +1347,23 @@ Updates an existing roadmap theme.
 
 ---
 
-#### `delete_roadmap_theme(theme_id: str)`
+#### `delete_roadmap_theme(theme_identifier: str)`
 
 Deletes a roadmap theme permanently.
 
 **Important:** Confirm with user BEFORE calling - this action cannot be undone. This will also unlink the theme from any associated outcomes, heroes, and villains.
 
 **Parameters:**
-- `theme_id`: UUID of the roadmap theme to delete
+- `theme_identifier`: Human-readable identifier (e.g., "T-001")
 
 **Returns:**
 ```json
 {
   "status": "success",
   "type": "theme",
-  "message": "Deleted roadmap theme 'Theme Name'",
+  "message": "Deleted roadmap theme 'Theme Name' (T-001)",
   "data": {
-    "deleted_id": "<uuid>"
+    "deleted_identifier": "T-001"
   }
 }
 ```
@@ -1525,13 +1402,13 @@ Analyzes completeness and quality of workspace strategic foundation.
 
 ---
 
-### `connect_outcome_to_pillars(outcome_id: str, pillar_ids: List[str])`
+### `connect_outcome_to_pillars(outcome_identifier: str, pillar_identifiers: List[str])`
 
 Links a product outcome to strategic pillars for validation.
 
 **Parameters:**
-- `outcome_id`: UUID of outcome
-- `pillar_ids`: List of pillar UUIDs
+- `outcome_identifier`: Human-readable identifier (e.g., "O-001")
+- `pillar_identifiers`: List of pillar identifiers (e.g., "P-001")
 
 **Returns:**
 Success response with updated outcome data.
@@ -1707,7 +1584,7 @@ Submits refined hero (user persona) to workspace.
 - `is_primary`: Whether this is the primary hero
 
 **Returns:**
-Success response with created hero (including identifier like "H-2003") and next steps.
+Success response with created hero (including identifier like "H-001") and next steps.
 
 ---
 
@@ -1725,7 +1602,7 @@ List of heroes with full details including identifier, name, description, is_pri
 Retrieves full hero details including journey summary.
 
 **Parameters:**
-- `hero_identifier`: Human-readable identifier (e.g., "H-2003")
+- `hero_identifier`: Human-readable identifier (e.g., "H-001")
 
 **Returns:**
 Hero details + journey summary (active arcs, open conflicts).
@@ -1739,7 +1616,7 @@ Updates an existing hero's fields.
 **Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
 
 **Parameters:**
-- `hero_identifier`: Human-readable identifier (e.g., "H-2003")
+- `hero_identifier`: Human-readable identifier (e.g., "H-001")
 - `name`: New hero name (optional)
 - `description`: New hero description (optional)
 - `is_primary`: Whether this is the primary hero (optional)
@@ -1749,16 +1626,15 @@ Updates an existing hero's fields.
 {
   "status": "success",
   "type": "hero",
-  "message": "Updated hero H-2003",
+  "message": "Updated hero H-001",
   "data": {
-    "id": "<uuid>",
-    "identifier": "H-2003",
+    "identifier": "H-001",
     "name": "...",
     "description": "...",
     "is_primary": true
   },
   "next_steps": [
-    "Hero 'Sarah' (H-2003) updated successfully",
+    "Hero 'Sarah' (H-001) updated successfully",
     "This hero is now set as your primary hero"
   ]
 }
@@ -1778,17 +1654,16 @@ Deletes a hero permanently.
 **Important:** Confirm with user BEFORE calling - this action cannot be undone. This will also remove the hero from any linked story arcs and conflicts.
 
 **Parameters:**
-- `hero_identifier`: Human-readable identifier (e.g., "H-2003")
+- `hero_identifier`: Human-readable identifier (e.g., "H-001")
 
 **Returns:**
 ```json
 {
   "status": "success",
   "type": "hero",
-  "message": "Deleted hero H-2003 (Sarah)",
+  "message": "Deleted hero H-001 (Sarah)",
   "data": {
-    "deleted_identifier": "H-2003",
-    "deleted_id": "<uuid>"
+    "deleted_identifier": "H-001"
   }
 }
 ```
@@ -1829,7 +1704,7 @@ Submits refined villain to workspace.
 - `severity`: How big a threat (1-5)
 
 **Returns:**
-Success response with created villain (including identifier like "V-2003") and next steps.
+Success response with created villain (including identifier like "V-001") and next steps.
 
 ---
 
@@ -1849,7 +1724,7 @@ Retrieves full villain details including battle summary.
 Returns enriched villain data including counts of conflicts, linked themes, and initiatives confronting this villain.
 
 **Parameters:**
-- `villain_identifier`: Human-readable identifier (e.g., "V-2003")
+- `villain_identifier`: Human-readable identifier (e.g., "V-001")
 
 **Returns:**
 ```json
@@ -1858,8 +1733,7 @@ Returns enriched villain data including counts of conflicts, linked themes, and 
   "type": "villain",
   "message": "Retrieved villain details for Context Switching",
   "data": {
-    "id": "<uuid>",
-    "identifier": "V-2003",
+    "identifier": "V-001",
     "name": "Context Switching",
     "villain_type": "WORKFLOW",
     "description": "...",
@@ -1869,9 +1743,9 @@ Returns enriched villain data including counts of conflicts, linked themes, and 
       "conflict_count": 2,
       "theme_count": 1,
       "initiative_count": 3,
-      "active_conflicts": [/* conflict details */],
-      "linked_themes": [/* theme details */],
-      "confronting_initiatives": [/* initiative details */]
+      "active_conflicts": [/* conflict details with identifiers */],
+      "linked_themes": [/* theme details with identifiers */],
+      "confronting_initiatives": [/* initiative details with identifiers */]
     }
   }
 }
@@ -1890,7 +1764,7 @@ Returns enriched villain data including counts of conflicts, linked themes, and 
 Marks a villain as defeated.
 
 **Parameters:**
-- `villain_identifier`: Human-readable identifier (e.g., "V-2003")
+- `villain_identifier`: Human-readable identifier (e.g., "V-001")
 
 **Returns:**
 Success response with updated villain.
@@ -1904,7 +1778,7 @@ Updates an existing villain's fields.
 **Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
 
 **Parameters:**
-- `villain_identifier`: Human-readable identifier (e.g., "V-2003")
+- `villain_identifier`: Human-readable identifier (e.g., "V-001")
 - `name`: New villain name (optional)
 - `villain_type`: New type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER) (optional)
 - `description`: New villain description (optional)
@@ -1916,10 +1790,9 @@ Updates an existing villain's fields.
 {
   "status": "success",
   "type": "villain",
-  "message": "Updated villain V-2003",
+  "message": "Updated villain V-001",
   "data": {
-    "id": "<uuid>",
-    "identifier": "V-2003",
+    "identifier": "V-001",
     "name": "...",
     "villain_type": "WORKFLOW",
     "description": "...",
@@ -1927,7 +1800,7 @@ Updates an existing villain's fields.
     "is_defeated": false
   },
   "next_steps": [
-    "Villain 'Context Switching' (V-2003) updated successfully"
+    "Villain 'Context Switching' (V-001) updated successfully"
   ]
 }
 ```
@@ -1947,17 +1820,16 @@ Deletes a villain permanently.
 **Important:** Confirm with user BEFORE calling - this action cannot be undone. This will also remove the villain from any linked conflicts and story arcs.
 
 **Parameters:**
-- `villain_identifier`: Human-readable identifier (e.g., "V-2003")
+- `villain_identifier`: Human-readable identifier (e.g., "V-001")
 
 **Returns:**
 ```json
 {
   "status": "success",
   "type": "villain",
-  "message": "Deleted villain V-2003 (Context Switching)",
+  "message": "Deleted villain V-001 (Context Switching)",
   "data": {
-    "deleted_identifier": "V-2003",
-    "deleted_id": "<uuid>"
+    "deleted_identifier": "V-001"
   }
 }
 ```
@@ -1980,18 +1852,18 @@ Framework dict with purpose, criteria, examples, questions, anti-patterns, curre
 
 ---
 
-#### `create_conflict(hero_identifier: str, villain_identifier: str, description: str, story_arc_id: str | None)`
+#### `create_conflict(hero_identifier: str, villain_identifier: str, description: str, roadmap_theme_identifier: str | None)`
 
 Creates a new conflict between a hero and villain.
 
 **Parameters:**
-- `hero_identifier`: Human-readable hero identifier (e.g., "H-2003")
-- `villain_identifier`: Human-readable villain identifier (e.g., "V-2003")
+- `hero_identifier`: Human-readable hero identifier (e.g., "H-001")
+- `villain_identifier`: Human-readable villain identifier (e.g., "V-001")
 - `description`: Rich description including conflict statement, impact, and stakes
-- `story_arc_id`: Optional UUID of story arc addressing this conflict
+- `roadmap_theme_identifier`: Optional roadmap theme identifier (e.g., "T-001") addressing this conflict
 
 **Returns:**
-Success response with created conflict (including identifier like "C-2003").
+Success response with created conflict (including identifier like "C-001").
 
 ---
 
@@ -2001,55 +1873,54 @@ Retrieves conflicts with optional filtering.
 
 **Parameters:**
 - `status`: Optional filter by status (OPEN, ESCALATING, RESOLVING, RESOLVED)
-- `hero_identifier`: Optional filter by hero identifier (e.g., "H-2003")
-- `villain_identifier`: Optional filter by villain identifier (e.g., "V-2003")
+- `hero_identifier`: Optional filter by hero identifier (e.g., "H-001")
+- `villain_identifier`: Optional filter by villain identifier (e.g., "V-001")
 
 **Returns:**
 List of conflicts matching filters.
 
 ---
 
-#### `mark_conflict_resolved(conflict_identifier: str, resolved_by_initiative_id: str)`
+#### `mark_conflict_resolved(conflict_identifier: str, resolved_by_initiative_identifier: str)`
 
 Marks a conflict as resolved by an initiative.
 
 **Parameters:**
-- `conflict_identifier`: Human-readable conflict identifier (e.g., "C-2003")
-- `resolved_by_initiative_id`: UUID of initiative that resolved it
+- `conflict_identifier`: Human-readable conflict identifier (e.g., "C-001")
+- `resolved_by_initiative_identifier`: Initiative identifier (e.g., "I-1001") that resolved it
 
 **Returns:**
 Success response with updated conflict.
 
 ---
 
-#### `update_conflict(conflict_identifier: str, description: str | None, roadmap_theme_id: str | None)`
+#### `update_conflict(conflict_identifier: str, description: str | None, roadmap_theme_identifier: str | None)`
 
 Updates an existing conflict's fields.
 
 **Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
 
 **Parameters:**
-- `conflict_identifier`: Human-readable identifier (e.g., "C-2003")
+- `conflict_identifier`: Human-readable identifier (e.g., "C-001")
 - `description`: New conflict description (optional)
-- `roadmap_theme_id`: New roadmap theme ID to link (optional, use "null" to unlink)
+- `roadmap_theme_identifier`: Roadmap theme identifier (e.g., "T-001") to link (optional, use "null" to unlink)
 
 **Returns:**
 ```json
 {
   "status": "success",
   "type": "conflict",
-  "message": "Updated conflict C-2003",
+  "message": "Updated conflict C-001",
   "data": {
-    "id": "<uuid>",
-    "identifier": "C-2003",
-    "hero_id": "<uuid>",
-    "villain_id": "<uuid>",
+    "identifier": "C-001",
+    "hero_identifier": "H-001",
+    "villain_identifier": "V-001",
     "description": "...",
     "status": "OPEN",
-    "story_arc_id": "<uuid>"
+    "roadmap_theme_identifier": "T-001"
   },
   "next_steps": [
-    "Conflict 'C-2003' updated successfully"
+    "Conflict 'C-001' updated successfully"
   ]
 }
 ```
@@ -2068,17 +1939,16 @@ Deletes a conflict permanently.
 **Important:** Confirm with user BEFORE calling - this action cannot be undone.
 
 **Parameters:**
-- `conflict_identifier`: Human-readable identifier (e.g., "C-2003")
+- `conflict_identifier`: Human-readable identifier (e.g., "C-001")
 
 **Returns:**
 ```json
 {
   "status": "success",
   "type": "conflict",
-  "message": "Deleted conflict C-2003",
+  "message": "Deleted conflict C-001",
   "data": {
-    "deleted_identifier": "C-2003",
-    "deleted_id": "<uuid>"
+    "deleted_identifier": "C-001"
   }
 }
 ```
@@ -2142,31 +2012,31 @@ Complete story bible including:
 Updated to accept optional hero and villain identifiers for narrative linking.
 
 **New Parameters:**
-- `hero_identifier`: Optional human-readable hero identifier (e.g., "H-2003")
-- `primary_villain_identifier`: Optional human-readable villain identifier (e.g., "V-2003")
+- `hero_identifier`: Optional human-readable hero identifier (e.g., "H-001")
+- `primary_villain_identifier`: Optional human-readable villain identifier (e.g., "V-001")
 
 ---
 
-#### `link_theme_to_hero(theme_id: str, hero_identifier: str)`
+#### `link_theme_to_hero(theme_identifier: str, hero_identifier: str)`
 
 Links a roadmap theme to a hero.
 
 **Parameters:**
-- `theme_id`: UUID of roadmap theme
-- `hero_identifier`: Human-readable hero identifier (e.g., "H-2003")
+- `theme_identifier`: Human-readable identifier (e.g., "T-001")
+- `hero_identifier`: Human-readable hero identifier (e.g., "H-001")
 
 **Returns:**
 Success response with updated theme.
 
 ---
 
-#### `link_theme_to_villain(theme_id: str, villain_identifier: str)`
+#### `link_theme_to_villain(theme_identifier: str, villain_identifier: str)`
 
 Links a roadmap theme to a villain.
 
 **Parameters:**
-- `theme_id`: UUID of roadmap theme
-- `villain_identifier`: Human-readable villain identifier (e.g., "V-2003")
+- `theme_identifier`: Human-readable identifier (e.g., "T-001")
+- `villain_identifier`: Human-readable villain identifier (e.g., "V-001")
 
 **Returns:**
 Success response with updated theme.
