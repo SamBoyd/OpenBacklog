@@ -44,8 +44,8 @@ def test_tables_in_public_schema(session: Session):
     table_names = [row[0] for row in result.fetchall()]
     assert_that(
         len(table_names),
-        equal_to(37),
-        f"Expected 22 tables in {SCHEMA_NAME} schema, but got {len(table_names)}",
+        equal_to(43),
+        f"Expected 43 tables in {SCHEMA_NAME} schema, but got {len(table_names)}",
     )
 
     for table in table_names:
@@ -78,9 +78,12 @@ def test_tables_in_public_schema(session: Session):
 
         user_id_check = "(user_id = get_user_id_from_jwt())"
         workspace_id_check = "(workspace_id IN ( SELECT workspace.id FROM workspace WHERE (workspace.user_id = get_user_id_from_jwt())))"
+        unique_workspace_check = "(NOT (EXISTS ( SELECT 1 FROM workspace ws WHERE (ws.user_id = get_user_id_from_jwt()))))"
         assert_that(
             policy,
-            any_of(is_(user_id_check), is_(workspace_id_check)),
+            any_of(
+                is_(user_id_check), is_(workspace_id_check), is_(unique_workspace_check)
+            ),
             f"Table {table} has unexpected security policy, {policy}",
         )
 
