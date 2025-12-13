@@ -54,12 +54,11 @@ def serialize_vision(vision: ProductVision) -> Dict[str, Any]:
 def serialize_pillar(pillar: StrategicPillar) -> Dict[str, Any]:
     """Serialize StrategicPillar to JSON-serializable dict."""
     return {
-        "id": serialize_uuid(pillar.id),
-        "workspace_id": serialize_uuid(pillar.workspace_id),
+        "identifier": pillar.identifier,
         "name": pillar.name,
         "description": pillar.description,
         "display_order": pillar.display_order,
-        "outcome_ids": [serialize_uuid(outcome.id) for outcome in pillar.outcomes],
+        "outcome_identifiers": [outcome.identifier for outcome in pillar.outcomes],
         "created_at": serialize_datetime(pillar.created_at),
         "updated_at": serialize_datetime(pillar.updated_at),
     }
@@ -68,12 +67,11 @@ def serialize_pillar(pillar: StrategicPillar) -> Dict[str, Any]:
 def serialize_outcome(outcome: ProductOutcome) -> Dict[str, Any]:
     """Serialize ProductOutcome to JSON-serializable dict."""
     return {
-        "id": serialize_uuid(outcome.id),
-        "workspace_id": serialize_uuid(outcome.workspace_id),
+        "identifier": outcome.identifier,
         "name": outcome.name,
         "description": outcome.description,
         "display_order": outcome.display_order,
-        "pillar_ids": [serialize_uuid(pillar.id) for pillar in outcome.pillars],
+        "pillar_identifiers": [pillar.identifier for pillar in outcome.pillars],
         "created_at": serialize_datetime(outcome.created_at),
         "updated_at": serialize_datetime(outcome.updated_at),
     }
@@ -81,17 +79,23 @@ def serialize_outcome(outcome: ProductOutcome) -> Dict[str, Any]:
 
 def serialize_theme(theme: RoadmapTheme) -> Dict[str, Any]:
     """Serialize RoadmapTheme to JSON-serializable dict."""
-    return {
-        "id": serialize_uuid(theme.id),
-        "workspace_id": serialize_uuid(theme.workspace_id),
+    result = {
+        "identifier": theme.identifier,
         "name": theme.name,
         "description": theme.description,
-        "outcome_ids": [serialize_uuid(outcome.id) for outcome in theme.outcomes],
-        "hero_ids": [serialize_uuid(hero.id) for hero in theme.heroes],
-        "villain_ids": [serialize_uuid(villain.id) for villain in theme.villains],
+        "outcome_identifiers": [outcome.identifier for outcome in theme.outcomes],
+        "hero_identifiers": [hero.identifier for hero in theme.heroes],
+        "villain_identifiers": [villain.identifier for villain in theme.villains],
         "created_at": serialize_datetime(theme.created_at),
         "updated_at": serialize_datetime(theme.updated_at),
     }
+    if hasattr(theme, "primary_villain_id") and theme.primary_villain_id:
+        primary_villain = next(
+            (v for v in theme.villains if v.id == theme.primary_villain_id), None
+        )
+        if primary_villain:
+            result["primary_villain_identifier"] = primary_villain.identifier
+    return result
 
 
 def serialize_strategic_initiative(si: StrategicInitiative) -> Dict[str, Any]:
@@ -144,20 +148,29 @@ def serialize_villain(villain: Villain) -> Dict[str, Any]:
 
 def serialize_conflict(conflict: Conflict) -> Dict[str, Any]:
     """Serialize Conflict to JSON-serializable dict."""
-    return {
-        "id": serialize_uuid(conflict.id),
+    result = {
         "identifier": conflict.identifier,
-        "workspace_id": serialize_uuid(conflict.workspace_id),
-        "hero_id": serialize_uuid(conflict.hero_id),
-        "villain_id": serialize_uuid(conflict.villain_id),
+        "hero_identifier": conflict.hero.identifier if conflict.hero else None,
+        "villain_identifier": conflict.villain.identifier if conflict.villain else None,
         "description": conflict.description,
-        "status": conflict.status,
-        "story_arc_id": serialize_uuid(conflict.story_arc_id),
+        "status": (
+            conflict.status.value
+            if hasattr(conflict.status, "value")
+            else conflict.status
+        ),
+        "roadmap_theme_identifier": (
+            conflict.story_arc.identifier if conflict.story_arc else None
+        ),
         "resolved_at": serialize_datetime(conflict.resolved_at),
-        "resolved_by_initiative_id": serialize_uuid(conflict.resolved_by_initiative_id),
+        "resolved_by_initiative_identifier": (
+            conflict.resolved_by_initiative.identifier
+            if conflict.resolved_by_initiative
+            else None
+        ),
         "created_at": serialize_datetime(conflict.created_at),
         "updated_at": serialize_datetime(conflict.updated_at),
     }
+    return result
 
 
 def serialize_turning_point(turning_point: TurningPoint) -> Dict[str, Any]:

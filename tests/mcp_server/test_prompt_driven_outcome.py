@@ -199,7 +199,7 @@ class TestSubmitProductOutcome:
         )
 
         assert_that(result, has_entries({"status": "success"}))
-        assert_that(result["data"], has_key("id"))
+        assert_that(result["data"], has_key("identifier"))
 
     @pytest.mark.asyncio
     async def test_submit_without_pillars_warns_alignment_gap(
@@ -337,7 +337,7 @@ class TestGetProductOutcomes:
 
         assert_that(len(result["data"]["outcomes"]), equal_to(1))
         outcome_data = result["data"]["outcomes"][0]
-        assert_that(outcome_data, has_key("id"))
+        assert_that(outcome_data, has_key("identifier"))
         assert_that(outcome_data, has_key("name"))
         assert_that(outcome_data, has_key("description"))
 
@@ -381,7 +381,7 @@ class TestUpdateProductOutcome:
 
         new_name = "Updated Name"
         result = await update_product_outcome.fn(
-            outcome_id=str(outcome.id), name=new_name
+            outcome_identifier=outcome.identifier, name=new_name
         )
 
         assert_that(result, has_entries({"status": "success"}))
@@ -405,7 +405,7 @@ class TestUpdateProductOutcome:
 
         new_description = "Updated description with new metrics"
         result = await update_product_outcome.fn(
-            outcome_id=str(outcome.id), description=new_description
+            outcome_identifier=outcome.identifier, description=new_description
         )
 
         assert_that(result, has_entries({"status": "success"}))
@@ -436,7 +436,8 @@ class TestUpdateProductOutcome:
         )
 
         result = await update_product_outcome.fn(
-            outcome_id=str(outcome.id), pillar_ids=[str(pillar.id)]
+            outcome_identifier=outcome.identifier,
+            pillar_identifiers=[pillar.identifier],
         )
 
         assert_that(result, has_entries({"status": "success"}))
@@ -458,23 +459,25 @@ class TestUpdateProductOutcome:
             session=session,
         )
 
-        result = await update_product_outcome.fn(outcome_id=str(outcome.id))
+        result = await update_product_outcome.fn(outcome_identifier=outcome.identifier)
 
         assert_that(result, has_entries({"status": "error"}))
 
     @pytest.mark.asyncio
     async def test_update_nonexistent_outcome_fails(self, workspace: Workspace):
         """Test that update fails when outcome doesn't exist."""
-        fake_id = str(uuid.uuid4())
-        result = await update_product_outcome.fn(outcome_id=fake_id, name="New Name")
+        fake_identifier = "O-99999"
+        result = await update_product_outcome.fn(
+            outcome_identifier=fake_identifier, name="New Name"
+        )
 
         assert_that(result, has_entries({"status": "error"}))
 
     @pytest.mark.asyncio
     async def test_update_with_invalid_outcome_id_fails(self, workspace: Workspace):
-        """Test that update fails with invalid outcome ID format."""
+        """Test that update fails with invalid outcome identifier."""
         result = await update_product_outcome.fn(
-            outcome_id="invalid-uuid", name="New Name"
+            outcome_identifier="INVALID", name="New Name"
         )
 
         assert_that(result, has_entries({"status": "error"}))
@@ -496,7 +499,7 @@ class TestUpdateProductOutcome:
         )
 
         result = await update_product_outcome.fn(
-            outcome_id=str(outcome.id), pillar_ids=["invalid-uuid"]
+            outcome_identifier=outcome.identifier, pillar_identifiers=["INVALID"]
         )
 
         assert_that(result, has_entries({"status": "error"}))
@@ -518,25 +521,25 @@ class TestDeleteProductOutcome:
             pillar_ids=[],
             session=session,
         )
-        outcome_id = str(outcome.id)
+        outcome_identifier = outcome.identifier
 
-        result = await delete_product_outcome.fn(outcome_id=outcome_id)
+        result = await delete_product_outcome.fn(outcome_identifier=outcome_identifier)
 
         assert_that(result, has_entries({"status": "success"}))
-        assert_that(result["data"]["deleted_id"], equal_to(outcome_id))
+        assert_that(result["data"]["deleted_identifier"], equal_to(outcome_identifier))
 
     @pytest.mark.asyncio
     async def test_delete_nonexistent_outcome_fails(self, workspace: Workspace):
         """Test that delete fails when outcome doesn't exist."""
-        fake_id = str(uuid.uuid4())
-        result = await delete_product_outcome.fn(outcome_id=fake_id)
+        fake_identifier = "O-99999"
+        result = await delete_product_outcome.fn(outcome_identifier=fake_identifier)
 
         assert_that(result, has_entries({"status": "error"}))
 
     @pytest.mark.asyncio
     async def test_delete_with_invalid_outcome_id_fails(self, workspace: Workspace):
-        """Test that delete fails with invalid outcome ID format."""
-        result = await delete_product_outcome.fn(outcome_id="invalid-uuid")
+        """Test that delete fails with invalid outcome identifier."""
+        result = await delete_product_outcome.fn(outcome_identifier="INVALID")
 
         assert_that(result, has_entries({"status": "error"}))
 
@@ -556,7 +559,7 @@ class TestDeleteProductOutcome:
             session=session,
         )
 
-        result = await delete_product_outcome.fn(outcome_id=str(outcome.id))
+        result = await delete_product_outcome.fn(outcome_identifier=outcome.identifier)
 
         assert_that(result, has_entries({"status": "success"}))
         assert_that(

@@ -24,10 +24,12 @@ from src.mcp_server.prompt_driven_tools.utils import (
     identify_alignment_issues,
     serialize_theme,
     validate_theme_constraints,
-    validate_uuid,
+)
+from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
+    resolve_outcome_identifiers,
 )
 from src.roadmap_intelligence import controller as roadmap_controller
-from src.strategic_planning import EventPublisher
+from src.strategic_planning import EventPublisher, RoadmapTheme
 from src.strategic_planning import controller as strategic_controller
 from src.strategic_planning.exceptions import DomainException
 
@@ -332,7 +334,7 @@ async def get_theme_exploration_framework() -> Dict[str, Any]:
 async def submit_roadmap_theme(
     name: str,
     description: str,
-    outcome_ids: Optional[List[str]] = None,
+    outcome_identifiers: Optional[List[str]] = None,
     hero_identifier: Optional[str] = None,
     primary_villain_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -351,9 +353,9 @@ async def submit_roadmap_theme(
         name: Theme name (1-100 characters, unique per workspace)
         description: Theme description including problem statement, hypothesis, metrics, and timeline (required)
                     Should include specific problem, testable hypothesis, indicative metrics, and timeline
-        outcome_ids: List of outcome IDs to link (optional but recommended)
-        hero_identifier: Optional human-readable hero identifier (e.g., "H-2003")
-        primary_villain_identifier: Optional human-readable villain identifier (e.g., "V-2003")
+        outcome_identifiers: List of outcome identifiers to link (optional but recommended)
+        hero_identifier: Optional human-readable hero identifier (e.g., "H-001")
+        primary_villain_identifier: Optional human-readable villain identifier (e.g., "V-001")
 
     Returns:
         Success response with created theme
@@ -362,30 +364,27 @@ async def submit_roadmap_theme(
         >>> result = await submit_roadmap_theme(
         ...     name="First-Week Configuration Success",
         ...     description="Problem Statement: New users abandon initial configuration (40% drop-off)...",
-        ...     outcome_ids=["outcome-uuid-1"]
+        ...     outcome_identifiers=["O-001"]
         ... )
     """
     session = SessionLocal()
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
+        workspace_uuid = uuid.UUID(workspace_id)
 
         warnings = []
-        if not outcome_ids:
+        if not outcome_identifiers:
             warnings.append(
                 "ALIGNMENT GAP: No outcomes linked. Themes should connect to the product "
                 "outcomes they drive. Consider which outcome(s) this theme advances."
             )
 
-        # Convert outcome_ids from strings to UUIDs
+        # Resolve outcome identifiers to UUIDs
         outcome_uuids = []
-        if outcome_ids:
-            for outcome_id in outcome_ids:
-                try:
-                    outcome_uuids.append(uuid.UUID(outcome_id))
-                except (ValueError, AttributeError, TypeError) as e:
-                    return build_error_response(
-                        "theme", f"Invalid outcome_id format: {outcome_id}"
-                    )
+        if outcome_identifiers:
+            outcome_uuids = resolve_outcome_identifiers(
+                outcome_identifiers, workspace_uuid, session
+            )
 
         # Resolve hero and villain identifiers if provided
         hero_uuid = None
@@ -414,7 +413,7 @@ async def submit_roadmap_theme(
             workspace_id=uuid.UUID(workspace_id),
             name=name,
             description=description,
-            outcome_ids=outcome_ids,
+            outcome_ids=[str(outcome_uuid) for outcome_uuid in outcome_uuids],
             session=session,
             hero_identifier=hero_identifier,
             primary_villain_identifier=primary_villain_identifier,
@@ -422,7 +421,7 @@ async def submit_roadmap_theme(
 
         # Create theme via controller
         theme = roadmap_controller.create_roadmap_theme(
-            workspace_id=uuid.UUID(workspace_id),
+            workspace_id=workspace_uuid,
             user_id=uuid.UUID(user_id),
             name=name,
             description=description,
@@ -617,7 +616,7 @@ async def get_prioritization_context() -> Dict[str, Any]:
 
 @mcp.tool()
 async def prioritize_workstream(
-    theme_id: str, priority_position: int
+    theme_identifier: str, priority_position: int
 ) -> Dict[str, Any]:
     """Add theme to prioritized roadmap at specified position.
 
@@ -627,7 +626,7 @@ async def prioritize_workstream(
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        theme_id: UUID of the theme to prioritize
+        theme_identifier: Human-readable identifier of the theme to prioritize (e.g., "T-001")
         priority_position: Position in priority list (0-indexed, 0 = highest priority)
 
     Returns:
@@ -635,14 +634,24 @@ async def prioritize_workstream(
 
     Example:
         >>> result = await prioritize_workstream(
-        ...     theme_id="...",
+        ...     theme_identifier="T-001",
         ...     priority_position=0
         ... )
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        theme_uuid = validate_uuid(theme_id, "theme_id")
+
+        theme = (
+            session.query(roadmap_controller.RoadmapTheme)
+            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
+            .first()
+        )
+
+        if not theme:
+            return build_error_response(
+                "prioritization", f"Theme {theme_identifier} not found"
+            )
 
         # Get current prioritized count for capacity warning
         prioritized_themes = roadmap_controller.get_prioritized_themes(
@@ -652,7 +661,7 @@ async def prioritize_workstream(
 
         # Prioritize the theme
         theme = roadmap_controller.prioritize_roadmap_theme(
-            theme_id=theme_uuid,
+            theme_id=theme.id,
             new_order=priority_position,
             workspace_id=workspace_uuid,
             session=session,
@@ -693,29 +702,37 @@ async def prioritize_workstream(
 
 
 @mcp.tool()
-async def deprioritize_workstream(theme_id: str) -> Dict[str, Any]:
+async def deprioritize_workstream(theme_identifier: str) -> Dict[str, Any]:
     """Remove theme from prioritized roadmap (move back to backlog).
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        theme_id: UUID of the theme to deprioritize
+        theme_identifier: Human-readable identifier of the theme to deprioritize (e.g., "T-001")
 
     Returns:
         Success response with theme data, or error response.
 
     Example:
-        >>> result = await deprioritize_workstream(theme_id="...")
+        >>> result = await deprioritize_workstream(theme_identifier="T-001")
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        theme_uuid = validate_uuid(theme_id, "theme_id")
+
+        theme = (
+            session.query(roadmap_controller.RoadmapTheme)
+            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
+            .first()
+        )
+
+        if not theme:
+            return build_error_response("theme", f"Theme {theme_identifier} not found")
 
         # Deprioritize the theme
         theme = roadmap_controller.deprioritize_roadmap_theme(
-            theme_id=theme_uuid,
+            theme_id=theme.id,
             workspace_id=workspace_uuid,
             session=session,
         )
@@ -742,30 +759,37 @@ async def organize_roadmap(theme_order: Dict[str, int]) -> Dict[str, Any]:
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        theme_order: Dict mapping theme_id (str) to new position (int).
+        theme_order: Dict mapping theme_identifier (str) to new position (int).
                      Must include ALL prioritized themes.
+                     Keys should be human-readable identifiers (e.g., "T-001", "T-002").
 
     Returns:
         Success response with ordered theme list, or error response.
 
     Example:
         >>> result = await organize_roadmap(
-        ...     theme_order={"theme-1": 0, "theme-2": 1, "theme-3": 2}
+        ...     theme_order={"T-001": 0, "T-002": 1, "T-003": 2}
         ... )
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
 
-        # Convert theme_order keys from strings to UUIDs
+        # Convert theme_order keys from identifiers to UUIDs
         theme_order_uuids = {}
-        for theme_id_str, position in theme_order.items():
-            try:
-                theme_order_uuids[uuid.UUID(theme_id_str)] = position
-            except (ValueError, AttributeError, TypeError):
+        for theme_identifier, position in theme_order.items():
+            theme = (
+                session.query(RoadmapTheme)
+                .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
+                .first()
+            )
+
+            if not theme:
                 return build_error_response(
-                    "roadmap", f"Invalid theme_id format: {theme_id_str}"
+                    "roadmap", f"Theme with identifier '{theme_identifier}' not found"
                 )
+
+            theme_order_uuids[theme.id] = position
 
         # Reorder themes
         ordered_themes = roadmap_controller.reorder_roadmap_themes(
@@ -793,7 +817,7 @@ async def organize_roadmap(theme_order: Dict[str, int]) -> Dict[str, Any]:
 
 @mcp.tool()
 async def connect_theme_to_outcomes(
-    theme_id: str, outcome_ids: List[str]
+    theme_identifier: str, outcome_identifiers: List[str]
 ) -> Dict[str, Any]:
     """Update outcome linkages for a theme.
 
@@ -801,37 +825,31 @@ async def connect_theme_to_outcomes(
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        theme_id: UUID of the theme
-        outcome_ids: List of outcome IDs to link to this theme
+        theme_identifier: Human-readable identifier of the theme (e.g., "T-001")
+        outcome_identifiers: List of outcome identifiers to link to this theme
 
     Returns:
         Success response with updated theme and new alignment score, or error response.
 
     Example:
         >>> result = await connect_theme_to_outcomes(
-        ...     theme_id="...",
-        ...     outcome_ids=["outcome-1", "outcome-2"]
+        ...     theme_identifier="T-001",
+        ...     outcome_identifiers=["O-001", "O-002"]
         ... )
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        theme_uuid = validate_uuid(theme_id, "theme_id")
 
-        # Convert outcome_ids from strings to UUIDs
-        outcome_uuids = []
-        for outcome_id in outcome_ids:
-            try:
-                outcome_uuids.append(uuid.UUID(outcome_id))
-            except (ValueError, AttributeError, TypeError):
-                return build_error_response(
-                    "theme", f"Invalid outcome_id format: {outcome_id}"
-                )
+        # Resolve outcome identifiers to UUIDs
+        outcome_uuids = resolve_outcome_identifiers(
+            outcome_identifiers, workspace_uuid, session
+        )
 
         # Get the theme first
         theme = (
             session.query(roadmap_controller.RoadmapTheme)
-            .filter_by(id=theme_uuid, workspace_id=workspace_uuid)
+            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
             .first()
         )
 
@@ -840,7 +858,7 @@ async def connect_theme_to_outcomes(
 
         # Update the theme with new outcome links
         theme = roadmap_controller.update_roadmap_theme(
-            theme_id=theme_uuid,
+            theme_id=theme.id,
             workspace_id=workspace_uuid,
             name=theme.name,
             description=theme.description,
@@ -877,15 +895,17 @@ async def connect_theme_to_outcomes(
 
 
 @mcp.tool()
-async def link_theme_to_hero(theme_id: str, hero_identifier: str) -> Dict[str, Any]:
+async def link_theme_to_hero(
+    theme_identifier: str, hero_identifier: str
+) -> Dict[str, Any]:
     """Links a roadmap theme to a hero.
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        theme_id: UUID of roadmap theme
-        hero_identifier: Human-readable hero identifier (e.g., "H-2003")
+        theme_identifier: Human-readable identifier of roadmap theme (e.g., "T-001")
+        hero_identifier: Human-readable hero identifier (e.g., "H-001")
 
     Returns:
         Success response with updated theme
@@ -893,7 +913,6 @@ async def link_theme_to_hero(theme_id: str, hero_identifier: str) -> Dict[str, A
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        theme_uuid = validate_uuid(theme_id, "theme_id")
 
         from src.narrative.services.hero_service import HeroService
 
@@ -903,7 +922,7 @@ async def link_theme_to_hero(theme_id: str, hero_identifier: str) -> Dict[str, A
 
         theme = (
             session.query(roadmap_controller.RoadmapTheme)
-            .filter_by(id=theme_uuid, workspace_id=workspace_uuid)
+            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
             .first()
         )
 
@@ -930,7 +949,7 @@ async def link_theme_to_hero(theme_id: str, hero_identifier: str) -> Dict[str, A
 
 @mcp.tool()
 async def link_theme_to_villain(
-    theme_id: str, villain_identifier: str
+    theme_identifier: str, villain_identifier: str
 ) -> Dict[str, Any]:
     """Links a roadmap theme to a villain.
 
@@ -938,8 +957,8 @@ async def link_theme_to_villain(
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        theme_id: UUID of roadmap theme
-        villain_identifier: Human-readable villain identifier (e.g., "V-2003")
+        theme_identifier: Human-readable identifier of roadmap theme (e.g., "T-001")
+        villain_identifier: Human-readable villain identifier (e.g., "V-001")
 
     Returns:
         Success response with updated theme
@@ -947,7 +966,6 @@ async def link_theme_to_villain(
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        theme_uuid = validate_uuid(theme_id, "theme_id")
 
         from src.narrative.services.villain_service import VillainService
 
@@ -959,7 +977,7 @@ async def link_theme_to_villain(
 
         theme = (
             session.query(roadmap_controller.RoadmapTheme)
-            .filter_by(id=theme_uuid, workspace_id=workspace_uuid)
+            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
             .first()
         )
 
@@ -1032,10 +1050,10 @@ async def get_roadmap_themes() -> Dict[str, Any]:
 
 @mcp.tool()
 async def update_roadmap_theme(
-    theme_id: str,
+    theme_identifier: str,
     name: Optional[str] = None,
     description: Optional[str] = None,
-    outcome_ids: Optional[List[str]] = None,
+    outcome_identifiers: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Update an existing roadmap theme.
 
@@ -1046,45 +1064,48 @@ async def update_roadmap_theme(
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        theme_id: UUID of the roadmap theme to update
+        theme_identifier: Human-readable identifier of the roadmap theme to update (e.g., "T-001")
         name: New theme name (optional, 1-100 characters)
         description: New theme description (optional)
-        outcome_ids: List of outcome UUIDs to link (optional, replaces existing links)
+        outcome_identifiers: List of outcome identifiers to link (optional, replaces existing links)
 
     Returns:
         Success response with updated theme
 
     Example:
         >>> result = await update_roadmap_theme(
-        ...     theme_id="...",
+        ...     theme_identifier="T-001",
         ...     name="Updated Theme Name",
         ...     description="Updated description with problem statement, hypothesis...",
-        ...     outcome_ids=["outcome-uuid-1", "outcome-uuid-2"]
+        ...     outcome_identifiers=["O-001", "O-002"]
         ... )
     """
     session = SessionLocal()
     try:
         _, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(f"Updating roadmap theme {theme_id} for workspace {workspace_id}")
+        logger.info(
+            f"Updating roadmap theme {theme_identifier} for workspace {workspace_id}"
+        )
 
-        if name is None and description is None and outcome_ids is None:
+        if name is None and description is None and outcome_identifiers is None:
             return build_error_response(
                 "theme",
-                "At least one field (name, description, outcome_ids) must be provided",
+                "At least one field (name, description, outcome_identifiers) must be provided",
             )
 
-        theme_uuid = validate_uuid(theme_id, "theme_id")
         workspace_uuid = uuid.UUID(workspace_id)
 
         # Get theme first to check existence and get current values
         theme = (
             session.query(roadmap_controller.RoadmapTheme)
-            .filter_by(id=theme_uuid, workspace_id=workspace_uuid)
+            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
             .first()
         )
 
         if not theme:
-            return build_error_response("theme", f"Roadmap theme {theme_id} not found")
+            return build_error_response(
+                "theme", f"Roadmap theme {theme_identifier} not found"
+            )
 
         # Merge with existing values
         final_name = name if name is not None else theme.name
@@ -1092,16 +1113,16 @@ async def update_roadmap_theme(
             description if description is not None else theme.description
         )
 
-        # Convert outcome_ids to UUIDs if provided
+        # Resolve outcome identifiers to UUIDs if provided
         outcome_uuids = None
-        if outcome_ids is not None:
-            outcome_uuids = []
-            for oid in outcome_ids:
-                outcome_uuids.append(validate_uuid(oid, "outcome_id"))
+        if outcome_identifiers is not None:
+            outcome_uuids = resolve_outcome_identifiers(
+                outcome_identifiers, workspace_uuid, session
+            )
 
         # Use controller to update
         updated_theme = roadmap_controller.update_roadmap_theme(
-            theme_id=theme_uuid,
+            theme_id=theme.id,
             workspace_id=workspace_uuid,
             name=final_name,
             description=final_description,
@@ -1120,8 +1141,10 @@ async def update_roadmap_theme(
         alignment_score = calculate_alignment_score(updated_theme, len(all_outcomes))
 
         next_steps = [f"Roadmap theme '{updated_theme.name}' updated successfully"]
-        if outcome_ids is not None:
-            next_steps.append(f"Theme now linked to {len(outcome_ids)} outcome(s)")
+        if outcome_identifiers is not None:
+            next_steps.append(
+                f"Theme now linked to {len(outcome_identifiers)} outcome(s)"
+            )
         next_steps.append(f"Strategic alignment score: {alignment_score:.2f}")
 
         return build_success_response(
@@ -1147,7 +1170,7 @@ async def update_roadmap_theme(
 
 
 @mcp.tool()
-async def delete_roadmap_theme(theme_id: str) -> Dict[str, Any]:
+async def delete_roadmap_theme(theme_identifier: str) -> Dict[str, Any]:
     """Delete a roadmap theme permanently.
 
     IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
@@ -1157,29 +1180,33 @@ async def delete_roadmap_theme(theme_id: str) -> Dict[str, Any]:
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        theme_id: UUID of the roadmap theme to delete
+        theme_identifier: Human-readable identifier of the roadmap theme to delete (e.g., "T-001")
 
     Returns:
         Success response confirming deletion
 
     Example:
-        >>> result = await delete_roadmap_theme(theme_id="...")
+        >>> result = await delete_roadmap_theme(theme_identifier="T-001")
     """
     session = SessionLocal()
     try:
         _, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(f"Deleting roadmap theme {theme_id} for workspace {workspace_id}")
+        logger.info(
+            f"Deleting roadmap theme {theme_identifier} for workspace {workspace_id}"
+        )
 
-        theme_uuid = validate_uuid(theme_id, "theme_id")
+        workspace_uuid = uuid.UUID(workspace_id)
 
         theme = (
             session.query(roadmap_controller.RoadmapTheme)
-            .filter_by(id=theme_uuid, workspace_id=uuid.UUID(workspace_id))
+            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
             .first()
         )
 
         if not theme:
-            return build_error_response("theme", f"Roadmap theme {theme_id} not found")
+            return build_error_response(
+                "theme", f"Roadmap theme {theme_identifier} not found"
+            )
 
         theme_name = theme.name
 
@@ -1189,7 +1216,7 @@ async def delete_roadmap_theme(theme_id: str) -> Dict[str, Any]:
         return build_success_response(
             entity_type="theme",
             message=f"Deleted roadmap theme '{theme_name}'",
-            data={"deleted_id": theme_id},
+            data={"deleted_identifier": theme_identifier},
         )
 
     except DomainException as e:

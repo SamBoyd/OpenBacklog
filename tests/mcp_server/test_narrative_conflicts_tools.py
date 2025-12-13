@@ -164,11 +164,11 @@ class TestUpdateConflict:
         )  # pyright: ignore[reportOptionalMemberAccess]
 
     @pytest.mark.asyncio
-    async def test_update_conflict_story_arc_id_linking_fails_without_roadmap_theme(
+    async def test_update_conflict_roadmap_theme_identifier_linking_fails_without_roadmap_theme(
         self, session: Session, conflict: Conflict
     ):
-        """Test that linking to non-existent story arc fails with FK constraint."""
-        invalid_story_arc_id = str(uuid.uuid4())
+        """Test that linking to non-existent roadmap theme fails with FK constraint."""
+        invalid_theme_identifier = "T-9999"
 
         with (
             patch(
@@ -183,10 +183,10 @@ class TestUpdateConflict:
 
             result = await update_conflict.fn(
                 conflict_identifier=conflict.identifier,
-                roadmap_theme_id=invalid_story_arc_id,
+                roadmap_theme_identifier=invalid_theme_identifier,
             )
 
-        # Verify error response due to FK constraint
+        # Verify error response due to theme not found
         assert_that(result, has_entries({"status": "error", "type": "conflict"}))
         assert_that(result, has_key("error_message"))
 
@@ -194,7 +194,7 @@ class TestUpdateConflict:
     async def test_update_conflict_both_fields_success(
         self, session: Session, conflict: Conflict
     ):
-        """Test successfully updating both description and unlinking story arc."""
+        """Test successfully updating both description and unlinking roadmap theme."""
         new_description = "Updated description"
 
         with (
@@ -211,7 +211,7 @@ class TestUpdateConflict:
             result = await update_conflict.fn(
                 conflict_identifier=conflict.identifier,
                 description=new_description,
-                roadmap_theme_id="null",
+                roadmap_theme_identifier="null",
             )
 
         # Verify both fields updated
@@ -219,10 +219,10 @@ class TestUpdateConflict:
         assert_that(result["data"]["description"], equal_to(new_description))
 
     @pytest.mark.asyncio
-    async def test_update_conflict_unlink_story_arc_with_null(
+    async def test_update_conflict_unlink_roadmap_theme_with_null(
         self, session: Session, conflict: Conflict
     ):
-        """Test unlinking conflict from story arc using 'null' string."""
+        """Test unlinking conflict from roadmap theme using 'null' string."""
         with (
             patch(
                 "src.mcp_server.prompt_driven_tools.narrative_conflicts.SessionLocal"
@@ -236,18 +236,18 @@ class TestUpdateConflict:
 
             result = await update_conflict.fn(
                 conflict_identifier=conflict.identifier,
-                roadmap_theme_id="null",
+                roadmap_theme_identifier="null",
             )
 
-        # Verify story arc unlinked
+        # Verify roadmap theme unlinked
         assert_that(result, has_entries({"status": "success", "type": "conflict"}))
-        assert_that(result["data"]["story_arc_id"], equal_to(None))
+        assert_that(result["data"]["roadmap_theme_identifier"], equal_to(None))
 
     @pytest.mark.asyncio
-    async def test_update_conflict_unlink_story_arc_with_empty_string(
+    async def test_update_conflict_unlink_roadmap_theme_with_empty_string(
         self, session: Session, conflict: Conflict
     ):
-        """Test unlinking conflict from story arc using empty string."""
+        """Test unlinking conflict from roadmap theme using empty string."""
         with (
             patch(
                 "src.mcp_server.prompt_driven_tools.narrative_conflicts.SessionLocal"
@@ -261,12 +261,12 @@ class TestUpdateConflict:
 
             result = await update_conflict.fn(
                 conflict_identifier=conflict.identifier,
-                roadmap_theme_id="",
+                roadmap_theme_identifier="",
             )
 
-        # Verify story arc unlinked
+        # Verify roadmap theme unlinked
         assert_that(result, has_entries({"status": "success", "type": "conflict"}))
-        assert_that(result["data"]["story_arc_id"], equal_to(None))
+        assert_that(result["data"]["roadmap_theme_identifier"], equal_to(None))
 
     @pytest.mark.asyncio
     async def test_update_conflict_no_fields_provided_error(
@@ -296,10 +296,12 @@ class TestUpdateConflict:
         )
 
     @pytest.mark.asyncio
-    async def test_update_conflict_invalid_story_arc_id_format(
+    async def test_update_conflict_invalid_roadmap_theme_identifier_format(
         self, session: Session, conflict: Conflict
     ):
-        """Test error when story_arc_id has invalid UUID format."""
+        """Test error when roadmap_theme_identifier is invalid."""
+        invalid_identifier = "INVALID-ID"
+
         with (
             patch(
                 "src.mcp_server.prompt_driven_tools.narrative_conflicts.SessionLocal"
@@ -313,16 +315,12 @@ class TestUpdateConflict:
 
             result = await update_conflict.fn(
                 conflict_identifier=conflict.identifier,
-                roadmap_theme_id="not-a-valid-uuid",
+                roadmap_theme_identifier=invalid_identifier,
             )
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "conflict"}))
         assert_that(result, has_key("error_message"))
-        assert_that(
-            result.get("error_message", ""),
-            contains_string("Invalid roadmap_theme_id format"),
-        )
 
     @pytest.mark.asyncio
     async def test_update_conflict_not_found_error(

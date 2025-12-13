@@ -21,6 +21,10 @@ from src.mcp_server.prompt_driven_tools.utils import (
     serialize_strategic_foundation,
     validate_uuid,
 )
+from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
+    resolve_outcome_identifier,
+    resolve_pillar_identifiers,
+)
 from src.strategic_planning import controller as strategic_controller
 from src.strategic_planning.exceptions import DomainException
 
@@ -75,8 +79,8 @@ async def review_strategic_foundation() -> Dict[str, Any]:
 
 @mcp.tool()
 async def connect_outcome_to_pillars(
-    outcome_id: str,
-    pillar_ids: List[str],
+    outcome_identifier: str,
+    pillar_identifiers: List[str],
 ) -> Dict[str, Any]:
     """Link a product outcome to strategic pillars.
 
@@ -87,25 +91,27 @@ async def connect_outcome_to_pillars(
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        outcome_id: UUID of the outcome to link
-        pillar_ids: List of pillar UUIDs to link to this outcome
+        outcome_identifier: Human-readable identifier of the outcome to link (e.g., "O-002")
+        pillar_identifiers: List of pillar identifiers to link to this outcome
 
     Returns:
         Success response with updated outcome data
 
     Example:
         >>> result = await connect_outcome_to_pillars(
-        ...     outcome_id="outcome-uuid",
-        ...     pillar_ids=["pillar1-uuid", "pillar2-uuid"]
+        ...     outcome_identifier="O-002",
+        ...     pillar_identifiers=["P-001", "P-002"]
         ... )
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        outcome_uuid = validate_uuid(outcome_id, "outcome_id")
-        pillar_uuids = [
-            validate_uuid(pid, f"pillar_ids[{i}]") for i, pid in enumerate(pillar_ids)
-        ]
+        outcome_uuid = resolve_outcome_identifier(
+            outcome_identifier, workspace_uuid, session
+        )
+        pillar_uuids = resolve_pillar_identifiers(
+            pillar_identifiers, workspace_uuid, session
+        )
 
         # Fetch the outcome
         outcomes = strategic_controller.get_product_outcomes(workspace_uuid, session)
@@ -114,7 +120,7 @@ async def connect_outcome_to_pillars(
         if not outcome:
             return build_error_response(
                 "outcome_pillar_link",
-                f"Product outcome {outcome_id} not found in workspace {workspace_uuid}",
+                f"Product outcome {outcome_identifier} not found in workspace {workspace_uuid}",
             )
 
         # Link to pillars via controller

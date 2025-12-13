@@ -22,6 +22,9 @@ from src.mcp_server.prompt_driven_tools.utils import (
     validate_outcome_constraints,
     validate_uuid,
 )
+from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
+    resolve_pillar_identifiers,
+)
 from src.strategic_planning import controller as strategic_controller
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
 from src.strategic_planning.exceptions import DomainException
@@ -492,10 +495,10 @@ async def get_product_outcomes() -> Dict[str, Any]:
 
 @mcp.tool()
 async def update_product_outcome(
-    outcome_id: str,
+    outcome_identifier: str,
     name: Optional[str] = None,
     description: Optional[str] = None,
-    pillar_ids: Optional[List[str]] = None,
+    pillar_identifiers: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Update an existing product outcome.
 
@@ -506,46 +509,46 @@ async def update_product_outcome(
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        outcome_id: UUID of the product outcome to update
+        outcome_identifier: Human-readable identifier of the product outcome to update (e.g., "O-002")
         name: New outcome name (optional, 1-150 characters)
         description: New outcome description (optional, 1-3000 characters)
-        pillar_ids: List of pillar UUIDs to link (optional, replaces existing links)
+        pillar_identifiers: List of pillar identifiers to link (optional, replaces existing links)
 
     Returns:
         Success response with updated outcome
 
     Example:
         >>> result = await update_product_outcome(
-        ...     outcome_id="...",
+        ...     outcome_identifier="O-002",
         ...     name="Updated Outcome Name",
         ...     description="Updated description with goal, baseline, target...",
-        ...     pillar_ids=["pillar-uuid-1", "pillar-uuid-2"]
+        ...     pillar_identifiers=["P-001", "P-002"]
         ... )
     """
     session = SessionLocal()
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
         logger.info(
-            f"Updating product outcome {outcome_id} for workspace {workspace_id}"
+            f"Updating product outcome {outcome_identifier} for workspace {workspace_id}"
         )
 
-        if name is None and description is None and pillar_ids is None:
+        if name is None and description is None and pillar_identifiers is None:
             return build_error_response(
                 "outcome",
-                "At least one field (name, description, pillar_ids) must be provided",
+                "At least one field (name, description, pillar_identifiers) must be provided",
             )
 
-        outcome_uuid = validate_uuid(outcome_id, "outcome_id")
+        workspace_uuid = uuid.UUID(workspace_id)
 
         outcome = (
             session.query(ProductOutcome)
-            .filter_by(id=outcome_uuid, workspace_id=uuid.UUID(workspace_id))
+            .filter_by(identifier=outcome_identifier, workspace_id=workspace_uuid)
             .first()
         )
 
         if not outcome:
             return build_error_response(
-                "outcome", f"Product outcome {outcome_id} not found"
+                "outcome", f"Product outcome {outcome_identifier} not found"
             )
 
         publisher = EventPublisher(session)
@@ -564,10 +567,10 @@ async def update_product_outcome(
             )
 
         # Update pillar links if provided
-        if pillar_ids is not None:
-            pillar_uuids = []
-            for pid in pillar_ids:
-                pillar_uuids.append(validate_uuid(pid, "pillar_id"))
+        if pillar_identifiers is not None:
+            pillar_uuids = resolve_pillar_identifiers(
+                pillar_identifiers, workspace_uuid, session
+            )
 
             outcome.link_to_pillars(
                 pillar_ids=pillar_uuids,
@@ -580,8 +583,10 @@ async def update_product_outcome(
         session.refresh(outcome)
 
         next_steps = [f"Product outcome '{outcome.name}' updated successfully"]
-        if pillar_ids is not None:
-            next_steps.append(f"Outcome now linked to {len(pillar_ids)} pillar(s)")
+        if pillar_identifiers is not None:
+            next_steps.append(
+                f"Outcome now linked to {len(pillar_identifiers)} pillar(s)"
+            )
 
         return build_success_response(
             entity_type="outcome",
@@ -606,7 +611,7 @@ async def update_product_outcome(
 
 
 @mcp.tool()
-async def delete_product_outcome(outcome_id: str) -> Dict[str, Any]:
+async def delete_product_outcome(outcome_identifier: str) -> Dict[str, Any]:
     """Delete a product outcome permanently.
 
     IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
@@ -616,32 +621,32 @@ async def delete_product_outcome(outcome_id: str) -> Dict[str, Any]:
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        outcome_id: UUID of the product outcome to delete
+        outcome_identifier: Human-readable identifier of the product outcome to delete (e.g., "O-002")
 
     Returns:
         Success response confirming deletion
 
     Example:
-        >>> result = await delete_product_outcome(outcome_id="...")
+        >>> result = await delete_product_outcome(outcome_identifier="O-002")
     """
     session = SessionLocal()
     try:
         _, workspace_id = get_auth_context(session, requires_workspace=True)
         logger.info(
-            f"Deleting product outcome {outcome_id} for workspace {workspace_id}"
+            f"Deleting product outcome {outcome_identifier} for workspace {workspace_id}"
         )
 
-        outcome_uuid = validate_uuid(outcome_id, "outcome_id")
+        workspace_uuid = uuid.UUID(workspace_id)
 
         outcome = (
             session.query(ProductOutcome)
-            .filter_by(id=outcome_uuid, workspace_id=uuid.UUID(workspace_id))
+            .filter_by(identifier=outcome_identifier, workspace_id=workspace_uuid)
             .first()
         )
 
         if not outcome:
             return build_error_response(
-                "outcome", f"Product outcome {outcome_id} not found"
+                "outcome", f"Product outcome {outcome_identifier} not found"
             )
 
         outcome_name = outcome.name
@@ -652,7 +657,7 @@ async def delete_product_outcome(outcome_id: str) -> Dict[str, Any]:
         return build_success_response(
             entity_type="outcome",
             message=f"Deleted product outcome '{outcome_name}'",
-            data={"deleted_id": outcome_id},
+            data={"deleted_identifier": outcome_identifier},
         )
 
     except DomainException as e:

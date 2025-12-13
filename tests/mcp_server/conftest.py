@@ -102,11 +102,11 @@ def mock_get_auth_context(request, user, workspace):
         mock.return_value = (str(user.id), str(workspace.id))
 
     # Mocks 12-19 return just workspace.id (UUID)
-    for mock in mocks[12:20]:
+    for mock in mocks[12:22]:
         mock.return_value = workspace.id
 
     # Last mock returns user.id (UUID)
-    mocks[20].return_value = user.id
+    mocks[22].return_value = user.id
 
     yield mocks
 

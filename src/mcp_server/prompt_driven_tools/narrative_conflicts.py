@@ -20,6 +20,10 @@ from src.mcp_server.prompt_driven_tools.utils import (
     get_workspace_id_from_request,
     serialize_conflict,
 )
+from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
+    resolve_initiative_identifier,
+    resolve_theme_identifier,
+)
 from src.narrative.aggregates.conflict import Conflict, ConflictStatus
 from src.narrative.exceptions import DomainException
 from src.narrative.services.conflict_service import ConflictService
@@ -411,7 +415,7 @@ async def get_conflicts(
 @mcp.tool()
 async def mark_conflict_resolved(
     conflict_identifier: str,
-    resolved_by_initiative_id: str,
+    resolved_by_initiative_identifier: str,
 ) -> Dict[str, Any]:
     """Marks a conflict as resolved by an initiative.
 
@@ -419,8 +423,8 @@ async def mark_conflict_resolved(
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        conflict_identifier: Human-readable conflict identifier (e.g., "C-2003")
-        resolved_by_initiative_id: UUID of initiative that resolved it
+        conflict_identifier: Human-readable conflict identifier (e.g., "C-001")
+        resolved_by_initiative_identifier: Human-readable identifier of initiative that resolved it (e.g., "I-1001")
 
     Returns:
         Success response with updated conflict
@@ -443,13 +447,9 @@ async def mark_conflict_resolved(
                 "conflict", f"Conflict {conflict_identifier} is already resolved"
             )
 
-        try:
-            initiative_uuid = uuid.UUID(resolved_by_initiative_id)
-        except ValueError:
-            return build_error_response(
-                "conflict",
-                f"Invalid resolved_by_initiative_id format: {resolved_by_initiative_id}",
-            )
+        initiative_uuid = resolve_initiative_identifier(
+            resolved_by_initiative_identifier, workspace_uuid, session
+        )
 
         conflict.mark_resolved(initiative_uuid, publisher)
         session.commit()
@@ -477,7 +477,7 @@ async def mark_conflict_resolved(
 async def update_conflict(
     conflict_identifier: str,
     description: Optional[str] = None,
-    roadmap_theme_id: Optional[str] = None,
+    roadmap_theme_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Update an existing conflict's fields.
 
@@ -488,17 +488,18 @@ async def update_conflict(
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        conflict_identifier: Human-readable identifier (e.g., "C-2003")
+        conflict_identifier: Human-readable identifier (e.g., "C-001")
         description: New conflict description (optional)
-        roadmap_theme_id: New roadmap theme ID to link (optional, use "null" to unlink)
+        roadmap_theme_identifier: New roadmap theme identifier to link (optional, use "null" to unlink)
 
     Returns:
         Success response with updated conflict
 
     Example:
         >>> result = await update_conflict(
-        ...     conflict_identifier="C-2003",
+        ...     conflict_identifier="C-001",
         ...     description="Updated conflict description...",
+        ...     roadmap_theme_identifier="T-001"
         ... )
     """
     session = SessionLocal()
@@ -508,33 +509,34 @@ async def update_conflict(
             f"Updating conflict {conflict_identifier} for workspace {workspace_id}"
         )
 
-        if description is None and roadmap_theme_id is None:
+        if description is None and roadmap_theme_identifier is None:
             return build_error_response(
                 "conflict",
-                "At least one field (description, roadmap_theme_id) must be provided",
+                "At least one field (description, roadmap_theme_identifier) must be provided",
             )
 
+        workspace_uuid = uuid.UUID(workspace_id)
         publisher = EventPublisher(session)
         conflict_service = ConflictService(session, publisher)
         conflict = conflict_service.get_conflict_by_identifier(
-            conflict_identifier, uuid.UUID(workspace_id)
+            conflict_identifier, workspace_uuid
         )
 
         final_description = (
             description if description is not None else conflict.description
         )
 
-        if roadmap_theme_id is not None:
-            if roadmap_theme_id.lower() == "null" or roadmap_theme_id == "":
+        if roadmap_theme_identifier is not None:
+            if (
+                roadmap_theme_identifier.lower() == "null"
+                or roadmap_theme_identifier == ""
+            ):
                 final_roadmap_theme_id = None
             else:
-                try:
-                    final_roadmap_theme_id = uuid.UUID(roadmap_theme_id)
-                except ValueError:
-                    return build_error_response(
-                        "conflict",
-                        f"Invalid roadmap_theme_id format: {roadmap_theme_id}. Use a valid UUID or 'null' to unlink.",
-                    )
+                theme_uuid = resolve_theme_identifier(
+                    roadmap_theme_identifier, workspace_uuid, session
+                )
+                final_roadmap_theme_id = theme_uuid
         else:
             final_roadmap_theme_id = conflict.story_arc_id
 
@@ -600,15 +602,17 @@ async def delete_conflict(conflict_identifier: str) -> Dict[str, Any]:
             conflict_identifier, uuid.UUID(workspace_id)
         )
 
-        conflict_id = str(conflict.id)
-
+        conflict_id = conflict.id
         session.delete(conflict)
         session.commit()
 
         return build_success_response(
             entity_type="conflict",
             message=f"Deleted conflict {conflict_identifier}",
-            data={"deleted_identifier": conflict_identifier, "deleted_id": conflict_id},
+            data={
+                "deleted_identifier": conflict_identifier,
+                "deleted_id": str(conflict_id),
+            },
         )
 
     except DomainException as e:

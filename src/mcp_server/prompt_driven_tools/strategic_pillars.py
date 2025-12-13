@@ -388,7 +388,7 @@ async def get_strategic_pillars() -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def get_strategic_pillar_details(pillar_id: str) -> Dict[str, Any]:
+async def get_strategic_pillar_details(pillar_identifier: str) -> Dict[str, Any]:
     """Retrieves a single strategic pillar with linked outcomes.
 
     Returns the pillar with its full details including all linked
@@ -398,33 +398,33 @@ async def get_strategic_pillar_details(pillar_id: str) -> Dict[str, Any]:
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        pillar_id: UUID of the strategic pillar
+        pillar_identifier: Human-readable identifier of the strategic pillar (e.g., "P-001")
 
     Returns:
         Pillar details with linked outcomes
 
     Example:
-        >>> result = await get_strategic_pillar_details(pillar_id="...")
+        >>> result = await get_strategic_pillar_details(pillar_identifier="P-001")
         >>> print(result["data"]["linked_outcomes"])
     """
     session = SessionLocal()
     try:
         _, workspace_id = get_auth_context(session, requires_workspace=True)
         logger.info(
-            f"Getting strategic pillar {pillar_id} for workspace {workspace_id}"
+            f"Getting strategic pillar {pillar_identifier} for workspace {workspace_id}"
         )
 
-        pillar_uuid = validate_uuid(pillar_id, "pillar_id")
+        workspace_uuid = uuid.UUID(workspace_id)
 
         pillar = (
             session.query(StrategicPillar)
-            .filter_by(id=pillar_uuid, workspace_id=uuid.UUID(workspace_id))
+            .filter_by(identifier=pillar_identifier, workspace_id=workspace_uuid)
             .first()
         )
 
         if not pillar:
             return build_error_response(
-                "pillar", f"Strategic pillar {pillar_id} not found"
+                "pillar", f"Strategic pillar {pillar_identifier} not found"
             )
 
         from src.mcp_server.prompt_driven_tools.utils import serialize_outcome
@@ -552,7 +552,7 @@ async def submit_strategic_pillar(
 
 @mcp.tool()
 async def update_strategic_pillar(
-    pillar_id: str,
+    pillar_identifier: str,
     name: Optional[str] = None,
     description: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -565,7 +565,7 @@ async def update_strategic_pillar(
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        pillar_id: UUID of the strategic pillar to update
+        pillar_identifier: Human-readable identifier of the strategic pillar to update (e.g., "P-001")
         name: New pillar name (optional, 1-100 characters)
         description: New pillar description (optional, 1-3000 characters)
 
@@ -574,7 +574,7 @@ async def update_strategic_pillar(
 
     Example:
         >>> result = await update_strategic_pillar(
-        ...     pillar_id="...",
+        ...     pillar_identifier="P-001",
         ...     name="Updated Pillar Name",
         ...     description="Updated description with strategy and anti-strategy..."
         ... )
@@ -583,7 +583,7 @@ async def update_strategic_pillar(
     try:
         _, workspace_id = get_auth_context(session, requires_workspace=True)
         logger.info(
-            f"Updating strategic pillar {pillar_id} for workspace {workspace_id}"
+            f"Updating strategic pillar {pillar_identifier} for workspace {workspace_id}"
         )
 
         if name is None and description is None:
@@ -592,17 +592,17 @@ async def update_strategic_pillar(
                 "At least one field (name, description) must be provided",
             )
 
-        pillar_uuid = validate_uuid(pillar_id, "pillar_id")
+        workspace_uuid = uuid.UUID(workspace_id)
 
         pillar = (
             session.query(StrategicPillar)
-            .filter_by(id=pillar_uuid, workspace_id=uuid.UUID(workspace_id))
+            .filter_by(identifier=pillar_identifier, workspace_id=workspace_uuid)
             .first()
         )
 
         if not pillar:
             return build_error_response(
-                "pillar", f"Strategic pillar {pillar_id} not found"
+                "pillar", f"Strategic pillar {pillar_identifier} not found"
             )
 
         final_name = name if name is not None else pillar.name
@@ -642,7 +642,7 @@ async def update_strategic_pillar(
 
 
 @mcp.tool()
-async def delete_strategic_pillar(pillar_id: str) -> Dict[str, Any]:
+async def delete_strategic_pillar(pillar_identifier: str) -> Dict[str, Any]:
     """Delete a strategic pillar permanently.
 
     IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
@@ -652,43 +652,48 @@ async def delete_strategic_pillar(pillar_id: str) -> Dict[str, Any]:
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        pillar_id: UUID of the strategic pillar to delete
+        pillar_identifier: Human-readable identifier of the strategic pillar to delete (e.g., "P-001")
 
     Returns:
         Success response confirming deletion
 
     Example:
-        >>> result = await delete_strategic_pillar(pillar_id="...")
+        >>> result = await delete_strategic_pillar(pillar_identifier="P-001")
     """
     session = SessionLocal()
     try:
         _, workspace_id = get_auth_context(session, requires_workspace=True)
         logger.info(
-            f"Deleting strategic pillar {pillar_id} for workspace {workspace_id}"
+            f"Deleting strategic pillar {pillar_identifier} for workspace {workspace_id}"
         )
 
-        pillar_uuid = validate_uuid(pillar_id, "pillar_id")
+        workspace_uuid = uuid.UUID(workspace_id)
 
         pillar = (
             session.query(StrategicPillar)
-            .filter_by(id=pillar_uuid, workspace_id=uuid.UUID(workspace_id))
+            .filter_by(identifier=pillar_identifier, workspace_id=workspace_uuid)
             .first()
         )
 
         if not pillar:
             return build_error_response(
-                "pillar", f"Strategic pillar {pillar_id} not found"
+                "pillar", f"Strategic pillar {pillar_identifier} not found"
             )
 
         pillar_name = pillar.name
+        user_id, _ = get_auth_context(session, requires_workspace=True)
 
-        session.delete(pillar)
-        session.commit()
+        strategic_controller.delete_strategic_pillar(
+            pillar_id=pillar.id,
+            workspace_id=workspace_uuid,
+            user_id=uuid.UUID(user_id),
+            session=session,
+        )
 
         return build_success_response(
             entity_type="pillar",
             message=f"Deleted strategic pillar '{pillar_name}'",
-            data={"deleted_id": pillar_id},
+            data={"deleted_identifier": pillar_identifier},
         )
 
     except DomainException as e:

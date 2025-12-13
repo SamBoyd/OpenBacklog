@@ -146,12 +146,12 @@ class TestSubmitRoadmapTheme:
         )
         session.add(outcome)
         session.commit()
-        outcome_ids = [str(outcome.id)]
+        outcome_identifiers = [outcome.identifier]
 
         result = await submit_roadmap_theme.fn(
             name,
             description,
-            outcome_ids,
+            outcome_identifiers,
         )
 
         # Verify success response
@@ -297,7 +297,7 @@ class TestPrioritizeWorkstream:
     @pytest.mark.asyncio
     async def test_prioritize_succeeds_with_valid_input(self, workspace: Workspace):
         """Test that prioritize successfully prioritizes theme."""
-        theme_id = str(uuid.uuid4())
+        theme_identifier = "T-001"
         priority_position = 0
 
         with patch(
@@ -308,7 +308,8 @@ class TestPrioritizeWorkstream:
 
             # Mock theme
             mock_theme = MagicMock(spec=RoadmapTheme)
-            mock_theme.id = uuid.UUID(theme_id)
+            mock_theme.identifier = theme_identifier
+            mock_theme.id = uuid.uuid4()
             mock_theme.workspace_id = workspace.id
             mock_theme.name = "Test Theme"
             mock_theme.problem_statement = "Test problem"
@@ -319,6 +320,7 @@ class TestPrioritizeWorkstream:
             mock_theme.hypothesis = None
             mock_theme.indicative_metrics = None
             mock_theme.time_horizon_months = None
+            mock_theme.primary_villain_id = None
 
             with (
                 patch(
@@ -328,10 +330,15 @@ class TestPrioritizeWorkstream:
                     "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.prioritize_roadmap_theme"
                 ) as mock_prioritize,
             ):
+                mock_session.query.return_value.filter_by.return_value.first.return_value = (
+                    mock_theme
+                )
                 mock_get_prioritized.return_value = []
                 mock_prioritize.return_value = mock_theme
 
-                result = await prioritize_workstream.fn(theme_id, priority_position)
+                result = await prioritize_workstream.fn(
+                    theme_identifier, priority_position
+                )
 
         # Verify success response
         assert_that(
@@ -343,7 +350,7 @@ class TestPrioritizeWorkstream:
     @pytest.mark.asyncio
     async def test_prioritize_warns_on_capacity_exceeded(self, workspace: Workspace):
         """Test that prioritize warns when capacity exceeded."""
-        theme_id = str(uuid.uuid4())
+        theme_identifier = "T-001"
         priority_position = 0
 
         with patch(
@@ -356,7 +363,8 @@ class TestPrioritizeWorkstream:
             existing_themes = [MagicMock(spec=RoadmapTheme) for _ in range(3)]
 
             mock_theme = MagicMock(spec=RoadmapTheme)
-            mock_theme.id = uuid.UUID(theme_id)
+            mock_theme.identifier = theme_identifier
+            mock_theme.id = uuid.uuid4()
             mock_theme.workspace_id = workspace.id
             mock_theme.name = "Test Theme"
             mock_theme.problem_statement = "Test problem"
@@ -367,6 +375,7 @@ class TestPrioritizeWorkstream:
             mock_theme.hypothesis = None
             mock_theme.indicative_metrics = None
             mock_theme.time_horizon_months = None
+            mock_theme.primary_villain_id = None
 
             with (
                 patch(
@@ -376,10 +385,15 @@ class TestPrioritizeWorkstream:
                     "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.prioritize_roadmap_theme"
                 ) as mock_prioritize,
             ):
+                mock_session.query.return_value.filter_by.return_value.first.return_value = (
+                    mock_theme
+                )
                 mock_get_prioritized.return_value = existing_themes
                 mock_prioritize.return_value = mock_theme
 
-                result = await prioritize_workstream.fn(theme_id, priority_position)
+                result = await prioritize_workstream.fn(
+                    theme_identifier, priority_position
+                )
 
         # Verify warning in next_steps
         assert_that(result, has_key("next_steps"))
@@ -422,7 +436,7 @@ class TestUtilityTools:
     @pytest.mark.asyncio
     async def test_deprioritize_removes_from_priority_list(self, workspace: Workspace):
         """Test that deprioritize successfully removes theme."""
-        theme_id = str(uuid.uuid4())
+        theme_identifier = "T-001"
 
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
@@ -431,7 +445,8 @@ class TestUtilityTools:
             mock_session_local.return_value = mock_session
 
             mock_theme = MagicMock(spec=RoadmapTheme)
-            mock_theme.id = uuid.UUID(theme_id)
+            mock_theme.identifier = theme_identifier
+            mock_theme.id = uuid.uuid4()
             mock_theme.workspace_id = workspace.id
             mock_theme.name = "Test Theme"
             mock_theme.problem_statement = "Test problem"
@@ -442,13 +457,17 @@ class TestUtilityTools:
             mock_theme.hypothesis = None
             mock_theme.indicative_metrics = None
             mock_theme.time_horizon_months = None
+            mock_theme.primary_villain_id = None
 
             with patch(
                 "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.deprioritize_roadmap_theme"
             ) as mock_deprioritize:
+                mock_session.query.return_value.filter_by.return_value.first.return_value = (
+                    mock_theme
+                )
                 mock_deprioritize.return_value = mock_theme
 
-                result = await deprioritize_workstream.fn(theme_id)
+                result = await deprioritize_workstream.fn(theme_identifier)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
@@ -457,9 +476,9 @@ class TestUtilityTools:
     @pytest.mark.asyncio
     async def test_organize_reorders_themes_correctly(self):
         """Test that organize successfully reorders themes."""
-        theme_id_1 = str(uuid.uuid4())
-        theme_id_2 = str(uuid.uuid4())
-        theme_order = {theme_id_1: 0, theme_id_2: 1}
+        theme_identifier_1 = "T-001"
+        theme_identifier_2 = "T-002"
+        theme_order = {theme_identifier_1: 0, theme_identifier_2: 1}
 
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
@@ -468,7 +487,9 @@ class TestUtilityTools:
             mock_session_local.return_value = mock_session
 
             mock_themes = [MagicMock(spec=RoadmapTheme) for _ in range(2)]
-            for theme in mock_themes:
+            for i, theme in enumerate(mock_themes):
+                theme.identifier = f"T-00{i+1}"
+                theme.id = uuid.uuid4()
                 theme.outcomes = []
                 theme.created_at = None
                 theme.updated_at = None
@@ -476,10 +497,25 @@ class TestUtilityTools:
                 theme.hypothesis = None
                 theme.indicative_metrics = None
                 theme.time_horizon_months = None
+                theme.primary_villain_id = None
 
-            with patch(
-                "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.reorder_roadmap_themes"
-            ) as mock_reorder:
+            with (
+                patch(
+                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.reorder_roadmap_themes"
+                ) as mock_reorder,
+            ):
+
+                def mock_query_filter(identifier, workspace_id):
+                    mock_theme = next(
+                        (t for t in mock_themes if t.identifier == identifier), None
+                    )
+                    mock_result = MagicMock()
+                    mock_result.first.return_value = mock_theme
+                    return mock_result
+
+                mock_session.query.return_value.filter_by.side_effect = (
+                    mock_query_filter
+                )
                 mock_reorder.return_value = mock_themes
 
                 result = await organize_roadmap.fn(theme_order)
@@ -492,8 +528,8 @@ class TestUtilityTools:
     @pytest.mark.asyncio
     async def test_connect_updates_outcome_links(self, workspace: Workspace):
         """Test that connect successfully updates outcome links."""
-        theme_id = str(uuid.uuid4())
-        outcome_ids = [str(uuid.uuid4())]
+        theme_identifier = "T-001"
+        outcome_identifiers = ["O-001"]
 
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
@@ -503,10 +539,12 @@ class TestUtilityTools:
 
             # Mock theme with outcome
             mock_outcome = MagicMock(spec=ProductOutcome)
-            mock_outcome.id = uuid.UUID(outcome_ids[0])
+            mock_outcome.identifier = outcome_identifiers[0]
+            mock_outcome.id = uuid.uuid4()
 
             mock_theme = MagicMock(spec=RoadmapTheme)
-            mock_theme.id = uuid.UUID(theme_id)
+            mock_theme.identifier = theme_identifier
+            mock_theme.id = uuid.uuid4()
             mock_theme.workspace_id = workspace.id
             mock_theme.name = "Test Theme"
             mock_theme.problem_statement = "Test problem"
@@ -517,8 +555,12 @@ class TestUtilityTools:
             mock_theme.hypothesis = "Test"
             mock_theme.indicative_metrics = "Test"
             mock_theme.time_horizon_months = 6
+            mock_theme.primary_villain_id = None
 
             with (
+                patch(
+                    "src.mcp_server.prompt_driven_tools.roadmap_themes.resolve_outcome_identifiers"
+                ) as mock_resolve_outcomes,
                 patch(
                     "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.update_roadmap_theme"
                 ) as mock_update,
@@ -526,13 +568,16 @@ class TestUtilityTools:
                     "src.mcp_server.prompt_driven_tools.roadmap_themes.strategic_controller.get_product_outcomes"
                 ) as mock_get_outcomes,
             ):
+                mock_resolve_outcomes.return_value = [mock_outcome.id]
                 mock_session.query.return_value.filter_by.return_value.first.return_value = (
                     mock_theme
                 )
                 mock_update.return_value = mock_theme
                 mock_get_outcomes.return_value = [mock_outcome]
 
-                result = await connect_theme_to_outcomes.fn(theme_id, outcome_ids)
+                result = await connect_theme_to_outcomes.fn(
+                    theme_identifier, outcome_identifiers
+                )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
@@ -643,10 +688,10 @@ class TestUpdateRoadmapTheme:
         session.commit()
 
         result = await update_roadmap_theme.fn(
-            str(theme.id),
+            theme.identifier,
             name="Updated Theme",
             description="Updated problem",
-            outcome_ids=[str(outcome.id)],
+            outcome_identifiers=[outcome.identifier],
         )
 
         # Verify success response
@@ -670,7 +715,7 @@ class TestUpdateRoadmapTheme:
         session.add(theme)
         session.commit()
 
-        result = await update_roadmap_theme.fn(str(theme.id), name="Updated Theme")
+        result = await update_roadmap_theme.fn(theme.identifier, name="Updated Theme")
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
@@ -692,7 +737,7 @@ class TestUpdateRoadmapTheme:
         session.commit()
 
         result = await update_roadmap_theme.fn(
-            str(theme.id),
+            theme.identifier,
             description="Updated problem",
         )
 
@@ -702,9 +747,9 @@ class TestUpdateRoadmapTheme:
     @pytest.mark.asyncio
     async def test_update_theme_requires_at_least_one_field(self):
         """Test that update_roadmap_theme requires at least one field."""
-        theme_id = str(uuid.uuid4())
+        theme_identifier = "T-99999"
 
-        result = await update_roadmap_theme.fn(theme_id)
+        result = await update_roadmap_theme.fn(theme_identifier)
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
@@ -712,9 +757,9 @@ class TestUpdateRoadmapTheme:
     @pytest.mark.asyncio
     async def test_update_theme_not_found(self):
         """Test that update_roadmap_theme handles theme not found."""
-        theme_id = str(uuid.uuid4())
+        theme_identifier = "T-99999"
 
-        result = await update_roadmap_theme.fn(theme_id, name="Updated Name")
+        result = await update_roadmap_theme.fn(theme_identifier, name="Updated Name")
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
@@ -735,8 +780,8 @@ class TestUpdateRoadmapTheme:
         session.commit()
 
         result = await update_roadmap_theme.fn(
-            str(theme.id),
-            outcome_ids=["not-a-valid-uuid"],
+            theme.identifier,
+            outcome_identifiers=["INVALID"],
         )
 
         # Verify error response
@@ -758,34 +803,34 @@ class TestDeleteRoadmapTheme:
         )
         session.add(theme)
         session.commit()
-        theme_id = str(theme.id)
+        theme_identifier = theme.identifier
 
-        result = await delete_roadmap_theme.fn(theme_id)
+        result = await delete_roadmap_theme.fn(theme_identifier)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
-        assert_that(result["data"]["deleted_id"], equal_to(theme_id))
+        assert_that(result["data"]["deleted_identifier"], equal_to(theme_identifier))
 
         # Verify theme is actually deleted
         deleted_theme = (
-            session.query(RoadmapTheme).filter_by(id=uuid.UUID(theme_id)).first()
+            session.query(RoadmapTheme).filter_by(identifier=theme_identifier).first()
         )
         assert_that(deleted_theme, equal_to(None))
 
     @pytest.mark.asyncio
     async def test_delete_theme_not_found(self):
         """Test that delete_roadmap_theme handles theme not found."""
-        theme_id = str(uuid.uuid4())
+        theme_identifier = "T-99999"
 
-        result = await delete_roadmap_theme.fn(theme_id)
+        result = await delete_roadmap_theme.fn(theme_identifier)
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
 
     @pytest.mark.asyncio
     async def test_delete_theme_with_invalid_id(self):
-        """Test that delete_roadmap_theme handles invalid theme ID."""
-        result = await delete_roadmap_theme.fn("not-a-valid-uuid")
+        """Test that delete_roadmap_theme handles invalid theme identifier."""
+        result = await delete_roadmap_theme.fn("INVALID")
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
@@ -825,7 +870,7 @@ class TestLinkThemeToHero:
         session.commit()
         session.refresh(theme)
 
-        result = await link_theme_to_hero.fn(str(theme.id), hero.identifier)
+        result = await link_theme_to_hero.fn(theme.identifier, hero.identifier)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
@@ -852,7 +897,7 @@ class TestLinkThemeToHero:
         session.add(theme)
         session.commit()
 
-        result = await link_theme_to_hero.fn(str(theme.id), "H-99999")
+        result = await link_theme_to_hero.fn(theme.identifier, "H-99999")
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
@@ -860,9 +905,9 @@ class TestLinkThemeToHero:
     @pytest.mark.asyncio
     async def test_link_theme_to_hero_theme_not_found(self):
         """Test that link_theme_to_hero handles theme not found."""
-        theme_id = str(uuid.uuid4())
+        theme_identifier = "T-99999"
 
-        result = await link_theme_to_hero.fn(theme_id, "H-1001")
+        result = await link_theme_to_hero.fn(theme_identifier, "H-1001")
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
@@ -902,7 +947,7 @@ class TestLinkThemeToVillain:
         )
         session.commit()
 
-        result = await link_theme_to_villain.fn(str(theme.id), villain.identifier)
+        result = await link_theme_to_villain.fn(theme.identifier, villain.identifier)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
@@ -929,7 +974,7 @@ class TestLinkThemeToVillain:
         session.add(theme)
         session.commit()
 
-        result = await link_theme_to_villain.fn(str(theme.id), "V-99999")
+        result = await link_theme_to_villain.fn(theme.identifier, "V-99999")
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
@@ -937,9 +982,9 @@ class TestLinkThemeToVillain:
     @pytest.mark.asyncio
     async def test_link_theme_to_villain_theme_not_found(self):
         """Test that link_theme_to_villain handles theme not found."""
-        theme_id = str(uuid.uuid4())
+        theme_identifier = "T-99999"
 
-        result = await link_theme_to_villain.fn(theme_id, "V-1001")
+        result = await link_theme_to_villain.fn(theme_identifier, "V-1001")
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))

@@ -1261,7 +1261,6 @@ async def delete_strategic_initiative(query: str) -> Dict[str, Any]:
             )
 
         initiative = strategic_initiative.initiative
-        initiative_id = str(initiative.id)
         initiative_identifier = initiative.identifier
         initiative_title = initiative.title
 
@@ -1274,7 +1273,6 @@ async def delete_strategic_initiative(query: str) -> Dict[str, Any]:
             message=f"Deleted strategic initiative {initiative_identifier} ({initiative_title})",
             data={
                 "deleted_identifier": initiative_identifier,
-                "deleted_id": initiative_id,
             },
         )
 

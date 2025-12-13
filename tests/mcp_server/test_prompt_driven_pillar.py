@@ -52,11 +52,13 @@ class TestGetStrategicPillarDetails:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(user.id), str(workspace.id))
 
-            result = await get_strategic_pillar_details.fn(pillar_id=str(pillar.id))
+            result = await get_strategic_pillar_details.fn(
+                pillar_identifier=pillar.identifier
+            )
 
         assert_that(result, has_entries({"status": "success", "type": "pillar"}))
         assert_that(result["data"]["name"], equal_to(pillar.name))
-        assert_that(result["data"]["id"], equal_to(str(pillar.id)))
+        assert_that(result["data"]["identifier"], equal_to(pillar.identifier))
 
     @pytest.mark.asyncio
     async def test_get_strategic_pillar_details_includes_linked_outcomes(
@@ -74,7 +76,9 @@ class TestGetStrategicPillarDetails:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(user.id), str(workspace.id))
 
-            result = await get_strategic_pillar_details.fn(pillar_id=str(pillar.id))
+            result = await get_strategic_pillar_details.fn(
+                pillar_identifier=pillar.identifier
+            )
 
         assert_that(result["data"], has_key("linked_outcomes"))
         assert isinstance(result["data"]["linked_outcomes"], list)
@@ -84,7 +88,7 @@ class TestGetStrategicPillarDetails:
         self, session, user, workspace
     ):
         """Test error when pillar not found."""
-        fake_id = str(uuid.uuid4())
+        fake_identifier = "P-99999"
 
         with (
             patch(
@@ -97,7 +101,9 @@ class TestGetStrategicPillarDetails:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(user.id), str(workspace.id))
 
-            result = await get_strategic_pillar_details.fn(pillar_id=fake_id)
+            result = await get_strategic_pillar_details.fn(
+                pillar_identifier=fake_identifier
+            )
 
         assert_that(result, has_entries({"status": "error", "type": "pillar"}))
         assert "not found" in result["error_message"]
@@ -118,7 +124,7 @@ class TestGetStrategicPillarDetails:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(user.id), str(workspace.id))
 
-            result = await get_strategic_pillar_details.fn(pillar_id="invalid-uuid")
+            result = await get_strategic_pillar_details.fn(pillar_identifier="INVALID")
 
         assert_that(result, has_entries({"status": "error", "type": "pillar"}))
 
@@ -140,7 +146,9 @@ class TestGetStrategicPillarDetails:
             mock_session_local.return_value = session
             mock_auth.side_effect = MCPContextError("No workspace in context")
 
-            result = await get_strategic_pillar_details.fn(pillar_id=str(pillar.id))
+            result = await get_strategic_pillar_details.fn(
+                pillar_identifier=pillar.identifier
+            )
 
         assert_that(result, has_entries({"status": "error", "type": "pillar"}))
 
