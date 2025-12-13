@@ -12,6 +12,7 @@ from src.mcp_server.prompt_driven_tools.roadmap_themes import (
     delete_roadmap_theme,
     deprioritize_workstream,
     get_prioritization_context,
+    get_roadmap_theme_details,
     get_roadmap_themes,
     get_theme_exploration_framework,
     link_theme_to_hero,
@@ -988,3 +989,70 @@ class TestLinkThemeToVillain:
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+
+class TestGetRoadmapThemeDetails:
+    """Test suite for get_roadmap_theme_details MCP tool."""
+
+    @pytest.mark.asyncio
+    async def test_get_theme_details_success(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test successfully retrieving theme details."""
+        theme = RoadmapTheme(
+            name="Test Theme",
+            description="Problem statement for testing",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+        session.commit()
+
+        result = await get_roadmap_theme_details.fn(
+            theme_identifier=theme.identifier,
+        )
+
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(result, has_key("data"))
+        assert_that(result["data"]["identifier"], equal_to(theme.identifier))
+        assert_that(result["data"]["name"], equal_to("Test Theme"))
+        assert_that(result["data"]["outcome_names"], equal_to([]))
+        assert_that(result["data"]["hero_names"], equal_to([]))
+        assert_that(result["data"]["villain_names"], equal_to([]))
+        assert_that(result["data"]["is_prioritized"], equal_to(False))
+        assert_that(result, has_key("data"))
+        assert_that(result["data"], has_key("alignment_score"))
+
+    @pytest.mark.asyncio
+    async def test_get_theme_details_includes_hero_and_villain_names(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test retrieving theme details includes hero and villain name lists."""
+        theme = RoadmapTheme(
+            name="Theme With Details",
+            description="Problem statement",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme)
+        session.commit()
+
+        result = await get_roadmap_theme_details.fn(
+            theme_identifier=theme.identifier,
+        )
+
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(result["data"]["name"], equal_to("Theme With Details"))
+        assert_that(result["data"], has_key("hero_names"))
+        assert_that(result["data"], has_key("villain_names"))
+        assert_that(result["data"], has_key("primary_villain_name"))
+
+    @pytest.mark.asyncio
+    async def test_get_theme_details_not_found(self):
+        """Test error when theme not found."""
+        result = await get_roadmap_theme_details.fn(
+            theme_identifier="T-9999",
+        )
+
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+        assert_that(result, has_key("error_message"))

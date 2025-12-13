@@ -413,6 +413,68 @@ async def get_conflicts(
 
 
 @mcp.tool()
+async def get_conflict_details(conflict_identifier: str) -> Dict[str, Any]:
+    """Retrieves full conflict details including hero/villain context.
+
+    Returns enriched conflict data including hero and villain details,
+    linked roadmap theme, and resolution status.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        conflict_identifier: Human-readable identifier (e.g., "C-2003")
+
+    Returns:
+        Conflict details + hero/villain context + theme linkage
+
+    Example:
+        >>> result = await get_conflict_details(conflict_identifier="C-2003")
+        >>> print(result["data"]["hero_name"])
+    """
+    session = SessionLocal()
+    try:
+        workspace_uuid = get_workspace_id_from_request()
+        logger.info(
+            f"Getting conflict details for {conflict_identifier} in workspace {workspace_uuid}"
+        )
+
+        publisher = EventPublisher(session)
+        conflict_service = ConflictService(session, publisher)
+        conflict = conflict_service.get_conflict_by_identifier(
+            conflict_identifier, workspace_uuid
+        )
+
+        conflict_data = serialize_conflict(conflict)
+
+        conflict_data["hero_name"] = conflict.hero.name if conflict.hero else None
+        conflict_data["villain_name"] = (
+            conflict.villain.name if conflict.villain else None
+        )
+        conflict_data["theme_name"] = (
+            conflict.story_arc.name if conflict.story_arc else None
+        )
+
+        return build_success_response(
+            entity_type="conflict",
+            message=f"Retrieved conflict details for {conflict.identifier}",
+            data=conflict_data,
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain error: {e}")
+        return build_error_response("conflict", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("conflict", str(e))
+    except Exception as e:
+        logger.exception(f"Error getting conflict details: {e}")
+        return build_error_response("conflict", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
 async def mark_conflict_resolved(
     conflict_identifier: str,
     resolved_by_initiative_identifier: str,

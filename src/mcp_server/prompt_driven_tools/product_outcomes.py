@@ -494,6 +494,75 @@ async def get_product_outcomes() -> Dict[str, Any]:
 
 
 @mcp.tool()
+async def get_product_outcome_details(outcome_identifier: str) -> Dict[str, Any]:
+    """Retrieves full product outcome details including linked pillars and themes.
+
+    Returns enriched outcome data including linked strategic pillars
+    and any roadmap themes that target this outcome.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        outcome_identifier: Human-readable identifier (e.g., "O-002")
+
+    Returns:
+        Outcome details + linked pillars + linked themes
+
+    Example:
+        >>> result = await get_product_outcome_details(outcome_identifier="O-002")
+        >>> print(result["data"]["pillar_names"])
+    """
+    session = SessionLocal()
+    try:
+        workspace_uuid = get_workspace_id_from_request()
+        logger.info(
+            f"Getting product outcome details for {outcome_identifier} in workspace {workspace_uuid}"
+        )
+
+        outcome = (
+            session.query(ProductOutcome)
+            .filter_by(identifier=outcome_identifier, workspace_id=workspace_uuid)
+            .first()
+        )
+
+        if not outcome:
+            return build_error_response(
+                "outcome", f"Product outcome {outcome_identifier} not found"
+            )
+
+        outcome_data = serialize_outcome(outcome)
+
+        outcome_data["pillar_names"] = [pillar.name for pillar in outcome.pillars]
+
+        linked_themes = []
+        for theme in outcome.themes:
+            linked_themes.append(
+                {
+                    "identifier": theme.identifier,
+                    "name": theme.name,
+                    "is_prioritized": theme.display_order is not None,
+                }
+            )
+        outcome_data["linked_themes"] = linked_themes
+
+        return build_success_response(
+            entity_type="outcome",
+            message=f"Retrieved product outcome details for {outcome.name}",
+            data=outcome_data,
+        )
+
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("outcome", str(e))
+    except Exception as e:
+        logger.exception(f"Error getting product outcome details: {e}")
+        return build_error_response("outcome", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
 async def update_product_outcome(
     outcome_identifier: str,
     name: Optional[str] = None,

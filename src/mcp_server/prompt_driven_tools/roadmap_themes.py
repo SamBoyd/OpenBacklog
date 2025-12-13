@@ -1049,6 +1049,93 @@ async def get_roadmap_themes() -> Dict[str, Any]:
 
 
 @mcp.tool()
+async def get_roadmap_theme_details(theme_identifier: str) -> Dict[str, Any]:
+    """Retrieves full roadmap theme details including linked entities.
+
+    Returns enriched theme data including linked outcomes, hero, villain,
+    prioritization status, and strategic alignment score.
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
+
+    Args:
+        theme_identifier: Human-readable identifier (e.g., "T-001")
+
+    Returns:
+        Theme details + linked outcomes + hero/villain + alignment score
+
+    Example:
+        >>> result = await get_roadmap_theme_details(theme_identifier="T-001")
+        >>> print(result["data"]["outcome_names"])
+    """
+    session = SessionLocal()
+    try:
+        workspace_uuid = get_workspace_id_from_request()
+        logger.info(
+            f"Getting roadmap theme details for {theme_identifier} in workspace {workspace_uuid}"
+        )
+
+        theme = (
+            session.query(roadmap_controller.RoadmapTheme)
+            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
+            .first()
+        )
+
+        if not theme:
+            return build_error_response(
+                "theme", f"Roadmap theme {theme_identifier} not found"
+            )
+
+        theme_data = serialize_theme(theme)
+
+        theme_data["outcome_names"] = [outcome.name for outcome in theme.outcomes]
+
+        theme_data["hero_names"] = [hero.name for hero in theme.heroes]
+
+        theme_data["villain_names"] = [villain.name for villain in theme.villains]
+
+        if hasattr(theme, "primary_villain_id") and theme.primary_villain_id:
+            primary_villain = next(
+                (v for v in theme.villains if v.id == theme.primary_villain_id), None
+            )
+            theme_data["primary_villain_name"] = (
+                primary_villain.name if primary_villain else None
+            )
+        else:
+            theme_data["primary_villain_name"] = None
+
+        prioritized_themes = roadmap_controller.get_prioritized_themes(
+            workspace_uuid, session
+        )
+        is_prioritized = any(t.id == theme.id for t in prioritized_themes)
+        theme_data["is_prioritized"] = is_prioritized
+
+        all_outcomes = strategic_controller.get_product_outcomes(
+            workspace_uuid, session
+        )
+        alignment_score = calculate_alignment_score(theme, len(all_outcomes))
+        theme_data["alignment_score"] = round(alignment_score, 2)
+
+        return build_success_response(
+            entity_type="theme",
+            message=f"Retrieved roadmap theme details for {theme.name}",
+            data=theme_data,
+        )
+
+    except DomainException as e:
+        logger.warning(f"Domain error: {e}")
+        return build_error_response("theme", str(e))
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        return build_error_response("theme", str(e))
+    except Exception as e:
+        logger.exception(f"Error getting roadmap theme details: {e}")
+        return build_error_response("theme", f"Server error: {str(e)}")
+    finally:
+        session.close()
+
+
+@mcp.tool()
 async def update_roadmap_theme(
     theme_identifier: str,
     name: Optional[str] = None,
