@@ -176,7 +176,7 @@ class TestSubmitProductOutcome:
         assert_that(result, has_key("next_steps"))
 
     @pytest.mark.asyncio
-    async def test_submit_with_pillar_ids_links_correctly(
+    async def test_submit_with_pillar_identifiers_links_correctly(
         self, session, workspace: Workspace
     ):
         """Test that submit links outcome to specified pillars."""
@@ -195,7 +195,7 @@ class TestSubmitProductOutcome:
         description = "Goal: Developers complete workflows in IDE. Baseline: 30%. Target: 80%. Timeline: 12 months."
 
         result = await submit_product_outcome.fn(
-            name, description, pillar_ids=[str(pillar.id)]
+            name, description, pillar_identifiers=[pillar.identifier]
         )
 
         assert_that(result, has_entries({"status": "success"}))
@@ -209,7 +209,9 @@ class TestSubmitProductOutcome:
         name = "Daily Active Usage"
         description = "Baseline: 30%. Target: 80%. Timeline: 6 months."
 
-        result = await submit_product_outcome.fn(name, description, pillar_ids=None)
+        result = await submit_product_outcome.fn(
+            name, description, pillar_identifiers=None
+        )
 
         assert_that(result, has_entries({"status": "success"}))
         assert_that(result, has_key("warnings"))
@@ -226,14 +228,14 @@ class TestSubmitProductOutcome:
         assert_that(result, has_key("status"))
 
     @pytest.mark.asyncio
-    async def test_submit_handles_invalid_pillar_id(self, workspace: Workspace):
-        """Test that submit handles invalid pillar IDs gracefully."""
+    async def test_submit_handles_invalid_pillar_identifier(self, workspace: Workspace):
+        """Test that submit handles invalid pillar identifiers gracefully."""
         name = "Daily Active Usage"
         description = "Baseline: 30%. Target: 80%. Timeline: 6 months."
-        invalid_pillar_id = "not-a-uuid"
+        invalid_pillar_identifier = "P-99999"
 
         result = await submit_product_outcome.fn(
-            name, description, pillar_ids=[invalid_pillar_id]
+            name, description, pillar_identifiers=[invalid_pillar_identifier]
         )
 
         assert_that(result, has_entries({"status": "error"}))

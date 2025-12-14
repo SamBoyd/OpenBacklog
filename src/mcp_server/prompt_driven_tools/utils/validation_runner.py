@@ -71,16 +71,16 @@ def validate_outcome_constraints(
     workspace_id: uuid.UUID,
     name: str,
     description: str,
-    pillar_ids: Optional[List[str]],
+    pillar_identifiers: Optional[List[str]],
     session: Session,
 ) -> None:
-    """Validate outcome constraints: uniqueness, limit, format, pillar_ids exist.
+    """Validate outcome constraints: uniqueness, limit, format, pillar_identifiers exist.
 
     Args:
         workspace_id: UUID of the workspace
         name: Outcome name
         description: Outcome description
-        pillar_ids: Optional list of pillar UUIDs to link
+        pillar_identifiers: Optional list of pillar identifiers (e.g., "P-001") to link
         session: SQLAlchemy database session
 
     Raises:
@@ -102,21 +102,18 @@ def validate_outcome_constraints(
     if existing:
         raise DomainException(f"Outcome with name '{name}' already exists")
 
-    # Validate pillar_ids if provided
-    if pillar_ids:
-        for pillar_id_str in pillar_ids:
-            try:
-                pillar_uuid = uuid.UUID(pillar_id_str)
-            except ValueError:
-                raise DomainException(f"Invalid pillar ID format: {pillar_id_str}")
-
+    # Validate pillar_identifiers if provided
+    if pillar_identifiers:
+        for pillar_identifier in pillar_identifiers:
             pillar = (
                 session.query(StrategicPillar)
-                .filter_by(id=pillar_uuid, workspace_id=workspace_id)
+                .filter_by(identifier=pillar_identifier, workspace_id=workspace_id)
                 .first()
             )
             if not pillar:
-                raise DomainException(f"Pillar with ID {pillar_id_str} not found")
+                raise DomainException(
+                    f"Strategic pillar with identifier '{pillar_identifier}' not found or does not belong to workspace"
+                )
 
 
 def validate_hero_constraints(

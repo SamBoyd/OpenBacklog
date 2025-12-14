@@ -20,7 +20,6 @@ from src.mcp_server.prompt_driven_tools.utils import (
     get_workspace_id_from_request,
     serialize_outcome,
     validate_outcome_constraints,
-    validate_uuid,
 )
 from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
     resolve_pillar_identifiers,
@@ -66,7 +65,7 @@ async def get_outcome_definition_framework() -> Dict[str, Any]:
     Example:
         >>> framework = await get_outcome_definition_framework()
         >>> # Claude Code uses framework to guide user through refinement
-        >>> await submit_product_outcome(name, description, pillar_ids)
+        >>> await submit_product_outcome(name, description, pillar_identifiers)
     """
     session = SessionLocal()
     try:
@@ -363,7 +362,7 @@ async def get_outcome_definition_framework() -> Dict[str, Any]:
 async def submit_product_outcome(
     name: str,
     description: str,
-    pillar_ids: Optional[List[str]] = None,
+    pillar_identifiers: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Submit a refined product outcome after collaborative definition.
 
@@ -377,7 +376,7 @@ async def submit_product_outcome(
         name: Outcome name (1-150 characters)
         description: Outcome description including goal, baseline, target, and timeline (required)
                     Should include specific metrics, baseline values, target values, and timeline
-        pillar_ids: List of pillar UUIDs to link (optional)
+        pillar_identifiers: List of pillar identifiers (e.g., "P-001") to link (optional)
 
     Returns:
         Success response with created outcome
@@ -386,7 +385,7 @@ async def submit_product_outcome(
         >>> result = await submit_product_outcome(
         ...     name="Developer Daily Adoption",
         ...     description="Goal: Increase daily active IDE plugin users to measure adoption. Baseline: 30% of users daily active. Target: 80% daily active. Timeline: 6 months. Metric: Daily active users %",
-        ...     pillar_ids=["pillar-uuid-1"]
+        ...     pillar_identifiers=["P-001"]
         ... )
     """
     session = SessionLocal()
@@ -395,7 +394,7 @@ async def submit_product_outcome(
         logger.info(f"Submitting product outcome for workspace {workspace_id}")
 
         warnings = []
-        if not pillar_ids:
+        if not pillar_identifiers:
             warnings.append(
                 "ALIGNMENT GAP: No pillars linked. Outcomes should connect to the strategic "
                 "pillars they advance. Consider which pillar(s) this outcome measures."
@@ -405,14 +404,15 @@ async def submit_product_outcome(
             workspace_id=uuid.UUID(workspace_id),
             name=name,
             description=description,
-            pillar_ids=pillar_ids,
+            pillar_identifiers=pillar_identifiers,
             session=session,
         )
 
         pillar_uuids = []
-        if pillar_ids:
-            for pillar_id in pillar_ids:
-                pillar_uuids.append(validate_uuid(pillar_id, "pillar_id"))
+        if pillar_identifiers:
+            pillar_uuids = resolve_pillar_identifiers(
+                pillar_identifiers, uuid.UUID(workspace_id), session
+            )
 
         # Call controller to create outcome
         outcome = strategic_controller.create_product_outcome(
