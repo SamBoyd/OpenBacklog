@@ -618,10 +618,10 @@ class TestGetStrategicInitiativeDetails:
         assert "not found" in result["error_message"]
 
     @pytest.mark.asyncio
-    async def test_finds_by_strategic_initiative_id(
+    async def test_finds_by_initiative_identifier(
         self, workspace: Workspace, session: Session, user: User
     ):
-        """Test lookup by strategic initiative UUID."""
+        """Test lookup by initiative identifier (e.g., I-1001)."""
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_auth_context"
         ) as mock_get_auth:
@@ -631,11 +631,11 @@ class TestGetStrategicInitiativeDetails:
             )
 
             create_result = await submit_strategic_initiative.fn(
-                title="Initiative for ID Lookup",
-                implementation_description="Testing lookup by strategic initiative ID",
+                title="Initiative for Identifier Lookup",
+                implementation_description="Testing lookup by initiative identifier",
             )
 
-        strategic_initiative_id = create_result["data"]["strategic_context"]["id"]
+        initiative_identifier = create_result["data"]["initiative"]["identifier"]
 
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_initiatives.get_workspace_id_from_request"
@@ -643,13 +643,16 @@ class TestGetStrategicInitiativeDetails:
             mock_get_workspace.return_value = workspace.id
 
             result = await get_strategic_initiative_details.fn(
-                query=strategic_initiative_id
+                query=initiative_identifier
             )
 
         assert_that(result["status"], equal_to("success"))
-        assert_that(result["data"]["id"], equal_to(strategic_initiative_id))
         assert_that(
-            result["data"]["initiative"]["title"], equal_to("Initiative for ID Lookup")
+            result["data"]["initiative"]["identifier"], equal_to(initiative_identifier)
+        )
+        assert_that(
+            result["data"]["initiative"]["title"],
+            equal_to("Initiative for Identifier Lookup"),
         )
 
     @pytest.mark.asyncio

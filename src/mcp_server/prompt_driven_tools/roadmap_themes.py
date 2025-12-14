@@ -11,6 +11,8 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy.orm import selectinload
+
 from src.db import SessionLocal
 from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
@@ -35,6 +37,15 @@ from src.strategic_planning.exceptions import DomainException
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _get_theme_eager_load_options() -> List[Any]:
+    """Return common selectinload options for RoadmapTheme queries."""
+    return [
+        selectinload(RoadmapTheme.outcomes),
+        selectinload(RoadmapTheme.heroes),
+        selectinload(RoadmapTheme.villains),
+    ]
 
 
 # ============================================================================

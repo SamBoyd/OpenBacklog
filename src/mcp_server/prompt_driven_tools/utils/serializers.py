@@ -51,77 +51,226 @@ def serialize_vision(vision: ProductVision) -> Dict[str, Any]:
     }
 
 
-def serialize_pillar(pillar: StrategicPillar) -> Dict[str, Any]:
-    """Serialize StrategicPillar to JSON-serializable dict."""
-    return {
+def serialize_pillar(
+    pillar: StrategicPillar, include_connections: bool = True
+) -> Dict[str, Any]:
+    """Serialize StrategicPillar to JSON-serializable dict.
+
+    Args:
+        pillar: StrategicPillar instance to serialize
+        include_connections: If True, include full nested objects for outcomes
+            and initiatives. If False, return shallow data with identifiers only.
+
+    Returns:
+        JSON-serializable dict with pillar data
+    """
+    result: Dict[str, Any] = {
         "identifier": pillar.identifier,
         "name": pillar.name,
         "description": pillar.description,
         "display_order": pillar.display_order,
-        "outcome_identifiers": [outcome.identifier for outcome in pillar.outcomes],
         "created_at": serialize_datetime(pillar.created_at),
         "updated_at": serialize_datetime(pillar.updated_at),
     }
 
+    if include_connections:
+        result["outcomes"] = [
+            serialize_outcome(outcome, include_connections=False)
+            for outcome in pillar.outcomes
+        ]
+    else:
+        result["outcome_identifiers"] = [
+            outcome.identifier for outcome in pillar.outcomes
+        ]
 
-def serialize_outcome(outcome: ProductOutcome) -> Dict[str, Any]:
-    """Serialize ProductOutcome to JSON-serializable dict."""
-    return {
+    return result
+
+
+def serialize_outcome(
+    outcome: ProductOutcome, include_connections: bool = True
+) -> Dict[str, Any]:
+    """Serialize ProductOutcome to JSON-serializable dict.
+
+    Args:
+        outcome: ProductOutcome instance to serialize
+        include_connections: If True, include full nested objects for pillars
+            and themes. If False, return shallow data with identifiers only.
+
+    Returns:
+        JSON-serializable dict with outcome data
+    """
+    result: Dict[str, Any] = {
         "identifier": outcome.identifier,
         "name": outcome.name,
         "description": outcome.description,
         "display_order": outcome.display_order,
-        "pillar_identifiers": [pillar.identifier for pillar in outcome.pillars],
         "created_at": serialize_datetime(outcome.created_at),
         "updated_at": serialize_datetime(outcome.updated_at),
     }
 
+    if include_connections:
+        result["pillars"] = [
+            serialize_pillar(pillar, include_connections=False)
+            for pillar in outcome.pillars
+        ]
+    else:
+        result["pillar_identifiers"] = [pillar.identifier for pillar in outcome.pillars]
 
-def serialize_theme(theme: RoadmapTheme) -> Dict[str, Any]:
-    """Serialize RoadmapTheme to JSON-serializable dict."""
-    result = {
-        "identifier": theme.identifier,
-        "name": theme.name,
-        "description": theme.description,
-        "outcome_identifiers": [outcome.identifier for outcome in theme.outcomes],
-        "hero_identifiers": [hero.identifier for hero in theme.heroes],
-        "villain_identifiers": [villain.identifier for villain in theme.villains],
-        "created_at": serialize_datetime(theme.created_at),
-        "updated_at": serialize_datetime(theme.updated_at),
-    }
-    if hasattr(theme, "primary_villain_id") and theme.primary_villain_id:
-        primary_villain = next(
-            (v for v in theme.villains if v.id == theme.primary_villain_id), None
-        )
-        if primary_villain:
-            result["primary_villain_identifier"] = primary_villain.identifier
     return result
 
 
-def serialize_strategic_initiative(si: StrategicInitiative) -> Dict[str, Any]:
-    """Serialize StrategicInitiative to JSON-serializable dict."""
+def serialize_theme(
+    theme: RoadmapTheme, include_connections: bool = True
+) -> Dict[str, Any]:
+    """Serialize RoadmapTheme to JSON-serializable dict.
+
+    Args:
+        theme: RoadmapTheme instance to serialize
+        include_connections: If True, include full nested objects for outcomes,
+            heroes, villains, and initiatives. If False, return shallow data
+            with identifiers only.
+
+    Returns:
+        JSON-serializable dict with theme data
+    """
+    result: Dict[str, Any] = {
+        "identifier": theme.identifier,
+        "name": theme.name,
+        "description": theme.description,
+        "created_at": serialize_datetime(theme.created_at),
+        "updated_at": serialize_datetime(theme.updated_at),
+    }
+
+    if include_connections:
+        result["outcomes"] = [
+            serialize_outcome(outcome, include_connections=False)
+            for outcome in theme.outcomes
+        ]
+        result["heroes"] = [
+            serialize_hero(hero, include_connections=False) for hero in theme.heroes
+        ]
+        result["villains"] = [
+            serialize_villain(villain, include_connections=False)
+            for villain in theme.villains
+        ]
+        if hasattr(theme, "primary_villain_id") and theme.primary_villain_id:
+            primary_villain = next(
+                (v for v in theme.villains if v.id == theme.primary_villain_id), None
+            )
+            if primary_villain:
+                result["primary_villain"] = serialize_villain(
+                    primary_villain, include_connections=False
+                )
+    else:
+        result["outcome_identifiers"] = [
+            outcome.identifier for outcome in theme.outcomes
+        ]
+        result["hero_identifiers"] = [hero.identifier for hero in theme.heroes]
+        result["villain_identifiers"] = [
+            villain.identifier for villain in theme.villains
+        ]
+        if hasattr(theme, "primary_villain_id") and theme.primary_villain_id:
+            primary_villain = next(
+                (v for v in theme.villains if v.id == theme.primary_villain_id), None
+            )
+            if primary_villain:
+                result["primary_villain_identifier"] = primary_villain.identifier
+
+    return result
+
+
+def serialize_initiative_summary(initiative: Any) -> Dict[str, Any]:
+    """Serialize Initiative to minimal summary dict for use in connection fields.
+
+    Args:
+        initiative: Initiative instance to serialize
+
+    Returns:
+        JSON-serializable dict with minimal initiative data (identifier, title, status)
+    """
     return {
-        "id": serialize_uuid(si.id),
-        "initiative_id": serialize_uuid(si.initiative_id),
-        "workspace_id": serialize_uuid(si.workspace_id),
-        "pillar_id": serialize_uuid(si.pillar_id),
-        "theme_id": serialize_uuid(si.theme_id),
+        "identifier": initiative.identifier,
+        "title": initiative.title,
+        "status": (
+            initiative.status.value
+            if hasattr(initiative.status, "value")
+            else initiative.status
+        ),
+    }
+
+
+def serialize_strategic_initiative(
+    si: StrategicInitiative, include_connections: bool = True
+) -> Dict[str, Any]:
+    """Serialize StrategicInitiative to JSON-serializable dict.
+
+    Args:
+        si: StrategicInitiative instance to serialize
+        include_connections: If True, include full nested objects for heroes,
+            villains, conflicts, pillar, and theme. If False, return shallow
+            data with identifiers only.
+
+    Returns:
+        JSON-serializable dict with strategic initiative data
+    """
+    result: Dict[str, Any] = {
         "description": si.description,
         "narrative_intent": si.narrative_intent,
-        "hero_ids": [serialize_uuid(hero.id) for hero in si.heroes],
-        "villain_ids": [serialize_uuid(villain.id) for villain in si.villains],
-        "conflict_ids": [serialize_uuid(conflict.id) for conflict in si.conflicts],
         "created_at": serialize_datetime(si.created_at),
         "updated_at": serialize_datetime(si.updated_at),
     }
 
+    if include_connections:
+        result["heroes"] = [
+            serialize_hero(hero, include_connections=False) for hero in si.heroes
+        ]
+        result["villains"] = [
+            serialize_villain(villain, include_connections=False)
+            for villain in si.villains
+        ]
+        result["conflicts"] = [
+            serialize_conflict(conflict, include_connections=False)
+            for conflict in si.conflicts
+        ]
+        result["pillar"] = (
+            serialize_pillar(si.strategic_pillar, include_connections=False)
+            if si.strategic_pillar
+            else None
+        )
+        result["theme"] = (
+            serialize_theme(si.roadmap_theme, include_connections=False)
+            if si.roadmap_theme
+            else None
+        )
+    else:
+        result["hero_identifiers"] = [hero.identifier for hero in si.heroes]
+        result["villain_identifiers"] = [villain.identifier for villain in si.villains]
+        result["conflict_identifiers"] = [
+            conflict.identifier for conflict in si.conflicts
+        ]
+        result["pillar_identifier"] = (
+            si.strategic_pillar.identifier if si.strategic_pillar else None
+        )
+        result["theme_identifier"] = (
+            si.roadmap_theme.identifier if si.roadmap_theme else None
+        )
 
-def serialize_hero(hero: Hero) -> Dict[str, Any]:
-    """Serialize Hero to JSON-serializable dict."""
+    return result
+
+
+def serialize_hero(hero: Hero, include_connections: bool = True) -> Dict[str, Any]:
+    """Serialize Hero to JSON-serializable dict.
+
+    Args:
+        hero: Hero instance to serialize
+        include_connections: If True, include full nested objects. If False,
+            return shallow data with identifiers only. (Reserved for future use)
+
+    Returns:
+        JSON-serializable dict with hero data
+    """
     return {
-        "id": serialize_uuid(hero.id),
         "identifier": hero.identifier,
-        "workspace_id": serialize_uuid(hero.workspace_id),
         "name": hero.name,
         "description": hero.description,
         "is_primary": hero.is_primary,
@@ -130,12 +279,21 @@ def serialize_hero(hero: Hero) -> Dict[str, Any]:
     }
 
 
-def serialize_villain(villain: Villain) -> Dict[str, Any]:
-    """Serialize Villain to JSON-serializable dict."""
+def serialize_villain(
+    villain: Villain, include_connections: bool = True
+) -> Dict[str, Any]:
+    """Serialize Villain to JSON-serializable dict.
+
+    Args:
+        villain: Villain instance to serialize
+        include_connections: If True, include full nested objects. If False,
+            return shallow data with identifiers only. (Reserved for future use)
+
+    Returns:
+        JSON-serializable dict with villain data
+    """
     return {
-        "id": serialize_uuid(villain.id),
         "identifier": villain.identifier,
-        "workspace_id": serialize_uuid(villain.workspace_id),
         "name": villain.name,
         "villain_type": villain.villain_type,
         "description": villain.description,
@@ -146,30 +304,64 @@ def serialize_villain(villain: Villain) -> Dict[str, Any]:
     }
 
 
-def serialize_conflict(conflict: Conflict) -> Dict[str, Any]:
-    """Serialize Conflict to JSON-serializable dict."""
-    result = {
+def serialize_conflict(
+    conflict: Conflict, include_connections: bool = True
+) -> Dict[str, Any]:
+    """Serialize Conflict to JSON-serializable dict.
+
+    Args:
+        conflict: Conflict instance to serialize
+        include_connections: If True, include full nested objects for hero,
+            villain, and theme. If False, return shallow data with identifiers.
+
+    Returns:
+        JSON-serializable dict with conflict data
+    """
+    status = getattr(conflict.status, "value", conflict.status)
+    result: Dict[str, Any] = {
         "identifier": conflict.identifier,
-        "hero_identifier": conflict.hero.identifier if conflict.hero else None,
-        "villain_identifier": conflict.villain.identifier if conflict.villain else None,
         "description": conflict.description,
-        "status": (
-            conflict.status.value
-            if hasattr(conflict.status, "value")
-            else conflict.status
-        ),
-        "roadmap_theme_identifier": (
-            conflict.story_arc.identifier if conflict.story_arc else None
-        ),
+        "status": status,
         "resolved_at": serialize_datetime(conflict.resolved_at),
-        "resolved_by_initiative_identifier": (
-            conflict.resolved_by_initiative.identifier
-            if conflict.resolved_by_initiative
-            else None
-        ),
         "created_at": serialize_datetime(conflict.created_at),
         "updated_at": serialize_datetime(conflict.updated_at),
     }
+
+    if include_connections:
+        result["hero"] = (
+            serialize_hero(conflict.hero, include_connections=False)
+            if conflict.hero
+            else None
+        )
+        result["villain"] = (
+            serialize_villain(conflict.villain, include_connections=False)
+            if conflict.villain
+            else None
+        )
+        result["theme"] = (
+            serialize_theme(conflict.story_arc, include_connections=False)
+            if conflict.story_arc
+            else None
+        )
+        result["resolved_by_initiative"] = (
+            serialize_initiative_summary(conflict.resolved_by_initiative)
+            if conflict.resolved_by_initiative
+            else None
+        )
+    else:
+        result["hero_identifier"] = conflict.hero.identifier if conflict.hero else None
+        result["villain_identifier"] = (
+            conflict.villain.identifier if conflict.villain else None
+        )
+        result["theme_identifier"] = (
+            conflict.story_arc.identifier if conflict.story_arc else None
+        )
+        result["resolved_by_initiative_identifier"] = (
+            conflict.resolved_by_initiative.identifier
+            if conflict.resolved_by_initiative
+            else None
+        )
+
     return result
 
 
@@ -199,6 +391,7 @@ __all__ = [
     "serialize_pillar",
     "serialize_outcome",
     "serialize_theme",
+    "serialize_initiative_summary",
     "serialize_strategic_initiative",
     "serialize_strategic_foundation",
     "serialize_hero",

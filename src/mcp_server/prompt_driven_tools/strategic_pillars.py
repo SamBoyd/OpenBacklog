@@ -18,7 +18,6 @@ from src.mcp_server.prompt_driven_tools.utils import (
     get_workspace_id_from_request,
     serialize_pillar,
     validate_pillar_constraints,
-    validate_uuid,
 )
 from src.strategic_planning import controller as strategic_controller
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar

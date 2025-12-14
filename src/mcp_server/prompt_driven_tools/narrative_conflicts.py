@@ -8,7 +8,9 @@ Pattern: Get Framework → Claude + User Collaborate → Submit Result
 
 import logging
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy.orm import selectinload
 
 from src.db import SessionLocal
 from src.mcp_server.auth_utils import MCPContextError, get_auth_context
@@ -33,6 +35,16 @@ from src.strategic_planning.services.event_publisher import EventPublisher
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _get_conflict_eager_load_options() -> List[Any]:
+    """Return common selectinload options for Conflict queries."""
+    return [
+        selectinload(Conflict.hero),
+        selectinload(Conflict.villain),
+        selectinload(Conflict.story_arc),
+        selectinload(Conflict.resolved_by_initiative),
+    ]
 
 
 # ============================================================================
@@ -364,14 +376,18 @@ async def get_conflicts(
         logger.info(f"Getting conflicts for workspace {workspace_uuid}")
 
         publisher = EventPublisher(session)
-        conflict_service = ConflictService(session, publisher)
 
-        conflicts = conflict_service.get_conflicts_for_workspace(workspace_uuid)
+        query = (
+            session.query(Conflict)
+            .options(*_get_conflict_eager_load_options())
+            .filter_by(workspace_id=workspace_uuid)
+            .order_by(Conflict.created_at.desc())
+        )
 
         if status:
             try:
                 status_enum = ConflictStatus[status.upper()]
-                conflicts = [c for c in conflicts if c.status == status_enum.value]
+                query = query.filter(Conflict.status == status_enum.value)
             except KeyError:
                 valid_statuses = ", ".join([cs.name for cs in ConflictStatus])
                 return build_error_response(
@@ -382,14 +398,16 @@ async def get_conflicts(
         if hero_identifier:
             hero_service = HeroService(session, publisher)
             hero = hero_service.get_hero_by_identifier(hero_identifier, workspace_uuid)
-            conflicts = [c for c in conflicts if c.hero_id == hero.id]
+            query = query.filter(Conflict.hero_id == hero.id)
 
         if villain_identifier:
             villain_service = VillainService(session, publisher)
             villain = villain_service.get_villain_by_identifier(
                 villain_identifier, workspace_uuid
             )
-            conflicts = [c for c in conflicts if c.villain_id == villain.id]
+            query = query.filter(Conflict.villain_id == villain.id)
+
+        conflicts = query.all()
 
         return build_success_response(
             entity_type="conflict",
@@ -439,21 +457,20 @@ async def get_conflict_details(conflict_identifier: str) -> Dict[str, Any]:
             f"Getting conflict details for {conflict_identifier} in workspace {workspace_uuid}"
         )
 
-        publisher = EventPublisher(session)
-        conflict_service = ConflictService(session, publisher)
-        conflict = conflict_service.get_conflict_by_identifier(
-            conflict_identifier, workspace_uuid
+        conflict = (
+            session.query(Conflict)
+            .options(*_get_conflict_eager_load_options())
+            .filter_by(identifier=conflict_identifier, workspace_id=workspace_uuid)
+            .first()
         )
+
+        if not conflict:
+            return build_error_response(
+                "conflict",
+                f"Conflict with identifier '{conflict_identifier}' not found",
+            )
 
         conflict_data = serialize_conflict(conflict)
-
-        conflict_data["hero_name"] = conflict.hero.name if conflict.hero else None
-        conflict_data["villain_name"] = (
-            conflict.villain.name if conflict.villain else None
-        )
-        conflict_data["theme_name"] = (
-            conflict.story_arc.name if conflict.story_arc else None
-        )
 
         return build_success_response(
             entity_type="conflict",
@@ -499,10 +516,19 @@ async def mark_conflict_resolved(
         )
 
         publisher = EventPublisher(session)
-        conflict_service = ConflictService(session, publisher)
-        conflict = conflict_service.get_conflict_by_identifier(
-            conflict_identifier, workspace_uuid
+
+        conflict = (
+            session.query(Conflict)
+            .options(*_get_conflict_eager_load_options())
+            .filter_by(identifier=conflict_identifier, workspace_id=workspace_uuid)
+            .first()
         )
+
+        if not conflict:
+            return build_error_response(
+                "conflict",
+                f"Conflict with identifier '{conflict_identifier}' not found",
+            )
 
         if conflict.status == ConflictStatus.RESOLVED:
             return build_error_response(
@@ -515,6 +541,7 @@ async def mark_conflict_resolved(
 
         conflict.mark_resolved(initiative_uuid, publisher)
         session.commit()
+        session.refresh(conflict)
 
         return build_success_response(
             entity_type="conflict",
@@ -579,10 +606,19 @@ async def update_conflict(
 
         workspace_uuid = uuid.UUID(workspace_id)
         publisher = EventPublisher(session)
-        conflict_service = ConflictService(session, publisher)
-        conflict = conflict_service.get_conflict_by_identifier(
-            conflict_identifier, workspace_uuid
+
+        conflict = (
+            session.query(Conflict)
+            .options(*_get_conflict_eager_load_options())
+            .filter_by(identifier=conflict_identifier, workspace_id=workspace_uuid)
+            .first()
         )
+
+        if not conflict:
+            return build_error_response(
+                "conflict",
+                f"Conflict with identifier '{conflict_identifier}' not found",
+            )
 
         final_description = (
             description if description is not None else conflict.description

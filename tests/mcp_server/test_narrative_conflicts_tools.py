@@ -130,7 +130,7 @@ class TestGetConflictDetails:
     async def test_get_conflict_details_success(
         self, session: Session, conflict: Conflict, hero: Hero, villain: Villain
     ):
-        """Test successfully retrieving conflict details."""
+        """Test successfully retrieving conflict details with full nested objects."""
         result = await get_conflict_details.fn(
             conflict_identifier=conflict.identifier,
         )
@@ -138,9 +138,9 @@ class TestGetConflictDetails:
         assert_that(result, has_entries({"status": "success", "type": "conflict"}))
         assert_that(result, has_key("data"))
         assert_that(result["data"]["identifier"], equal_to(conflict.identifier))
-        assert_that(result["data"]["hero_name"], equal_to("Sarah, The Solo Builder"))
-        assert_that(result["data"]["villain_name"], equal_to("Context Switching"))
-        assert_that(result["data"]["theme_name"], equal_to(None))
+        assert_that(result["data"]["hero"]["name"], equal_to("Sarah, The Solo Builder"))
+        assert_that(result["data"]["villain"]["name"], equal_to("Context Switching"))
+        assert_that(result["data"]["theme"], equal_to(None))
 
     @pytest.mark.asyncio
     async def test_get_conflict_details_not_found(self, session: Session):
@@ -361,7 +361,7 @@ class TestUpdateConflict:
 
         # Verify roadmap theme unlinked
         assert_that(result, has_entries({"status": "success", "type": "conflict"}))
-        assert_that(result["data"]["roadmap_theme_identifier"], equal_to(None))
+        assert_that(result["data"]["theme"], equal_to(None))
 
     @pytest.mark.asyncio
     async def test_update_conflict_unlink_roadmap_theme_with_empty_string(
@@ -386,7 +386,7 @@ class TestUpdateConflict:
 
         # Verify roadmap theme unlinked
         assert_that(result, has_entries({"status": "success", "type": "conflict"}))
-        assert_that(result["data"]["roadmap_theme_identifier"], equal_to(None))
+        assert_that(result["data"]["theme"], equal_to(None))
 
     @pytest.mark.asyncio
     async def test_update_conflict_no_fields_provided_error(

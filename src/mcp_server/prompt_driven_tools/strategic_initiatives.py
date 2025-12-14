@@ -39,6 +39,7 @@ from src.narrative.services.hero_service import HeroService
 from src.narrative.services.villain_service import VillainService
 from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 from src.strategic_planning import controller as strategic_controller
+from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.exceptions import DomainException
 from src.strategic_planning.services.event_publisher import EventPublisher
 
@@ -763,9 +764,8 @@ async def get_strategic_initiative_details(
 
         initiative = strategic_initiative.initiative
         initiative_data: Dict[str, Any] = {
-            "id": str(strategic_initiative.id),
             "initiative": {
-                "id": str(initiative.id),
+                "identifier": initiative.identifier,
                 "title": initiative.title,
                 "description": initiative.description,
                 "identifier": initiative.identifier,
@@ -835,14 +835,7 @@ def _ensure_strategic_context(
     """
     si = (
         session.query(StrategicInitiative)
-        .options(
-            selectinload(StrategicInitiative.initiative),
-            selectinload(StrategicInitiative.strategic_pillar),
-            selectinload(StrategicInitiative.roadmap_theme),
-            selectinload(StrategicInitiative.heroes),
-            selectinload(StrategicInitiative.villains),
-            selectinload(StrategicInitiative.conflicts),
-        )
+        .options(*_get_strategic_initiative_eager_load_options())
         .filter_by(initiative_id=initiative.id)
         .first()
     )
@@ -887,11 +880,15 @@ def _get_strategic_initiative_eager_load_options():
     """Return common selectinload options for StrategicInitiative queries."""
     return [
         selectinload(StrategicInitiative.initiative),
-        selectinload(StrategicInitiative.strategic_pillar),
+        selectinload(StrategicInitiative.strategic_pillar).selectinload(
+            StrategicPillar.outcomes
+        ),
         selectinload(StrategicInitiative.roadmap_theme),
         selectinload(StrategicInitiative.heroes),
         selectinload(StrategicInitiative.villains),
-        selectinload(StrategicInitiative.conflicts),
+        selectinload(StrategicInitiative.conflicts).selectinload(Conflict.hero),
+        selectinload(StrategicInitiative.conflicts).selectinload(Conflict.villain),
+        selectinload(StrategicInitiative.conflicts).selectinload(Conflict.story_arc),
     ]
 
 
