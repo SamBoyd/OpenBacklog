@@ -440,10 +440,13 @@ async def submit_roadmap_theme(
             session=session,
         )
 
-        # Link hero and villain if provided
-        if hero_uuid or villain_uuid:
-            theme.hero_id = hero_uuid
-            theme.primary_villain_id = villain_uuid
+        if hero_uuid:
+            theme.link_heroes([hero_uuid], session)
+            session.commit()
+            session.refresh(theme)
+
+        if villain_uuid:
+            theme.link_villains([villain_uuid], session)
             session.commit()
             session.refresh(theme)
 
@@ -940,7 +943,7 @@ async def link_theme_to_hero(
         if not theme:
             return build_error_response("theme", "Theme not found")
 
-        theme.hero_id = hero.id
+        theme.link_heroes([hero.id], session)
         session.commit()
         session.refresh(theme)
 
