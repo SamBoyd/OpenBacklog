@@ -92,7 +92,7 @@ pbr==6.1.1
 platformdirs==4.3.8
 pluggy==1.6.0
 pony==0.7.19
-prompt_toolkit==3.0.50
+prompt_toolkit==3.0.52
 propcache==0.3.2
 psycopg==3.2.9
 psycopg-binary==3.2.9
