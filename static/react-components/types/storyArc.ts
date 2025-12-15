@@ -208,7 +208,6 @@ export interface RoadmapThemeDetailLayoutProps {
   arc: ThemeDto;
   hero: HeroRef | null;
   villains: VillainRef[];
-  themes: ThemeDto[];
   beats: BeatItem[];
   conflicts: ConflictDto[];
   outcomes: OutcomeDto[];

@@ -23,7 +23,6 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
     arc,
     hero,
     villains,
-    themes,
     beats,
     conflicts,
     outcomes,

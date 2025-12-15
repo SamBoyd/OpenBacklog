@@ -8,7 +8,6 @@ import { useProductOutcomes } from '#hooks/useProductOutcomes';
 import { useStrategicPillars } from '#hooks/useStrategicPillars';
 import { ThemeDto, HeroRef, VillainRef, PillarDto, OutcomeDto } from '#api/productStrategy';
 import { ConflictDto } from '#types';
-import { OutcomeRef } from '#types/storyArc';
 
 /**
  * Metrics data derived from the roadmap theme's beats and tasks.
@@ -33,7 +32,6 @@ export interface RoadmapThemeDetailData {
   arc: ThemeDto | null;
   hero: HeroRef | null; // Primary hero from the theme
   villains: VillainRef[]; // Villains associated with the theme
-  themes: ThemeDto[]; // All other themes in the workspace
   beats: BeatItem[]; // Strategic initiatives as story beats
   conflicts: ConflictDto[]; // Conflicts filtered by arc ID
   outcomes: OutcomeDto[]; // Outcomes linked to this theme
@@ -130,13 +128,6 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
     error: conflictsError,
   } = useConflicts();
 
-  // Fetch all themes to provide context (other arcs)
-  const {
-    themes: allThemes,
-    isLoading: isLoadingThemes,
-    error: themesError,
-  } = useRoadmapThemes(workspaceId);
-
   // Fetch workspace vision
   const {
     vision,
@@ -163,12 +154,6 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
     if (!allConflicts) return [];
     return allConflicts.filter(conflict => conflict.story_arc_id === arcId);
   }, [allConflicts, arcId]);
-
-  // Filter out current arc from themes list
-  const otherThemes = useMemo(() => {
-    if (!allThemes) return [];
-    return allThemes.filter(theme => theme.id !== arcId);
-  }, [allThemes, arcId]);
 
   // Get outcomes linked to this theme
   const outcomes = useMemo(() => {
@@ -202,7 +187,7 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
   }, [beats, arc]);
 
   // Aggregate loading and error states
-  const isLoading = isLoadingArc || isLoadingBeats || isLoadingConflicts || isLoadingThemes || isLoadingVision || isLoadingOutcomes;
+  const isLoading = isLoadingArc || isLoadingBeats || isLoadingConflicts || isLoadingVision || isLoadingOutcomes;
 
   // Combine errors - convert string errors to Error objects
   let combinedError: string | null = null;
@@ -212,8 +197,6 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
     combinedError = beatsError instanceof Error ? String(beatsError) : beatsError;
   } else if (conflictsError) {
     combinedError = conflictsError;
-  } else if (themesError) {
-    combinedError = themesError instanceof Error ? String(themesError) : themesError;
   } else if (visionError) {
     combinedError = visionError instanceof Error ? String(visionError) : visionError;
   } else if (outcomesError) {
@@ -224,7 +207,6 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
     arc,
     hero,
     villains: arcVillains,
-    themes: otherThemes,
     beats,
     conflicts,
     outcomes,

@@ -33,7 +33,6 @@ const RoadmapThemeDetail = () => {
         arc,
         hero,
         villains,
-        themes,
         beats,
         conflicts,
         outcomes,
@@ -112,7 +111,6 @@ const RoadmapThemeDetail = () => {
             arc={arc!}
             hero={hero}
             villains={villains}
-            themes={themes}
             beats={beats}
             conflicts={conflicts}
             outcomes={outcomes}
