@@ -163,13 +163,16 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
     return allOutcomes.filter(outcome => themeOutcomeIds.includes(outcome.id));
   }, [arc, allOutcomes]);
 
-  // Get pillars linked to this theme
+  // Get pillars linked to this theme (derived through outcomes)
   const pillars = useMemo(() => {
-    if (!arc || !allPillars) return [];
-    // Filter pillars by theme's pillars_ids
-    const themeOutcomeIds = arc.outcome_ids || [];
-    return allPillars.filter(pillar => themeOutcomeIds.includes(pillar.id));
-  }, [arc, allPillars]);
+    if (!arc || !allPillars || !outcomes) return [];
+    // Collect unique pillar IDs from all outcomes linked to this theme
+    const derivedPillarIds = new Set<string>();
+    outcomes.forEach((outcome) => {
+      outcome.pillar_ids?.forEach((pillarId) => derivedPillarIds.add(pillarId));
+    });
+    return allPillars.filter(pillar => derivedPillarIds.has(pillar.id));
+  }, [arc, allPillars, outcomes]);
 
   // Get vision text
   const visionText = useMemo(() => {
