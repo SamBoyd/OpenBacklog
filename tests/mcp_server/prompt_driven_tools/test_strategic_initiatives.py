@@ -350,9 +350,9 @@ class TestSubmitStrategicInitiative:
         result = await submit_strategic_initiative.fn(
             title=title,
             implementation_description=impl_description,
-            hero_ids=[str(hero.id)],
-            villain_ids=[str(villain.id)],
-            pillar_id=str(pillar.id),
+            hero_identifiers=[hero.identifier],
+            villain_identifiers=[villain.identifier],
+            pillar_identifier=pillar.identifier,
             narrative_intent="Defeats context switching for Sarah",
             status="TO_DO",
         )
@@ -395,20 +395,21 @@ class TestSubmitStrategicInitiative:
     async def test_submit_with_nonexistent_hero(
         self, session: Session, user: User, workspace: Workspace
     ):
-        """Test that submit gracefully handles invalid hero IDs."""
-        fake_hero_id = str(uuid.uuid4())
+        """Test that submit gracefully handles invalid hero identifiers."""
+        fake_hero_identifier = "H-9999"
 
         result = await submit_strategic_initiative.fn(
             title="Test Initiative",
             implementation_description="Test description",
-            hero_ids=[fake_hero_id],
+            hero_identifiers=[fake_hero_identifier],
         )
 
-        # Should succeed with warning about invalid hero
+        # Verify error response
         assert_that(
-            result, has_entries({"status": "success", "type": "strategic_initiative"})
+            result, has_entries({"status": "error", "type": "strategic_initiative"})
         )
-        assert_that(result, has_key("warnings"))
+        assert "Hero with identifier" in result["error_message"]
+        assert "not found" in result["error_message"]
 
     @pytest.mark.asyncio
     async def test_submit_handles_domain_exception(
@@ -1093,11 +1094,11 @@ class TestValidationConstraints:
                 workspace_id=workspace.id,
                 title="",
                 description="Test description",
-                hero_ids=[],
-                villain_ids=[],
-                conflict_ids=[],
-                pillar_id=None,
-                theme_id=None,
+                hero_identifiers=[],
+                villain_identifiers=[],
+                conflict_identifiers=[],
+                pillar_identifier=None,
+                theme_identifier=None,
                 narrative_intent=None,
                 session=session,
             )
@@ -1113,45 +1114,41 @@ class TestValidationConstraints:
                 workspace_id=workspace.id,
                 title="Test Title",
                 description="",
-                hero_ids=[],
-                villain_ids=[],
-                conflict_ids=[],
-                pillar_id=None,
-                theme_id=None,
+                hero_identifiers=[],
+                villain_identifiers=[],
+                conflict_identifiers=[],
+                pillar_identifier=None,
+                theme_identifier=None,
                 narrative_intent=None,
                 session=session,
             )
 
         assert "Description is required" in str(exc_info.value)
 
-    def test_returns_warnings_for_invalid_hero_ids(
+    def test_returns_warnings_for_invalid_hero_identifiers(
         self, workspace: Workspace, session: Session, user: User
     ):
-        """Test that invalid hero IDs result in warnings, not errors."""
-        invalid_id = str(uuid.uuid4())
+        """Test that invalid hero identifiers result in warnings, not errors."""
+        invalid_identifier = "H-9999"
 
-        result = validate_strategic_initiative_constraints(
-            workspace_id=workspace.id,
-            title="Test Title",
-            description="Test description",
-            hero_ids=[invalid_id],
-            villain_ids=[],
-            conflict_ids=[],
-            pillar_id=None,
-            theme_id=None,
-            narrative_intent=None,
-            session=session,
-        )
+        with pytest.raises(DomainException):
+            validate_strategic_initiative_constraints(
+                workspace_id=workspace.id,
+                title="Test Title",
+                description="Test description",
+                hero_identifiers=[invalid_identifier],
+                villain_identifiers=[],
+                conflict_identifiers=[],
+                pillar_identifier=None,
+                theme_identifier=None,
+                narrative_intent=None,
+                session=session,
+            )
 
-        assert len(result["valid_hero_ids"]) == 0
-        assert len(result["warnings"]) == 1
-        assert "Hero ID" in result["warnings"][0]
-        assert "not found" in result["warnings"][0]
-
-    def test_validates_real_hero_ids(
+    def test_validates_real_hero_identifiers(
         self, workspace: Workspace, session: Session, user: User
     ):
-        """Test that valid hero IDs are returned in valid_hero_ids."""
+        """Test that valid hero identifiers are resolved to valid_hero_ids."""
         publisher = EventPublisher(session)
         hero = Hero.define_hero(
             workspace_id=workspace.id,
@@ -1168,11 +1165,11 @@ class TestValidationConstraints:
             workspace_id=workspace.id,
             title="Test Title",
             description="Test description",
-            hero_ids=[str(hero.id)],
-            villain_ids=[],
-            conflict_ids=[],
-            pillar_id=None,
-            theme_id=None,
+            hero_identifiers=[hero.identifier],
+            villain_identifiers=[],
+            conflict_identifiers=[],
+            pillar_identifier=None,
+            theme_identifier=None,
             narrative_intent=None,
             session=session,
         )

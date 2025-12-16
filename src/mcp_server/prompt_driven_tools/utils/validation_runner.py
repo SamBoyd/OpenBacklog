@@ -9,6 +9,13 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
+from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
+    resolve_conflict_identifiers,
+    resolve_hero_identifiers,
+    resolve_pillar_identifier,
+    resolve_theme_identifier,
+    resolve_villain_identifiers,
+)
 from src.models import InitiativeStatus
 from src.narrative.aggregates.hero import Hero
 from src.narrative.aggregates.villain import Villain
@@ -50,9 +57,7 @@ def validate_pillar_constraints(
     """
     # Validate format
     StrategicPillar._validate_name(name)  # pyright: ignore[reportPrivateUsage]
-    StrategicPillar._validate_description(
-        description
-    )  # pyright: ignore[reportPrivateUsage]
+    StrategicPillar._validate_description(description)  # type: ignore[attr-defined]
 
     # Check limit (max 5 pillars)
     StrategicPillar.validate_pillar_limit(workspace_id, session)
@@ -286,29 +291,29 @@ def validate_strategic_initiative_constraints(
     workspace_id: uuid.UUID,
     title: str,
     description: str,
-    hero_ids: List[str],
-    villain_ids: List[str],
-    conflict_ids: List[str],
-    pillar_id: Optional[str],
-    theme_id: Optional[str],
+    hero_identifiers: List[str],
+    villain_identifiers: List[str],
+    conflict_identifiers: List[str],
+    pillar_identifier: Optional[str],
+    theme_identifier: Optional[str],
     narrative_intent: Optional[str],
     session: Session,
 ) -> Dict[str, Any]:
     """Validate strategic initiative constraints with graceful degradation.
 
-    Instead of failing on invalid IDs, this function returns valid IDs and
-    warnings for invalid ones. This enables partial creation when some
+    Instead of failing on invalid identifiers, this function returns valid UUIDs
+    and warnings for invalid ones. This enables partial creation when some
     narrative links are missing or incorrect.
 
     Args:
         workspace_id: UUID of the workspace
         title: Initiative title
         description: Initiative description
-        hero_ids: List of hero UUIDs to validate
-        villain_ids: List of villain UUIDs to validate
-        conflict_ids: List of conflict UUIDs to validate
-        pillar_id: Optional pillar UUID to validate
-        theme_id: Optional theme UUID to validate
+        hero_identifiers: List of hero identifiers to validate (e.g., ["H-001"])
+        villain_identifiers: List of villain identifiers to validate (e.g., ["V-001"])
+        conflict_identifiers: List of conflict identifiers to validate (e.g., ["C-001"])
+        pillar_identifier: Optional pillar identifier to validate (e.g., "P-001")
+        theme_identifier: Optional theme identifier to validate (e.g., "T-001")
         narrative_intent: Optional narrative intent text
         session: SQLAlchemy database session
 
@@ -319,13 +324,11 @@ def validate_strategic_initiative_constraints(
         - valid_conflict_ids: List of valid conflict UUIDs
         - valid_pillar_id: Valid pillar UUID or None
         - valid_theme_id: Valid theme UUID or None
-        - warnings: List of warning messages for invalid IDs
+        - warnings: List of warning messages for invalid identifiers
 
     Raises:
         DomainException: If title or description validation fails
     """
-    from src.narrative.aggregates.conflict import Conflict
-    from src.roadmap_intelligence.aggregates.roadmap_theme import RoadmapTheme
 
     warnings: List[str] = []
     valid_hero_ids: List[uuid.UUID] = []
@@ -353,80 +356,32 @@ def validate_strategic_initiative_constraints(
             f"Narrative intent must be 1000 characters or less (got {len(narrative_intent)})"
         )
 
-    for hero_id_str in hero_ids:
-        try:
-            hero_uuid = uuid.UUID(hero_id_str)
-            hero = (
-                session.query(Hero)
-                .filter_by(id=hero_uuid, workspace_id=workspace_id)
-                .first()
-            )
-            if hero:
-                valid_hero_ids.append(hero_uuid)
-            else:
-                warnings.append(f"Hero ID {hero_id_str} not found - skipped")
-        except ValueError:
-            warnings.append(f"Invalid hero ID format: {hero_id_str} - skipped")
+    hero_ids = resolve_hero_identifiers(hero_identifiers, workspace_id, session)
+    valid_hero_ids.extend(hero_ids)
 
-    for villain_id_str in villain_ids:
-        try:
-            villain_uuid = uuid.UUID(villain_id_str)
-            villain = (
-                session.query(Villain)
-                .filter_by(id=villain_uuid, workspace_id=workspace_id)
-                .first()
-            )
-            if villain:
-                valid_villain_ids.append(villain_uuid)
-            else:
-                warnings.append(f"Villain ID {villain_id_str} not found - skipped")
-        except ValueError:
-            warnings.append(f"Invalid villain ID format: {villain_id_str} - skipped")
+    villain_ids = resolve_villain_identifiers(
+        villain_identifiers, workspace_id, session
+    )
+    valid_villain_ids.extend(villain_ids)
 
-    for conflict_id_str in conflict_ids:
-        try:
-            conflict_uuid = uuid.UUID(conflict_id_str)
-            conflict = (
-                session.query(Conflict)
-                .filter_by(id=conflict_uuid, workspace_id=workspace_id)
-                .first()
-            )
-            if conflict:
-                valid_conflict_ids.append(conflict_uuid)
-            else:
-                warnings.append(f"Conflict ID {conflict_id_str} not found - skipped")
-        except ValueError:
-            warnings.append(f"Invalid conflict ID format: {conflict_id_str} - skipped")
+    conflict_ids = resolve_conflict_identifiers(
+        conflict_identifiers, workspace_id, session
+    )
+    valid_conflict_ids.extend(conflict_ids)
 
-    if pillar_id:
-        try:
-            pillar_uuid = uuid.UUID(pillar_id)
-            pillar = (
-                session.query(StrategicPillar)
-                .filter_by(id=pillar_uuid, workspace_id=workspace_id)
-                .first()
-            )
-            if pillar:
-                valid_pillar_id = pillar_uuid
-            else:
-                warnings.append(f"Pillar ID {pillar_id} not found - skipped")
-        except ValueError:
-            warnings.append(f"Invalid pillar ID format: {pillar_id} - skipped")
+    if pillar_identifier:
+        valid_pillar_id = resolve_pillar_identifier(
+            pillar_identifier, workspace_id, session
+        )
+    else:
+        valid_pillar_id = None
 
-    if theme_id:
-        try:
-            theme_uuid = uuid.UUID(theme_id)
-            theme = (
-                session.query(RoadmapTheme)
-                .filter_by(id=theme_uuid, workspace_id=workspace_id)
-                .first()
-            )
-            if theme:
-                valid_theme_id = theme_uuid
-            else:
-                warnings.append(f"Theme ID {theme_id} not found - skipped")
-        except ValueError:
-            warnings.append(f"Invalid theme ID format: {theme_id} - skipped")
+    if theme_identifier:
+        valid_theme_id = resolve_theme_identifier(
+            theme_identifier, workspace_id, session
+        )
+    else:
+        valid_theme_id = None
 
     return {
         "valid_hero_ids": valid_hero_ids,

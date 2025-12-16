@@ -262,3 +262,42 @@ def resolve_villain_identifiers(
         for identifier in identifiers
     ]
     return [villain.id for villain in villains]
+
+
+def resolve_conflict_identifiers(
+    identifiers: List[str], workspace_id: uuid.UUID, session: Session
+) -> List[uuid.UUID]:
+    """Batch resolve multiple conflict identifiers to UUIDs.
+
+    Args:
+        identifiers: List of human-readable conflict identifiers (e.g., "C-001")
+        workspace_id: UUID of the workspace
+        session: Database session
+
+    Returns:
+        List of UUIDs in the same order as the input identifiers
+
+    Raises:
+        DomainException: If any conflict not found or doesn't belong to workspace
+    """
+    from src.narrative.aggregates.conflict import Conflict
+
+    conflicts = (
+        session.query(Conflict)
+        .filter(
+            Conflict.identifier.in_(identifiers),
+            Conflict.workspace_id == workspace_id,
+        )
+        .all()
+    )
+
+    found_identifiers = {conflict.identifier for conflict in conflicts}
+    missing_identifiers = set(identifiers) - found_identifiers
+
+    if missing_identifiers:
+        raise DomainException(
+            f"Conflicts with identifiers {sorted(missing_identifiers)} not found or do not belong to workspace"
+        )
+
+    identifier_to_uuid = {conflict.identifier: conflict.id for conflict in conflicts}
+    return [identifier_to_uuid[identifier] for identifier in identifiers]

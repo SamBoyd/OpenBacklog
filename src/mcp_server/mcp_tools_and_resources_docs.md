@@ -175,11 +175,11 @@ Returns comprehensive framework for defining a strategic initiative with narrati
   "questions": [/* guiding questions */],
   "anti_patterns": [/* what to avoid */],
   "current_state": {
-    "available_heroes": [/* heroes to link */],
-    "available_villains": [/* villains to confront */],
-    "available_pillars": [/* pillars for alignment */],
-    "available_themes": [/* themes for placement */],
-    "active_conflicts": [/* conflicts to address */]
+    "available_heroes": [{"identifier": "H-001", "name": "...", "is_primary": true}],
+    "available_villains": [{"identifier": "V-001", "name": "...", "villain_type": "WORKFLOW"}],
+    "available_pillars": [{"identifier": "P-001", "name": "...", "description": "..."}],
+    "available_themes": [{"identifier": "T-001", "name": "...", "description": "..."}],
+    "active_conflicts": [{"identifier": "C-001", "description": "..."}]
   },
   "coaching_tips": [/* refinement guidance */]
 }
@@ -187,7 +187,7 @@ Returns comprehensive framework for defining a strategic initiative with narrati
 
 **Use Cases:**
 - Starting initiative creation with full context
-- Understanding available narrative connections
+- Understanding available narrative connections (use identifiers like "H-001", "V-001" when linking)
 - Guiding user through strategic initiative refinement
 
 ---

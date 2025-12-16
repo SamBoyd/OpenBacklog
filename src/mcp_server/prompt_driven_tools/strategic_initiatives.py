@@ -30,6 +30,10 @@ from src.mcp_server.prompt_driven_tools.utils import (
     get_workspace_id_from_request,
     serialize_strategic_initiative,
 )
+from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
+    resolve_pillar_identifier,
+    resolve_theme_identifier,
+)
 from src.mcp_server.prompt_driven_tools.utils.validation_runner import (
     validate_strategic_initiative_constraints,
 )
@@ -219,7 +223,6 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
         current_state: Dict[str, Any] = {
             "available_heroes": [
                 {
-                    "id": str(hero.id),
                     "identifier": hero.identifier,
                     "name": hero.name,
                     "is_primary": hero.is_primary,
@@ -228,7 +231,6 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
             ],
             "available_villains": [
                 {
-                    "id": str(villain.id),
                     "identifier": villain.identifier,
                     "name": villain.name,
                     "villain_type": villain.villain_type,
@@ -239,7 +241,7 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
             ],
             "available_pillars": [
                 {
-                    "id": str(pillar.id),
+                    "identifier": pillar.identifier,
                     "name": pillar.name,
                     "description": (
                         pillar.description[:100] if pillar.description else ""
@@ -249,7 +251,7 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
             ],
             "available_themes": [
                 {
-                    "id": str(theme.id),
+                    "identifier": theme.identifier,
                     "name": theme.name,
                     "description": theme.description[:100],
                 }
@@ -257,7 +259,6 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
             ],
             "active_conflicts": [
                 {
-                    "id": str(conflict.id),
                     "identifier": conflict.identifier,
                     "description": conflict.description[:100],
                 }
@@ -302,11 +303,11 @@ async def submit_strategic_initiative(
     title: str,
     implementation_description: str,
     strategic_description: Optional[str] = None,
-    hero_ids: Optional[List[str]] = None,
-    villain_ids: Optional[List[str]] = None,
-    conflict_ids: Optional[List[str]] = None,
-    pillar_id: Optional[str] = None,
-    theme_id: Optional[str] = None,
+    hero_identifiers: Optional[List[str]] = None,
+    villain_identifiers: Optional[List[str]] = None,
+    conflict_identifiers: Optional[List[str]] = None,
+    pillar_identifier: Optional[str] = None,
+    theme_identifier: Optional[str] = None,
     narrative_intent: Optional[str] = None,
     status: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -332,11 +333,11 @@ async def submit_strategic_initiative(
             strategy. Explains the "why" - user needs addressed, strategic alignment,
             and how it fits into the bigger picture. If not provided, defaults to
             implementation_description. (optional)
-        hero_ids: List of hero UUIDs this initiative helps (optional)
-        villain_ids: List of villain UUIDs this initiative confronts (optional)
-        conflict_ids: List of conflict UUIDs this initiative addresses (optional)
-        pillar_id: Strategic pillar UUID for alignment (optional)
-        theme_id: Roadmap theme UUID for placement (optional)
+        hero_identifiers: List of hero identifiers this initiative helps (e.g., ["H-001"]) (optional)
+        villain_identifiers: List of villain identifiers this initiative confronts (e.g., ["V-001"]) (optional)
+        conflict_identifiers: List of conflict identifiers this initiative addresses (e.g., ["C-001"]) (optional)
+        pillar_identifier: Strategic pillar identifier for alignment (e.g., "P-001") (optional)
+        theme_identifier: Roadmap theme identifier for placement (e.g., "T-001") (optional)
         narrative_intent: Why this initiative matters narratively (optional)
         status: Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG
 
@@ -348,9 +349,9 @@ async def submit_strategic_initiative(
         ...     title="Smart Context Switching",
         ...     implementation_description="Auto-save and restore IDE context...",
         ...     strategic_description="Addresses user need for seamless workflow...",
-        ...     hero_ids=["uuid-of-sarah"],
-        ...     villain_ids=["uuid-of-context-switching"],
-        ...     pillar_id="uuid-of-ide-integration-pillar",
+        ...     hero_identifiers=["H-001"],
+        ...     villain_identifiers=["V-001"],
+        ...     pillar_identifier="P-001",
         ...     narrative_intent="Defeats context switching for Sarah"
         ... )
     """
@@ -381,19 +382,19 @@ async def submit_strategic_initiative(
                     f"Invalid status '{status}'. Valid statuses are: {valid_statuses}",
                 )
 
-        hero_ids = hero_ids or []
-        villain_ids = villain_ids or []
-        conflict_ids = conflict_ids or []
+        hero_identifiers = hero_identifiers or []
+        villain_identifiers = villain_identifiers or []
+        conflict_identifiers = conflict_identifiers or []
 
         validation_result = validate_strategic_initiative_constraints(
             workspace_id=workspace_id,
             title=title,
             description=implementation_description,
-            hero_ids=hero_ids,
-            villain_ids=villain_ids,
-            conflict_ids=conflict_ids,
-            pillar_id=pillar_id,
-            theme_id=theme_id,
+            hero_identifiers=hero_identifiers,
+            villain_identifiers=villain_identifiers,
+            conflict_identifiers=conflict_identifiers,
+            pillar_identifier=pillar_identifier,
+            theme_identifier=theme_identifier,
             narrative_intent=narrative_intent,
             session=session,
         )
@@ -951,11 +952,11 @@ async def update_strategic_initiative(
     title: Optional[str] = None,
     implementation_description: Optional[str] = None,
     status: Optional[str] = None,
-    hero_ids: Optional[List[str]] = None,
-    villain_ids: Optional[List[str]] = None,
-    conflict_ids: Optional[List[str]] = None,
-    pillar_id: Optional[str] = None,
-    theme_id: Optional[str] = None,
+    hero_identifiers: Optional[List[str]] = None,
+    villain_identifiers: Optional[List[str]] = None,
+    conflict_identifiers: Optional[List[str]] = None,
+    pillar_identifier: Optional[str] = None,
+    theme_identifier: Optional[str] = None,
     narrative_intent: Optional[str] = None,
     strategic_description: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -978,11 +979,11 @@ async def update_strategic_initiative(
         implementation_description: New description of what this initiative delivers
             and how it will be built - the practical "what" (optional)
         status: New status (BACKLOG, TO_DO, IN_PROGRESS) (optional)
-        hero_ids: New list of hero UUIDs (replaces existing) (optional)
-        villain_ids: New list of villain UUIDs (replaces existing) (optional)
-        conflict_ids: New list of conflict UUIDs (replaces existing) (optional)
-        pillar_id: New strategic pillar UUID (optional, use "null" to unlink)
-        theme_id: New roadmap theme UUID (optional, use "null" to unlink)
+        hero_identifiers: New list of hero identifiers (e.g., ["H-001"]) (replaces existing) (optional)
+        villain_identifiers: New list of villain identifiers (e.g., ["V-001"]) (replaces existing) (optional)
+        conflict_identifiers: New list of conflict identifiers (e.g., ["C-001"]) (replaces existing) (optional)
+        pillar_identifier: New strategic pillar identifier (e.g., "P-001") (optional, use "null" to unlink)
+        theme_identifier: New roadmap theme identifier (e.g., "T-001") (optional, use "null" to unlink)
         narrative_intent: New narrative intent (optional)
         strategic_description: New description of how this initiative connects to
             the larger product strategy - the "why" (optional)
@@ -1023,11 +1024,11 @@ async def update_strategic_initiative(
                 implementation_description is not None,
                 strategic_description is not None,
                 status is not None,
-                hero_ids is not None,
-                villain_ids is not None,
-                conflict_ids is not None,
-                pillar_id is not None,
-                theme_id is not None,
+                hero_identifiers is not None,
+                villain_identifiers is not None,
+                conflict_identifiers is not None,
+                pillar_identifier is not None,
+                theme_identifier is not None,
                 narrative_intent is not None,
             ]
         )
@@ -1082,31 +1083,35 @@ async def update_strategic_initiative(
         publisher = EventPublisher(session)
 
         # Validate and prepare narrative link updates
-        if hero_ids is not None or villain_ids is not None or conflict_ids is not None:
+        if (
+            hero_identifiers is not None
+            or villain_identifiers is not None
+            or conflict_identifiers is not None
+            or pillar_identifier is not None
+            or theme_identifier is not None
+        ):
             validation_result = validate_strategic_initiative_constraints(
                 workspace_id=workspace_id,
                 title=initiative.title,
                 description=initiative.description,
-                hero_ids=hero_ids or [],
-                villain_ids=villain_ids or [],
-                conflict_ids=conflict_ids or [],
-                pillar_id=(
-                    pillar_id if pillar_id and pillar_id.lower() != "null" else None
-                ),
-                theme_id=theme_id if theme_id and theme_id.lower() != "null" else None,
+                hero_identifiers=hero_identifiers or [],
+                villain_identifiers=villain_identifiers or [],
+                conflict_identifiers=conflict_identifiers or [],
+                pillar_identifier=pillar_identifier,
+                theme_identifier=theme_identifier,
                 narrative_intent=narrative_intent,
                 session=session,
             )
 
-            if hero_ids is not None:
+            if hero_identifiers is not None:
                 strategic_initiative.link_heroes(
                     validation_result["valid_hero_ids"], session
                 )
-            if villain_ids is not None:
+            if villain_identifiers is not None:
                 strategic_initiative.link_villains(
                     validation_result["valid_villain_ids"], session
                 )
-            if conflict_ids is not None:
+            if conflict_identifiers is not None:
                 strategic_initiative.link_conflicts(
                     validation_result["valid_conflict_ids"], session
                 )
@@ -1115,24 +1120,22 @@ async def update_strategic_initiative(
 
         # Update pillar/theme/narrative_intent
         final_pillar_id = strategic_initiative.pillar_id
-        if pillar_id is not None:
-            if pillar_id.lower() == "null" or pillar_id == "":
+        if pillar_identifier is not None:
+            if pillar_identifier.lower() == "null" or pillar_identifier == "":
                 final_pillar_id = None
             else:
-                try:
-                    final_pillar_id = uuid.UUID(pillar_id)
-                except ValueError:
-                    warnings.append(f"Invalid pillar_id format: {pillar_id}")
+                final_pillar_id = resolve_pillar_identifier(
+                    pillar_identifier, workspace_id, session
+                )
 
         final_theme_id = strategic_initiative.theme_id
-        if theme_id is not None:
-            if theme_id.lower() == "null" or theme_id == "":
+        if theme_identifier is not None:
+            if theme_identifier.lower() == "null" or theme_identifier == "":
                 final_theme_id = None
             else:
-                try:
-                    final_theme_id = uuid.UUID(theme_id)
-                except ValueError:
-                    warnings.append(f"Invalid theme_id format: {theme_id}")
+                final_theme_id = resolve_theme_identifier(
+                    theme_identifier, workspace_id, session
+                )
 
         final_strategic_description = (
             strategic_description
@@ -1147,8 +1150,8 @@ async def update_strategic_initiative(
 
         if any(
             [
-                pillar_id is not None,
-                theme_id is not None,
+                pillar_identifier is not None,
+                theme_identifier is not None,
                 strategic_description is not None,
                 narrative_intent is not None,
             ]
