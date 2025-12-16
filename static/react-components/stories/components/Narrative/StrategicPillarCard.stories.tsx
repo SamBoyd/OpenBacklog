@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
 import StrategicPillarCard from '#components/Narrative/StrategicPillarCard';
-import { PillarDto, OutcomeDto } from '#api/productStrategy';
+import { PillarDto } from '#api/productStrategy';
+import { OutcomeDto } from '#api/productOutcomes';
 
 const mockOutcomes: OutcomeDto[] = [
     {
@@ -13,6 +14,7 @@ const mockOutcomes: OutcomeDto[] = [
         pillar_ids: ['650e8400-e29b-41d4-a716-446655440001'],
         created_at: '2025-01-15T11:00:00Z',
         updated_at: '2025-01-15T11:00:00Z',
+        theme_ids: []
     },
     {
         id: 'outcome-2',
@@ -23,6 +25,7 @@ const mockOutcomes: OutcomeDto[] = [
         pillar_ids: ['650e8400-e29b-41d4-a716-446655440001'],
         created_at: '2025-01-15T12:00:00Z',
         updated_at: '2025-01-15T12:00:00Z',
+        theme_ids: []
     },
     {
         id: 'outcome-3',
@@ -33,6 +36,7 @@ const mockOutcomes: OutcomeDto[] = [
         pillar_ids: ['650e8400-e29b-41d4-a716-446655440002'],
         created_at: '2025-01-16T15:30:00Z',
         updated_at: '2025-01-16T15:30:00Z',
+        theme_ids: []
     },
 ];
 

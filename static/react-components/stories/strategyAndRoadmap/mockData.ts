@@ -6,7 +6,8 @@
 import { LoremIpsum } from "lorem-ipsum";
 
 import { MetricsData, OutcomeRef } from '#types/storyArc';
-import { ThemeDto, HeroRef, VillainRef, OutcomeDto, PillarDto } from '#api/productStrategy';
+import { ThemeDto, HeroRef, VillainRef, PillarDto } from '#api/productStrategy';
+import { OutcomeDto } from '#api/productOutcomes';
 import { ConflictDto, VillainType, ConflictStatus, HeroDto, VillainDto } from '#types';
 import { BeatItem } from '#hooks/initiatives/useInitiativesByTheme';
 
@@ -34,7 +35,8 @@ export const mockOutcomes: OutcomeDto[] = [
     display_order: 0,
     pillar_ids: ['pillar-1', 'pillar-2'],
     created_at: '2025-01-15T10:00:00Z',
-    updated_at: '2025-01-15T10:00:00Z'
+    updated_at: '2025-01-15T10:00:00Z',
+    theme_ids: []
   },
   {
     id: 'outcome-2',
@@ -44,7 +46,8 @@ export const mockOutcomes: OutcomeDto[] = [
     display_order: 1,
     pillar_ids: ['pillar-1'],
     created_at: '2025-01-16T10:00:00Z',
-    updated_at: '2025-01-16T10:00:00Z'
+    updated_at: '2025-01-16T10:00:00Z',
+    theme_ids: []
   },
   {
     id: 'outcome-3',
@@ -54,7 +57,8 @@ export const mockOutcomes: OutcomeDto[] = [
     display_order: 0,
     pillar_ids: ['pillar-3'],
     created_at: '2025-01-17T10:00:00Z',
-    updated_at: '2025-01-17T10:00:00Z'
+    updated_at: '2025-01-17T10:00:00Z',
+    theme_ids: []
   },
 ];
 

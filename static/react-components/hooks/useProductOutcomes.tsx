@@ -9,7 +9,7 @@ import {
   OutcomeCreateRequest,
   OutcomeUpdateRequest,
   OutcomeReorderRequest,
-} from '#api/productStrategy';
+} from '#api/productOutcomes';
 
 export interface UseProductOutcomesReturn {
   outcomes: OutcomeDto[];

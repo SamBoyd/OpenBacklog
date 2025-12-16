@@ -1,7 +1,7 @@
 // eslint-disable-next-line n/no-unpublished-import
 import { fn } from '@storybook/test';
 import * as actual from './useProductOutcomes';
-import { OutcomeDto, OutcomeReorderRequest } from '#api/productStrategy';
+import { OutcomeDto, OutcomeReorderRequest } from '#api/productOutcomes';
 import { UseProductOutcomesReturn } from './useProductOutcomes';
 
 export const useProductOutcomes = fn(actual.useProductOutcomes).mockName('useProductOutcomes');
@@ -14,6 +14,7 @@ export const mockProductOutcomes: OutcomeDto[] = [
         description: 'Users actively use AI features weekly',
         display_order: 1,
         pillar_ids: ['pillar-1', 'pillar-2'],
+        theme_ids: ['theme-1'],
         created_at: '2025-01-15T10:00:00Z',
         updated_at: '2025-01-15T10:00:00Z',
     },
@@ -24,6 +25,7 @@ export const mockProductOutcomes: OutcomeDto[] = [
         description: 'Users complete onboarding in under 5 minutes',
         display_order: 2,
         pillar_ids: ['pillar-1'],
+        theme_ids: ['theme-1', 'theme-2'],
         created_at: '2025-01-16T14:30:00Z',
         updated_at: '2025-01-16T14:30:00Z',
     },
@@ -34,6 +36,7 @@ export const mockProductOutcomes: OutcomeDto[] = [
         description: 'Customers receive help faster with AI-powered support',
         display_order: 3,
         pillar_ids: ['pillar-2'],
+        theme_ids: [],
         created_at: '2025-01-17T10:00:00Z',
         updated_at: '2025-01-17T10:00:00Z',
     },

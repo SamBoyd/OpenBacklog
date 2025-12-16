@@ -1,5 +1,6 @@
 import { loadAndValidateJWT } from '#api/jwt'
 import { StrategicInitiativeDto } from '#types';
+import { OutcomeDto } from '#api/productOutcomes';
 
 export interface VisionUpdateRequest {
   vision_text: string;
@@ -179,132 +180,6 @@ export async function reorderStrategicPillars(
   return response.json();
 }
 
-export interface OutcomeCreateRequest {
-  name: string;
-  description?: string | null;
-  pillar_ids?: string[];
-}
-
-export interface OutcomeDto {
-  id: string;
-  workspace_id: string;
-  name: string;
-  description: string | null;
-  display_order: number;
-  pillar_ids: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-export async function getProductOutcomes(
-  workspaceId: string
-): Promise<OutcomeDto[]> {
-  const response = await fetch(`/api/workspaces/${workspaceId}/outcomes`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch product outcomes');
-  }
-
-  return response.json();
-}
-
-export async function createProductOutcome(
-  workspaceId: string,
-  request: OutcomeCreateRequest
-): Promise<OutcomeDto> {
-  const response = await fetch(`/api/workspaces/${workspaceId}/outcomes`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to create product outcome');
-  }
-
-  return response.json();
-}
-
-export interface OutcomeUpdateRequest {
-  name: string;
-  description?: string | null;
-  pillar_ids?: string[];
-}
-
-export async function updateProductOutcome(
-  workspaceId: string,
-  outcomeId: string,
-  request: OutcomeUpdateRequest
-): Promise<OutcomeDto> {
-  const response = await fetch(`/api/workspaces/${workspaceId}/outcomes/${outcomeId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to update product outcome');
-  }
-
-  return response.json();
-}
-
-export async function deleteProductOutcome(
-  workspaceId: string,
-  outcomeId: string
-): Promise<void> {
-  const response = await fetch(`/api/workspaces/${workspaceId}/outcomes/${outcomeId}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to delete product outcome');
-  }
-}
-
-export interface OutcomeOrderItem {
-  id: string;
-  display_order: number;
-}
-
-export interface OutcomeReorderRequest {
-  outcomes: OutcomeOrderItem[];
-}
-
-export async function reorderProductOutcomes(
-  workspaceId: string,
-  request: OutcomeReorderRequest
-): Promise<OutcomeDto[]> {
-  const response = await fetch(`/api/workspaces/${workspaceId}/outcomes/reorder`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Failed to reorder product outcomes');
-  }
-
-  return response.json();
-}
 
 export interface ThemeCreateRequest {
   name: string;

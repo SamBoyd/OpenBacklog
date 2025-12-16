@@ -4,7 +4,8 @@ import { getAllInitiatives } from '#api/initiatives';
 import { getWorkspaceVision } from '#api/productStrategy';
 import { getAllHeroes } from '#api/heroes';
 import { getAllVillains } from '#api/villains';
-import { getStrategicPillars, getProductOutcomes, getRoadmapThemes } from '#api/productStrategy';
+import { getStrategicPillars, getRoadmapThemes } from '#api/productStrategy';
+import { getProductOutcomes } from '#api/productOutcomes';
 
 /**
  * Polling status types for onboarding flow

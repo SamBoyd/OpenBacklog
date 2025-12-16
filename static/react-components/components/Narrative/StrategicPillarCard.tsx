@@ -1,5 +1,6 @@
 import React from 'react';
-import { PillarDto, OutcomeDto } from '#api/productStrategy';
+import { PillarDto } from '#api/productStrategy';
+import { OutcomeDto } from '#api/productOutcomes';
 import Card from '../reusable/Card';
 import { CompactButton } from '#components/reusable/Button';
 import { ChevronDownIcon, LayersIcon, TargetIcon, CheckCircleIcon } from 'lucide-react';

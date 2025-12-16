@@ -6,11 +6,13 @@
  */
 
 // Import types from other modules
-import type { ThemeDto, HeroRef, VillainRef, OutcomeDto, PillarDto } from '#api/productStrategy';
+import { OutcomeDto } from '#api/productOutcomes';
+import type { ThemeDto, HeroRef, VillainRef, PillarDto } from '#api/productStrategy';
 import type { ConflictDto, TaskDto, InitiativeDto } from '#types';
 
 // Re-export commonly used types for convenience
-export type { ThemeDto, HeroRef, VillainRef, OutcomeDto } from '#api/productStrategy';
+export type { ThemeDto, HeroRef, VillainRef } from '#api/productStrategy';
+export type { OutcomeDto } from '#api/productOutcomes';
 export type { ConflictDto, TaskDto, InitiativeDto } from '#types';
 
 /**

@@ -2,65 +2,10 @@
 
 import uuid
 
-from hamcrest import assert_that, equal_to, has_key
+from hamcrest import assert_that, equal_to, has_key, has_length
 
 
 class TestProductOutcomeViews:
-    def test_get_outcomes_success_empty(self, test_client, workspace):
-        """Test getting outcomes when none exist returns empty array."""
-        response = test_client.get(f"/api/workspaces/{workspace.id}/outcomes")
-
-        assert_that(response.status_code, equal_to(200))
-        data = response.json()
-        assert_that(data, equal_to([]))
-
-    def test_get_outcomes_success_with_data(self, test_client, workspace, user):
-        """Test getting outcomes returns list."""
-        from src.db import SessionLocal
-        from src.strategic_planning import controller as product_strategy_controller
-
-        session = SessionLocal()
-        try:
-            outcome1 = product_strategy_controller.create_product_outcome(
-                workspace.id,
-                user.id,
-                "Outcome 1",
-                "Description 1",
-                [],
-                session,
-            )
-            outcome2 = product_strategy_controller.create_product_outcome(
-                workspace.id,
-                user.id,
-                "Outcome 2",
-                None,
-                [],
-                session,
-            )
-            outcome1_id = str(outcome1.id)
-            outcome2_id = str(outcome2.id)
-        finally:
-            session.close()
-
-        response = test_client.get(f"/api/workspaces/{workspace.id}/outcomes")
-
-        assert_that(response.status_code, equal_to(200))
-        data = response.json()
-        assert_that(len(data), equal_to(2))
-        assert_that(data[0]["id"], equal_to(outcome1_id))
-        assert_that(data[0]["name"], equal_to("Outcome 1"))
-        assert_that(data[0]["description"], equal_to("Description 1"))
-        assert_that(data[1]["id"], equal_to(outcome2_id))
-        assert_that(data[1]["name"], equal_to("Outcome 2"))
-        assert_that(data[0], has_key("pillar_ids"))
-        assert_that(data[0]["pillar_ids"], equal_to([]))
-        assert_that(data[1]["pillar_ids"], equal_to([]))
-
-    def test_get_outcomes_unauthorized(self, test_client_no_user, workspace):
-        """Test getting outcomes without authentication returns 401."""
-        response = test_client_no_user.get(f"/api/workspaces/{workspace.id}/outcomes")
-        assert_that(response.status_code, equal_to(401))
-
     def test_create_outcome_minimal(self, test_client, workspace):
         """Test creating outcome with minimal data returns 201."""
         response = test_client.post(
@@ -399,24 +344,19 @@ class TestProductOutcomeViews:
 
     # Delete Outcome View Tests
 
-    def test_delete_outcome_success(self, test_client, workspace, user):
+    def test_delete_outcome_success(self, test_client, workspace, user, session):
         """Test deleting outcome returns 204."""
-        from src.db import SessionLocal
         from src.strategic_planning import controller as product_strategy_controller
 
-        session = SessionLocal()
-        try:
-            outcome = product_strategy_controller.create_product_outcome(
-                workspace.id,
-                user.id,
-                "Outcome to Delete",
-                None,
-                [],
-                session,
-            )
-            outcome_id = str(outcome.id)
-        finally:
-            session.close()
+        outcome = product_strategy_controller.create_product_outcome(
+            workspace.id,
+            user.id,
+            "Outcome to Delete",
+            None,
+            [],
+            session,
+        )
+        outcome_id = str(outcome.id)
 
         response = test_client.delete(
             f"/api/workspaces/{workspace.id}/outcomes/{outcome_id}"
@@ -424,10 +364,11 @@ class TestProductOutcomeViews:
 
         assert_that(response.status_code, equal_to(204))
 
-        # Verify outcome is deleted
-        response = test_client.get(f"/api/workspaces/{workspace.id}/outcomes")
-        data = response.json()
-        assert_that(data, equal_to([]))
+        # Verify outcome is deleted using controller
+        outcomes = product_strategy_controller.get_product_outcomes(
+            workspace.id, session
+        )
+        assert_that(outcomes, has_length(0))
 
     def test_delete_outcome_not_found(self, test_client, workspace):
         """Test deleting non-existent outcome returns 404."""

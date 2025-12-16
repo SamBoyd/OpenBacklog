@@ -417,39 +417,6 @@ class OutcomeResponse(BaseModel):
     updated_at: datetime
 
 
-@app.get(
-    "/api/workspaces/{workspace_id}/outcomes",
-    response_model=List[OutcomeResponse],
-    tags=["product-strategy"],
-)
-async def get_workspace_outcomes(
-    workspace_id: uuid.UUID,
-    user: User = Depends(dependency_to_override),
-    session: Session = Depends(get_db),
-) -> List[OutcomeResponse]:
-    """Get all product outcomes for a workspace."""
-    try:
-        outcomes = product_strategy_controller.get_product_outcomes(
-            workspace_id, session
-        )
-        return [
-            OutcomeResponse(
-                id=outcome.id,
-                workspace_id=outcome.workspace_id,
-                name=outcome.name,
-                description=outcome.description,
-                display_order=outcome.display_order,
-                pillar_ids=[pillar.id for pillar in outcome.pillars],
-                created_at=outcome.created_at,
-                updated_at=outcome.updated_at,
-            )
-            for outcome in outcomes
-        ]
-    except Exception as e:
-        logger.error(f"Error getting outcomes: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get outcomes")
-
-
 @app.post(
     "/api/workspaces/{workspace_id}/outcomes",
     response_model=OutcomeResponse,

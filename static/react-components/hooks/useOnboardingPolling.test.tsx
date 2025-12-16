@@ -7,12 +7,14 @@ import * as productStrategyApi from '#api/productStrategy';
 import * as heroesApi from '#api/heroes';
 import * as villainsApi from '#api/villains';
 import { VillainType } from '#types';
+import * as productOutcomesApi from '#api/productOutcomes';
 
 vi.mock('#api/workspaces');
 vi.mock('#api/initiatives');
 vi.mock('#api/productStrategy');
 vi.mock('#api/heroes');
 vi.mock('#api/villains');
+vi.mock('#api/productOutcomes');
 
 describe('useOnboardingPolling', () => {
   beforeEach(() => {
@@ -65,7 +67,7 @@ describe('useOnboardingPolling', () => {
       vi.spyOn(heroesApi, 'getAllHeroes').mockResolvedValue([]);
       vi.spyOn(villainsApi, 'getAllVillains').mockResolvedValue([]);
       vi.spyOn(productStrategyApi, 'getStrategicPillars').mockResolvedValue([]);
-      vi.spyOn(productStrategyApi, 'getProductOutcomes').mockResolvedValue([]);
+      vi.spyOn(productOutcomesApi, 'getProductOutcomes').mockResolvedValue([]);
       vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockResolvedValue([]);
       vi.spyOn(initiativesApi, 'getAllInitiatives').mockResolvedValue([]);
 
@@ -104,7 +106,7 @@ describe('useOnboardingPolling', () => {
       vi.spyOn(heroesApi, 'getAllHeroes').mockResolvedValue([]);
       vi.spyOn(villainsApi, 'getAllVillains').mockResolvedValue([]);
       vi.spyOn(productStrategyApi, 'getStrategicPillars').mockResolvedValue([]);
-      vi.spyOn(productStrategyApi, 'getProductOutcomes').mockResolvedValue([]);
+      vi.spyOn(productOutcomesApi, 'getProductOutcomes').mockResolvedValue([]);
       vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockResolvedValue([]);
       vi.spyOn(initiativesApi, 'getAllInitiatives').mockResolvedValue([]);
 
@@ -132,7 +134,7 @@ describe('useOnboardingPolling', () => {
         { id: 'v-1', identifier: 'V-1', user_id: 'u-1', workspace_id: 'ws-1', name: 'Test Villain', villain_type: VillainType.EXTERNAL, description: 'desc', severity: 5, is_defeated: false, created_at: '', updated_at: '' }
       ]);
       vi.spyOn(productStrategyApi, 'getStrategicPillars').mockResolvedValue([]);
-      vi.spyOn(productStrategyApi, 'getProductOutcomes').mockResolvedValue([]);
+      vi.spyOn(productOutcomesApi, 'getProductOutcomes').mockResolvedValue([]);
       vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockResolvedValue([]);
       vi.spyOn(initiativesApi, 'getAllInitiatives').mockResolvedValue([]);
 
@@ -165,9 +167,15 @@ describe('useOnboardingPolling', () => {
         { id: 'p-1', workspace_id: 'ws-1', name: 'Pillar 1', description: null, display_order: 0, outcome_ids: [], created_at: '', updated_at: '' },
         { id: 'p-2', workspace_id: 'ws-1', name: 'Pillar 2', description: null, display_order: 1, outcome_ids: [], created_at: '', updated_at: '' },
       ]);
-      vi.spyOn(productStrategyApi, 'getProductOutcomes').mockResolvedValue([
-        { id: 'o-1', workspace_id: 'ws-1', name: 'Outcome 1', description: null, display_order: 0, pillar_ids: [], created_at: '', updated_at: '' },
-        { id: 'o-2', workspace_id: 'ws-1', name: 'Outcome 2', description: null, display_order: 1, pillar_ids: [], created_at: '', updated_at: '' },
+      vi.spyOn(productOutcomesApi, 'getProductOutcomes').mockResolvedValue([
+        {
+          id: 'o-1', workspace_id: 'ws-1', name: 'Outcome 1', description: null, display_order: 0, pillar_ids: [], created_at: '', updated_at: '',
+          theme_ids: []
+        },
+        {
+          id: 'o-2', workspace_id: 'ws-1', name: 'Outcome 2', description: null, display_order: 1, pillar_ids: [], created_at: '', updated_at: '',
+          theme_ids: []
+        },
       ]);
       vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockResolvedValue([
         { id: 't-1', workspace_id: 'ws-1', name: 'Theme 1', description: 'desc', outcome_ids: [], hero_ids: [], villain_ids: [], created_at: '', updated_at: '' },
@@ -207,7 +215,7 @@ describe('useOnboardingPolling', () => {
       vi.spyOn(heroesApi, 'getAllHeroes').mockRejectedValue(new Error('Network error'));
       vi.spyOn(villainsApi, 'getAllVillains').mockRejectedValue(new Error('Network error'));
       vi.spyOn(productStrategyApi, 'getStrategicPillars').mockRejectedValue(new Error('Network error'));
-      vi.spyOn(productStrategyApi, 'getProductOutcomes').mockRejectedValue(new Error('Network error'));
+      vi.spyOn(productOutcomesApi, 'getProductOutcomes').mockRejectedValue(new Error('Network error'));
       vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockRejectedValue(new Error('Network error'));
       vi.spyOn(initiativesApi, 'getAllInitiatives').mockRejectedValue(new Error('Network error'));
 

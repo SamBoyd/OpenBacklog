@@ -6,7 +6,8 @@ import { useRoadmapThemes } from '#hooks/useRoadmapThemes';
 import { useProductVision } from '#hooks/useProductVision';
 import { useProductOutcomes } from '#hooks/useProductOutcomes';
 import { useStrategicPillars } from '#hooks/useStrategicPillars';
-import { ThemeDto, HeroRef, VillainRef, PillarDto, OutcomeDto } from '#api/productStrategy';
+import { ThemeDto, HeroRef, VillainRef, PillarDto } from '#api/productStrategy';
+import { OutcomeDto } from '#api/productOutcomes';
 import { ConflictDto } from '#types';
 
 /**
@@ -159,9 +160,8 @@ export function useRoadmapThemeDetail(workspaceId: string, arcId: string): Roadm
   const outcomes = useMemo(() => {
     if (!arc || !allOutcomes) return [];
     // Filter outcomes by theme's outcome_ids
-    const themeOutcomeIds = arc.outcome_ids || [];
-    return allOutcomes.filter(outcome => themeOutcomeIds.includes(outcome.id));
-  }, [arc, allOutcomes]);
+    return allOutcomes.filter(outcome => outcome.theme_ids.includes(arc.id));
+  }, [allOutcomes, arc]);
 
   // Get pillars linked to this theme (derived through outcomes)
   const pillars = useMemo(() => {
