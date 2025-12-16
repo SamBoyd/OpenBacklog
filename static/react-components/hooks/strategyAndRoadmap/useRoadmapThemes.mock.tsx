@@ -11,6 +11,7 @@ export const  useRoadmapThemes = fn(actual. useRoadmapThemes).mockName(' useRoad
 export const mockPrioritizedThemes: ThemeDto[] = [
   {
     id: 'theme-1',
+    identifier: 'T-001',
     workspace_id: 'workspace-1',
     name: 'AI-First Product Management',
     description: 'Helping Sarah achieve flow by eliminating context switching with intelligent task automation',
@@ -51,6 +52,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
     outcomes: [
       {
         id: 'outcome-1',
+        identifier: 'O-001',
         name: '80% AI feature adoption',
         description: 'Users actively use AI features weekly',
         display_order: 1,
@@ -64,6 +66,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
     pillars: [
       {
         id: 'pillar-1',
+        identifier: 'P-001',
         name: 'AI-Native Product Management',
         description: 'Build product management tools designed from the ground up for AI collaboration.',
         display_order: 1,
@@ -74,6 +77,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
       },
       {
         id: 'pillar-2',
+        identifier: 'P-002',
         name: 'Developer Experience First',
         description: 'Prioritize the needs of developers over administrative overhead.',
         display_order: 2,
@@ -86,6 +90,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
   },
   {
     id: 'theme-2',
+    identifier: 'T-002',
     workspace_id: 'workspace-1',
     name: 'Performance Optimization',
     description: 'Improving application speed and responsiveness for power users who work with large datasets',
@@ -117,6 +122,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
     outcomes: [
       {
         id: 'outcome-2',
+        identifier: 'O-002',
         name: 'Faster onboarding',
         description: 'Users complete onboarding in under 5 minutes',
         display_order: 1,
@@ -130,6 +136,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
     pillars: [
       {
         id: 'pillar-3',
+        identifier: 'P-003',
         name: 'Developer Experience First',
         description: 'Prioritize the needs of developers over administrative overhead.',
         display_order: 2,
@@ -142,6 +149,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
   },
   {
     id: 'theme-3',
+    identifier: 'T-003',
     workspace_id: 'workspace-1',
     name: 'Onboarding Experience Redesign',
     description: 'Helping new users succeed in their first week by providing clear guidance and quick wins',
@@ -173,6 +181,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
     outcomes: [
       {
         id: 'outcome-3',
+        identifier: 'O-003',
         name: 'Improved customer support',
         description: 'Customers receive help faster with AI-powered support',
         display_order: 1,
@@ -186,6 +195,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
     pillars: [
       {
         id: 'pillar-4',
+        identifier: 'P-004',
         name: 'Customer Support',
         description: 'Customers receive help faster with AI-powered support',
         display_order: 2,
@@ -204,6 +214,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
 export const mockUnprioritizedThemes: ThemeDto[] = [
   {
     id: 'theme-4',
+    identifier: 'T-004',
     workspace_id: 'workspace-1',
     name: 'Mobile App Launch',
     description: 'Native mobile applications for iOS and Android to enable on-the-go productivity',
@@ -244,6 +255,7 @@ export const mockUnprioritizedThemes: ThemeDto[] = [
     outcomes: [
       {
         id: 'outcome-4',
+        identifier: 'O-004',
         name: 'Mobile app launch',
         description: 'Native mobile applications for iOS and Android to enable on-the-go productivity',
         display_order: 1,
@@ -257,6 +269,7 @@ export const mockUnprioritizedThemes: ThemeDto[] = [
     pillars: [
       {
         id: 'pillar-5',
+        identifier: 'P-005',
         name: 'Mobile App Development',
         description: 'Native mobile applications for iOS and Android to enable on-the-go productivity',
         display_order: 2,
@@ -269,6 +282,7 @@ export const mockUnprioritizedThemes: ThemeDto[] = [
   },
   {
     id: 'theme-5',
+    identifier: 'T-005',
     workspace_id: 'workspace-1',
     name: 'Advanced Analytics Dashboard',
     description: 'Comprehensive analytics and insights for data-driven product decisions',
@@ -282,6 +296,7 @@ export const mockUnprioritizedThemes: ThemeDto[] = [
   },
   {
     id: 'theme-6',
+    identifier: 'T-006',
     workspace_id: 'workspace-1',
     name: 'Collaboration Features',
     description: 'Real-time collaboration tools for distributed teams working asynchronously',

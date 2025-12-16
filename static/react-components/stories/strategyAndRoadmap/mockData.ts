@@ -29,6 +29,7 @@ export const mockVisionText = 'Build the AI-native product management layer that
 export const mockOutcomes: OutcomeDto[] = [
   {
     id: 'outcome-1',
+    identifier: 'O-001',
     name: 'AI assistants can query product context natively',
     description: 'Enable Claude Code and other AI tools to access product decisions, user stories, and technical context through MCP integration.',
     workspace_id: 'workspace-1',
@@ -40,6 +41,7 @@ export const mockOutcomes: OutcomeDto[] = [
   },
   {
     id: 'outcome-2',
+    identifier: 'O-002',
     name: 'Narrative consistency maintained over time',
     description: 'Product story remains coherent as features evolve, with health metrics tracking alignment between vision and implementation.',
     workspace_id: 'workspace-1',
@@ -51,6 +53,7 @@ export const mockOutcomes: OutcomeDto[] = [
   },
   {
     id: 'outcome-3',
+    identifier: 'O-003',
     name: 'Zero context-switching for developers',
     description: 'Developers stay in flow state by having all product context accessible within their IDE environment.',
     workspace_id: 'workspace-1',
@@ -66,6 +69,7 @@ export const mockOutcomes: OutcomeDto[] = [
 export const mockPillars: PillarDto[] = [
   {
     id: 'pillar-1',
+    identifier: 'P-001',
     name: 'AI-Native Product Management',
     description: 'Build product management tools designed from the ground up for AI collaboration.',
     workspace_id: 'workspace-1',
@@ -76,6 +80,7 @@ export const mockPillars: PillarDto[] = [
   },
   {
     id: 'pillar-3',
+    identifier: 'P-003',
     name: 'Developer Experience First',
     description: 'Prioritize the needs of developers over administrative overhead.',
     workspace_id: 'workspace-1',
@@ -148,6 +153,7 @@ export const mockVillains: VillainRef[] = [
 export const mockThemes: ThemeDto[] = [
   {
     id: 'theme-1',
+    identifier: 'T-001',
     workspace_id: 'workspace-1',
     name: 'MCP Integration for AI Context',
     description: 'Enable AI assistants to query product context natively through MCP server integration.',
@@ -159,6 +165,7 @@ export const mockThemes: ThemeDto[] = [
   },
   {
     id: 'theme-2',
+    identifier: 'T-002',
     workspace_id: 'workspace-1',
     name: 'Narrative Health Monitoring',
     description: 'Provide visibility into narrative consistency over time with health metrics and coverage scores.',
@@ -170,6 +177,7 @@ export const mockThemes: ThemeDto[] = [
   },
   {
     id: 'theme-3',
+    identifier: 'T-003',
     workspace_id: 'workspace-1',
     name: 'Developer Experience First',
     description: 'Prioritize the needs of developers over administrative overhead.',
@@ -184,6 +192,7 @@ export const mockThemes: ThemeDto[] = [
 // Mock Arc Data
 export const mockArc: ThemeDto = {
   id: 'arc-1',
+  identifier: 'T-004',
   workspace_id: 'workspace-1',
   name: 'AI-Native Product Management',
   description: `OpenBacklog is pioneering a new category: the AI-native product management layer. We're building for solo developers and small teams who work alongside AI coding assistants like Claude Code, who need their product context to be immediately accessible to both humans and AI without breaking flow state.
@@ -201,6 +210,7 @@ By treating product development as storytelling—with Heroes (users), Villains 
 export const mockShortArc: ThemeDto = {
   ...mockArc,
   id: 'arc-2',
+  identifier: 'T-005',
   name: 'Performance Optimization',
   description: 'Improve application performance for power users.',
 };

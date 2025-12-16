@@ -95,8 +95,8 @@ const BeatsSection: React.FC<BeatsSectionProps> = ({
 
                                     <div className="flex flex-col gap-2">
                                         <div className="flex items-center h-8 ">
-                                        <h3 className="text-sm font-bold text-foreground line-clamp-2">
-                                                {beat.title}
+                                            <h3 className="text-sm font-bold text-foreground line-clamp-2">
+                                                {beat.identifier}: {beat.title}
                                             </h3>
                                         </div>
 

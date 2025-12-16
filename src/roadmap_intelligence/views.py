@@ -45,6 +45,7 @@ class ThemeResponse(BaseModel):
     )
 
     id: uuid.UUID
+    identifier: str
     workspace_id: uuid.UUID
     name: str
     description: str
@@ -71,6 +72,7 @@ async def get_workspace_themes(
         return [
             ThemeResponse(
                 id=theme.id,
+                identifier=theme.identifier,
                 workspace_id=theme.workspace_id,
                 name=theme.name,
                 description=theme.description,
@@ -112,6 +114,7 @@ async def create_roadmap_theme(
 
         return ThemeResponse(
             id=theme.id,
+            identifier=theme.identifier,
             workspace_id=theme.workspace_id,
             name=theme.name,
             description=theme.description,
@@ -196,6 +199,7 @@ async def reorder_roadmap_themes(
         return [
             ThemeResponse(
                 id=theme.id,
+                identifier=theme.identifier,
                 workspace_id=theme.workspace_id,
                 name=theme.name,
                 description=theme.description,
@@ -260,6 +264,7 @@ async def update_roadmap_theme(
 
         return ThemeResponse(
             id=theme.id,
+            identifier=theme.identifier,
             workspace_id=theme.workspace_id,
             name=theme.name,
             description=theme.description,
@@ -328,6 +333,7 @@ async def get_prioritized_themes(
         return [
             ThemeResponse(
                 id=theme.id,
+                identifier=theme.identifier,
                 workspace_id=theme.workspace_id,
                 name=theme.name,
                 description=theme.description,
@@ -363,6 +369,7 @@ async def get_unprioritized_themes(
         return [
             ThemeResponse(
                 id=theme.id,
+                identifier=theme.identifier,
                 workspace_id=theme.workspace_id,
                 name=theme.name,
                 description=theme.description,
@@ -421,6 +428,7 @@ async def prioritize_theme(
 
         return ThemeResponse(
             id=theme.id,
+            identifier=theme.identifier,
             workspace_id=theme.workspace_id,
             name=theme.name,
             description=theme.description,
@@ -463,6 +471,7 @@ async def deprioritize_theme(
 
         return ThemeResponse(
             id=theme.id,
+            identifier=theme.identifier,
             workspace_id=theme.workspace_id,
             name=theme.name,
             description=theme.description,

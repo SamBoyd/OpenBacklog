@@ -40,6 +40,7 @@ class TestStrategicPillarViews:
         assert_that(data[0]["name"], equal_to("Pillar 1"))
         assert_that(data[1]["name"], equal_to("Pillar 2"))
         assert_that(data[0], has_key("id"))
+        assert_that(data[0], has_key("identifier"))
         assert_that(data[0], has_key("workspace_id"))
         assert_that(data[0], has_key("display_order"))
         assert_that(data[0], has_key("outcome_ids"))
@@ -63,6 +64,7 @@ class TestStrategicPillarViews:
         assert_that(response.status_code, equal_to(201))
         data = response.json()
         assert_that(data["name"], equal_to("Developer Experience"))
+        assert_that(data["identifier"], equal_to("P-001"))
         assert_that(data["description"], equal_to("Make developers love our product"))
         assert_that(data["workspace_id"], equal_to(str(workspace.id)))
         assert_that(data["display_order"], equal_to(0))
@@ -79,6 +81,7 @@ class TestStrategicPillarViews:
         assert_that(response.status_code, equal_to(201))
         data = response.json()
         assert_that(data["name"], equal_to("Developer Experience"))
+        assert_that(data["identifier"], equal_to("P-001"))
         assert_that(data["description"], equal_to(None))
         assert_that(data, has_key("outcome_ids"))
         assert_that(data["outcome_ids"], equal_to([]))
@@ -202,6 +205,7 @@ class TestStrategicPillarViews:
         assert_that(response.status_code, equal_to(200))
         data = response.json()
         assert_that(data["id"], equal_to(str(pillar.id)))
+        assert_that(data["identifier"], equal_to("P-001"))
         assert_that(data["name"], equal_to("Updated Name"))
         assert_that(data["description"], equal_to("Updated description"))
 
@@ -225,6 +229,7 @@ class TestStrategicPillarViews:
 
         assert_that(response.status_code, equal_to(200))
         data = response.json()
+        assert_that(data["identifier"], equal_to("P-001"))
         assert_that(data["name"], equal_to("Updated Name"))
 
     def test_update_pillar_validation_error_empty_name(
@@ -425,11 +430,14 @@ class TestStrategicPillarViews:
         assert_that(len(data), equal_to(3))
         # Verify order
         assert_that(data[0]["id"], equal_to(pillar3_id))
+        assert_that(data[0]["identifier"], equal_to("P-003"))
         assert_that(data[0]["display_order"], equal_to(0))
         assert_that(data[1]["id"], equal_to(pillar2_id))
         assert_that(data[1]["display_order"], equal_to(1))
+        assert_that(data[1]["identifier"], equal_to("P-002"))
         assert_that(data[2]["id"], equal_to(pillar1_id))
         assert_that(data[2]["display_order"], equal_to(2))
+        assert_that(data[2]["identifier"], equal_to("P-001"))
 
     def test_reorder_pillars_validation_error_duplicate_display_order(
         self, test_client, workspace, user

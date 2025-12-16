@@ -866,6 +866,7 @@ export const WithStrategicContext: Story = {
             pillars: [
                 {
                     id: 'pillar-1',
+                    identifier: 'P-001',
                     workspace_id: 'workspace-1',
                     name: 'AI-First Development',
                     description: 'Make AI a natural and essential part of the development workflow for solo developers.',
@@ -876,6 +877,7 @@ export const WithStrategicContext: Story = {
                 },
                 {
                     id: 'pillar-2',
+                    identifier: 'P-002',
                     workspace_id: 'workspace-1',
                     name: 'Developer Experience',
                     description: 'Create a delightful, intuitive interface that developers love to use.',
@@ -905,6 +907,7 @@ export const WithStrategicContext: Story = {
             themes: [
                 {
                     id: 'theme-1',
+                    identifier: 'T-001',
                     workspace_id: 'workspace-1',
                     name: 'First Week Magic',
                     description: 'New users struggle to see value in the first week and often abandon the product before experiencing its key benefits.',
@@ -916,6 +919,7 @@ export const WithStrategicContext: Story = {
                 },
                 {
                     id: 'theme-2',
+                    identifier: 'T-002',
                     workspace_id: 'workspace-1',
                     name: 'Weekly AI Habit',
                     description: 'Users who try AI features once often forget to use them again.',

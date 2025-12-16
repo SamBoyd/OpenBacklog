@@ -7,6 +7,7 @@ import { OutcomeDto } from '#api/productOutcomes';
 const mockOutcomes: OutcomeDto[] = [
     {
         id: 'outcome-1',
+        identifier: 'O-001',
         workspace_id: '550e8400-e29b-41d4-a716-446655440000',
         name: 'Improved Collaboration Features',
         description: 'Implement real-time collaboration tools that allow teams to work together seamlessly.',
@@ -18,6 +19,7 @@ const mockOutcomes: OutcomeDto[] = [
     },
     {
         id: 'outcome-2',
+        identifier: 'O-002',
         workspace_id: '550e8400-e29b-41d4-a716-446655440000',
         name: 'Enhanced API Documentation',
         description: 'Create comprehensive API documentation with examples and best practices.',
@@ -29,6 +31,7 @@ const mockOutcomes: OutcomeDto[] = [
     },
     {
         id: 'outcome-3',
+        identifier: 'O-003',
         workspace_id: '550e8400-e29b-41d4-a716-446655440000',
         name: 'CLI Tool Enhancements',
         description: 'Improve command-line interface with better error messages and user guidance.',
@@ -42,6 +45,7 @@ const mockOutcomes: OutcomeDto[] = [
 
 const mockPillar: PillarDto = {
     id: '650e8400-e29b-41d4-a716-446655440001',
+    identifier: 'P-001',
     workspace_id: '550e8400-e29b-41d4-a716-446655440000',
     name: 'AI-Native Product Management',
     description: 'Build product management tools that are designed from the ground up for AI collaboration. These tools should make it easy for AI systems to understand product context and make better decisions.',
@@ -53,6 +57,7 @@ const mockPillar: PillarDto = {
 
 const mockPillarMinimal: PillarDto = {
     id: '650e8400-e29b-41d4-a716-446655440002',
+    identifier: 'P-002',
     workspace_id: '550e8400-e29b-41d4-a716-446655440000',
     name: 'Developer Experience First',
     description: null,

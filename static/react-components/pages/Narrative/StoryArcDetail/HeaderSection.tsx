@@ -9,6 +9,7 @@ import { HeaderSectionProps } from '#types/storyArc';
  * @returns {React.ReactElement} The HeaderSection component
  */
 const HeaderSection: React.FC<HeaderSectionProps> = ({
+    arcIdentifier,
     arcTitle,
     arcSubtitle,
     arcStatus = 'planning',
@@ -62,7 +63,9 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({
                 <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-2xl font-bold text-foreground truncate">{arcTitle}</h1>
+                            <h1 className="text-2xl font-bold text-foreground truncate">
+                                {arcIdentifier}: {arcTitle}
+                            </h1>
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(arcStatus)}`}>
                                 {formatStatus(arcStatus)}
                             </span>

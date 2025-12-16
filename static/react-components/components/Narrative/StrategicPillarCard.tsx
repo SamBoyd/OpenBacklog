@@ -96,6 +96,9 @@ const StrategicPillarCard: React.FC<StrategicPillarCardProps> = ({
                 <div className="flex-1 min-w-0">
                     {/* Name */}
                     <div className="flex items-center gap-2 mb-1" data-testid={`${dataTestId}-header`}>
+                        <span className="px-2 py-0.5 text-xs font-mono font-medium rounded bg-muted/10 text-muted-foreground flex-shrink-0">
+                            {pillar.identifier}
+                        </span>
                         <h3 className="text-base font-semibold text-foreground" data-testid={`${dataTestId}-name`}>
                             {pillar.name}
                         </h3>
@@ -149,7 +152,12 @@ const StrategicPillarCard: React.FC<StrategicPillarCardProps> = ({
                                     <li key={outcome.id} className="flex items-start gap-2 text-sm">
                                         <CheckCircleIcon className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
                                         <div>
-                                            <span className="font-medium text-foreground">{outcome.name}</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="px-1.5 py-0.25 text-xs font-mono rounded bg-muted/50 text-muted-foreground">
+                                                    {outcome.identifier}
+                                                </span>
+                                                <span className="font-medium text-foreground">{outcome.name}</span>
+                                            </div>
                                             {outcome.description && (
                                                 <p className="text-xs text-muted-foreground mt-0.5">
                                                     {truncateDescription(outcome.description, 100)}

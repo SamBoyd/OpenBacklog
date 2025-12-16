@@ -10,6 +10,7 @@ export const mockStrategicPillars: PillarDto[] = [
     {
         id: 'pillar-1',
         workspace_id: 'ws-001',
+        identifier: 'P-001',
         name: 'AI-Native Product Management',
         description: 'Build product management tools designed from the ground up for AI collaboration.',
         display_order: 1,
@@ -20,6 +21,7 @@ export const mockStrategicPillars: PillarDto[] = [
     {
         id: 'pillar-2',
         workspace_id: 'ws-001',
+        identifier: 'P-002',
         name: 'Developer Experience First',
         description: 'Prioritize the needs of developers over administrative overhead.',
         display_order: 2,

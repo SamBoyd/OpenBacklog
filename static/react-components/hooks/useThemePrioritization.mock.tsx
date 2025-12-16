@@ -9,6 +9,7 @@ export const useThemePrioritization = fn(actual.useThemePrioritization).mockName
 export const mockPrioritizedThemes: ThemeDto[] = [
     {
         id: 'theme-1',
+        identifier: 'T-001',
         workspace_id: 'workspace-1',
         name: 'Onboarding Experience Redesign',
         description: 'New users struggle to start quickly. Guided onboarding reduces time to first value. We will measure success through onboarding completion and time to first plan over a 3-month horizon.',
@@ -20,6 +21,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
     },
     {
         id: 'theme-2',
+        identifier: 'T-002',
         workspace_id: 'workspace-1',
         name: 'Advanced Analytics Dashboard',
         description: 'Teams lack visibility into progress and outcomes. Customizable real-time dashboards improve decision-making. We will measure success through dashboard usage and outcome completion rate over a 6-month horizon.',
@@ -34,6 +36,7 @@ export const mockPrioritizedThemes: ThemeDto[] = [
 export const mockUnprioritizedThemes: ThemeDto[] = [
     {
         id: 'theme-3',
+        identifier: 'T-003',
         workspace_id: 'workspace-1',
         name: 'Mobile App Development',
         description: 'Users need access on mobile devices. Mobile app increases engagement. We will measure success through Mobile DAU over a 12-month horizon.',
@@ -45,6 +48,7 @@ export const mockUnprioritizedThemes: ThemeDto[] = [
     },
     {
         id: 'theme-4',
+        identifier: 'T-004',
         workspace_id: 'workspace-1',
         name: 'API Rate Limiting',
         description: 'Need to protect API from abuse. Rate limiting prevents service degradation. We will measure success through API uptime over a 6-month horizon.',
@@ -56,6 +60,7 @@ export const mockUnprioritizedThemes: ThemeDto[] = [
     },
     {
         id: 'theme-5',
+        identifier: 'T-005',
         workspace_id: 'workspace-1',
         name: 'Internationalization',
         description: 'Global users need localized experience. i18n increases international adoption. We will measure success through users by region over a 9-month horizon.',

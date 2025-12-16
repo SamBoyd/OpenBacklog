@@ -23,6 +23,7 @@ describe(' useRoadmapThemes', () => {
   const mockPrioritizedThemes: ThemeDto[] = [
     {
       id: 'theme-1',
+      identifier: 'T-001',
       workspace_id: mockWorkspaceId,
       name: 'AI-First Product Management',
       description: 'Helping Sarah achieve flow',
@@ -34,6 +35,7 @@ describe(' useRoadmapThemes', () => {
     },
     {
       id: 'theme-2',
+      identifier: 'T-002',
       workspace_id: mockWorkspaceId,
       name: 'Performance Optimization',
       description: 'Improving speed',
@@ -48,6 +50,7 @@ describe(' useRoadmapThemes', () => {
   const mockUnprioritizedThemes: ThemeDto[] = [
     {
       id: 'theme-3',
+      identifier: 'T-003',
       workspace_id: mockWorkspaceId,
       name: 'Mobile App Launch',
       description: 'Native mobile apps',
@@ -363,6 +366,7 @@ describe(' useRoadmapThemes', () => {
     const themesWithSharedPillars: ThemeDto[] = [
       {
         id: 'theme-shared',
+        identifier: 'T-004',
         workspace_id: mockWorkspaceId,
         name: 'Multi-Outcome Theme',
         description: 'Has multiple outcomes with overlapping pillars',
@@ -566,6 +570,7 @@ describe(' useRoadmapThemes', () => {
     const themesWithBadIds: ThemeDto[] = [
       {
         id: 'theme-bad',
+        identifier: 'T-005',
         workspace_id: mockWorkspaceId,
         name: 'Theme with missing references',
         description: 'Has IDs that dont exist',

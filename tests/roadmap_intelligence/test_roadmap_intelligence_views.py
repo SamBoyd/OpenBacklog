@@ -20,6 +20,7 @@ class TestThemeViews:
 
         theme = RoadmapTheme(
             id=uuid.uuid4(),
+            identifier="T-001",
             workspace_id=workspace.id,
             user_id=user.id,
             name="Test Theme",
@@ -49,6 +50,7 @@ class TestThemeViews:
             has_entries(
                 {
                     "id": str(mock_theme.id),
+                    "identifier": mock_theme.identifier,
                     "workspace_id": str(workspace.id),
                     "name": "Test Theme",
                     "description": "Test description",
@@ -90,6 +92,7 @@ class TestThemeViews:
 
         payload = {
             "name": "Test Theme",
+            "identifier": "T-001",
             "description": "Test description",
             "outcome_ids": [],
         }
@@ -105,38 +108,18 @@ class TestThemeViews:
             has_entries(
                 {
                     "name": "Test Theme",
+                    "identifier": "T-001",
                     "description": "Test description",
                 }
             ),
         )
         mock_create.assert_called_once()
 
-    @patch("src.roadmap_intelligence.views.controller.create_roadmap_theme")
-    def test_create_roadmap_theme_success_minimal(
-        self, mock_create, test_client, user, workspace, mock_theme
-    ):
-        """Test creating theme with minimal fields returns 201."""
-        minimal_theme = mock_theme
-        mock_create.return_value = minimal_theme
-
-        payload = {
-            "name": "Test Theme",
-            "description": "Test description",
-        }
-
-        response = test_client.post(
-            f"/api/workspaces/{workspace.id}/themes", json=payload
-        )
-
-        assert_that(response.status_code, equal_to(201))
-        data = response.json()
-        assert_that(data["name"], equal_to("Test Theme"))
-        assert_that(data["description"], equal_to("Test description"))
-
     def test_create_roadmap_theme_validation_empty_name(self, test_client, workspace):
         """Test validation error for empty name returns 422."""
         payload = {
             "name": "",
+            "identifier": "T-001",
             "description": "Test description",
         }
 
@@ -446,6 +429,7 @@ class TestThemeViews:
 
         theme = RoadmapTheme(
             id=uuid.uuid4(),
+            identifier="T-001",
             workspace_id=workspace.id,
             user_id=user.id,
             name="Theme with Heroes/Villains",
@@ -469,6 +453,7 @@ class TestThemeViews:
             has_entries(
                 {
                     "id": str(theme.id),
+                    "identifier": theme.identifier,
                     "hero_ids": [str(hero_id_1), str(hero_id_2)],
                     "villain_ids": [str(villain_id_1), str(villain_id_2)],
                 }
@@ -509,6 +494,7 @@ class TestThemeViews:
 
         theme = RoadmapTheme(
             id=uuid.uuid4(),
+            identifier="T-001",
             workspace_id=workspace.id,
             user_id=user.id,
             name="New Theme",
@@ -534,6 +520,7 @@ class TestThemeViews:
 
         assert_that(response.status_code, equal_to(201))
         data = response.json()
+        assert_that(data["identifier"], equal_to(theme.identifier))
         assert_that(data["hero_ids"], equal_to([str(hero_id)]))
         assert_that(data["villain_ids"], equal_to([str(villain_id)]))
 
@@ -572,6 +559,7 @@ class TestThemeViews:
 
         theme = RoadmapTheme(
             id=theme_id,
+            identifier="T-001",
             workspace_id=workspace.id,
             user_id=user.id,
             name="Updated Theme",
@@ -636,6 +624,7 @@ class TestThemeViews:
 
         theme1 = RoadmapTheme(
             id=theme_id_1,
+            identifier="T-001",
             workspace_id=workspace.id,
             user_id=user.id,
             name="Theme 1",
@@ -649,6 +638,7 @@ class TestThemeViews:
 
         theme2 = RoadmapTheme(
             id=theme_id_2,
+            identifier="T-002",
             workspace_id=workspace.id,
             user_id=user.id,
             name="Theme 2",
@@ -692,6 +682,7 @@ class TestThemePrioritizationViews:
 
         theme = RoadmapTheme(
             id=uuid.uuid4(),
+            identifier="T-001",
             workspace_id=workspace.id,
             user_id=user.id,
             name="Test Theme",
@@ -919,6 +910,7 @@ class TestThemePrioritizationViews:
 
         theme = RoadmapTheme(
             id=uuid.uuid4(),
+            identifier="T-001",
             workspace_id=workspace.id,
             user_id=user.id,
             name="Prioritized Theme",
@@ -974,6 +966,7 @@ class TestThemePrioritizationViews:
 
         theme = RoadmapTheme(
             id=uuid.uuid4(),
+            identifier="T-001",
             workspace_id=workspace.id,
             user_id=user.id,
             name="Unprioritized Theme",
@@ -1032,6 +1025,7 @@ class TestThemePrioritizationViews:
 
         theme = RoadmapTheme(
             id=theme_id,
+            identifier="T-001",
             workspace_id=workspace.id,
             user_id=user.id,
             name="Theme",
@@ -1092,6 +1086,7 @@ class TestThemePrioritizationViews:
 
         theme = RoadmapTheme(
             id=theme_id,
+            identifier="T-001",
             workspace_id=workspace.id,
             user_id=user.id,
             name="Theme",

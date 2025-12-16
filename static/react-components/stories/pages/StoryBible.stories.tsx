@@ -99,6 +99,7 @@ const mockVillains: VillainDto[] = [
 const mockPillars: PillarDto[] = [
     {
         id: '750e8400-e29b-41d4-a716-446655440001',
+        identifier: 'P-001',
         workspace_id: 'ws-001',
         name: 'AI-Native Product Management',
         description: 'Build product management tools designed from the ground up for AI collaboration. Every feature should be queryable and understandable by AI assistants.',
@@ -109,6 +110,7 @@ const mockPillars: PillarDto[] = [
     },
     {
         id: '750e8400-e29b-41d4-a716-446655440002',
+        identifier: 'P-002',
         workspace_id: 'ws-001',
         name: 'Developer Experience First',
         description: 'Prioritize the needs of developers over administrative overhead. Minimize clicks, maximize keyboard shortcuts, and respect flow state.',
@@ -119,6 +121,7 @@ const mockPillars: PillarDto[] = [
     },
     {
         id: '750e8400-e29b-41d4-a716-446655440003',
+        identifier: 'P-003',
         workspace_id: 'ws-001',
         name: 'Narrative Coherence',
         description: 'Maintain a consistent product story that evolves over time. Every decision should connect back to the core narrative of who we serve and why.',
@@ -132,6 +135,7 @@ const mockPillars: PillarDto[] = [
 const mockThemes: ThemeDto[] = [
     {
         id: '850e8400-e29b-41d4-a716-446655440001',
+        identifier: 'T-001',
         workspace_id: 'ws-001',
         name: 'MCP Integration for AI Context',
         description: 'Enable AI assistants to query product context natively through MCP server integration. This allows tools like Claude Code to understand the product roadmap, user personas, and technical decisions without manual context sharing.',
@@ -143,6 +147,7 @@ const mockThemes: ThemeDto[] = [
     },
     {
         id: '850e8400-e29b-41d4-a716-446655440002',
+        identifier: 'T-002',
         workspace_id: 'ws-001',
         name: 'Narrative Health Monitoring',
         description: 'Provide visibility into narrative consistency over time with health metrics and coverage scores. Track how well the product story is maintained as the team builds new features.',
@@ -154,6 +159,7 @@ const mockThemes: ThemeDto[] = [
     },
     {
         id: '850e8400-e29b-41d4-a716-446655440003',
+        identifier: 'T-003',
         workspace_id: 'ws-001',
         name: 'Story-Driven Backlog Management',
         description: 'Transform traditional backlog items into narrative beats that connect to the larger product story. Each task becomes part of a coherent arc rather than an isolated ticket.',

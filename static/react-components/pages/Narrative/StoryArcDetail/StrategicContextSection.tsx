@@ -8,6 +8,7 @@ import { PillarDto } from '#api/productStrategy';
  * Inline component for simplicity.
  */
 interface OutcomeCardProps {
+  identifier: string;
   name: string;
   description: string | null;
   pillars: PillarDto[];
@@ -15,7 +16,7 @@ interface OutcomeCardProps {
   onView: () => void;
 }
 
-const OutcomeCard: React.FC<OutcomeCardProps> = ({ name, description, pillars, progress, onView }) => {
+const OutcomeCard: React.FC<OutcomeCardProps> = ({ identifier, name, description, pillars, progress, onView }) => {
   return (
     <button
       onClick={onView}
@@ -24,7 +25,7 @@ const OutcomeCard: React.FC<OutcomeCardProps> = ({ name, description, pillars, p
       <div className="flex items-start justify-start gap-2">
         <Lightbulb size={18} className="text-foreground" />
         <h4 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-          {name}
+          {identifier}: {name}
         </h4>
         {progress && (
           <span className="text-xs font-medium text-muted-foreground shrink-0">
@@ -98,6 +99,7 @@ const StrategicContextSection: React.FC<StrategicContextSectionProps> = ({
             {outcomes.map(outcome => (
               <OutcomeCard
                 key={outcome.id}
+                identifier={outcome.identifier}
                 name={outcome.name}
                 description={outcome.description}
                 pillars={outcome.pillar_ids.map(pillarId => pillars.find(pillar => pillar.id === pillarId)).filter(item => item !== undefined)}

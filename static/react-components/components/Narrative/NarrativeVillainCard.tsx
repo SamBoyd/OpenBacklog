@@ -109,6 +109,9 @@ const NarrativeVillainCard: React.FC<NarrativeVillainCardProps> = ({
                 <div className="flex-1 min-w-0">
                     {/* Name and Type Badge */}
                     <div className="flex items-center gap-2 mb-1 flex-wrap" data-testid={`${dataTestId}-header`}>
+                        <span className="px-2 py-0.5 text-xs font-mono font-medium rounded bg-muted/10 text-muted-foreground flex-shrink-0">
+                            {villain.identifier}
+                        </span>
                         <h3 className="text-base font-semibold text-foreground" data-testid={`${dataTestId}-name`}>
                             {villain.name}
                         </h3>

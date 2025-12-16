@@ -164,21 +164,21 @@ describe('useOnboardingPolling', () => {
         { id: 'v-1', identifier: 'V-1', user_id: 'u-1', workspace_id: 'ws-1', name: 'Test Villain', villain_type: VillainType.EXTERNAL, description: 'desc', severity: 5, is_defeated: false, created_at: '', updated_at: '' }
       ]);
       vi.spyOn(productStrategyApi, 'getStrategicPillars').mockResolvedValue([
-        { id: 'p-1', workspace_id: 'ws-1', name: 'Pillar 1', description: null, display_order: 0, outcome_ids: [], created_at: '', updated_at: '' },
-        { id: 'p-2', workspace_id: 'ws-1', name: 'Pillar 2', description: null, display_order: 1, outcome_ids: [], created_at: '', updated_at: '' },
+        { id: 'p-1', identifier: 'P-001', workspace_id: 'ws-1', name: 'Pillar 1', description: null, display_order: 0, outcome_ids: [], created_at: '', updated_at: '' },
+        { id: 'p-2', identifier: 'P-002', workspace_id: 'ws-1', name: 'Pillar 2', description: null, display_order: 1, outcome_ids: [], created_at: '', updated_at: '' },
       ]);
       vi.spyOn(productOutcomesApi, 'getProductOutcomes').mockResolvedValue([
         {
-          id: 'o-1', workspace_id: 'ws-1', name: 'Outcome 1', description: null, display_order: 0, pillar_ids: [], created_at: '', updated_at: '',
+          id: 'o-1', identifier: 'O-001', workspace_id: 'ws-1', name: 'Outcome 1', description: null, display_order: 0, pillar_ids: [], created_at: '', updated_at: '',
           theme_ids: []
         },
         {
-          id: 'o-2', workspace_id: 'ws-1', name: 'Outcome 2', description: null, display_order: 1, pillar_ids: [], created_at: '', updated_at: '',
+          id: 'o-2', identifier: 'O-002', workspace_id: 'ws-1', name: 'Outcome 2', description: null, display_order: 1, pillar_ids: [], created_at: '', updated_at: '',
           theme_ids: []
         },
       ]);
       vi.spyOn(productStrategyApi, 'getRoadmapThemes').mockResolvedValue([
-        { id: 't-1', workspace_id: 'ws-1', name: 'Theme 1', description: 'desc', outcome_ids: [], hero_ids: [], villain_ids: [], created_at: '', updated_at: '' },
+        { id: 't-1', identifier: 'T-001', workspace_id: 'ws-1', name: 'Theme 1', description: 'desc', outcome_ids: [], hero_ids: [], villain_ids: [], created_at: '', updated_at: '' },
       ]);
 
       const mockInitiative = {

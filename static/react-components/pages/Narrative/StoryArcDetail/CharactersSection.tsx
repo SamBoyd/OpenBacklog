@@ -51,7 +51,7 @@ const CharactersSection: React.FC<CharactersSectionProps> = ({
                   <User className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <h5 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                      {hero.name}
+                      {hero.identifier}: {hero.name}
                     </h5>
                     {hero.description && (
                       <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
@@ -82,7 +82,7 @@ const CharactersSection: React.FC<CharactersSectionProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h5 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                            {villain.name}
+                            {villain.identifier}: {villain.name}
                           </h5>
                           <span className="text-xs text-muted-foreground">
                             Severity: {villain.severity}/10

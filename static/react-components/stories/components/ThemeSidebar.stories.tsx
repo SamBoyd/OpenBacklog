@@ -11,6 +11,7 @@ import { ThemeDto } from '#api/productStrategy';
 const mockPrioritizedThemes: ThemeDto[] = [
   {
     id: 'theme-1',
+    identifier: 'T-001',
     workspace_id: 'workspace-1',
     name: 'Onboarding Experience Redesign',
     description: 'New users struggle to start quickly. Guided onboarding reduces time to first value. Key metrics: onboarding completion, time to first plan. Timeline: 3 months.',
@@ -22,6 +23,7 @@ const mockPrioritizedThemes: ThemeDto[] = [
   },
   {
     id: 'theme-2',
+    identifier: 'T-002',
     workspace_id: 'workspace-1',
     name: 'Advanced Analytics Dashboard',
     description: 'Teams lack visibility into progress and outcomes. Customizable real-time dashboards improve decision-making. Key metrics: dashboard usage, outcome completion rate. Timeline: 6 months.',
@@ -36,6 +38,7 @@ const mockPrioritizedThemes: ThemeDto[] = [
 const mockUnprioritizedThemes: ThemeDto[] = [
   {
     id: 'theme-3',
+    identifier: 'T-003',
     workspace_id: 'workspace-1',
     name: 'Mobile App Development',
     description: 'Users need access on mobile devices. Mobile app increases engagement. Key metrics: Mobile DAU. Timeline: 12 months.',
@@ -47,6 +50,7 @@ const mockUnprioritizedThemes: ThemeDto[] = [
   },
   {
     id: 'theme-4',
+    identifier: 'T-004',
     workspace_id: 'workspace-1',
     name: 'API Rate Limiting',
     description: 'Need to protect API from abuse. Rate limiting prevents service degradation. Key metrics: API uptime. Timeline: 6 months.',
@@ -58,6 +62,7 @@ const mockUnprioritizedThemes: ThemeDto[] = [
   },
   {
     id: 'theme-5',
+    identifier: 'T-005',
     workspace_id: 'workspace-1',
     name: 'Internationalization',
     description: 'Global users need localized experience. i18n increases international adoption. Key metrics: Users by region. Timeline: 9 months.',

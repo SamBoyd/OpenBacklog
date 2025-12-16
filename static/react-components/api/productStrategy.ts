@@ -22,6 +22,7 @@ export interface PillarCreateRequest {
 export interface PillarDto {
   id: string;
   workspace_id: string;
+  identifier: string;
   name: string;
   description: string | null;
   display_order: number;
@@ -208,6 +209,7 @@ export interface VillainRef {
 export interface ThemeDto {
   id: string;
   workspace_id: string;
+  identifier: string;
   name: string;
   description: string;
   outcome_ids: string[];

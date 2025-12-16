@@ -88,6 +88,9 @@ const RoadmapThemeCard: React.FC<RoadmapThemeCardProps> = ({
                 <div className="flex-1 min-w-0">
                     {/* Name */}
                     <div className="flex items-center gap-2 mb-1" data-testid={`${dataTestId}-header`}>
+                        <span className="px-2 py-0.5 text-xs font-mono font-medium rounded bg-muted/10 text-muted-foreground flex-shrink-0">
+                            {theme.identifier}
+                        </span>
                         <h3 className="text-base font-semibold text-foreground" data-testid={`${dataTestId}-name`}>
                             {theme.name}
                         </h3>

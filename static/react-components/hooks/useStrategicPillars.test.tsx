@@ -43,6 +43,7 @@ describe('useStrategicPillars', () => {
 
   const mockPillar1: PillarDto = {
     id: 'pillar-1',
+    identifier: 'P-001',
     workspace_id: workspaceId,
     name: 'Developer Experience',
     description: 'Make developers love our product',
@@ -54,6 +55,7 @@ describe('useStrategicPillars', () => {
 
   const mockPillar2: PillarDto = {
     id: 'pillar-2',
+    identifier: 'P-002',
     workspace_id: workspaceId,
     name: 'AI-Native',
     description: 'Build AI into core product',
@@ -152,6 +154,7 @@ describe('useStrategicPillars', () => {
 
     const newPillar: PillarDto = {
       id: 'pillar-3',
+      identifier: 'P-003',
       workspace_id: workspaceId,
       name: newPillarRequest.name,
       description: newPillarRequest.description,

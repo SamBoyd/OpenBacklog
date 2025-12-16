@@ -78,6 +78,7 @@ export const Minimal: Story = {
   args: {
     theme: {
       id: 'minimal-1',
+      identifier: 'T-001',
       workspace_id: 'workspace-1',
       name: 'Simple Theme',
       description: 'A basic theme with no additional context',

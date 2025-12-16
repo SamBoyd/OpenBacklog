@@ -188,6 +188,7 @@ const RoadmapThemeDetailLayout: React.FC<RoadmapThemeDetailLayoutProps> = ({
         <div className="min-h-screen bg-background flex flex-col gap-4">
             {/* Sticky Header */}
             <HeaderSection
+                arcIdentifier={arc.identifier}
                 arcTitle={arc.name}
                 arcSubtitle={arc.description?.substring(0, 100)}
                 arcStatus="in_progress"

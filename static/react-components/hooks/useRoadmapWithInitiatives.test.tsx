@@ -18,8 +18,9 @@ const mockGetStrategicInitiativesByTheme = vi.spyOn(productStrategyApi, 'getStra
 /**
  * Helper to create mock theme data
  */
-const createMockTheme = (id: string, name: string): ThemeDto => ({
+const createMockTheme = (id: string, name: string, identifier: string = 'T-001'): ThemeDto => ({
   id,
+  identifier,
   workspace_id: 'workspace-1',
   name,
   description: `Description for ${name}: addressing key user problems and validating our hypothesis through measurable outcomes.`,

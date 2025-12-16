@@ -9,6 +9,7 @@ export interface OutcomeCreateRequest {
 export interface OutcomeDto {
   id: string;
   workspace_id: string;
+  identifier: string;
   name: string;
   description: string | null;
   display_order: number;

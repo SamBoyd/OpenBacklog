@@ -32,6 +32,7 @@ export interface OutcomeRef {
 export interface BeatItem {
   id: string;
   initiativeId: string;
+  identifier: string;
   title: string;
   description?: string;
   status: 'todo' | 'in_progress' | 'done';
@@ -79,6 +80,7 @@ export interface RoadmapThemeDetailData {
  * Includes arc metadata and action handlers.
  */
 export interface HeaderSectionProps {
+  arcIdentifier: string;
   arcTitle: string;
   arcSubtitle?: string;
   arcStatus?: 'planning' | 'in_progress' | 'climax' | 'complete' | 'archived';

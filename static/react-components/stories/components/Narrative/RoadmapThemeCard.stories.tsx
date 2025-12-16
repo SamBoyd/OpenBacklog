@@ -5,6 +5,7 @@ import { ThemeDto } from '#api/productStrategy';
 
 const mockTheme: ThemeDto = {
     id: '750e8400-e29b-41d4-a716-446655440001',
+    identifier: 'T-001',
     workspace_id: '550e8400-e29b-41d4-a716-446655440000',
     name: 'MCP Integration for AI Context',
     description: 'AI assistants lack native access to product context, forcing developers to manually context-switch between tools. If we expose product management data through an MCP server, AI assistants can query it natively and make better decisions without breaking developer flow. Success will be measured by reduction in context switches, faster feature implementation, and improved AI decision quality over a 6-month horizon.',
@@ -17,6 +18,7 @@ const mockTheme: ThemeDto = {
 
 const mockThemeMinimal: ThemeDto = {
     id: '750e8400-e29b-41d4-a716-446655440002',
+    identifier: 'T-002',
     workspace_id: '550e8400-e29b-41d4-a716-446655440000',
     name: 'Narrative Health Monitoring',
     description: 'Teams need visibility into how consistent their product narrative is over time.',

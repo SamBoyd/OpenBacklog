@@ -127,6 +127,7 @@ class PillarResponse(BaseModel):
     )
 
     id: uuid.UUID
+    identifier: str
     workspace_id: uuid.UUID
     name: str
     description: Optional[str]
@@ -154,6 +155,7 @@ async def get_workspace_pillars(
         return [
             PillarResponse(
                 id=pillar.id,
+                identifier=pillar.identifier,
                 workspace_id=pillar.workspace_id,
                 name=pillar.name,
                 description=pillar.description,
@@ -193,6 +195,7 @@ async def create_strategic_pillar(
 
         return PillarResponse(
             id=pillar.id,
+            identifier=pillar.identifier,
             workspace_id=pillar.workspace_id,
             name=pillar.name,
             description=pillar.description,
@@ -272,6 +275,7 @@ async def reorder_strategic_pillars(
         return [
             PillarResponse(
                 id=pillar.id,
+                identifier=pillar.identifier,
                 workspace_id=pillar.workspace_id,
                 name=pillar.name,
                 description=pillar.description,
@@ -332,6 +336,7 @@ async def update_strategic_pillar(
 
         return PillarResponse(
             id=pillar.id,
+            identifier=pillar.identifier,
             workspace_id=pillar.workspace_id,
             name=pillar.name,
             description=pillar.description,

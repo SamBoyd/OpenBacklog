@@ -10,6 +10,7 @@ export const mockProductOutcomes: OutcomeDto[] = [
     {
         id: 'outcome-1',
         workspace_id: 'ws-001',
+        identifier: 'O-001',
         name: '80% AI feature adoption',
         description: 'Users actively use AI features weekly',
         display_order: 1,
@@ -21,6 +22,7 @@ export const mockProductOutcomes: OutcomeDto[] = [
     {
         id: 'outcome-2',
         workspace_id: 'ws-001',
+        identifier: 'O-002',
         name: 'Faster onboarding',
         description: 'Users complete onboarding in under 5 minutes',
         display_order: 2,
@@ -32,6 +34,7 @@ export const mockProductOutcomes: OutcomeDto[] = [
     {
         id: 'outcome-3',
         workspace_id: 'ws-001',
+        identifier: 'O-003',
         name: 'Improved customer support',
         description: 'Customers receive help faster with AI-powered support',
         display_order: 3,

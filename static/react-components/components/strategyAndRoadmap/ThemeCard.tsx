@@ -24,7 +24,7 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({
     <div className="bg-background text-foreground border-border rounded-lg p-5 space-y-4 hover:border-border transition-colors">
       {/* Header */}
       <div>
-        <h3 className="text-lg font-medium text-foreground0 mb-2">{theme.name}</h3>
+        <h3 className="text-lg font-medium text-foreground0 mb-2">{theme.identifier}: {theme.name}</h3>
         <p className="text-sm text-foreground line-clamp-2">
           {theme.description}
         </p>
