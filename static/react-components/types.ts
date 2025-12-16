@@ -732,7 +732,7 @@ export const RoadmapThemeDtoSchema = z.object({
     id: z.string().uuid(),
     identifier: z.string(),
     workspace_id: z.string().uuid(),
-    title: z.string().min(1).max(200),
+    name: z.string().min(1).max(200),
     description: z.string().min(1).max(2000).nullable(),
     created_at: z.string(),
     updated_at: z.string(),
