@@ -4,8 +4,6 @@ import CompactCreateInitiative from '#components/CompactCreateInitiative';
 import InitiativesKanbanBoard from '#components/InitiativesKanbanBoard';
 import InitiativesTopBar from '#components/InitiativesTopBar';
 import InitiativesList from '#components/InitiativesList';
-import { useSuggestionsToBeResolved } from '#contexts/SuggestionsToBeResolvedContext';
-import InitiativesListDiff from '#components/diffs/InitiativesListDiff';
 import { useInitiativesContext } from '#contexts/InitiativesContext';
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { useUserPreferences } from '#hooks/useUserPreferences';
@@ -20,7 +18,6 @@ import { InitiativeStatus } from '#types';
  * @returns A React component
  */
 const Initiatives = () => {
-    const { suggestions } = useSuggestionsToBeResolved();
     const { currentWorkspace } = useWorkspaces();
     const { preferences, updateSelectedInitiativeStatuses, updateSelectedThemes, updateInitiativesShowListView } = useUserPreferences();
 
@@ -91,12 +88,6 @@ const Initiatives = () => {
     return (
         <div className="flex flex-col justify-between gap-2 pt-10">
             <div className="flex flex-col h-full justify-start px-5">
-
-                {
-                    suggestions.length > 0 && (
-                        <InitiativesListDiff />
-                    )
-                }
 
                 {/* Top bar */}
                 <InitiativesTopBar

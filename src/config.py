@@ -19,9 +19,6 @@ class Settings(BaseSettings):
 
     log_prompts: bool = Field(default=False)
 
-    openai_model: str
-    openai_api_test_key: str = Field(default="")
-
     static_site_url: str
     static_site_domain: str
 
@@ -96,28 +93,12 @@ class Settings(BaseSettings):
 
     tavily_api_key: str
 
-    # Vault settings
-    vault_type: str = Field(default="hashicorp")  # "hashicorp" or "file"
-    vault_url: str
-    vault_cert_path: str
-    vault_cert_key_path: str
-    vault_role_id_path: str
-    vault_secret_id_path: str
-    vault_verify_cert: bool
-
-    # File vault settings
-    secrets_dir: str = Field(default="/app/secrets")
-
     sentry_url: str
 
     internal_request_timeout: int = Field(default=15)
 
     csrf_token_name: str = Field(default="fastapi-csrf-token")
     csrf_token_secret_key: str
-
-    langsmith_tracing: str
-    langsmith_api_key: str
-    langsmith_openai_api_key: str
 
     # Development auth settings
     dev_jwt_secret: str
@@ -139,21 +120,6 @@ class Settings(BaseSettings):
 
     # User signup control
     allow_new_signups: bool = Field(default=True)
-
-    llm_model: str
-    litellm_url: str
-    litellm_master_key: str
-    litellm_master_key_vault_path: str = Field(default="secret/data/litellm/master_key")
-
-    # OpenMeter settings
-    openmeter_base_url: str = Field(default="https://openmeter.cloud")
-    openmeter_api_token: str
-
-    # Stripe settings
-    stripe_secret_key: str
-    stripe_webhook_secret: str
-    stripe_price_id: str
-    monthly_subscription_cost_cents: int = Field(default=700)
 
     # Support page settings
     support_email_address: str = Field(default="support@openbacklog.ai")

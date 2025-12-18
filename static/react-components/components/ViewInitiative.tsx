@@ -2,9 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { MdOutlineViewKanban, MdViewHeadline } from 'react-icons/md';
 import { GrDocumentText } from 'react-icons/gr';
 
-import { InitiativeDto, TaskStatus, InitiativeLLMResponse, ManagedEntityAction, LENS, InitiativeStatus, statusDisplay, EntityType, FieldType, ManagedTaskModel } from '#types';
+import { InitiativeDto, TaskStatus, InitiativeStatus, statusDisplay, EntityType } from '#types';
 
-import { useAiImprovementsContext } from '#contexts/AiImprovementsContext';
 import { useActiveEntity } from '#hooks/useActiveEntity'
 import { useParams } from '#hooks/useParams';
 
@@ -18,7 +17,6 @@ import EntityDetailsEditor from '#components/reusable/EntityDetailsEditor';
 import EntityDescriptionEditor from '#components/EntityDescriptionEditor';
 import TasksList from '#components/TasksList';
 import { Button } from '#components/reusable/Button';
-import ViewInitiativeDiff from '#components/ViewInitiativeDiff';
 import TitleInput from '#components/reusable/TitleInput';
 import StatusFilter from './StatusFilter';
 
@@ -39,28 +37,12 @@ const ViewInitiative = () => {
     } = useInitiativesContext();
 
     const initiativeData = initiativesData?.find(i => i.id === initiativeId);
-    const {
-        isEntityLocked,
-        initiativeImprovements,
-        taskImprovements: allTaskImprovements,
-    } = useAiImprovementsContext();
 
     const { preferences, updateViewInitiativeShowListView, updateSelectedTaskStatuses } = useUserPreferences();
     const showListView = preferences.viewInitiativeShowListView;
     const [tasksReloadCounter, setTasksReloadCounter] = React.useState(0);
 
     const { setActiveInitiative } = useActiveEntity();
-
-    const currentInitiativeUpdate = initiativeData ? initiativeImprovements[initiativeData?.identifier] : undefined;
-    const currentTaskUpdates: ManagedTaskModel[] = currentInitiativeUpdate && initiativeData
-        ? initiativeData.tasks?.map(task => {
-            const taskId = task.id || 'NOT_AN_ID';
-            const filteredTaskImprovements = Object.keys(allTaskImprovements).filter(key => key.startsWith(taskId));
-            return filteredTaskImprovements.map(key => allTaskImprovements[key]);
-        }).reduce((acc, curr) => acc.concat(curr), [])
-        : [];
-
-    const hasAiSuggestions = !!currentInitiativeUpdate || currentTaskUpdates.length > 0;
 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const closeFilter = useCallback(() => {
@@ -79,15 +61,6 @@ const ViewInitiative = () => {
             : [...preferences.selectedTaskStatuses, status];
         updateSelectedTaskStatuses(newSelectedStatuses);
     }, [preferences, updateSelectedTaskStatuses]);
-
-
-    React.useEffect(() => {
-        console.log('hasAiSuggestions', hasAiSuggestions);
-        console.log('initiativeData', initiativeData);
-        console.log('initiativeImprovements', initiativeImprovements);
-        console.log('currentInitiativeUpdate', currentInitiativeUpdate);
-        console.log('currentTaskUpdates', currentTaskUpdates);
-    })
 
     // Set the active initiative id
     React.useEffect(() => {
@@ -169,11 +142,6 @@ const ViewInitiative = () => {
         updateViewInitiativeShowListView(!showListView);
     };
 
-    // If we have AI suggestions, render the ViewInitiativeDiff component
-    if (hasAiSuggestions) {
-        return <ViewInitiativeDiff initiativeId={initiativeId || ''} />;
-    }
-
     if (!pageShouldShowSkeleton && !initiativeData) {
         return <div>Initiative not found</div>;
     }
@@ -187,7 +155,7 @@ const ViewInitiative = () => {
                 error={error}
                 createdAt={initiativeData?.created_at}
                 updatedAt={initiativeData?.updated_at}
-                isEntityLocked={isEntityLocked}
+                isEntityLocked={false}
                 onDelete={handleDeleteInitiative}
                 onRefresh={handleRefresh}
                 dataTestId="view-initiative"

@@ -3,7 +3,6 @@ import React from 'react';
 // eslint-disable-next-line n/no-unpublished-import
 import type { Meta, StoryObj } from '@storybook/react';
 
-import { useAiImprovementsContext } from '#contexts/AiImprovementsContext.mock';
 import { useInitiativesContext } from '#contexts/InitiativesContext.mock';
 import { useTasksContext } from '#contexts/TasksContext.mock';
 import { useFieldDefinitions } from '#hooks/useFieldDefinitions.mock';
@@ -16,11 +15,7 @@ import { useRoadmapThemes } from '#hooks/useRoadmapThemes.mock';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 
 import {
-    mockMarkJobAsResolved,
-    mockRequestImprovement,
-    mockResetError,
     mockUpdateTask,
-    mockWorkspace,
     mockInitiatives,
     mockTasks,
     mockUpdateInitiatives,
@@ -30,29 +25,18 @@ import {
     mockReloadTask,
     mockInitiativesContextReturn,
     mockUseTasksContext,
-    mockAiImprovementsContextReturn,
     mockUpdateTaskVoid,
-    mockTasksData,
-    mockCreateInitiativeDiff,
-    mockInitiativeAiJobResult,
-    mockInitiativeAiJobResultError,
     mockAllFieldDefinitions,
     mockActiveEntityReturn,
-    mockInitiativeImprovements,
-    mockWorkspacesReturn
+    mockWorkspacesReturn,
+    mockWorkspace
 } from '../example_data';
 
 import {
-    AiImprovementJobStatus,
     InitiativeDto,
-    InitiativeLLMResponse,
-    LENS,
-    ManagedEntityAction,
     TaskDto,
     EntityType,
     FieldType,
-    ManagedTaskModel,
-    AgentMode
 } from '#types';
 
 import ViewInitiative from '#components/ViewInitiative';
@@ -206,38 +190,6 @@ export const Default: Story = {
         reloadInitiatives: mockReloadInitiatives,
         deleteInitiative: mockDeleteInitiative_Initiative,
     },
-    parameters: {
-        msw: {
-            handlers: [
-                http.post('/api/text-completion', async () => {
-                    const sampleText = "this is a sample of the kind of text that will be returned from the text completion api";
-                    const words = sampleText.split(" "); // Split into words to simulate chunks
-
-                    const stream = new ReadableStream({
-                        async start(controller) {
-                            const encoder = new TextEncoder();
-                            for (let i = 0; i < words.length; i++) {
-                                const word = words[i];
-                                // Send word with a trailing space, unless it's the last word.
-                                const contentToSend = word + (i < words.length - 1 ? " " : "");
-                                const message = `data: ${contentToSend}\n\n`;
-                                controller.enqueue(encoder.encode(message));
-                                await delay(150); // Simulate a small delay between chunks
-                            }
-                            controller.close();
-                        },
-                    });
-
-                    return new HttpResponse(stream, {
-                        headers: {
-                            'Content-Type': 'text/event-stream',
-                            'Cache-Control': 'no-cache', // Recommended for SSE
-                        },
-                    });
-                })
-            ]
-        },
-    },
     beforeEach: () => {
         useParams.mockReturnValue({
             initiativeId: mockInitiatives[0].id
@@ -263,16 +215,13 @@ export const Default: Story = {
             tasks: mockInitiatives[0].tasks as OrderedEntity<TaskDto>[],
         })
 
-        useAiImprovementsContext.mockReturnValue(mockAiImprovementsContextReturn);
-
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
         useWorkspaces.mockReturnValue(mockWorkspacesReturn);
-        
+
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
-            useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
             useWorkspaces.mockReset()
         }
@@ -304,8 +253,6 @@ export const WithTasks: Story = {
             tasks: mockInitiatives[0].tasks as OrderedEntity<TaskDto>[],
         })
 
-        useAiImprovementsContext.mockReturnValue(mockAiImprovementsContextReturn);
-
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
         useWorkspaces.mockReturnValue(mockWorkspacesReturn);
@@ -313,7 +260,6 @@ export const WithTasks: Story = {
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
-            useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
             useWorkspaces.mockReset()
         }
@@ -328,38 +274,6 @@ export const Loading: Story = {
         updateInitiatives: mockUpdateInitiatives,
         reloadInitiatives: mockReloadInitiatives,
         deleteInitiative: mockDeleteInitiative_Initiative,
-    },
-    parameters: {
-        msw: {
-            handlers: [
-                http.post('/api/text-completion', async () => {
-                    const sampleText = "this is a sample of the kind of text that will be returned from the text completion api";
-                    const words = sampleText.split(" "); // Split into words to simulate chunks
-
-                    const stream = new ReadableStream({
-                        async start(controller) {
-                            const encoder = new TextEncoder();
-                            for (let i = 0; i < words.length; i++) {
-                                const word = words[i];
-                                // Send word with a trailing space, unless it's the last word.
-                                const contentToSend = word + (i < words.length - 1 ? " " : "");
-                                const message = `data: ${contentToSend}\n\n`;
-                                controller.enqueue(encoder.encode(message));
-                                await delay(150); // Simulate a small delay between chunks
-                            }
-                            controller.close();
-                        },
-                    });
-
-                    return new HttpResponse(stream, {
-                        headers: {
-                            'Content-Type': 'text/event-stream',
-                            'Cache-Control': 'no-cache', // Recommended for SSE
-                        },
-                    });
-                })
-            ]
-        },
     },
     beforeEach: () => {
         useParams.mockReturnValue({
@@ -379,368 +293,12 @@ export const Loading: Story = {
             tasks: []
         })
 
-        useAiImprovementsContext.mockReturnValue(mockAiImprovementsContextReturn);
-
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
         useWorkspaces.mockReturnValue(mockWorkspacesReturn);
 
         return () => {
             useInitiativesContext.mockReset()
-            useTasksContext.mockReset()
-            useAiImprovementsContext.mockReset()
-            useActiveEntity.mockReset()
-            useWorkspaces.mockReset()
-        }
-    },
-};
-
-export const WithDiff: Story = {
-    args: {
-        workspace: mockWorkspace,
-        task: mockTasks[0],
-        updateTask: mockUpdateTask,
-        updateTaskVoid: mockUpdateTaskVoid,
-        reloadTask: mockReloadTask,
-        deleteTask: mockDeleteTask,
-        requestImprovement: mockRequestImprovement,
-        markJobAsResolved: mockMarkJobAsResolved,
-        resetError: mockResetError
-    },
-    beforeEach: () => {
-        useParams.mockReturnValue({
-            initiativeId: mockInitiatives[0].id
-        });
-
-        useInitiativesContext.mockReturnValue({
-            ...mockInitiativesContextReturn
-        });
-
-        useTasksContext.mockReturnValue({
-            ...mockUseTasksContext,
-            tasks: mockInitiatives[0].tasks as OrderedEntity<TaskDto>[],
-        })
-
-        useAiImprovementsContext.mockReturnValue({
-            ...mockAiImprovementsContextReturn,
-            initiativeImprovements: mockInitiativeImprovements,
-            jobResult: mockInitiativeAiJobResult,
-        });
-
-        useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
-
-        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
-
-        return () => {
-            useInitiativesContext.mockReset()
-            useTasksContext.mockReset()
-            useAiImprovementsContext.mockReset()
-            useActiveEntity.mockReset()
-            useWorkspaces.mockReset()
-        }
-    },
-};
-
-
-export const WithDiffLoading: Story = {
-
-    args: {
-        workspace: mockWorkspace,
-        task: mockTasks[0],
-        updateTask: mockUpdateTask,
-        updateTaskVoid: mockUpdateTaskVoid,
-        reloadTask: mockReloadTask,
-        deleteTask: mockDeleteTask,
-        requestImprovement: mockRequestImprovement,
-        markJobAsResolved: mockMarkJobAsResolved,
-        resetError: mockResetError
-    },
-    beforeEach: () => {
-        useParams.mockReturnValue({
-            initiativeId: mockInitiatives[0].id
-        });
-
-        useInitiativesContext.mockReturnValue({
-            ...mockInitiativesContextReturn
-        });
-
-        useTasksContext.mockReturnValue({
-            ...mockUseTasksContext,
-            tasks: mockInitiatives[0].tasks as OrderedEntity<TaskDto>[],
-        })
-
-        useAiImprovementsContext.mockReturnValue({
-            ...mockAiImprovementsContextReturn,
-            jobResult: null,
-            loading: true,
-            isEntityLocked: true,
-
-        });
-
-        useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
-
-        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
-
-        return () => {
-            useInitiativesContext.mockReset()
-            useTasksContext.mockReset()
-            useAiImprovementsContext.mockReset()
-            useActiveEntity.mockReset()
-            useWorkspaces.mockReset()
-        }
-    },
-};
-
-
-export const WithTaskDiff: Story = {
-
-    args: {
-        workspace: mockWorkspace,
-        task: mockTasks[0],
-        updateTask: mockUpdateTask,
-        updateTaskVoid: mockUpdateTaskVoid,
-        reloadTask: mockReloadTask,
-        deleteTask: mockDeleteTask,
-        requestImprovement: mockRequestImprovement,
-        markJobAsResolved: mockMarkJobAsResolved,
-        resetError: mockResetError
-    },
-    beforeEach: () => {
-        useParams.mockReturnValue({
-            initiativeId: mockInitiatives[0].id
-        });
-
-        useInitiativesContext.mockReturnValue({
-            ...mockInitiativesContextReturn,
-            initiativesData: [mockInitiatives[0]],
-        })
-
-        useTasksContext.mockReturnValue({
-            ...mockUseTasksContext,
-            tasks: mockInitiatives[0].tasks as OrderedEntity<TaskDto>[],
-        })
-
-        useAiImprovementsContext.mockReturnValue({
-            ...mockAiImprovementsContextReturn,
-            initiativeImprovements: mockInitiativeImprovements,
-            jobResult: {
-                id: '123',
-                lens: LENS.INITIATIVE,
-                thread_id: 'thread1',
-                status: AiImprovementJobStatus.COMPLETED,
-                mode: AgentMode.EDIT,
-                input_data: [mockInitiatives[0]],
-                result_data: {
-                    message: 'Some random summary of changes',
-                    managed_initiatives: [
-                        {
-                            action: ManagedEntityAction.UPDATE,
-                            identifier: mockInitiatives[0].identifier,
-                            type: mockInitiatives[0].type,
-                            status: mockInitiatives[0].status,
-                            title: 'Updated initiative title',
-                            description: 'Updated initiative description',
-                            tasks: mockTasks.slice(0, 3).map((task, index) => ({
-                                action: ManagedEntityAction.UPDATE,
-                                identifier: task.identifier,
-                                title: `Updated task title ${index}`,
-                                description: `Updated task description ${index}`,
-                                checklist: task.checklist,
-                            }) as ManagedTaskModel)
-                        }
-                    ]
-                },
-                messages: [{ role: 'user', content: 'Let me explain the changes I made to the task - I\'ve updated the title and description with some placeholder text', suggested_changes: [] }],
-                error_message: null,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                user_id: mockTasks[0].user_id
-            },
-        })
-
-        useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
-
-        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
-
-        return () => {
-            useInitiativesContext.mockReset()
-            useTasksContext.mockReset()
-            useAiImprovementsContext.mockReset()
-            useActiveEntity.mockReset()
-            useWorkspaces.mockReset()
-        }
-    },
-};
-
-export const WithCreateInitiativeDiff: Story = {
-
-    args: {
-        workspace: mockWorkspace,
-        task: mockTasks[0],
-        updateTask: mockUpdateTask,
-        updateTaskVoid: mockUpdateTaskVoid,
-        reloadTask: mockReloadTask,
-        deleteTask: mockDeleteTask,
-
-        requestImprovement: mockRequestImprovement,
-        markJobAsResolved: mockMarkJobAsResolved,
-        resetError: mockResetError
-    },
-    beforeEach: () => {
-        useParams.mockReturnValue({
-            initiativeId: mockInitiatives[0].id
-        });
-
-        useInitiativesContext.mockReturnValue({
-            ...mockInitiativesContextReturn,
-            initiativesData: [mockInitiatives[0]]
-        })
-
-        useTasksContext.mockReturnValue(mockUseTasksContext);
-
-        useAiImprovementsContext.mockReturnValue({
-            ...mockAiImprovementsContextReturn,
-            initiativeImprovements: mockInitiativeImprovements,
-            jobResult: {
-                ...mockInitiativeAiJobResult,
-                result_data: {
-                    ...mockInitiativeAiJobResult.result_data,
-                    managed_initiatives: [
-                        {
-                            action: ManagedEntityAction.UPDATE,
-                            ...mockInitiatives[0],
-                            title: 'Updated initiative title',
-                            description: 'Updated initiative description',
-                            tasks: mockTasksData
-                        },
-                        mockCreateInitiativeDiff
-                    ]
-                } as InitiativeLLMResponse
-            },
-        })
-
-        useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
-
-        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
-
-        return () => {
-            useInitiativesContext.mockReset()
-            useAiImprovementsContext.mockReset()
-            useTasksContext.mockReset()
-            useActiveEntity.mockReset()
-            useWorkspaces.mockReset()
-        }
-    },
-};
-
-
-export const WithDiffError: Story = {
-
-    args: {
-        workspace: mockWorkspace,
-        task: mockTasks[0],
-        updateTask: mockUpdateTask,
-        updateTaskVoid: mockUpdateTaskVoid,
-        reloadTask: mockReloadTask,
-        deleteTask: mockDeleteTask,
-        requestImprovement: mockRequestImprovement,
-        markJobAsResolved: mockMarkJobAsResolved,
-        resetError: mockResetError
-    },
-    beforeEach: () => {
-        useParams.mockReturnValue({
-            initiativeId: mockInitiatives[0].id
-        });
-
-        useInitiativesContext.mockReturnValue({
-            ...mockInitiativesContextReturn
-        });
-
-        useTasksContext.mockReturnValue({
-            ...mockUseTasksContext,
-            tasks: []
-        });
-
-        useAiImprovementsContext.mockReturnValue({
-            ...mockAiImprovementsContextReturn,
-            initiativeImprovements: mockInitiativeImprovements,
-            jobResult: mockInitiativeAiJobResultError,
-        });
-
-        useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
-
-        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
-
-        return () => {
-            useInitiativesContext.mockReset()
-            useTasksContext.mockReset()
-            useAiImprovementsContext.mockReset()
-            useActiveEntity.mockReset()
-            useWorkspaces.mockReset()
-        }
-    },
-};
-
-
-export const WithDeleteInitiativeDiff: Story = {
-
-    args: {
-        workspace: mockWorkspace,
-        task: mockTasks[0],
-        updateTask: mockUpdateTask,
-        updateTaskVoid: mockUpdateTaskVoid,
-        reloadTask: mockReloadTask,
-        deleteTask: mockDeleteTask,
-
-        requestImprovement: mockRequestImprovement,
-        markJobAsResolved: mockMarkJobAsResolved,
-        resetError: mockResetError
-    },
-    beforeEach: () => {
-        useParams.mockReturnValue({
-            initiativeId: mockInitiatives[0].id
-        });
-
-        useInitiativesContext.mockReturnValue({
-            ...mockInitiativesContextReturn,
-            initiativesData: [mockInitiatives[0]]
-        })
-
-        useTasksContext.mockReturnValue({
-            ...mockUseTasksContext,
-            tasks: mockInitiatives[0].tasks as OrderedEntity<TaskDto>[]
-        })
-
-        useAiImprovementsContext.mockReturnValue({
-            ...mockAiImprovementsContextReturn,
-            initiativeImprovements: mockInitiativeImprovements,
-            jobResult: {
-                ...mockInitiativeAiJobResult,
-                result_data: {
-                    ...mockInitiativeAiJobResult.result_data,
-                    managed_initiatives: [
-                        {
-                            action: ManagedEntityAction.DELETE,
-                            identifier: mockInitiatives[0].identifier,
-                        },
-                        {
-                            action: ManagedEntityAction.CREATE,
-                            title: 'Created initiative title',
-                            description: 'Created initiative description',
-                            tasks: mockTasksData
-                        },
-                    ]
-                } as InitiativeLLMResponse
-            },
-        })
-
-        useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
-
-        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
-
-        return () => {
-            useInitiativesContext.mockReset()
-            useAiImprovementsContext.mockReset()
             useTasksContext.mockReset()
             useActiveEntity.mockReset()
             useWorkspaces.mockReset()
@@ -786,8 +344,6 @@ export const WithAllFieldTypes: Story = {
             tasks: []
         });
 
-        useAiImprovementsContext.mockReturnValue(mockAiImprovementsContextReturn);
-
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
         useWorkspaces.mockReturnValue(mockWorkspacesReturn);
@@ -795,7 +351,6 @@ export const WithAllFieldTypes: Story = {
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
-            useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
             useWorkspaces.mockReset()
         }
@@ -836,8 +391,6 @@ export const WithStrategicContext: Story = {
             tasks: []
         });
 
-        useAiImprovementsContext.mockReturnValue(mockAiImprovementsContextReturn);
-
         useActiveEntity.mockReturnValue({ ...mockActiveEntityReturn, activeInitiativeId: mockInitiatives[0].id });
 
         useStrategicInitiative.mockReturnValue({
@@ -847,8 +400,8 @@ export const WithStrategicContext: Story = {
                 workspace_id: 'workspace-1',
                 pillar_id: 'pillar-1',
                 theme_id: 'theme-1',
-                description: 'Solo developers need AI-powered assistance to help them stay productive and organized when working alone.',
-                narrative_intent: 'This initiative directly enables our vision of being the best AI-powered task management tool for solo developers by making AI a core part of the daily workflow.',
+                description: 'Solo developers need assistance to help them stay productive and organized when working alone.',
+                narrative_intent: 'This initiative directly enables our vision of being the best task management tool for solo developers.',
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
             },
@@ -868,8 +421,8 @@ export const WithStrategicContext: Story = {
                     id: 'pillar-1',
                     identifier: 'P-001',
                     workspace_id: 'workspace-1',
-                    name: 'AI-First Development',
-                    description: 'Make AI a natural and essential part of the development workflow for solo developers.',
+                    name: 'Developer Productivity',
+                    description: 'Make productivity a natural and essential part of the development workflow for solo developers.',
                     display_order: 0,
                     outcome_ids: ['outcome-1'],
                     created_at: new Date().toISOString(),
@@ -921,8 +474,8 @@ export const WithStrategicContext: Story = {
                     id: 'theme-2',
                     identifier: 'T-002',
                     workspace_id: 'workspace-1',
-                    name: 'Weekly AI Habit',
-                    description: 'Users who try AI features once often forget to use them again.',
+                    name: 'Weekly Habit',
+                    description: 'Users who try features once often forget to use them again.',
                     outcome_ids: [],
                     hero_ids: [],
                     villain_ids: [],
@@ -951,7 +504,6 @@ export const WithStrategicContext: Story = {
         return () => {
             useInitiativesContext.mockReset()
             useTasksContext.mockReset()
-            useAiImprovementsContext.mockReset()
             useActiveEntity.mockReset()
             useStrategicInitiative.mockReset()
             useStrategicPillars.mockReset()

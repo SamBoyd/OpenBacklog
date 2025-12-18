@@ -6,7 +6,6 @@ import type { Meta, StoryObj } from '@storybook/react';
 const { reactRouterParameters } = require('storybook-addon-remix-react-router');
 
 import Onboarding from '#pages/Onboarding';
-import { useBillingUsage, BillingUsageData, UseBillingUsageReturn } from '#hooks/useBillingUsage.mock';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 import { UserAccountStatus } from '#constants/userAccountStatus';
 import { mockWorkspace, mockWorkspacesReturn } from '#stories/example_data';
@@ -27,52 +26,9 @@ const mockOnboardCustomer = async () => {
     await new Promise((resolve) => setTimeout(resolve, 3000));
     alert('Page will now navigate away from onboarding')
 }
-// Mock the dependencies
-const mockBillingUsageReturnNewUser: UseBillingUsageReturn = {
-    data: {
-        currentBalance: 0,
-        transactions: [],
-        transactionsPagination: null,
-        subscriptionStatus: UserAccountStatus.NEW,
-        monthlyCreditsTotal: 0,
-        monthlyCreditsUsed: 0
-    },
-    userAccountDetails: {
-        balanceCents: 0,
-        status: UserAccountStatus.NEW,
-        onboardingCompleted: false,
-        monthlyCreditsTotal: 0,
-        monthlyCreditsUsed: 0
-    },
-    userIsOnboarded: false,
-    autoTopUp: false,
-    setAutoTopUp: () => { },
-    onboardCustomer: mockOnboardCustomer,
-    setupMonthlySubscription: () => Promise.resolve(),
-    handleAddCredit: () => console.log('Mock: Adding credit'),
-    formatCurrency: (amount: number) => `$${amount.toFixed(2)}`,
-    formatNumber: (num: number) => num.toLocaleString(),
-    isLoading: false,
-    isAccountDetailsLoading: false,
-    error: null,
-    showErrorDialog: false,
-    showPendingDialog: false,
-    showCancelledDialog: false,
-    closeErrorDialog: () => { },
-    closePendingDialog: () => { },
-    closeCancelledDialog: () => { },
-    handlePaymentRetry: () => { },
-    handlePaymentSuccess: () => { },
-    handlePaymentFailure: () => { },
-    handleRefundRequest: async () => ({ success: true, details: 'Mock refund' }),
-    handleOpenCustomerPortal: async () => { },
-    loadTransactionsPage: () => { },
-    resetTransactionsPagination: () => { },
-    invalidateUserAccountDetails: async () => {
-        console.log('invalidateUserAccountDetails')
-        return Promise.resolve();
-    }
-};
+
+// Note: This story file is primarily for Pro features.
+// Community Edition onboarding is simplified.
 
 const mockAddWorkspace = async (workspace: Omit<WorkspaceDto, 'id'>): Promise<WorkspaceDto> => {
     await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -96,7 +52,6 @@ const meta = {
     decorators: [
         (Story) => {
             // Mock the hooks
-            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue({
                 ...mockWorkspacesReturn,
                 workspaces: [],
@@ -130,7 +85,6 @@ export const Default: Story = {
 export const ExistingWorkspace: Story = {
     decorators: [
         (Story) => {
-            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue(mockWorkspacesReturn)
             useOpenbacklogToken.mockReturnValue(mockUseOpenbacklogTokenGeneratedReturn);
             useOnboardingPolling.mockReturnValue(mockPollingWorkspace);
@@ -146,7 +100,6 @@ export const ExistingWorkspace: Story = {
 export const MCPSetupPollingWorkspace: Story = {
     decorators: [
         (Story) => {
-            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue({
                 ...mockWorkspacesReturn,
                 workspaces: [],
@@ -167,7 +120,6 @@ export const MCPSetupPollingWorkspace: Story = {
 export const MCPSetupFoundationStart: Story = {
     decorators: [
         (Story) => {
-            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue({
                 ...mockWorkspacesReturn,
                 workspaces: [],
@@ -188,7 +140,6 @@ export const MCPSetupFoundationStart: Story = {
 export const MCPSetupFoundationVision: Story = {
     decorators: [
         (Story) => {
-            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue({
                 ...mockWorkspacesReturn,
                 workspaces: [],
@@ -209,7 +160,6 @@ export const MCPSetupFoundationVision: Story = {
 export const MCPSetupFoundationCharacters: Story = {
     decorators: [
         (Story) => {
-            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue({
                 ...mockWorkspacesReturn,
                 workspaces: [],
@@ -230,7 +180,6 @@ export const MCPSetupFoundationCharacters: Story = {
 export const MCPSetupFoundationStrategy: Story = {
     decorators: [
         (Story) => {
-            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue({
                 ...mockWorkspacesReturn,
                 workspaces: [],
@@ -252,7 +201,6 @@ export const MCPSetupFoundationStrategy: Story = {
 export const MCPSetupFoundationTheme: Story = {
     decorators: [
         (Story) => {
-            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue({
                 ...mockWorkspacesReturn,
                 workspaces: [],
@@ -273,7 +221,6 @@ export const MCPSetupFoundationTheme: Story = {
 export const MCPSetupComplete: Story = {
     decorators: [
         (Story) => {
-            useBillingUsage.mockReturnValue(mockBillingUsageReturnNewUser);
             useWorkspaces.mockReturnValue({
                 ...mockWorkspacesReturn,
                 workspaces: [],

@@ -6,10 +6,7 @@ from datetime import timedelta
 import freezegun
 from hamcrest import assert_that, equal_to, is_, not_
 
-from src.accounting.models import UserAccountDetails, UserAccountStatus
 from src.models import (
-    AIImprovementJob,
-    APIProvider,
     ContextType,
     EntityType,
     GitHubInstallation,
@@ -19,14 +16,13 @@ from src.models import (
     InitiativeGroup,
     InitiativeStatus,
     InitiativeType,
-    JobStatus,
-    Lens,
     Ordering,
     Task,
     TaskStatus,
     TaskType,
     User,
-    UserKey,
+    UserAccountDetails,
+    UserAccountStatus,
     Workspace,
 )
 
@@ -495,96 +491,6 @@ def test_workspace_cascade_delete(session, user, workspace, test_initiative):
     assert_that(
         session.query(Initiative).filter_by(id=initiative_id).first(), is_(None)
     )
-
-
-def test_ai_improvement_job_model(session, user, workspace, test_initiative):
-    # Define sample messages
-    sample_messages = [
-        {"role": "user", "content": "Improve this task description"},
-        {"role": "assistant", "content": "Okay, how about this revised description?"},
-    ]
-
-    # Create AI improvement job linked to task
-    task_job = AIImprovementJob(
-        user_id=user.id,
-        lens=Lens.TASK,
-        status=JobStatus.PENDING,
-        messages=sample_messages,
-        input_data={"prompt": "Improve this task description"},
-    )
-    session.add(task_job)
-    session.commit()
-    session.refresh(task_job)
-
-    assert task_job.user_id == user.id
-    assert task_job.id is not None
-    assert task_job.lens == Lens.TASK
-    assert task_job.status == JobStatus.PENDING
-    assert task_job.messages == sample_messages
-    assert task_job.input_data == {"prompt": "Improve this task description"}
-    assert task_job.result_data is None
-    assert task_job.created_at is not None
-    assert task_job.updated_at is not None
-
-    # Create AI improvement job linked to initiative
-    initiative_job = AIImprovementJob(
-        user_id=user.id,
-        lens=Lens.INITIATIVE,
-        status=JobStatus.PROCESSING,
-        messages=[{"role": "system", "content": "Break down initiatives."}],
-        input_data={"prompt": "Break down this initiative into tasks"},
-    )
-    session.add(initiative_job)
-    session.commit()
-    session.refresh(initiative_job)
-
-    assert initiative_job.user_id == user.id
-    assert initiative_job.id is not None
-    assert initiative_job.lens == Lens.INITIATIVE
-    assert initiative_job.status == JobStatus.PROCESSING
-    assert initiative_job.messages == [
-        {"role": "system", "content": "Break down initiatives."}
-    ]
-
-    # Test job with error
-    error_job = AIImprovementJob(
-        user_id=user.id,
-        lens=Lens.TASK,
-        status=JobStatus.FAILED,
-        messages=[{"role": "user", "content": "This will fail"}],
-        input_data={"prompt": "This will fail"},
-        error_message="AI model unavailable",
-    )
-    session.add(error_job)
-    session.commit()
-    session.refresh(error_job)
-
-    assert error_job.status == JobStatus.FAILED
-    assert error_job.error_message == "AI model unavailable"
-    assert error_job.messages == [{"role": "user", "content": "This will fail"}]
-
-
-def test_user_key_model(session, user):
-    now = datetime.datetime.now()
-    user_key = UserKey(
-        user_id=user.id,
-        provider=APIProvider.OPENAI,
-        redacted_key="redacted_key",
-        is_valid=True,
-        last_validated_at=now,
-    )
-
-    session.add(user_key)
-    session.commit()
-    session.refresh(user_key)
-
-    assert user_key.id is not None
-    assert user_key.user_id == user.id
-    assert user_key.provider == APIProvider.OPENAI
-    assert user_key.redacted_key == "redacted_key"
-    assert user_key.vault_path == f"secret/data/{user.id}/api_keys/OPENAI"
-    assert user_key.is_valid is True
-    assert user_key.last_validated_at == now
 
 
 def test_user_account_details_relationship(session):

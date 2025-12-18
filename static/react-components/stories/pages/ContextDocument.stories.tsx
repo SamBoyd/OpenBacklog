@@ -6,7 +6,6 @@ import type { Meta, StoryObj } from '@storybook/react';
 const { reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
 
 import {
-    mockAiImprovementsContextReturn,
     mockContextDocumentReturn,
     mockInitiativesContextReturn,
     mockUseTasksContext,
@@ -17,10 +16,8 @@ import { useTasksContext } from '#contexts/TasksContext.mock';
 import { useContextDocument } from '#hooks/useContextDocument.mock';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 import NavBar from '#components/reusable/NavBar';
-import ChatDialog from '#components/ChatDialog/ChatDialog';
 import { useInitiativesContext } from '#contexts/InitiativesContext.mock';
 import ContextDocument from '#pages/ContextDocument';
-import { useAiImprovementsContext } from '#contexts/AiImprovementsContext.mock';
 import { ContextDocumentDto } from '#types';
 import { ResponsiveLayout } from '#components/layout/ResponsiveLayout';
 
@@ -46,10 +43,9 @@ const getInitiativesWithWrappers = () => {
             element: <div className="inset-0 flex flex-col h-screen w-screen">
                 <NavBar />
                 <div className="relative w-full">
-                    <ResponsiveLayout
-                        leftColumnComponent={<ChatDialog />}
-                        rightColumnComponent={<ContextDocument />}
-                    />
+                    <ResponsiveLayout>
+                        <ContextDocument />
+                    </ResponsiveLayout>
                 </div>
             </div>
         }
@@ -71,7 +67,6 @@ export const Primary: Story = {
         useTasksContext.mockReturnValue(mockUseTasksContext);
         useContextDocument.mockReturnValue(mockContextDocumentReturn);
         useWorkspaces.mockReturnValue(mockWorkspacesReturn);
-        useAiImprovementsContext.mockReturnValue(mockAiImprovementsContextReturn);
         useInitiativesContext.mockReturnValue(mockInitiativesContextReturn);
 
 
@@ -79,7 +74,6 @@ export const Primary: Story = {
             useTasksContext.mockReset();
             useContextDocument.mockReset();
             useWorkspaces.mockReset();
-            useAiImprovementsContext.mockReset();
             useInitiativesContext.mockReset();
         };
     },
@@ -107,7 +101,6 @@ export const Placeholder: Story = {
         });
         useTasksContext.mockReturnValue(mockUseTasksContext);
         useWorkspaces.mockReturnValue(mockWorkspacesReturn);
-        useAiImprovementsContext.mockReturnValue(mockAiImprovementsContextReturn);
         useInitiativesContext.mockReturnValue(mockInitiativesContextReturn);
 
 
@@ -115,7 +108,6 @@ export const Placeholder: Story = {
             useTasksContext.mockReset();
             useContextDocument.mockReset();
             useWorkspaces.mockReset();
-            useAiImprovementsContext.mockReset();
             useInitiativesContext.mockReset();
         };
 

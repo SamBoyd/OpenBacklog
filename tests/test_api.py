@@ -67,36 +67,3 @@ def test_update_user_display_preferences_payload_validation(test_client, user):
     payload = {"field": "theme", "value": ""}
     response = test_client.post("/api/user/display-pref", json=payload)
     assert response.status_code == 422
-
-
-@patch("src.api.controller.update_openai_key")
-def test_openai_key_update(mock_update_openai_key, test_client, user):
-    response = test_client.post("/api/openai/key", json={"key": "some_key"})
-    assert response.status_code == 200
-    assert response.json() == {}
-    mock_update_openai_key.assert_called_with(
-        key="some_key",
-        user=user,
-        db=ANY,
-    )
-
-
-@patch("src.api.controller.update_openai_key")
-def test_openai_key_update_empty_key(mock_update_openai_key, test_client, user):
-    response = test_client.post("/api/openai/key", json={"key": ""})
-    assert response.status_code == 422
-    mock_update_openai_key.assert_not_called()
-
-
-@patch("src.api.controller.update_openai_key")
-def test_openai_key_update_with_number(mock_update_openai_key, test_client, user):
-    response = test_client.post("/api/openai/key", json={"key": 123})
-    assert response.status_code == 422
-    mock_update_openai_key.assert_not_called()
-
-
-@patch("src.api.controller.update_openai_key")
-def test_openai_key_update_without_key(mock_update_openai_key, test_client, user):
-    response = test_client.post("/api/openai/key", json={"other": "value"})
-    assert response.status_code == 422
-    mock_update_openai_key.assert_not_called()

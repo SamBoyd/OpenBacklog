@@ -17,7 +17,6 @@ export enum Theme {
 }
 
 export type CompactnessLevel = 'spacious' | 'normal' | 'compact';
-export type ChatLayoutMode = 'normal' | 'minimized' | 'split' | 'maximized';
 
 export interface UserPreferences {
   theme: Theme;
@@ -27,11 +26,9 @@ export interface UserPreferences {
   selectedTaskStatuses: string[];
   selectedThemeIds: string[];
   compactnessLevel: CompactnessLevel;
-  isRewriteEnabled: boolean;
   initiativesShowListView: boolean;
   tasksShowListView: boolean;
   viewInitiativeShowListView: boolean;
-  chatLayoutMode: ChatLayoutMode;
 }
 
 /**
@@ -324,9 +321,6 @@ const validators = {
   compactnessLevel: (value: unknown): value is CompactnessLevel =>
     typeof value === 'string' && ['spacious', 'normal', 'compact'].includes(value),
 
-  isRewriteEnabled: (value: unknown): value is boolean =>
-    typeof value === 'boolean',
-
   initiativesShowListView: (value: unknown): value is boolean =>
     typeof value === 'boolean',
 
@@ -335,9 +329,6 @@ const validators = {
 
   viewInitiativeShowListView: (value: unknown): value is boolean =>
     typeof value === 'boolean',
-
-  chatLayoutMode: (value: unknown): value is ChatLayoutMode =>
-    typeof value === 'string' && ['normal', 'minimized', 'split', 'maximized'].includes(value),
 };
 
 /**
@@ -351,11 +342,9 @@ const defaultPreferences: UserPreferences = {
   selectedTaskStatuses: ['TO_DO', 'IN_PROGRESS'],
   selectedThemeIds: ['all-prioritized-themes'],
   compactnessLevel: 'normal',
-  isRewriteEnabled: true,
   initiativesShowListView: false,
   tasksShowListView: false,
   viewInitiativeShowListView: true,
-  chatLayoutMode: 'normal',
 };
 
 // Default preferences for use when no saved values exist
@@ -368,11 +357,9 @@ const loadPreferencesFromLocalStorage = (): UserPreferences => {
     selectedTaskStatuses: SafeStorage.safeGet('selectedTaskStatuses', validators.selectedTaskStatuses, defaultPreferences.selectedTaskStatuses),
     selectedThemeIds: SafeStorage.safeGet('selectedThemeIds', validators.selectedThemeIds, defaultPreferences.selectedThemeIds),
     compactnessLevel: SafeStorage.safeGet('ui-compactness-level', validators.compactnessLevel, defaultPreferences.compactnessLevel),
-    isRewriteEnabled: SafeStorage.safeGet('isRewriteEnabled', validators.isRewriteEnabled, defaultPreferences.isRewriteEnabled),
     initiativesShowListView: SafeStorage.safeGet('initiativesShowListView', validators.initiativesShowListView, defaultPreferences.initiativesShowListView),
     tasksShowListView: SafeStorage.safeGet('tasksShowListView', validators.tasksShowListView, defaultPreferences.tasksShowListView),
     viewInitiativeShowListView: SafeStorage.safeGet('viewInitiativeShowListView', validators.viewInitiativeShowListView, defaultPreferences.viewInitiativeShowListView),
-    chatLayoutMode: SafeStorage.safeGet('chatLayoutMode', validators.chatLayoutMode, defaultPreferences.chatLayoutMode),
   };
 };
 
@@ -385,11 +372,9 @@ export interface UserPreferencesContextType {
   updateSelectedTaskStatuses: (statuses: string[]) => void;
   updateSelectedThemes: (themeIds: string[]) => void;
   updateCompactnessLevel: (level: CompactnessLevel) => void;
-  updateIsRewriteEnabled: (isEnabled: boolean) => void;
   updateInitiativesShowListView: (show: boolean) => void;
   updateTasksShowListView: (show: boolean) => void;
   updateViewInitiativeShowListView: (show: boolean) => void;
-  updateChatLayoutMode: (mode: ChatLayoutMode) => void;
 }
 
 // Create the context with a default value
@@ -402,11 +387,9 @@ const UserPreferencesContext = createContext<UserPreferencesContextType>({
   updateSelectedTaskStatuses: () => { console.warn('UserPreferencesProvider not found'); },
   updateSelectedThemes: () => { console.warn('UserPreferencesProvider not found'); },
   updateCompactnessLevel: () => { console.warn('UserPreferencesProvider not found'); },
-  updateIsRewriteEnabled: () => { console.warn('UserPreferencesProvider not found'); },
   updateInitiativesShowListView: () => { console.warn('UserPreferencesProvider not found'); },
   updateTasksShowListView: () => { console.warn('UserPreferencesProvider not found'); },
   updateViewInitiativeShowListView: () => { console.warn('UserPreferencesProvider not found'); },
-  updateChatLayoutMode: () => { console.warn('UserPreferencesProvider not found'); },
 });
 
 export interface UserPreferencesProviderProps {
@@ -478,12 +461,6 @@ export const UserPreferencesProvider: React.FC<UserPreferencesProviderProps> = (
     });
   }, []);
 
-  const updateIsRewriteEnabled = useCallback((isRewriteEnabled: boolean) => {
-    setPreferences((prev) => {
-      return { ...prev, isRewriteEnabled };
-    });
-  }, []);
-
   const updateInitiativesShowListView = useCallback((initiativesShowListView: boolean) => {
     setPreferences((prev) => {
       return { ...prev, initiativesShowListView };
@@ -499,12 +476,6 @@ export const UserPreferencesProvider: React.FC<UserPreferencesProviderProps> = (
   const updateViewInitiativeShowListView = useCallback((viewInitiativeShowListView: boolean) => {
     setPreferences((prev) => {
       return { ...prev, viewInitiativeShowListView };
-    });
-  }, []);
-
-  const updateChatLayoutMode = useCallback((chatLayoutMode: ChatLayoutMode) => {
-    setPreferences((prev) => {
-      return { ...prev, chatLayoutMode };
     });
   }, []);
 
@@ -524,11 +495,9 @@ export const UserPreferencesProvider: React.FC<UserPreferencesProviderProps> = (
       SafeStorage.safeSet('selectedTaskStatuses', preferences.selectedTaskStatuses);
       SafeStorage.safeSet('selectedThemeIds', preferences.selectedThemeIds);
       SafeStorage.safeSet('ui-compactness-level', preferences.compactnessLevel);
-      SafeStorage.safeSet('isRewriteEnabled', preferences.isRewriteEnabled);
       SafeStorage.safeSet('initiativesShowListView', preferences.initiativesShowListView);
       SafeStorage.safeSet('tasksShowListView', preferences.tasksShowListView);
       SafeStorage.safeSet('viewInitiativeShowListView', preferences.viewInitiativeShowListView);
-      SafeStorage.safeSet('chatLayoutMode', preferences.chatLayoutMode);
 
       // Update document class for global CSS or Tailwind theming
       const root = document.body;
@@ -550,12 +519,10 @@ export const UserPreferencesProvider: React.FC<UserPreferencesProviderProps> = (
     updateSelectedTaskStatuses,
     updateSelectedThemes,
     updateCompactnessLevel,
-    updateIsRewriteEnabled,
     updateInitiativesShowListView,
     updateTasksShowListView,
     updateViewInitiativeShowListView,
-    updateChatLayoutMode,
-  }), [preferences, toggleTheme, updateFilterTasksToInitiative, updateSelectedGroups, updateSelectedInitiativeStatuses, updateSelectedTaskStatuses, updateSelectedThemes, updateCompactnessLevel, updateIsRewriteEnabled, updateInitiativesShowListView, updateTasksShowListView, updateViewInitiativeShowListView, updateChatLayoutMode]);
+  }), [preferences, toggleTheme, updateFilterTasksToInitiative, updateSelectedGroups, updateSelectedInitiativeStatuses, updateSelectedTaskStatuses, updateSelectedThemes, updateCompactnessLevel, updateInitiativesShowListView, updateTasksShowListView, updateViewInitiativeShowListView]);
 
   return (
     <UserPreferencesContext.Provider value={value}>
@@ -573,11 +540,9 @@ export interface UseUserPreferencesReturn {
   updateSelectedTaskStatuses: (statuses: string[]) => void;
   updateSelectedThemes: (themeIds: string[]) => void;
   updateCompactnessLevel: (level: CompactnessLevel) => void;
-  updateIsRewriteEnabled: (isEnabled: boolean) => void;
   updateInitiativesShowListView: (show: boolean) => void;
   updateTasksShowListView: (show: boolean) => void;
   updateViewInitiativeShowListView: (show: boolean) => void;
-  updateChatLayoutMode: (mode: ChatLayoutMode) => void;
 }
 
 /**

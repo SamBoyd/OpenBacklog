@@ -1,18 +1,14 @@
-from logging.config import fileConfig
 import os
+from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+import sqlalchemy
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-import sqlalchemy
-
-from src.db import Base
-from src.models import *
-from src.accounting.models import *
-from src.github_app.models import *
-
 from src.config import settings
+from src.db import Base
+from src.github_app.models import *
+from src.models import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -39,12 +35,14 @@ target_metadata = [Base.metadata]
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+
 def include_name(name, type_, parent_names):
     if type_ == "schema":
         # note this will not include the default schema
         return name in ["dev", "private"]
     else:
         return True
+
 
 for md in target_metadata:
     print("DEBUG Tables in metadata:", md.tables.keys())
@@ -74,7 +72,7 @@ def run_migrations_offline() -> None:
     )
 
     # Ensure private schema exists for alembic_version table
-    connection.execute('CREATE SCHEMA IF NOT EXISTS private;')
+    connection.execute("CREATE SCHEMA IF NOT EXISTS private;")
 
     with context.begin_transaction():
         context.run_migrations()
@@ -103,7 +101,9 @@ def run_migrations_online() -> None:
         )
 
         # Ensure private schema exists for alembic_version table
-        connection.execute(sqlalchemy.schema.CreateSchema("private", if_not_exists=True))
+        connection.execute(
+            sqlalchemy.schema.CreateSchema("private", if_not_exists=True)
+        )
 
         with context.begin_transaction():
             context.run_migrations()

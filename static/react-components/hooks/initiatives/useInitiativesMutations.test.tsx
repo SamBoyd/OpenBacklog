@@ -55,27 +55,11 @@ vi.mock('#hooks/useOptimisticMutation', () => ({
     createEntityListRollback: vi.fn(() => vi.fn()),
 }));
 
-// Mock useAiChat hook
-const mockRemoveEntityFromContext = vi.fn();
-vi.mock('#hooks/useAiChat', () => ({
-    useAiChat: vi.fn(() => ({
-        removeEntityFromContext: mockRemoveEntityFromContext,
-        jobResult: null,
-        error: null,
-        chatDisabled: false,
-        sendMessage: vi.fn(),
-        clearChat: vi.fn(),
-        currentContext: [],
-        setCurrentContext: vi.fn(),
-    })),
-}));
-
 // Import mocked modules
 import * as initiativesApi from '#api/initiatives';
 import * as tasksApi from '#api/tasks';
 import * as checklistItemsApi from '#api/checklistItems';
 import { useOptimisticMutation, createServerResponseReplacer } from '#hooks/useOptimisticMutation';
-import { useAiChat } from '#hooks/useAiChat';
 
 /**
  * Creates a test QueryClient with disabled retries and caching for consistent test results
@@ -170,7 +154,6 @@ describe('useInitiativesMutations', () => {
 
         // Reset mutation mocks
         mockOptimisticMutateAsync.mockResolvedValue(mockInitiative);
-        mockRemoveEntityFromContext.mockResolvedValue(undefined);
 
         // Pre-populate cache with test data
         queryClient.setQueryData(['initiatives', {}], mockInitiatives);
@@ -244,11 +227,6 @@ describe('useInitiativesMutations', () => {
                 ),
                 { wrapper: TestWrapperWithClient }
             );
-
-            expect(useAiChat).toHaveBeenCalledWith({
-                lens: 'INITIATIVES',
-                currentEntity: null
-            });
         });
     });
 
@@ -518,78 +496,7 @@ describe('useInitiativesMutations', () => {
             expect(mockOptimisticMutateAsync).toHaveBeenCalledWith('test-initiative-1');
         });
 
-        it('should remove initiative from AI chat context after successful deletion', async () => {
-            const { result } = renderHook(
-                () => useInitiativesMutations(
-                    mockUpdateInitiativeInCache,
-                    undefined,
-                    mockSetCacheVersion,
-                    mockReloadInitiatives
-                ),
-                { wrapper: TestWrapperWithClient }
-            );
-
-            // Set up the optimistic mutation to call the server response handler
-            const deleteConfig = vi.mocked(useOptimisticMutation).mock.calls.find(call =>
-                call[0].mutationFn === initiativesApi.deleteInitiative
-            )?.[0];
-
-            expect(deleteConfig).toBeDefined();
-            if (deleteConfig === undefined || deleteConfig.updateCacheWithServerResponse === undefined) {
-                throw new Error('Delete config not found');
-            }
-            expect(deleteConfig?.updateCacheWithServerResponse).toBeInstanceOf(Function);
-
-            // Simulate successful deletion
-            act(() => {
-                if (deleteConfig === undefined || deleteConfig.updateCacheWithServerResponse === undefined) {
-                    throw new Error('Delete config not found');
-                }
-                deleteConfig.updateCacheWithServerResponse(undefined, 'test-initiative-1', undefined);
-            });
-
-            expect(mockRemoveEntityFromContext).toHaveBeenCalledWith('test-initiative-1');
-        });
-
-        it('should handle AI chat context cleanup errors gracefully', async () => {
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-            mockRemoveEntityFromContext.mockImplementation(() => {
-                throw new Error('AI chat context error');
-            });
-
-            const { result } = renderHook(
-                () => useInitiativesMutations(
-                    mockUpdateInitiativeInCache,
-                    undefined,
-                    mockSetCacheVersion,
-                    mockReloadInitiatives
-                ),
-                { wrapper: TestWrapperWithClient }
-            );
-
-            const deleteConfig = vi.mocked(useOptimisticMutation).mock.calls.find(call =>
-                call[0].mutationFn === initiativesApi.deleteInitiative
-            )?.[0];
-
-            // Should not throw even if removeEntityFromContext fails
-            expect(() => {
-                act(() => {
-                    if (deleteConfig === undefined || deleteConfig.updateCacheWithServerResponse === undefined) {
-                        throw new Error('Delete config not found');
-                    }
-                    deleteConfig.updateCacheWithServerResponse(undefined, 'test-initiative-1', undefined);
-                });
-            }).not.toThrow();
-
-            expect(consoleSpy).toHaveBeenCalledWith(
-                '[useInitiativesMutations] Failed to remove initiative from AI chat context:',
-                expect.any(Error)
-            );
-
-            consoleSpy.mockRestore();
-        });
-
-        it('should delete related task and remove from AI chat context', async () => {
+        it('should delete related task', async () => {
             const { result } = renderHook(
                 () => useInitiativesMutations(
                     mockUpdateInitiativeInCache,
@@ -605,11 +512,6 @@ describe('useInitiativesMutations', () => {
             });
 
             expect(tasksApi.deleteTask).toHaveBeenCalledWith('test-task-1');
-
-            // Wait for the mutation to complete and check if AI context cleanup was called
-            await waitFor(() => {
-                expect(mockRemoveEntityFromContext).toHaveBeenCalledWith('test-task-1');
-            });
         });
 
         it('should delete checklist item', async () => {
@@ -836,36 +738,6 @@ describe('useInitiativesMutations', () => {
             expect(mockUpdateInitiativeInCache).not.toHaveBeenCalled();
         });
 
-        it('should handle task deletion AI chat context errors gracefully', async () => {
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-            mockRemoveEntityFromContext.mockImplementation(() => {
-                throw new Error('Task removal error');
-            });
-
-            const { result } = renderHook(
-                () => useInitiativesMutations(
-                    mockUpdateInitiativeInCache,
-                    undefined,
-                    mockSetCacheVersion,
-                    mockReloadInitiatives
-                ),
-                { wrapper: TestWrapperWithClient }
-            );
-
-            await act(async () => {
-                await result.current.deleteTask('test-task-1');
-            });
-
-            // The onSuccess callback should trigger and catch the error
-            await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(
-                    '[useInitiativesMutations] Failed to remove task from AI chat context:',
-                    expect.any(Error)
-                );
-            });
-
-            consoleSpy.mockRestore();
-        });
     });
 
     describe('Optimistic Mutation Configuration', () => {

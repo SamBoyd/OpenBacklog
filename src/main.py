@@ -15,7 +15,6 @@ from fastapi_csrf_protect import CsrfProtect
 from fastapi_csrf_protect.exceptions import CsrfProtectError
 from pydantic_settings import BaseSettings
 
-from src import litellm_service
 from src.config import settings
 from src.db import get_async_db
 
@@ -48,16 +47,6 @@ mcp_app = mcp.http_app(path="/")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    try:
-        from src.secrets.vault_factory import get_vault
-
-        vault = get_vault()
-        logging.info("Vault successfully initialized at startup")
-    except Exception as e:
-        logging.error(f"Failed to initialize Vault at startup: {e}")
-        # Continue application startup even if Vault initialization fails
-        # The application will attempt to initialize the vault again when needed
-
     if settings.sentry_url != "":
         logging.info("Sentry URL is provided, initializing Sentry SDK")
         sentry_sdk.init(
@@ -65,11 +54,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             send_default_pii=True,
         )
 
-    if settings.environment == "development":
-        litellm_service.regenerate_litellm_master_key()
+    logging.info("Application lifespan function successfully initialized")
 
     yield
-    # Clean up the ML models and release the resources
+    # Clean up resources
     pass
 
 
@@ -160,14 +148,9 @@ provider_type = get_provider_type()
 
 logger.info(f"✅ Auth system initialized with provider: {provider_type}")
 
-from src.accounting.accounting_views import *
-from src.accounting.models import *
-from src.accounting.stripe_views import *
-from src.ai.ai_views import *
 from src.api import *
 
 # Auth views removed - now handled by the new auth module
-from src.api_key_views import *
 from src.error_views import *
 from src.github_app.views import *
 from src.initiative_management.views import *

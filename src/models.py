@@ -18,6 +18,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -35,7 +36,6 @@ from src.db import Base
 
 # Forward declaration for type hints
 if TYPE_CHECKING:
-    from src.accounting.models import UserAccountDetails
     from src.github_app.models import RepositoryFileIndex
     from src.initiative_management.aggregates.strategic_initiative import (
         StrategicInitiative,
@@ -90,15 +90,6 @@ class PriorityLevel(str, enum.Enum):
     CRITICAL = "CRITICAL"
 
 
-class JobStatus(str, enum.Enum):
-    PENDING = "PENDING"
-    PROCESSING = "PROCESSING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-    CANCELED = "CANCELED"
-    RESOLVED = "RESOLVED"
-
-
 class EntityType(str, enum.Enum):
     INITIATIVE = "INITIATIVE"
     TASK = "TASK"
@@ -121,19 +112,6 @@ class FieldType(str, enum.Enum):
 class GroupType(str, enum.Enum):
     EXPLICIT = "EXPLICIT"
     SMART = "SMART"
-
-
-class APIProvider(str, enum.Enum):
-    OPENAI = "OPENAI"
-    LITELLM = "LITELLM"
-    OPENBACKLOG = "OPENBACKLOG"
-
-
-class Lens(str, enum.Enum):
-    TASK = "TASK"
-    TASKS = "TASKS"
-    INITIATIVE = "INITIATIVE"
-    INITIATIVES = "INITIATIVES"
 
 
 class PublicBase:
@@ -219,18 +197,72 @@ class User(PrivateBase, Base):
         return f"<User email={self.email} name={self.name}>"
 
 
+class UserAccountStatus(str, enum.Enum):
+    NEW = "NEW"
+    ACTIVE_SUBSCRIPTION = "ACTIVE_SUBSCRIPTION"
+    NO_SUBSCRIPTION = "NO_SUBSCRIPTION"
+    METERED_BILLING = "METERED_BILLING"
+    SUSPENDED = "SUSPENDED"
+    CLOSED = "CLOSED"
+
+
+class UserAccountDetails(PrivateBase, Base):
+    __tablename__ = "user_account_details"
+    __table_args__ = ({"schema": "private"},)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("private.users.id", ondelete="cascade"),
+        nullable=False,
+        primary_key=True,
+    )
+    user: Mapped["User"] = relationship("User", back_populates="account_details")
+
+    balance_cents: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    status: Mapped[UserAccountStatus] = mapped_column(
+        Enum(UserAccountStatus), nullable=False, default=UserAccountStatus.NEW
+    )
+    stripe_customer_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    last_usage_query_time: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    last_total_cost: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+
+    # Onboarding tracking
+    onboarding_completed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+
+    # Subscription cancellation tracking
+    subscription_cancel_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    subscription_canceled_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    subscription_cancel_at_period_end: Mapped[Optional[bool]] = mapped_column(
+        Boolean, nullable=True
+    )
+
+    # Monthly credits tracking
+    monthly_credits_total: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    monthly_credits_used: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    next_billing_cycle_starts: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+
+
 @event.listens_for(User, "after_insert")
 def create_user_account_details(mapper, connection, target):
     """Automatically create UserAccountDetails when a User is created."""
-    # Import here to avoid circular imports
-    from src.accounting.models import UserAccountDetails, UserAccountStatus
-
     # Insert UserAccountDetails using the same connection/transaction
     # This ensures atomicity with the User creation
     connection.execute(
         UserAccountDetails.__table__.insert().values(
             user_id=target.id,
-            balance_cents=0.0,
             status=UserAccountStatus.NEW.value,
             onboarding_completed=False,
         )
@@ -725,562 +757,6 @@ class GitHubInstallation(PrivateBase, Base):
         cascade="all, delete-orphan",
         lazy="select",
     )
-
-
-class ChatMessage(TypedDict):
-    role: Literal["assistant", "system", "user"]
-    content: str
-
-
-class ChatMode(str, enum.Enum):
-    DISCUSS = "DISCUSS"
-    EDIT = "EDIT"
-
-
-class AIImprovementJob(PublicBase, Base):
-    __tablename__ = "ai_improvement_job"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        nullable=False,
-        index=True,
-        default=uuid.uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
-
-    lens: Mapped[Lens] = mapped_column(Enum(Lens, schema="dev"), nullable=False)
-    user_id: Mapped[UUID_ID] = mapped_column(
-        ForeignKey("private.users.id", ondelete="cascade"), nullable=False, index=True
-    )
-    user: Mapped[Optional["User"]] = relationship("User")
-    thread_id: Mapped[str] = mapped_column(String, nullable=True)
-    mode: Mapped[ChatMode] = mapped_column(Enum(ChatMode, schema="dev"), nullable=True)
-    messages: Mapped[Optional[List[ChatMessage]]] = mapped_column(JSONB, nullable=True)
-    status: Mapped[JobStatus] = mapped_column(
-        Enum(JobStatus, schema="dev"),
-        nullable=False,
-        default=JobStatus.PENDING,
-        server_default=text("'PENDING'"),
-    )
-    input_data: Mapped[List[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)
-    result_data: Mapped[Dict[str, Any]] = mapped_column(
-        MutableDict.as_mutable(JSONB()), nullable=True
-    )
-    error_message: Mapped[str] = mapped_column(String, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now, server_default=text("now()")
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now, server_default=text("now()")
-    )
-
-    def dict(self) -> Dict[str, Any]:
-        return {
-            "id": str(self.id),
-            "initiative_id": str(self.initiative_id) if self.initiative_id else None,
-            "status": self.status,
-            "messages": self.messages,
-            "input_data": self.input_data,
-            "result_data": self.result_data,
-            "error_message": self.error_message,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
-        }
-
-
-class UserKey(PublicBase, Base):
-    __tablename__ = "user_key"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        nullable=False,
-        index=True,
-        default=uuid.uuid4,
-        server_default=text("gen_random_uuid()"),
-    )
-    user_id: Mapped[UUID_ID] = mapped_column(
-        ForeignKey("private.users.id", ondelete="cascade"), nullable=False, index=True
-    )
-    user: Mapped[Optional["User"]] = relationship("User")
-    provider: Mapped[APIProvider] = mapped_column(
-        Enum(APIProvider, schema="private"),
-        nullable=False,
-    )
-
-    # redacted key is for display purposes only
-    # it is in the form 'sk-***2322'
-    redacted_key: Mapped[str] = mapped_column(String, nullable=False)
-
-    # Fields for tracking validation status
-    is_valid: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    last_validated_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-
-    # Field for tracking when the token was last used (for PATs)
-    last_used_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-
-    # Field for storing the full access token (used for OpenBacklog token identification)
-    access_token: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
-
-    # Field for tracking soft deletion of tokens
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-
-    @property
-    def vault_path(self):
-        return f"secret/data/{self.user_id}/api_keys/{self.provider.value}"
-
-
-# --- Define Pydantic Models for AI Service Input ---
-
-
-class PydanticChecklistItem(BaseModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    title: str
-    is_complete: bool = False
-    order: int = 0
-    # We might not need user_id/task_id from the input dict here
-    # unless they are strictly required for the prompt itself.
-
-    model_config = {"from_attributes": True}
-
-
-class PydanticTask(BaseModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    identifier: Optional[str] = None
-    title: str
-    description: Optional[str] = None
-    status: Optional[TaskStatus] = None
-    type: Optional[str] = None
-    has_pending_job: Optional[bool] = None
-    initiative_id: Optional[uuid.UUID] = None
-    user_id: Optional[uuid.UUID] = None
-    workspace_id: Optional[uuid.UUID] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    checklist: List[PydanticChecklistItem] = Field(default_factory=list)
-
-    @field_validator("created_at", "updated_at", mode="before")
-    def parse_datetime(cls, value):
-        if isinstance(value, str):
-            try:
-                # Attempt parsing, return None if invalid format and field is Optional
-                dt = isoparse(value)
-                return dt
-            except (ValueError, TypeError):
-                # Let Pydantic handle the error if field is required
-                # or return None/raise specific error if needed
-                return None  # Return None for Optional fields if parsing fails
-        return value
-
-    model_config = {"from_attributes": True, "use_enum_values": True}
-
-
-class PydanticInitiative(BaseModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    identifier: Optional[str] = None
-    title: str
-    description: Optional[str] = None
-    status: Optional[InitiativeStatus] = None
-    type: Optional[str] = None
-    user_id: Optional[uuid.UUID] = None
-    workspace_id: Optional[uuid.UUID] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    tasks: List[PydanticTask] = Field(default_factory=list)  # Embed tasks
-
-    @field_validator("created_at", "updated_at", mode="before")
-    def parse_datetime(cls, value):
-        if isinstance(value, str):
-            try:
-                dt = isoparse(value)
-                return dt
-            except (ValueError, TypeError):
-                return None
-        return value
-
-    model_config = {"from_attributes": True, "use_enum_values": True}
-
-
-# --- Add Task Management Models ---
-
-
-class ManagedEntityAction(str, enum.Enum):
-    """Specifies the action proposed by the LLM for an entity."""
-
-    CREATE = "CREATE"
-    UPDATE = "UPDATE"
-    DELETE = "DELETE"
-
-
-class TitleAndDescriptionValidation:
-    @field_validator("title", "description")
-    def validate_title_and_description(cls, v):
-        if v is not None and (not v or not v.strip()):
-            raise ValueError(f"{v} must be non-empty strings.")
-        return v
-
-
-class ChecklistItemModel(BaseModel):
-    """Model representing a checklist item."""
-
-    title: str = Field(..., description="The title of the checklist item.")
-
-    @field_validator("title")
-    def validate_title(cls, v):
-        if not v or not v.strip():
-            raise ValueError(f"{v} must be non-empty strings.")
-        return v
-
-
-class CreateTaskModel(BaseModel, TitleAndDescriptionValidation):
-    """Model representing a CREATE action on a task."""
-
-    action: Literal[ManagedEntityAction.CREATE] = ManagedEntityAction.CREATE
-    title: str
-    description: str
-    checklist: Optional[List[ChecklistItemModel]] = Field(
-        ..., description="Proposed checklist for the new task."
-    )
-
-
-class UpdateTaskModel(BaseModel, TitleAndDescriptionValidation):
-    """Model representing an UPDATE action on a task."""
-
-    action: Literal[ManagedEntityAction.UPDATE] = ManagedEntityAction.UPDATE
-    identifier: str = Field(
-        ..., description="The identifier of the task to update eg (T-001)."
-    )
-    title: Optional[str] = Field(..., description="The title of the task to update.")
-    description: Optional[str] = Field(
-        ..., description="The description of the task to update."
-    )
-    checklist: Optional[List[ChecklistItemModel]]
-
-
-class DeleteTaskModel(BaseModel):
-    """Model representing a DELETE action on a task."""
-
-    action: Literal[ManagedEntityAction.DELETE] = ManagedEntityAction.DELETE
-    identifier: str = Field(
-        ..., description="The identifier of the task to delete eg (T-001)."
-    )
-
-
-ManagedTaskModel = Union[CreateTaskModel, UpdateTaskModel, DeleteTaskModel]
-
-
-class BalanceWarning(BaseModel):
-    """Model for account balance warnings."""
-
-    has_warning: bool = Field(
-        default=False, description="Whether there is a balance warning"
-    )
-    warning_type: Optional[str] = Field(
-        default=None, description="Type of warning (low_balance, suspended, etc.)"
-    )
-    message: Optional[str] = Field(
-        default=None, description="Warning message for the user"
-    )
-    current_balance_cents: Optional[float] = Field(
-        default=None, description="Current balance in cents"
-    )
-    current_balance_dollars: Optional[float] = Field(
-        default=None, description="Current balance in dollars"
-    )
-    estimated_cost_cents: Optional[float] = Field(
-        default=None, description="Estimated cost of this request in cents"
-    )
-    estimated_cost_dollars: Optional[float] = Field(
-        default=None, description="Estimated cost of this request in dollars"
-    )
-    top_up_needed_cents: Optional[float] = Field(
-        default=None, description="Amount needed to top up in cents"
-    )
-    top_up_needed_dollars: Optional[float] = Field(
-        default=None, description="Amount needed to top up in dollars"
-    )
-
-
-class TaskLLMResponse(BaseModel):
-    """
-    Pydantic model defining the *standard* structure of the LLM response
-    for any task-related operation.
-
-    Includes validation to ensure UPDATE actions reference known task identifiers
-    provided in the validation context.
-    """
-
-    type: Literal["task_llm_response"] = "task_llm_response"
-
-    message: str = Field(
-        ...,
-        description="Your reply to the user. If no changes are needed, or you're asked a question then this is where you should put your reply.",
-    )
-    managed_tasks: List[ManagedTaskModel] = Field(
-        ...,
-        description="List of proposed actions (CREATE, UPDATE, DELETE) for tasks. Leave this empty if no changes are needed.",
-    )
-    balance_warning: Optional[BalanceWarning] = Field(
-        default=None, description="Account balance warning information"
-    )
-
-    @field_validator("managed_tasks")
-    @classmethod
-    def check_update_identifiers(cls, v, info: ValidationInfo):
-        """Validate UPDATE actions reference identifiers from context."""
-        context = info.context
-        if not context or "valid_task_identifiers" not in context:
-            # If no context/ids provided, skip this validation.
-            # Consider raising an error if context is mandatory for this model.
-            # print("Warning: Validation context with 'valid_task_identifiers' not provided for TaskLLMResponse.")
-            return v
-
-        valid_task_identifiers = context.get("valid_task_identifiers", set())
-
-        if not isinstance(valid_task_identifiers, set):
-            print(
-                "Warning: 'valid_task_identifiers' in context is not a set."
-            )  # Or raise
-            valid_task_identifiers = set()  # Avoid erroring out if type is wrong
-
-        for managed_task in v:
-            if isinstance(managed_task, UpdateTaskModel):
-                if managed_task.identifier not in valid_task_identifiers:
-                    raise ValueError(
-                        f"Validation Error (in response): Proposed update for task with identifier "
-                        f"'{managed_task.identifier}' but no such task identifier was found in the provided tasks."
-                    )
-
-        return v
-
-    @field_validator("managed_tasks")
-    @classmethod
-    def validate_create_fields(cls, v):
-        """Ensure CREATE actions have non-null title and description."""
-        for managed_task in v:
-            if managed_task.action == ManagedEntityAction.CREATE:
-                if not managed_task.title or not managed_task.title.strip():
-                    raise ValueError(
-                        "Validation Error: Tasks being created must have a non-empty title."
-                    )
-                if not managed_task.description or not managed_task.description.strip():
-                    raise ValueError(
-                        "Validation Error: Tasks being created must have a non-empty description."
-                    )
-        return v
-
-    @field_validator("managed_tasks")
-    @classmethod
-    def validate_update_fields(cls, v):
-        """Ensure UPDATE actions with title/description fields have non-null values."""
-        for managed_task in v:
-            if managed_task.action == ManagedEntityAction.UPDATE:
-                # Only validate fields that are being updated (not None)
-                if managed_task.title is not None and (
-                    not managed_task.title or not managed_task.title.strip()
-                ):
-                    raise ValueError(
-                        f"Validation Error: Task '{managed_task.identifier}' update contains an empty title."
-                    )
-                if managed_task.description is not None and (
-                    not managed_task.description or not managed_task.description.strip()
-                ):
-                    raise ValueError(
-                        f"Validation Error: Task '{managed_task.identifier}' update contains an empty description."
-                    )
-        return v
-
-
-class CreateInitiativeModel(BaseModel, TitleAndDescriptionValidation):
-    """Model representing a CREATE action on an initiative."""
-
-    action: Literal[ManagedEntityAction.CREATE] = ManagedEntityAction.CREATE
-    title: str = Field(..., description="The title of the initiative to create.")
-    description: str = Field(
-        ..., description="The description of the initiative to create."
-    )
-    tasks: Optional[List[CreateTaskModel]] = Field(
-        ..., description="The tasks to create with the initiative."
-    )
-
-
-class UpdateInitiativeModel(BaseModel, TitleAndDescriptionValidation):
-    """Model representing an UPDATE action on an initiative."""
-
-    action: Literal[ManagedEntityAction.UPDATE] = ManagedEntityAction.UPDATE
-    identifier: str = Field(
-        ..., description="The identifier of the initiative to update eg (I-001)."
-    )
-    title: Optional[str] = Field(
-        ...,
-        description="The title of the initiative to update.",
-    )
-    description: Optional[str] = Field(
-        ..., description="The description of the initiative to update."
-    )
-    tasks: Optional[List[ManagedTaskModel]] = Field(
-        ..., description="The tasks to update with the initiative."
-    )
-
-
-class DeleteInitiativeModel(BaseModel):
-    """Model representing a DELETE action on an initiative."""
-
-    action: Literal[ManagedEntityAction.DELETE] = ManagedEntityAction.DELETE
-    identifier: str = Field(
-        ..., description="The identifier of the initiative to delete eg (I-001)."
-    )
-
-
-ManagedInitiativeModel = Union[
-    CreateInitiativeModel, UpdateInitiativeModel, DeleteInitiativeModel
-]
-
-
-class InitiativeLLMResponse(BaseModel):
-    """
-    Pydantic model defining the standardized structure of the LLM response
-    for initiative batch operations.
-    """
-
-    type: Literal["initiative_llm_response"] = "initiative_llm_response"
-
-    message: str = Field(
-        ...,
-        description="Your reply to the user. If no changes are needed, or you're asked a question then this is where you should put your reply.",
-    )
-    managed_initiatives: List[ManagedInitiativeModel] = Field(
-        ...,
-        description="List of proposed actions for initiatives. If no changes are needed, then this should be an empty list.",
-    )
-    balance_warning: Optional[BalanceWarning] = Field(
-        default=None, description="Account balance warning information"
-    )
-
-    @field_validator("managed_initiatives")
-    @classmethod
-    def validate_create_fields(cls, v):
-        """Ensure CREATE actions have non-null title and description."""
-        for initiative in v:
-            if isinstance(initiative, CreateInitiativeModel):
-                if not initiative.title or not initiative.title.strip():
-                    raise ValueError(
-                        "Validation Error: Initiatives being created must have a non-empty title."
-                    )
-                if not initiative.description or not initiative.description.strip():
-                    raise ValueError(
-                        "Validation Error: Initiatives being created must have a non-empty description."
-                    )
-                # Also validate any tasks being created with the initiative
-                if initiative.tasks:
-                    for task in initiative.tasks:
-                        if not task.title or not task.title.strip():
-                            raise ValueError(
-                                "Validation Error: Tasks within new initiative must have a non-empty title."
-                            )
-                        if not task.description or not task.description.strip():
-                            raise ValueError(
-                                "Validation Error: Tasks within new initiative must have a non-empty description."
-                            )
-        return v
-
-    @field_validator("managed_initiatives")
-    @classmethod
-    def check_update_identifiers(cls, v, info: ValidationInfo):
-        """Validate UPDATE actions reference identifiers from context."""
-        context = info.context
-        if not context or "valid_initiative_identifiers" not in context:
-            # If no context/ids provided, skip this validation.
-            # Consider raising an error if context is mandatory for this model.
-            # print("Warning: Validation context with 'valid_initiative_identifiers' not provided for InitiativeLLMResponse.")
-            return v
-
-        valid_initiative_identifiers = context.get(
-            "valid_initiative_identifiers", set()
-        )
-
-        if not isinstance(valid_initiative_identifiers, set):
-            print(
-                "Warning: 'valid_initiative_identifiers' in context is not a set."
-            )  # Or raise
-
-        for managed_initiative in v:
-            if isinstance(managed_initiative, UpdateInitiativeModel):
-                if managed_initiative.identifier not in valid_initiative_identifiers:
-                    raise ValueError(
-                        f"Validation Error (in response): Proposed update for initiative with identifier "
-                        f"'{managed_initiative.identifier}' but no such initiative identifier was found in the provided initiatives."
-                    )
-
-        return v
-
-    @field_validator("managed_initiatives")
-    @classmethod
-    def validate_update_fields(cls, v):
-        """Ensure UPDATE actions with title/description fields have non-null values."""
-        for initiative in v:
-            if isinstance(initiative, UpdateInitiativeModel):
-                # Only validate fields that are being updated (not None)
-                if initiative.title is not None and (
-                    not initiative.title or not initiative.title.strip()
-                ):
-                    raise ValueError(
-                        f"Validation Error: Initiative '{initiative.identifier}' update contains an empty title."
-                    )
-                if initiative.description is not None and (
-                    not initiative.description or not initiative.description.strip()
-                ):
-                    raise ValueError(
-                        f"Validation Error: Initiative '{initiative.identifier}' update contains an empty description."
-                    )
-
-                # Also validate any tasks being updated with the initiative
-                if initiative.tasks:
-                    for task in initiative.tasks:
-                        if isinstance(task, CreateTaskModel):
-                            if not task.title or not task.title.strip():
-                                raise ValueError(
-                                    "Validation Error: New tasks within updated initiative must have a non-empty title."
-                                )
-                            if not task.description or not task.description.strip():
-                                raise ValueError(
-                                    "Validation Error: New tasks within updated initiative must have a non-empty description."
-                                )
-                        elif isinstance(task, UpdateTaskModel):
-                            if task.title is not None and (
-                                not task.title or not task.title.strip()
-                            ):
-                                raise ValueError(
-                                    f"Validation Error: Task '{task.identifier}' update within initiative contains an empty title."
-                                )
-                            if task.description is not None and (
-                                not task.description or not task.description.strip()
-                            ):
-                                raise ValueError(
-                                    f"Validation Error: Task '{task.identifier}' update within initiative contains an empty description."
-                                )
-        return v
-
-
-class DiscussLLMResponse:
-    """
-    Pydantic model defining the *standard* structure of the LLM response
-    for .
-
-    Includes validation to ensure UPDATE actions reference known task identifiers
-    provided in the validation context.
-    """
-
-    type: Literal["discuss_llm_response"] = "discuss_llm_response"
-
-    message: str = Field(..., description="Your reply to the user. In markdown format")
 
 
 class ContextDocument(PublicBase, Base):

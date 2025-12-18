@@ -2,15 +2,13 @@ import React, { useEffect } from 'react';
 import { GrList } from 'react-icons/gr';
 import { useParams } from 'react-router';
 
-import { ChecklistItemDto, EntityType, LENS, TaskDto, TaskStatus } from '#types';
+import { EntityType, TaskDto, TaskStatus } from '#types';
 
 import { useActiveEntity } from '#hooks/useActiveEntity';
-import { useAiImprovementsContext } from '#contexts/AiImprovementsContext';
 
 import { useTasksContext } from '#contexts/TasksContext';
 import ItemView from '#components/reusable/ItemView';
 import EntityDetailsEditor from '#components/reusable/EntityDetailsEditor';
-import ViewTaskDiff from './ViewTaskDiff';
 
 import EntityDescriptionEditor from './EntityDescriptionEditor';
 import ChecklistItemsInput from './reusable/ChecklistItemsInput';
@@ -44,11 +42,6 @@ const ViewTask = () => {
     React.useEffect(() => {
         setTaskId(taskId || null);
     }, [taskId, setTaskId]);
-
-    const {
-        isEntityLocked,
-        taskImprovements,
-    } = useAiImprovementsContext();
 
     const { setActiveTask } = useActiveEntity();
 
@@ -112,11 +105,6 @@ const ViewTask = () => {
         await deleteTask(taskId || '');
     };
 
-    // If we have AI suggestions, render the ViewTaskDiff component instead
-    if (task?.identifier && taskImprovements[task.identifier]) {
-        return <ViewTaskDiff task={task} />;
-    }
-
     return (
         <ItemView
             identifier={task?.identifier}
@@ -127,7 +115,7 @@ const ViewTask = () => {
             updatedAt={task?.updated_at}
             onDelete={handleDeleteTask}
             onRefresh={reloadTasks}
-            isEntityLocked={isEntityLocked}
+            isEntityLocked={false}
             dataTestId="view-task"
         >
 

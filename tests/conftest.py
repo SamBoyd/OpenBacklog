@@ -13,11 +13,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session  # Add Session import
 
-from src.accounting.models import UserAccountDetails, UserAccountStatus
 from src.config import settings
 from src.db import SessionLocal
 from src.main import app
-from src.secrets.vault_factory import reset_vault
 from src.services.ordering_service import OrderingService
 from src.strategic_planning.aggregates.product_vision import ProductVision
 
@@ -42,13 +40,13 @@ def pytest_configure_node(node: pytest.Config) -> None:
 
 # Add necessary model imports
 from src.models import (
-    APIProvider,
     ContextType,
     Initiative,
     OAuthAccount,
     Task,
     User,
-    UserKey,
+    UserAccountDetails,
+    UserAccountStatus,
     Workspace,
 )
 from src.views import dependency_to_override
@@ -56,17 +54,6 @@ from src.views import dependency_to_override
 logger = logging.getLogger(__name__)
 
 sync_engine = create_engine(settings.database_url, echo=False)
-
-
-@pytest.fixture(autouse=True)
-def reset_vault_for_tests(request: pytest.FixtureRequest):
-    """Reset vault singleton before each test to ensure clean state."""
-    # Skip reset for tests that explicitly mock get_vault
-    if "mock_get_vault" not in request.fixturenames:
-        reset_vault()
-    yield
-    if "mock_get_vault" not in request.fixturenames:
-        reset_vault()
 
 
 @pytest.fixture(scope="function")
@@ -262,64 +249,6 @@ def test_task(
     # Cleanup is handled by clean_tables fixture automatically
 
 
-@pytest.fixture(scope="session")
-def openai_api_key() -> str:
-    """Retrieves the OpenAI API key from environment variable for E2E tests."""
-    key = os.getenv("TEST_OPENAI_API_KEY") or settings.openai_api_test_key
-
-    if not key:
-        pytest.skip(
-            "TEST_OPENAI_API_KEY environment variable not set. Skipping E2E test."
-        )
-    # Basic validation (optional but good)
-    if not key.startswith("sk-"):
-        pytest.skip(
-            "TEST_OPENAI_API_KEY does not look like a valid OpenAI key. Skipping E2E test."
-        )
-    return key
-
-
-@pytest.fixture(scope="function")
-def test_user_key(
-    session: Session, user: User, openai_api_key: str
-) -> Generator[UserKey, None, None]:
-    """
-    Creates a UserKey entry for the test user for OpenAI, marking it as valid.
-    Ensures only one valid key exists per user/provider for the test.
-    """
-    # Check if a key already exists for this user/provider
-    existing_key = (
-        session.query(UserKey)
-        .filter(UserKey.user_id == user.id, UserKey.provider == APIProvider.OPENAI)
-        .first()
-    )
-
-    if existing_key:
-        # Update existing key to be valid for the test if needed
-        existing_key.is_valid = True
-        existing_key.last_validated_at = datetime.datetime.now()
-        session.commit()
-        session.refresh(existing_key)
-        yield existing_key
-    else:
-        # Create a new key
-        redacted = (
-            f"sk-...{openai_api_key[-4:]}" if len(openai_api_key) > 8 else "sk-..."
-        )
-        user_key = UserKey(
-            user_id=user.id,
-            provider=APIProvider.OPENAI,
-            redacted_key=redacted,
-            is_valid=True,
-            last_validated_at=datetime.datetime.now(),
-        )
-        session.add(user_key)
-        session.commit()
-        session.refresh(user_key)
-        yield user_key
-    # Cleanup handled by clean_tables
-
-
 # --- End Additions ---
 
 
@@ -420,63 +349,3 @@ def run_cli_command():
             return main()
 
     return _run_command
-
-
-@pytest.fixture(autouse=True)
-def mock_litellm_model_cost():
-    """
-    Fixture to mock litellm.model_cost with example pricing data.
-
-    This prevents litellm from making actual API calls during tests and provides
-    consistent pricing data for cost estimation tests.
-    """
-    try:
-        # Try to load the bundled example costs file
-        import litellm
-
-        example_costs_path = os.path.join(
-            os.path.dirname(litellm.__file__),
-            "model_prices_and_context_window_backup.json",
-        )
-
-        if os.path.exists(example_costs_path):
-            with open(example_costs_path, "r") as f:
-                example_costs = json.load(f)
-        else:
-            # Fallback to a minimal set of test costs if the file doesn't exist
-            example_costs = {
-                "gpt-4": {
-                    "input_cost_per_token": 0.03,
-                    "output_cost_per_token": 0.06,
-                    "max_tokens": 8192,
-                    "litellm_provider": "openai",
-                },
-                "gpt-4.1-nano": {
-                    "input_cost_per_token": 0.001,
-                    "output_cost_per_token": 0.002,
-                    "max_tokens": 4096,
-                    "litellm_provider": "openai",
-                },
-                "gpt-3.5-turbo": {
-                    "input_cost_per_token": 0.0015,
-                    "output_cost_per_token": 0.002,
-                    "max_tokens": 4096,
-                    "litellm_provider": "openai",
-                },
-            }
-
-        with patch("litellm.model_cost", example_costs):
-            yield example_costs
-
-    except Exception as e:
-        # If anything goes wrong, provide a minimal fallback
-        fallback_costs = {
-            "gpt-4.1-nano": {
-                "input_cost_per_token": 0.001,
-                "output_cost_per_token": 0.002,
-                "max_tokens": 4096,
-                "litellm_provider": "openai",
-            }
-        }
-        with patch("litellm.model_cost", fallback_costs):
-            yield fallback_costs

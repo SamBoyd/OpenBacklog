@@ -4,7 +4,6 @@ import { MdOutlineViewKanban, MdViewHeadline } from 'react-icons/md';
 import { useUserPreferences } from '#hooks/useUserPreferences';
 import { useTasksContext } from '#contexts/TasksContext';
 import { useContainerWidth } from '#hooks/useContainerWidth';
-import { useSuggestionsToBeResolved } from '#contexts/SuggestionsToBeResolvedContext';
 import { useInitiativesContext } from '#contexts/InitiativesContext';
 
 import TasksKanbanBoard from '#components/TasksKanbanBoard';
@@ -15,12 +14,10 @@ import WorkspaceSwitcher from '#components/WorkspaceSwitcher/WorkspaceSwitcher';
 import TasksList from '#components/TasksList';
 import StatusFilter from '#components/StatusFilter';
 import { InitiativeFilter } from '#components/InitiativeFilter';
-import InitiativesListDiff from '#components/diffs/InitiativesListDiff';
 
 import { TaskStatus } from '#types';
 
 const Tasks = () => {
-    const { suggestions } = useSuggestionsToBeResolved();
     const { preferences, updateFilterTasksToInitiative, updateSelectedTaskStatuses, updateTasksShowListView } = useUserPreferences();
 
     const headerRef = useRef<HTMLDivElement>(null);
@@ -73,12 +70,6 @@ const Tasks = () => {
     return (
         <div className="flex flex-col justify-between gap-2 pt-10 ">
             <div className="flex-grow-1">
-                {
-                    suggestions.length > 0 && (
-                        <InitiativesListDiff />
-                    )
-                }
-
 
                 <div ref={headerRef}>
                     <Card

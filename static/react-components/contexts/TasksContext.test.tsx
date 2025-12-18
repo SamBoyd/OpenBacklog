@@ -16,28 +16,13 @@ vi.mock('#api/tasks', () => ({
     createTask: vi.fn(),
     moveTask: vi.fn(),
     moveTaskToStatus: vi.fn(),
-    
+
 }));
 
 // Don't mock useOrderings - we want to test the real integration
 
-// Mock useAiChat hook
-vi.mock('#hooks/useAiChat', () => ({
-    useAiChat: vi.fn(() => ({
-        removeEntityFromContext: vi.fn(),
-        jobResult: null,
-        error: null,
-        chatDisabled: false,
-        sendMessage: vi.fn(),
-        clearChat: vi.fn(),
-        currentContext: [],
-        setCurrentContext: vi.fn(),
-    })),
-}));
-
 // Import the mocked modules for type safety
 import * as tasksApi from '#api/tasks';
-import { useAiChat } from '#hooks/useAiChat';
 
 /**
  * Creates a test QueryClient with disabled retries and caching for consistent test results
@@ -473,93 +458,6 @@ describe.skip('TasksContext', () => {
             );
 
             consoleSpy.mockRestore();
-        });
-    });
-
-    describe('AI Chat Context Integration', () => {
-        it('should call removeEntityFromContext when deleting a task', async () => {
-            const mockRemoveEntityFromContext = vi.fn();
-            vi.mocked(useAiChat).mockReturnValue({
-                removeEntityFromContext: mockRemoveEntityFromContext,
-                jobResult: null,
-                error: null,
-                chatDisabled: false,
-                sendMessage: vi.fn(),
-                clearChat: vi.fn(),
-                currentContext: [],
-                setCurrentContext: vi.fn(),
-            });
-
-            vi.mocked(tasksApi.deleteTask).mockResolvedValue();
-
-            const { result } = renderHook(() => useTasksContext(), { wrapper: TestWrapper });
-
-            await act(async () => {
-                await vi.runOnlyPendingTimersAsync();
-            });
-
-            // Delete a task
-            await act(async () => {
-                await result.current.deleteTask('test-task-id');
-            });
-
-            // Verify the task deletion API was called
-            expect(tasksApi.deleteTask).toHaveBeenCalledWith('test-task-id');
-
-            // Verify removeEntityFromContext was called with the task ID
-            expect(mockRemoveEntityFromContext).toHaveBeenCalledWith('test-task-id');
-        });
-
-        it('should handle errors gracefully when removeEntityFromContext fails', async () => {
-            const mockRemoveEntityFromContext = vi.fn().mockImplementation(() => {
-                throw new Error('AI chat context error');
-            });
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-
-            vi.mocked(useAiChat).mockReturnValue({
-                removeEntityFromContext: mockRemoveEntityFromContext,
-                jobResult: null,
-                error: null,
-                chatDisabled: false,
-                sendMessage: vi.fn(),
-                clearChat: vi.fn(),
-                currentContext: [],
-                setCurrentContext: vi.fn(),
-            });
-
-            vi.mocked(tasksApi.deleteTask).mockResolvedValue();
-
-            const { result } = renderHook(() => useTasksContext(), { wrapper: TestWrapper });
-
-            await act(async () => {
-                await vi.runOnlyPendingTimersAsync();
-            });
-
-            // Delete a task - this should not throw even if removeEntityFromContext fails
-            await act(async () => {
-                await result.current.deleteTask('test-task-id');
-            });
-
-            // Verify the task deletion still succeeded
-            expect(tasksApi.deleteTask).toHaveBeenCalledWith('test-task-id');
-
-            // Verify the error was logged
-            expect(consoleSpy).toHaveBeenCalledWith(
-                '[TasksContext] Failed to remove task from AI chat context:',
-                expect.any(Error)
-            );
-
-            consoleSpy.mockRestore();
-        });
-
-        it('should initialize useAiChat with correct parameters', () => {
-            renderHook(() => useTasksContext(), { wrapper: TestWrapper });
-
-            // Verify useAiChat was called with the expected parameters
-            expect(useAiChat).toHaveBeenCalledWith({
-                lens: 'TASKS',
-                currentEntity: null
-            });
         });
     });
 

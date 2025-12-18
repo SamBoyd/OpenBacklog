@@ -12,11 +12,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
+from playwright.sync_api import expect
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session  # Add Session import
 from sqlalchemy.schema import DropTable
-from playwright.sync_api import expect
 
 from alembic import command
 from alembic.config import Config
@@ -49,14 +49,7 @@ def pytest_configure_node(node: pytest.Config) -> None:
 
 
 # Add necessary model imports
-from src.models import (
-    APIProvider,
-    Initiative,
-    Task,
-    User,
-    UserKey,
-    Workspace,
-)
+from src.models import APIProvider, Initiative, Task, User, UserKey, Workspace
 from src.views import dependency_to_override
 
 logger = logging.getLogger(__name__)
@@ -309,66 +302,6 @@ def run_cli_command():
             return main()
 
     return _run_command
-
-
-@pytest.fixture(autouse=True)
-def mock_litellm_model_cost():
-    """
-    Fixture to mock litellm.model_cost with example pricing data.
-
-    This prevents litellm from making actual API calls during tests and provides
-    consistent pricing data for cost estimation tests.
-    """
-    try:
-        # Try to load the bundled example costs file
-        import litellm
-
-        example_costs_path = os.path.join(
-            os.path.dirname(litellm.__file__),
-            "model_prices_and_context_window_backup.json",
-        )
-
-        if os.path.exists(example_costs_path):
-            with open(example_costs_path, "r") as f:
-                example_costs = json.load(f)
-        else:
-            # Fallback to a minimal set of test costs if the file doesn't exist
-            example_costs = {
-                "gpt-4": {
-                    "input_cost_per_token": 0.03,
-                    "output_cost_per_token": 0.06,
-                    "max_tokens": 8192,
-                    "litellm_provider": "openai",
-                },
-                "gpt-4.1-nano": {
-                    "input_cost_per_token": 0.001,
-                    "output_cost_per_token": 0.002,
-                    "max_tokens": 4096,
-                    "litellm_provider": "openai",
-                },
-                "gpt-3.5-turbo": {
-                    "input_cost_per_token": 0.0015,
-                    "output_cost_per_token": 0.002,
-                    "max_tokens": 4096,
-                    "litellm_provider": "openai",
-                },
-            }
-
-        with patch("litellm.model_cost", example_costs):
-            yield example_costs
-
-    except Exception as e:
-        # If anything goes wrong, provide a minimal fallback
-        fallback_costs = {
-            "gpt-4.1-nano": {
-                "input_cost_per_token": 0.001,
-                "output_cost_per_token": 0.002,
-                "max_tokens": 4096,
-                "litellm_provider": "openai",
-            }
-        }
-        with patch("litellm.model_cost", fallback_costs):
-            yield fallback_costs
 
 
 @pytest.fixture

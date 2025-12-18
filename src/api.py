@@ -1,9 +1,9 @@
 from enum import Enum
 from typing import Optional
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from src import controller
 from src.db import get_db
@@ -44,6 +44,26 @@ async def update_user(
 
     controller.update_user(user=user, name=userUpdate.name, db=session)
     return JSONResponse(content={})
+
+
+class UserAccountDetailsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    status: str
+    onboardingCompleted: bool
+
+
+@app.get("/api/user-account-details", response_class=JSONResponse)
+async def get_user_account_details(
+    user=Depends(dependency_to_override),
+    session=Depends(get_db),
+) -> UserAccountDetailsResponse:
+    user_account_details = user.account_details
+
+    return UserAccountDetailsResponse(
+        status=user_account_details.status.value,
+        onboardingCompleted=user_account_details.onboarding_completed,
+    )
 
 
 # New enums for display preferences
@@ -198,21 +218,4 @@ async def delete_workspace(
     session=Depends(get_db),
 ) -> JSONResponse:
     controller.delete_workspace(user=user, workspace_id=workspace_id, db=session)
-    return JSONResponse(content={})
-
-
-class OpenAIKeyUpdate(BaseModel):
-    key: str
-
-
-@app.post("/api/openai/key", response_class=JSONResponse)
-async def update_openai_key(
-    payload: OpenAIKeyUpdate,
-    user=Depends(dependency_to_override),
-    session=Depends(get_db),
-) -> JSONResponse:
-    if not payload.key:
-        return JSONResponse(status_code=422, content={"message": "Key cannot be empty"})
-
-    controller.update_openai_key(user=user, key=payload.key, db=session)
     return JSONResponse(content={})

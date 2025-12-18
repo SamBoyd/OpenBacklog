@@ -24,14 +24,7 @@ from src.controller import (
     update_workspace,
     upload_profile_picture,
 )
-from src.models import (
-    APIProvider,
-    GitHubInstallation,
-    OAuthAccount,
-    User,
-    UserKey,
-    Workspace,
-)
+from src.models import GitHubInstallation, OAuthAccount, User, Workspace
 
 
 @patch(
@@ -101,36 +94,6 @@ def test_get_account_template(mock_template_response, user, workspace, session):
             "user": user,
             "oauth_accounts": oauth_accounts,
             "workspaces": [workspace],
-            "openbacklog_tokens": [],
-            "mcp_server_domain": settings.mcp_server_domain,
-            "has_github_installation": False,
-            "repositories": [],
-        },
-    )
-    assert isinstance(result, HTMLResponse)
-
-
-@patch("src.controller.get_openbacklog_tokens_for_user", return_value=["token"])
-@patch(
-    "src.main.templates.TemplateResponse", return_value=HTMLResponse("<html></html>")
-)
-def test_get_account_template_with_api_key(
-    mock_template_response, mock_get_openbacklog_tokens, user, workspace, session
-):
-    oauth_accounts = (
-        session.query(OAuthAccount).filter(OAuthAccount.user_id == user.id).all()
-    )
-
-    request = MagicMock()
-    result = get_account_template(request, user, session)
-    mock_template_response.assert_called_once_with(
-        request,
-        "pages/account.html",
-        {
-            "user": user,
-            "oauth_accounts": oauth_accounts,
-            "workspaces": [workspace],
-            "openbacklog_tokens": ["token"],
             "mcp_server_domain": settings.mcp_server_domain,
             "has_github_installation": False,
             "repositories": [],
@@ -173,7 +136,6 @@ def test_get_account_template_with_github_installation(
             "user": user,
             "oauth_accounts": oauth_accounts,
             "workspaces": [workspace],
-            "openbacklog_tokens": [],
             "mcp_server_domain": settings.mcp_server_domain,
             "has_github_installation": True,
             "repositories": [{"name": "test-repo"}],
@@ -456,177 +418,3 @@ def test_delete_workspace(user, session):
     assert_that(
         session.query(Workspace).filter(Workspace.id == workspace.id).first(), is_(None)
     )
-
-
-@patch("src.controller.get_vault")
-@patch("src.controller._validate_openai_key")
-def test_update_openai_key_with_validation(mock_validate_key, mock_get_vault, user):
-    """Test that update_openai_key calls validation and handles success properly."""
-    # Arrange
-    from src.controller import update_openai_key
-
-    mock_validate_key.return_value = True
-    mock_vault = MagicMock()
-    mock_vault.store_api_key_in_vault.return_value = "vault/path"
-    mock_get_vault.return_value = mock_vault
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.first.return_value = None
-
-    # Act
-    result = update_openai_key("test_key", user, mock_db)
-
-    # Assert
-    mock_validate_key.assert_called_once_with("test_key")
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_called()
-    mock_vault.store_api_key_in_vault.assert_called_once()
-    assert_that(result["message"], contains_string("validated successfully"))
-
-
-@patch("src.secrets.vault_factory.get_vault")
-@patch("src.controller._validate_openai_key")
-def test_update_openai_key_validation_error(mock_validate_key, mock_get_vault, user):
-    """Test that update_openai_key handles validation errors properly."""
-    # Arrange
-    from fastapi import HTTPException
-
-    from src.controller import update_openai_key
-
-    mock_validate_key.return_value = False
-    mock_vault = MagicMock()
-    mock_get_vault.return_value = mock_vault
-    mock_db = MagicMock()
-
-    # Act & Assert
-    with pytest.raises(HTTPException) as exc_info:
-        update_openai_key("invalid_key", user, mock_db)
-
-    assert_that(exc_info.value.status_code, equal_to(400))
-    assert_that(exc_info.value.detail, equal_to("Invalid OpenAI API key provided"))
-
-    # Verify no DB or Vault operations happened
-    mock_db.add.assert_not_called()
-    mock_db.commit.assert_not_called()
-    mock_vault.store_api_key_in_vault.assert_not_called()
-
-
-@patch("src.controller.get_vault")
-@patch("src.controller.retrieve_litellm_master_key")
-@patch("src.controller.get_litellm_user_info")
-@patch("src.controller.create_litellm_user")
-def test_create_litellm_user_and_key_success(
-    mock_create_user,
-    mock_get_user_info,
-    mock_retrieve_master_key,
-    mock_get_vault,
-    user,
-    session,
-):
-    """Test successful creation of a new LiteLLM user and key."""
-    # Arrange
-    from src.controller import create_litellm_user_and_key
-
-    mock_retrieve_master_key.return_value = "master_key"
-    mock_get_user_info.return_value = {"keys": []}  # No existing keys
-    mock_create_user.return_value = "new_litellm_key"
-    mock_vault = MagicMock()
-    mock_vault.store_api_key_in_vault.return_value = "vault/path"
-    mock_get_vault.return_value = mock_vault
-
-    # Act
-    result = create_litellm_user_and_key(user, session)
-
-    # Assert
-    mock_retrieve_master_key.assert_called_once()
-    mock_get_user_info.assert_called_once_with(user, "master_key")
-    mock_create_user.assert_called_once_with(user, "master_key")
-    mock_vault.store_api_key_in_vault.assert_called_once()
-
-    # Verify UserKey was created correctly
-    user_key = (
-        session.query(UserKey)
-        .filter(UserKey.user_id == user.id, UserKey.provider == APIProvider.LITELLM)
-        .first()
-    )
-    assert user_key is not None
-    assert user_key.is_valid is True
-    assert user_key.redacted_key == "new..._key"
-    assert result["message"] == "LiteLLM user & key created successfully"
-
-
-@patch("src.controller.retrieve_litellm_master_key")
-def test_create_litellm_user_and_key_no_master_key(
-    mock_retrieve_master_key,
-    user,
-    session,
-):
-    """Test error when LiteLLM master key is not found."""
-    # Arrange
-    from fastapi import HTTPException
-
-    from src.controller import create_litellm_user_and_key
-
-    mock_retrieve_master_key.return_value = None
-
-    # Act & Assert
-    with pytest.raises(HTTPException) as exc_info:
-        create_litellm_user_and_key(user, session)
-
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.detail == "LiteLLM master key not found"
-
-
-@patch("src.controller.retrieve_litellm_master_key")
-@patch("src.controller.get_litellm_user_info")
-def test_create_litellm_user_and_key_existing_litellm_user(
-    mock_get_user_info,
-    mock_retrieve_master_key,
-    user,
-    session,
-):
-    """Test error when user already has a LiteLLM key."""
-    # Arrange
-    from fastapi import HTTPException
-
-    from src.controller import create_litellm_user_and_key
-
-    mock_retrieve_master_key.return_value = "master_key"
-    mock_get_user_info.return_value = {"keys": ["existing_key"]}  # Has existing key
-
-    # Act & Assert
-    result = create_litellm_user_and_key(user, session)
-
-    assert result["message"] == "LiteLLM user & key already exist"
-
-
-@patch("src.controller.retrieve_litellm_master_key")
-@patch("src.controller.get_litellm_user_info")
-def test_create_litellm_user_and_key_existing_user_key(
-    mock_get_user_info,
-    mock_retrieve_master_key,
-    user,
-    session,
-):
-    """Test error when user already has a UserKey record for LiteLLM."""
-    # Arrange
-    from fastapi import HTTPException
-
-    from src.controller import create_litellm_user_and_key
-
-    # Create existing UserKey for LiteLLM
-    existing_key = UserKey(
-        user_id=user.id,
-        provider=APIProvider.LITELLM,
-        redacted_key="existing_key",
-        is_valid=True,
-        last_validated_at=datetime.datetime.now(),
-    )
-    session.add(existing_key)
-    session.commit()
-
-    mock_retrieve_master_key.return_value = "master_key"
-    mock_get_user_info.return_value = {"keys": []}
-
-    # Act & Assert
-    result = create_litellm_user_and_key(user, session)
-    assert result["message"] == "LiteLLM user & key already exist"

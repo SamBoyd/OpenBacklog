@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router';
-import { useBillingUsage } from '#hooks/useBillingUsage';
 import { useWorkspaces } from '#hooks/useWorkspaces';
 import { useInitiativesContext } from '#hooks/initiatives/useInitiativesContext';
 import WorkspaceCreateModal from '#components/WorkspaceSwitcher/WorkspaceCreateModal';
+import { useUserAccountDetails } from '#hooks/useUserAccountDetails';
 
 interface AppGuardProps {
   children: React.ReactNode;
@@ -12,14 +12,16 @@ interface AppGuardProps {
 /**
  * Guard component that handles both onboarding and workspace validation
  * Ensures user is onboarded and has a valid workspace before rendering protected content
- * 
+ *
  * Features optimizations for fast loading:
  * - Uses cached user account details to minimize loading screens
  * - Shows loading states only when no cached data is available
  * - Provides user-friendly error states and retry mechanisms
  */
 const AppGuard: React.FC<AppGuardProps> = ({ children }) => {
-  const { isAccountDetailsLoading, userIsOnboarded, userAccountDetails } = useBillingUsage();
+  // Check onboarding status from localStorage cache (Community Edition)
+  const { userIsOnboarded, isLoading: isAccountDetailsLoading } = useUserAccountDetails();
+
   const {
     workspaces,
     currentWorkspace,
@@ -31,8 +33,6 @@ const AppGuard: React.FC<AppGuardProps> = ({ children }) => {
   const { initiativesData, shouldShowSkeleton } = useInitiativesContext();
 
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
-
-  console.log('userAccountDetails', userAccountDetails);
 
   // Stage 1: Check if billing/onboarding data is still loading
   // With caching, this should rarely show since we'll have cached data

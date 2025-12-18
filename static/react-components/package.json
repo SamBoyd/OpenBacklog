@@ -22,14 +22,10 @@
   "dependencies": {
     "@auth0/auth0-spa-js": "^2.1.3",
     "@hello-pangea/dnd": "^18.0.1",
-    "@openmeter/sdk": "^1.0.0-beta.213",
-    "@openmeter/web": "^1.0.0-beta.186",
     "@sentry/browser": "^9.16.1",
     "@sentry/bundler-plugin-core": "^3.4.0",
     "@sentry/react": "^9.44.2",
     "@sentry/webpack-plugin": "^3.3.1",
-    "@stripe/react-stripe-js": "^3.9.2",
-    "@stripe/stripe-js": "^7.9.0",
     "@supabase/postgrest-js": "^1.17.7",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
@@ -142,21 +138,9 @@
       "storybook": "./api/api.mock.ts",
       "default": "./api/api.ts"
     },
-    "#api/ai": {
-      "storybook": "./api/ai.mock.ts",
-      "default": "./api/ai.ts"
-    },
     "#hooks/useWorkspaces": {
       "storybook": "./hooks/useWorkspaces.mock.tsx",
       "default": "./hooks/useWorkspaces.tsx"
-    },
-    "#contexts/AiImprovementsContext": {
-      "storybook": "./contexts/AiImprovementsContext.mock.tsx",
-      "default": "./contexts/AiImprovementsContext.tsx"
-    },
-    "#hooks/useChatMessages": {
-      "storybook": "./hooks/useChatMessages.mock.tsx",
-      "default": "./hooks/useChatMessages.tsx"
     },
     "#hooks/useContextDocument": {
       "storybook": "./hooks/useContextDocument.mock.tsx",
@@ -182,10 +166,6 @@
       "storybook": "./contexts/InitiativesContext.mock.tsx",
       "default": "./contexts/InitiativesContext.tsx"
     },
-    "#contexts/SuggestionsToBeResolvedContext": {
-      "storybook": "./contexts/SuggestionsToBeResolvedContext.mock.tsx",
-      "default": "./contexts/SuggestionsToBeResolvedContext.tsx"
-    },
     "#contexts/TasksContext": {
       "storybook": "./contexts/TasksContext.mock.tsx",
       "default": "./contexts/TasksContext.tsx"
@@ -198,33 +178,13 @@
       "storybook": "./hooks/useUserPreferences.mock.tsx",
       "default": "./hooks/useUserPreferences.tsx"
     },
-    "#hooks/useBillingUsage": {
-      "storybook": "./hooks/useBillingUsage.mock.tsx",
-      "default": "./hooks/useBillingUsage.tsx"
-    },
-    "#hooks/useInitiativeDiff": {
-      "storybook": "./hooks/useInitiativeDiff.mock.tsx",
-      "default": "./hooks/useInitiativeDiff.tsx"
-    },
-    "#hooks/useAiChat": {
-      "storybook": "./hooks/useAiChat.mock.tsx",
-      "default": "./hooks/useAiChat.tsx"
-    },
     "#hooks/initiatives": {
       "storybook": "./hooks/initiatives/index.ts",
       "default": "./hooks/initiatives/index.ts"
     },
-    "#components/billing": {
-      "storybook": "./components/billing/index.ts",
-      "default": "./components/billing/index.ts"
-    },
     "#services/workspaceApi": {
       "storybook": "./services/workspaceApi.mock.ts",
       "default": "./services/workspaceApi.ts"
-    },
-    "#hooks/billing/useSubscriptionPayment": {
-      "storybook": "./hooks/billing/useSubscriptionPayment.mock.ts",
-      "default": "./hooks/billing/useSubscriptionPayment.ts"
     },
     "#hooks/useGithubRepos": {
       "storybook": "./hooks/useGithubRepos.mock.tsx",

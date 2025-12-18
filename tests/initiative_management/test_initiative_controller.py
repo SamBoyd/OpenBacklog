@@ -19,6 +19,7 @@ from src.models import (
     InitiativeGroup,
     InitiativeStatus,
     User,
+    UserAccountDetails,
     Workspace,
 )
 from src.services.ordering_service import OrderingServiceError
@@ -61,7 +62,9 @@ class TestInitiativeController:
         session.refresh(group)
         return group
 
-    def test_create_initiative_success(self, controller, user, workspace, session):
+    def test_create_initiative_success(
+        self, controller: InitiativeController, user, workspace, session
+    ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
 
@@ -94,7 +97,7 @@ class TestInitiativeController:
         assert_that(call_args.kwargs["context_id"], is_(None))
 
     def test_create_initiative_ordering_service_error(
-        self, controller, user, workspace, session
+        self, controller: InitiativeController, user, workspace, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -118,7 +121,7 @@ class TestInitiativeController:
         assert_that(final_count, equal_to(initial_count))
 
     def test_create_initiative_integrity_error(
-        self, controller, user, workspace, session
+        self, controller: InitiativeController, user, workspace, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -164,7 +167,9 @@ class TestInitiativeController:
             # Restore original flush method
             session.flush = original_flush
 
-    def test_delete_initiative_success(self, controller, test_initiative, session):
+    def test_delete_initiative_success(
+        self, controller: InitiativeController, test_initiative, session
+    ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
 
@@ -184,7 +189,9 @@ class TestInitiativeController:
         )
         assert_that(deleted_initiative, is_(None))
 
-    def test_delete_initiative_not_found(self, controller, user, session):
+    def test_delete_initiative_not_found(
+        self, controller: InitiativeController, user, session
+    ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
 
@@ -197,7 +204,7 @@ class TestInitiativeController:
         )
 
     def test_delete_initiative_no_ordering_but_initiative_exists(
-        self, controller, test_initiative, session
+        self, controller: InitiativeController, test_initiative, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -215,7 +222,9 @@ class TestInitiativeController:
         )
         assert_that(deleted_initiative, is_(None))
 
-    def test_move_initiative_success(self, controller, test_initiative, session):
+    def test_move_initiative_success(
+        self, controller: InitiativeController, test_initiative, session
+    ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
 
@@ -241,7 +250,7 @@ class TestInitiativeController:
         assert_that(db_initiative, is_not(None))
         assert_that(db_initiative.id, equal_to(initiative_id))
 
-    def test_move_initiative_not_found(self, controller, user):
+    def test_move_initiative_not_found(self, controller: InitiativeController, user):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
 
@@ -256,7 +265,7 @@ class TestInitiativeController:
         )
 
     def test_move_initiative_to_status_success(
-        self, controller, test_initiative, session
+        self, controller: InitiativeController, test_initiative, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -284,7 +293,7 @@ class TestInitiativeController:
         assert_that(db_initiative.status, equal_to(new_status))
 
     def test_move_initiative_to_same_status_no_ordering_change(
-        self, controller, test_initiative, session
+        self, controller: InitiativeController, test_initiative, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -310,7 +319,7 @@ class TestInitiativeController:
         assert_that(db_initiative.status, equal_to(current_status))
 
     def test_add_initiative_to_group_success(
-        self, controller, test_initiative, test_group, session
+        self, controller: InitiativeController, test_initiative, test_group, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -352,7 +361,7 @@ class TestInitiativeController:
         assert_that(initiative_group.user_id, equal_to(user_id))
 
     def test_remove_initiative_from_group_success(
-        self, controller, test_initiative, test_group, session
+        self, controller: InitiativeController, test_initiative, test_group, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -412,7 +421,7 @@ class TestInitiativeController:
         assert_that(removed_relationship, is_(None))
 
     def test_remove_initiative_from_group_not_in_group(
-        self, controller, test_initiative, test_group, session
+        self, controller: InitiativeController, test_initiative, test_group, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -440,7 +449,7 @@ class TestInitiativeController:
         assert_that(db_initiative.id, equal_to(initiative_id))
 
     def test_add_initiative_to_nonexistent_group(
-        self, controller, test_initiative, session
+        self, controller: InitiativeController, test_initiative, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -473,7 +482,12 @@ class TestInitiativeController:
         mock_ordering_service.add_item.assert_not_called()
 
     def test_add_initiative_to_group_owned_by_different_user(
-        self, controller, test_initiative, session, other_user, workspace
+        self,
+        controller: InitiativeController,
+        test_initiative,
+        session,
+        other_user,
+        workspace,
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -518,7 +532,7 @@ class TestInitiativeController:
         mock_ordering_service.add_item.assert_not_called()
 
     def test_add_initiative_to_group_already_in_group(
-        self, controller, test_initiative, test_group, session
+        self, controller: InitiativeController, test_initiative, test_group, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -560,7 +574,7 @@ class TestInitiativeController:
         assert_that(relationship_count, equal_to(1))
 
     def test_delete_initiative_with_multiple_orderings(
-        self, controller, test_initiative, session
+        self, controller: InitiativeController, test_initiative, session
     ):
         """Test deleting initiative that has both STATUS_LIST and GROUP orderings."""
         mock_ordering_service = Mock()
@@ -589,7 +603,7 @@ class TestInitiativeController:
         assert_that(deleted_initiative, is_(None))
 
     def test_move_initiative_in_group_success(
-        self, controller, test_initiative, test_group, session
+        self, controller: InitiativeController, test_initiative, test_group, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -632,7 +646,9 @@ class TestInitiativeController:
         assert_that(db_initiative, is_not(None))
         assert_that(db_initiative.id, equal_to(initiative_id))
 
-    def test_move_initiative_in_group_not_found(self, controller, user, test_group):
+    def test_move_initiative_in_group_not_found(
+        self, controller: InitiativeController, user, test_group
+    ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
 
@@ -653,7 +669,7 @@ class TestInitiativeController:
         mock_ordering_service.move_item.assert_not_called()
 
     def test_move_initiative_in_group_group_not_found(
-        self, controller, test_initiative, session
+        self, controller: InitiativeController, test_initiative, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -675,7 +691,7 @@ class TestInitiativeController:
         mock_ordering_service.move_item.assert_not_called()
 
     def test_move_initiative_in_group_not_in_group(
-        self, controller, test_initiative, test_group, session
+        self, controller: InitiativeController, test_initiative, test_group, session
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -699,7 +715,12 @@ class TestInitiativeController:
         mock_ordering_service.move_item.assert_not_called()
 
     def test_move_initiative_in_group_different_user(
-        self, controller, test_initiative, session, other_user, workspace
+        self,
+        controller: InitiativeController,
+        test_initiative,
+        session,
+        other_user,
+        workspace,
     ):
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
@@ -733,17 +754,17 @@ class TestInitiativeController:
         mock_ordering_service.move_item.assert_not_called()
 
     def test_complete_onboarding_if_first_initiative_calls_complete_onboarding(
-        self, controller, user, workspace, session, monkeypatch
+        self, controller: InitiativeController, user, workspace, session, monkeypatch
     ):
         """Test that onboarding is completed when user has exactly one initiative."""
-        from src.accounting.models import UserAccountStatus
+        from src.models import UserAccountStatus
 
         mock_ordering_service = Mock()
         controller.ordering_service = mock_ordering_service
 
         mock_complete_onboarding = Mock(return_value=user.account_details)
         monkeypatch.setattr(
-            "src.accounting.accounting_controller.complete_onboarding",
+            "src.controller.complete_onboarding",
             mock_complete_onboarding,
         )
 
@@ -767,7 +788,7 @@ class TestInitiativeController:
         mock_complete_onboarding.assert_called_once_with(user, session)
 
     def test_complete_onboarding_if_first_initiative_not_called_for_multiple_initiatives(
-        self, controller, user, workspace, session, monkeypatch
+        self, controller: InitiativeController, user, workspace, session, monkeypatch
     ):
         """Test that onboarding is NOT completed when user has more than one initiative."""
         mock_ordering_service = Mock()
@@ -775,7 +796,7 @@ class TestInitiativeController:
 
         mock_complete_onboarding = Mock()
         monkeypatch.setattr(
-            "src.accounting.accounting_controller.complete_onboarding",
+            "src.controller.complete_onboarding",
             mock_complete_onboarding,
         )
 
@@ -802,7 +823,7 @@ class TestInitiativeController:
         mock_complete_onboarding.assert_not_called()
 
     def test_complete_onboarding_if_first_initiative_handles_errors_gracefully(
-        self, controller, user, workspace, session, monkeypatch
+        self, controller: InitiativeController, user, workspace, session, monkeypatch
     ):
         """Test that errors during onboarding completion are handled gracefully."""
         mock_ordering_service = Mock()
@@ -810,7 +831,7 @@ class TestInitiativeController:
 
         mock_complete_onboarding = Mock(side_effect=Exception("Onboarding error"))
         monkeypatch.setattr(
-            "src.accounting.accounting_controller.complete_onboarding",
+            "src.controller.complete_onboarding",
             mock_complete_onboarding,
         )
 
@@ -828,7 +849,7 @@ class TestInitiativeController:
         mock_complete_onboarding.assert_called_once()
 
     def test_complete_onboarding_if_first_initiative_handles_nonexistent_user(
-        self, controller, session, monkeypatch
+        self, controller: InitiativeController, session, monkeypatch
     ):
         """Test that method handles nonexistent user gracefully."""
         mock_ordering_service = Mock()
@@ -836,7 +857,7 @@ class TestInitiativeController:
 
         mock_complete_onboarding = Mock()
         monkeypatch.setattr(
-            "src.accounting.accounting_controller.complete_onboarding",
+            "src.controller.complete_onboarding",
             mock_complete_onboarding,
         )
 
@@ -847,12 +868,12 @@ class TestInitiativeController:
         mock_complete_onboarding.assert_not_called()
 
     def test_complete_onboarding_if_first_initiative_not_called_for_zero_initiatives(
-        self, controller, user, session, monkeypatch
+        self, controller: InitiativeController, user, session, monkeypatch
     ):
         """Test that onboarding is NOT completed when user has zero initiatives."""
         mock_complete_onboarding = Mock()
         monkeypatch.setattr(
-            "src.accounting.accounting_controller.complete_onboarding",
+            "src.controller.complete_onboarding",
             mock_complete_onboarding,
         )
 

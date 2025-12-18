@@ -1,6 +1,6 @@
 // hooks/useTasksContext.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useOptimisticMutation, createEntityListCacheUpdater, createEntityListRollback, createServerResponseUpdater } from '#hooks/useOptimisticMutation';
+import { useOptimisticMutation } from '#hooks/useOptimisticMutation';
 import {
     getAllTasks,
     getAllTasksForInitiatives,
@@ -15,11 +15,9 @@ import {
     postChecklistItem, 
     deleteChecklistItem 
 } from '#api/checklistItems';
-import { TaskDto, ContextType, EntityType, OrderingDto, TaskStatus, ChecklistItemDto } from '#types';
+import { TaskDto, ContextType, EntityType, TaskStatus, ChecklistItemDto } from '#types';
 import { useCallback, createContext, useContext, ReactNode, useState, useMemo, useRef, useEffect } from 'react';
 import { useOrderings, OrderedEntity } from '#hooks/useOrderings';
-import { useAiChat } from '#hooks/useAiChat';
-import { LENS } from '#types';
 import { SafeStorage } from '#hooks/useUserPreferences';
 import { trackFirstTaskCreated } from '#services/tracking/onboarding';
 
@@ -80,13 +78,6 @@ export function TasksProvider({ children }: TasksProviderProps) {
     
     // Cache version tracking to trigger re-renders when cache is manually updated
     const [cacheVersion, setCacheVersion] = useState(0);
-
-    // Initialize AI chat hook for context cleanup
-    // Use minimal values since we only need removeEntityFromContext
-    const { removeEntityFromContext } = useAiChat({
-        lens: LENS.TASKS,
-        currentEntity: null
-    });
 
     // Construct query key based on current filters
     const queryKey = useMemo(() => {
@@ -238,13 +229,6 @@ export function TasksProvider({ children }: TasksProviderProps) {
             );
             queryClient.invalidateQueries({ queryKey: ['tasks'] });
             queryClient.invalidateQueries({ queryKey: ['initiatives', { id: initiativeId }] });
-
-            // Remove the deleted task from AI chat context
-            try {
-                removeEntityFromContext(taskId);
-            } catch (error) {
-                console.error('[TasksContext] Failed to remove task from AI chat context:', error);
-            }
         },
         onError: (error) => {
             console.error('[TasksContext] deleteMutation.onError', error);

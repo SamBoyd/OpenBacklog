@@ -248,10 +248,3 @@ def test_confirm_delete_account_route_csrf_error(mock_confirm_delete_account, us
     assert_that(response.headers["location"], equal_to("/account"))
 
     mock_confirm_delete_account.assert_not_called()
-
-
-def test_ai_improvement_get_endpoint(test_client: TestClient):
-    """Test that the GET AI improvement endpoint returns the expected placeholder response"""
-    response = test_client.get("/api/ai-improvement")
-    assert_that(response.status_code, equal_to(200))
-    assert_that(response.json(), equal_to({"message": "Placeholder response"}))

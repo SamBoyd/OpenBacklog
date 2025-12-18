@@ -12,17 +12,10 @@ from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile
 
 from src import storage_service
-from src.ai.openai_service import _validate_openai_key
 from src.config import settings
 from src.github_app.github_service import GitHubService
-from src.litellm_service import (
-    create_litellm_user,
-    get_litellm_user_info,
-    retrieve_litellm_master_key,
-)
 from src.main import templates
-from src.models import APIProvider, GitHubInstallation, User, UserKey, Workspace
-from src.secrets.vault_factory import get_vault
+from src.models import GitHubInstallation, User, UserAccountDetails, Workspace
 
 if TYPE_CHECKING:
     from src.api import WorkspaceUpdate
@@ -109,8 +102,6 @@ def get_support_template(request, user):
 def get_account_template(request, user: User, session: Session):
     workspaces = session.query(Workspace).filter(Workspace.user_id == user.id).all()
 
-    openbacklog_tokens = get_openbacklog_tokens_for_user(user, session)
-
     # Check if user has a GitHub installation
     github_installation = (
         session.query(GitHubInstallation)
@@ -131,7 +122,6 @@ def get_account_template(request, user: User, session: Session):
             "user": user,
             "oauth_accounts": user.oauth_accounts,
             "workspaces": workspaces,
-            "openbacklog_tokens": openbacklog_tokens,
             "mcp_server_domain": settings.mcp_server_domain,
             "has_github_installation": github_installation is not None,
             "repositories": repositories,
@@ -306,381 +296,25 @@ def delete_workspace(user: User, workspace_id: str, db: Session):
     db.commit()
 
 
-# Tuple describing the number of characters to leave unredacted at the beginning and end of a string
-# when redacting sensitive information.
-NUM_CHARS_TO_LEAVE_UNREDACTED = (3, 4)
-
-
-def update_openai_key(key: str, user: User, db: Session):
+def complete_onboarding(user: User, db: Session) -> UserAccountDetails:
     """
-    Validates and updates the OpenAI API key for a user.
+    Mark onboarding as completed
 
-    Validates the key with OpenAI, then creates or updates a UserKey record
-    with a redacted version and stores the full version in HashiCorp Vault.
-    Updates validation status in the database.
+    This allows users to complete onboarding and access task management features
+    without signing up for a paid subscription (free tier).
 
     Args:
-        key (str): The OpenAI API key to store
-        user (User): The user to update
-        db (Session): Database session
+        user: The user completing onboarding
+        db: Database session
 
     Returns:
-        dict: A message indicating success
-
-    Raises:
-        HTTPException: If the API key is invalid or validation fails
-        RuntimeError: If storing the key in Vault fails
+        Updated UserAccountDetails with onboarding_completed=True and status=NO_SUBSCRIPTION
     """
-    # Validate the key first
-    if not _validate_openai_key(key):
-        raise HTTPException(status_code=400, detail="Invalid OpenAI API key provided")
+    account_details = user.account_details
 
-    # Check if user already has an OpenAI key
-    user_key = (
-        db.query(UserKey)
-        .filter(UserKey.user_id == user.id, UserKey.provider == APIProvider.OPENAI)
-        .first()
-    )
-
-    # Store original values for rollback if needed
-    original_redacted_key = user_key.redacted_key if user_key else None
-    original_is_valid = user_key.is_valid if user_key else None
-    original_validated_at = user_key.last_validated_at if user_key else None
-
-    try:
-        # Generate redacted version for display
-        redacted_key = (
-            key[: NUM_CHARS_TO_LEAVE_UNREDACTED[0]]
-            + "***"
-            + key[-NUM_CHARS_TO_LEAVE_UNREDACTED[1] :]
-        )
-
-        # Current time with timezone for validation timestamp
-        now = datetime.now(timezone.utc)
-
-        # Create or update UserKey with validation info
-        if not user_key:
-            user_key = UserKey(
-                user_id=user.id,
-                provider=APIProvider.OPENAI,
-                redacted_key=redacted_key,
-                is_valid=True,  # Key was successfully validated
-                last_validated_at=now,
-            )
-        else:
-            user_key.redacted_key = redacted_key
-            user_key.is_valid = True
-            user_key.last_validated_at = now
-
-        db.add(user_key)
-        db.commit()
-        db.refresh(user_key)
-
-        # Store in Vault
-        vault_path = user_key.vault_path
-        vault = get_vault()
-        stored_path = vault.store_api_key_in_vault(vault_path, key)
-        if stored_path is None:
-            logger.warning(
-                f"Vault unavailable, OpenAI key for user {user.id} stored in DB but not in vault"
-            )
-
-        return {"message": "OpenAI key updated and validated successfully"}
-    except Exception as e:
-        # Rollback DB changes if something went wrong after validation
-        db.rollback()
-
-        # Try to restore previous state if this is an update
-        if user_key and original_redacted_key is not None:
-            existing_user_key = db.query(UserKey).filter_by(id=user_key.id).first()
-            if existing_user_key:
-                existing_user_key.redacted_key = original_redacted_key
-                existing_user_key.is_valid = original_is_valid
-                existing_user_key.last_validated_at = original_validated_at
-                db.add(existing_user_key)
-                db.commit()
-
-        logger.error(f"Failed to store API key after validation: {e}")
-        raise RuntimeError(f"Failed to store API key after validation: {str(e)}") from e
-
-
-def get_openai_key_from_vault(user: User, db: Session) -> str:
-    """
-    Retrieves the OpenAI API key for a user.
-
-    Args:
-        user (User): The user to retrieve the key for
-
-    Returns:
-        str: The OpenAI API key
-    """
-    user_key = (
-        db.query(UserKey)
-        .filter(UserKey.user_id == user.id, UserKey.provider == APIProvider.OPENAI)
-        .first()
-    )
-
-    if not user_key:
-        raise RuntimeError("User does not have an OpenAI key")
-
-    vault = get_vault()
-    api_key = vault.retrieve_api_key_from_vault(user_key.vault_path)
-    if api_key is None:
-        raise RuntimeError("Could not retrieve OpenAI key - vault service unavailable")
-
-    return api_key
-
-
-def create_litellm_user_and_key(user: User, db: Session):
-    """
-    Creates a new LiteLLM user and key for a user.
-
-    Args:
-        user (User): The user to update
-        db (Session): Database session
-
-    Returns:
-        dict: A message indicating success
-
-    Raises:
-        HTTPException: If the API key is invalid or validation fails
-        RuntimeError: If storing the key in Vault fails
-    """
-
-    master_key = retrieve_litellm_master_key()
-    if not master_key:
-        raise HTTPException(status_code=400, detail="LiteLLM master key not found")
-
-    # Ensure the user doesnt already have a LiteLLM user & key
-    try:
-        user_info = get_litellm_user_info(user, master_key)
-        if user_info["keys"] != []:
-            return {"message": "LiteLLM user & key already exist"}
-    except ValueError as e:
-        # User doesnt have a LiteLLM user, so we can create one
-        pass
-        # TODO probably a better way to handle this
-    except Exception as e:
-        logger.error(f"Failed to get LiteLLM user info: {e}")
-        raise HTTPException(
-            status_code=400, detail="Failed to get LiteLLM user info"
-        ) from e
-
-    # Check if user already has a UserKey record for LiteLLM
-    user_key = (
-        db.query(UserKey)
-        .filter(UserKey.user_id == user.id, UserKey.provider == APIProvider.LITELLM)
-        .first()
-    )
-    if user_key is not None:
-        return {"message": "LiteLLM user & key already exist"}
-    # Create the LiteLLM user
-    key = create_litellm_user(user, master_key)
-
-    # Generate redacted version for display
-    redacted_key = (
-        key[: NUM_CHARS_TO_LEAVE_UNREDACTED[0]]
-        + "..."
-        + key[-NUM_CHARS_TO_LEAVE_UNREDACTED[1] :]
-    )
-
-    # Create or update UserKey with validation info
-    user_key = UserKey(
-        user_id=user.id,
-        provider=APIProvider.LITELLM,
-        redacted_key=redacted_key,
-        is_valid=True,
-        last_validated_at=datetime.now(timezone.utc),
-    )
-
-    db.add(user_key)
+    # Mark onboarding as completed
+    account_details.onboarding_completed = True
+    db.add(account_details)
     db.commit()
-    db.refresh(user_key)
-
-    # Store in Vault
-    vault_path = user_key.vault_path
-    vault = get_vault()
-    stored_path = vault.store_api_key_in_vault(vault_path, key)
-    if stored_path is None:
-        logger.warning(
-            f"Vault unavailable, LiteLLM key for user {user.id} stored in DB but not in vault"
-        )
-
-    return {"message": "LiteLLM user & key created successfully"}
-
-
-def create_openbacklog_token(user: User, db: Session) -> dict:
-    """
-    Create a new OpenBacklog Personal Access Token for a user.
-
-    Args:
-        user (User): The user to create the token for
-        db (Session): Database session
-
-    Returns:
-        dict: Contains the full token (only returned once) and metadata
-
-    Raises:
-        HTTPException: If token creation fails
-    """
-    from src.auth.jwt_utils import create_unified_jwt
-
-    try:
-        # Current time with timezone
-        now = datetime.now(timezone.utc)
-
-        # Create UserKey record first to get the key ID
-        user_key = UserKey(
-            user_id=user.id,
-            provider=APIProvider.OPENBACKLOG,
-            redacted_key="",  # Will be set after JWT creation
-            is_valid=True,
-            last_validated_at=now,
-            last_used_at=None,  # Will be set when first used
-        )
-
-        db.add(user_key)
-        db.flush()  # Get the ID without committing
-
-        # Create a JWT token with the key ID for tracking
-        # Set to 1 year for PATs (31536000 seconds)
-        token = create_unified_jwt(
-            user, lifetime_seconds=31536000, key_id=str(user_key.id)
-        )
-
-        # Generate redacted version for display
-        redacted_token = (
-            token[: NUM_CHARS_TO_LEAVE_UNREDACTED[0]]
-            + "***"
-            + token[-NUM_CHARS_TO_LEAVE_UNREDACTED[1] :]
-        )
-
-        # Update the user_key with redacted token and store full token in access_token
-        user_key.redacted_key = redacted_token
-        user_key.access_token = token  # Store full JWT for identification
-
-        db.commit()
-        db.refresh(user_key)
-
-        # Store full token in Vault for future retrieval if needed
-        vault_path = user_key.vault_path
-        vault = get_vault()
-        stored_path = vault.store_api_key_in_vault(vault_path, token)
-        if stored_path is None:
-            logger.warning(
-                f"Vault unavailable, OpenBacklog token for user {user.id} stored in DB but not in vault"
-            )
-
-        return {
-            "message": "OpenBacklog token created successfully",
-            "token": token,  # Full token returned only once
-            "token_id": str(user_key.id),
-            "redacted_key": redacted_token,
-            "created_at": now.isoformat(),
-        }
-
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to create OpenBacklog token: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create token: {str(e)}")
-
-
-def delete_openbacklog_token(user: User, token_id: str, db: Session) -> dict:
-    """
-    Delete an OpenBacklog token for a user.
-
-    Args:
-        user (User): The user who owns the token
-        token_id (str): The ID of the token to delete
-        db (Session): Database session
-
-    Returns:
-        dict: Success message
-
-    Raises:
-        HTTPException: If token not found or deletion fails
-    """
-    try:
-        # Find the token
-        user_key = (
-            db.query(UserKey)
-            .filter(
-                UserKey.id == token_id,
-                UserKey.user_id == user.id,
-                UserKey.provider == APIProvider.OPENBACKLOG,
-            )
-            .first()
-        )
-
-        if not user_key:
-            raise HTTPException(status_code=404, detail="Token not found")
-
-        # Remove from vault
-        try:
-            vault_path = user_key.vault_path
-            # Note: We could implement vault deletion here if needed
-            # For now, we'll just mark as invalid in the database
-        except Exception as e:
-            logger.warning(f"Failed to remove token from vault: {e}")
-
-        # Soft delete: mark as invalid and set deleted_at timestamp
-        user_key.is_valid = False
-        user_key.deleted_at = datetime.now(timezone.utc)
-
-        db.add(user_key)
-        db.commit()
-
-        return {"message": "Token deleted successfully"}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to delete OpenBacklog token: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete token: {str(e)}")
-
-
-def get_openbacklog_tokens_for_user(user: User, db: Session) -> list:
-    """
-    Get all OpenBacklog tokens for a user with metadata.
-
-    Args:
-        user (User): The user to get tokens for
-        db (Session): Database session
-
-    Returns:
-        list: List of token metadata (no full tokens included)
-    """
-    user_keys = (
-        db.query(UserKey)
-        .filter(
-            UserKey.user_id == user.id,
-            UserKey.provider == APIProvider.OPENBACKLOG,
-            UserKey.is_valid == True,
-            UserKey.deleted_at.is_(None),
-        )
-        .order_by(UserKey.last_validated_at.desc())
-        .all()
-    )
-
-    tokens = []
-    for key in user_keys:
-        tokens.append(
-            {
-                "id": str(key.id),
-                "redacted_key": key.redacted_key,
-                "created_at": (
-                    key.last_validated_at.strftime("%Y-%m-%d %H:%M")
-                    if key.last_validated_at
-                    else None
-                ),
-                "last_used_at": (
-                    key.last_used_at.strftime("%Y-%m-%d %H:%M")
-                    if key.last_used_at
-                    else None
-                ),
-                "is_valid": key.is_valid,
-            }
-        )
-
-    return tokens
+    db.refresh(account_details)
+    return account_details

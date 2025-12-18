@@ -9,13 +9,11 @@ import logging
 import time
 from contextlib import contextmanager
 from typing import Any, Dict, Optional, Union
-from uuid import UUID
 
 import sentry_sdk
 from sentry_sdk import set_context, set_tag, set_user
 
-from src.accounting.models import UserAccountStatus
-from src.models import AIImprovementJob, JobStatus, Lens, User
+from src.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +28,6 @@ def set_user_context(user: User) -> None:
     try:
         # Get account details safely
         account_status = None
-        api_key_status = "unknown"
 
         if hasattr(user, "account_details") and user.account_details:
             account_status = (
@@ -38,11 +35,6 @@ def set_user_context(user: User) -> None:
                 if user.account_details.status
                 else None
             )
-
-        # Check for API key validity
-        if hasattr(user, "user_keys") and user.user_keys:
-            valid_keys = [k for k in user.user_keys if k.is_valid]
-            api_key_status = "valid" if valid_keys else "invalid"
 
         # Set Sentry user context
         set_user(
@@ -59,7 +51,6 @@ def set_user_context(user: User) -> None:
             {
                 "user_id": str(user.id),
                 "account_status": account_status,
-                "api_key_status": api_key_status,
                 "is_verified": getattr(user, "is_verified", None),
                 "is_active": getattr(user, "is_active", None),
                 "last_logged_in": (
@@ -73,49 +64,9 @@ def set_user_context(user: User) -> None:
         # Set tags for filtering
         if account_status:
             set_tag("account_status", account_status)
-        set_tag("api_key_status", api_key_status)
 
     except Exception as e:
         logger.warning(f"Failed to set user context in Sentry: {e}")
-
-
-def set_job_context(job: AIImprovementJob) -> None:
-    """
-    Set AI job context in Sentry for better error tracking.
-
-    Args:
-        job: The AIImprovementJob instance
-    """
-    try:
-        set_context(
-            "ai_job",
-            {
-                "job_id": str(job.id),
-                "status": job.status.value if job.status else None,
-                "lens": job.lens.value if job.lens else None,
-                "mode": job.mode.value if job.mode else None,
-                "thread_id": job.thread_id,
-                "user_id": str(job.user_id),
-                "created_at": str(job.created_at) if job.created_at else None,
-                "updated_at": str(job.updated_at) if job.updated_at else None,
-                "input_data_count": len(job.input_data) if job.input_data else 0,
-                "has_messages": bool(job.messages),
-                "error_message": (
-                    job.error_message[:200] if job.error_message else None
-                ),  # Truncate for readability
-            },
-        )
-
-        # Set tags for filtering
-        if job.status:
-            set_tag("job_status", job.status.value)
-        if job.lens:
-            set_tag("job_lens", job.lens.value)
-        if job.mode:
-            set_tag("job_mode", job.mode.value)
-
-    except Exception as e:
-        logger.warning(f"Failed to set job context in Sentry: {e}")
 
 
 def set_operation_context(
@@ -188,7 +139,6 @@ def add_breadcrumb(
 def sentry_operation_tracking(
     operation_type: str,
     user: Optional[User] = None,
-    job: Optional[AIImprovementJob] = None,
     details: Optional[Dict[str, Any]] = None,
 ):
     """
@@ -211,8 +161,6 @@ def sentry_operation_tracking(
         # Set contexts
         if user:
             set_user_context(user)
-        if job:
-            set_job_context(job)
 
         add_breadcrumb(f"Starting {operation_type}", category="ai.operation")
 
@@ -243,7 +191,6 @@ def sentry_operation_tracking(
 def capture_ai_exception(
     exception: Exception,
     user: Optional[User] = None,
-    job: Optional[AIImprovementJob] = None,
     operation_type: Optional[str] = None,
     extra_context: Optional[Dict[str, Any]] = None,
 ) -> None:
@@ -261,8 +208,6 @@ def capture_ai_exception(
         # Set contexts
         if user:
             set_user_context(user)
-        if job:
-            set_job_context(job)
         if operation_type:
             set_operation_context(operation_type, success=False)
         if extra_context:
@@ -272,8 +217,6 @@ def capture_ai_exception(
         fingerprint = ["{{ default }}"]
         if operation_type:
             fingerprint.append(operation_type)
-        if job and job.lens:
-            fingerprint.append(job.lens.value)
 
         sentry_sdk.capture_exception(exception, fingerprint=fingerprint)
 

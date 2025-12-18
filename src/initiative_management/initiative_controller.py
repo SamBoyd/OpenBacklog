@@ -98,12 +98,12 @@ class InitiativeController:
             )
 
             if initiative_count == 1:
-                from src.accounting import accounting_controller
+                from src import controller
                 from src.models import User
 
                 user = self.db.query(User).filter(User.id == user_id).first()
                 if user:
-                    accounting_controller.complete_onboarding(user, self.db)
+                    controller.complete_onboarding(user, self.db)
                     logger.info(
                         f"Completed onboarding for user {user_id} after creating first initiative"
                     )

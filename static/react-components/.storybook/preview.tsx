@@ -7,7 +7,6 @@ import { withRouter } from 'storybook-addon-remix-react-router';
 
 import { ActiveEntityProvider } from '#hooks/useActiveEntity';
 import { UserPreferencesProvider } from '#hooks/useUserPreferences';
-import { AiImprovementsContextProvider } from '#contexts/AiImprovementsContext.mock';
 import { fetchCurrentWorkspace } from '#services/workspaceApi.mock'
 import { useFieldDefinitions } from '#hooks/useFieldDefinitions.mock';
 import { useTasksContext } from '#contexts/TasksContext.mock';
@@ -59,9 +58,7 @@ const preview: Preview = {
         <QueryClientProvider client={queryClient}>
           <ActiveEntityProvider>
             <UserPreferencesProvider>
-              <AiImprovementsContextProvider>
-                  <Story />
-              </AiImprovementsContextProvider>
+                <Story />
             </UserPreferencesProvider>
           </ActiveEntityProvider>
         </QueryClientProvider>

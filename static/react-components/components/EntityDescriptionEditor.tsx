@@ -1,16 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { GrDocumentText } from 'react-icons/gr';
 import { Skeleton } from './reusable/Skeleton';
-import AutocompleteTextInput from './reusable/AutocompleteTextInput ';
-import { Tooltip } from 'react-tooltip';
 import ResizingTextInput from './reusable/ResizingTextInput';
-import VoiceChat from './ChatDialog/VoiceChat';
 import FileSuggestionTextInput from './reusable/FileSuggestionTextInput';
-import { useBillingUsage } from '#hooks/useBillingUsage';
-import { hasActiveSubscription } from '#constants/userAccountStatus';
 
 /**
- * EntityDescriptionEditor component for editing entity descriptions with AI suggestions
+ * EntityDescriptionEditor component for editing entity descriptions
  * @param {object} props - The component props
  * @param {string} props.description - The current description text
  * @param {(value: string) => void} props.onChange - Function called when description changes
@@ -25,7 +20,6 @@ type EntityDescriptionEditorProps = {
     testId?: string;
     disabled?: boolean;
     className?: string;
-    autocompleteEnabled?: boolean;
     filepathSuggestionsEnabled?: boolean;
 };
 
@@ -36,17 +30,11 @@ const EntityDescriptionEditor: React.FC<EntityDescriptionEditorProps> = ({
     testId = 'description-section',
     disabled = false,
     className = '',
-    autocompleteEnabled = false,
     filepathSuggestionsEnabled = false,
 }) => {
     const [localDescription, setLocalDescription] = useState(description);
 
-    // Check subscription status
-    const { userAccountDetails } = useBillingUsage();
-    const hasSubscription = userAccountDetails ? hasActiveSubscription(userAccountDetails.status) : false;
-
     useEffect(() => {
-        3
         setLocalDescription(description);
     }, [description]);
 
@@ -56,10 +44,6 @@ const EntityDescriptionEditor: React.FC<EntityDescriptionEditorProps> = ({
 
     const handleBlur = () => {
         onChange(localDescription);
-    };
-
-    const handleVoiceInput = (value: string) => {
-        setLocalDescription(description + '\n' + value);
     };
 
     return (
@@ -76,19 +60,7 @@ const EntityDescriptionEditor: React.FC<EntityDescriptionEditorProps> = ({
             )}
 
             <div className="w-full relative">
-                {!loading && autocompleteEnabled && (
-                    <AutocompleteTextInput
-                        id="description-area"
-                        value={localDescription}
-                        onChange={handleChange}
-                        testId="description-input"
-                        disabled={disabled}
-                        className={`min-h-[100px] ${className}`}
-                        onBlur={handleBlur}
-                    />
-                )}
-
-                {!loading && !autocompleteEnabled && filepathSuggestionsEnabled && (
+                {!loading && filepathSuggestionsEnabled && (
                     <FileSuggestionTextInput
                         id="description-area"
                         value={localDescription}
@@ -97,7 +69,7 @@ const EntityDescriptionEditor: React.FC<EntityDescriptionEditorProps> = ({
                     />
                 )}
 
-                {!loading && !autocompleteEnabled && !filepathSuggestionsEnabled && (
+                {!loading && !filepathSuggestionsEnabled && (
                     <ResizingTextInput
                         id="description-area"
                         value={localDescription}
@@ -106,28 +78,6 @@ const EntityDescriptionEditor: React.FC<EntityDescriptionEditorProps> = ({
                     />
                 )}
 
-                <div className="absolute bottom-7 right-1">
-                    <VoiceChat
-                        disabled={disabled || loading}
-                        onVoiceInput={handleVoiceInput}
-                        shouldDisplayRewriteDialog={true}
-                        existingDescription={localDescription}
-                        hasActiveSubscription={hasSubscription}
-                        data-tooltip-id="description-voice-input"
-                        data-tooltip-place="bottom"
-                        data-tooltip-delay-show={500}
-                    />
-                </div>
-                {(!disabled || loading) && (
-                    <Tooltip
-                        id="description-voice-input"
-                        className="custom-tooltip"
-                    >
-                        <div className='flex flex-col'>
-                            <span className='text-xs text-muted-foreground'>Transcribe and rewrite</span>
-                        </div>
-                    </Tooltip>
-                )}
             </div>
         </div>
     );

@@ -12,8 +12,6 @@ import {
 import { deleteTask as apiDeleteTask } from '#api/tasks';
 import { deleteChecklistItem as apiDeleteChecklistItem } from '#api/checklistItems';
 import { InitiativeDto, InitiativeStatus, EntityType } from '#types';
-import { useAiChat } from '#hooks/useAiChat';
-import { LENS } from '#types';
 import { InitiativesMutationOperations, InitiativeFilters, InitiativeMutationContext } from './types';
 import { SafeStorage } from '#hooks/useUserPreferences';
 import { trackFirstInitiativeCreated } from '#services/tracking/onboarding';
@@ -33,12 +31,6 @@ export function useInitiativesMutations(
   reloadInitiatives?: () => void
 ): InitiativesMutationOperations {
   const queryClient = useQueryClient();
-
-  // Initialize AI chat hook for context cleanup
-  const { removeEntityFromContext } = useAiChat({
-    lens: LENS.INITIATIVES,
-    currentEntity: null
-  });
 
   // Build the main query key
   const queryKey = ['initiatives', filters ?? {}];
@@ -185,12 +177,6 @@ export function useInitiativesMutations(
     updateCacheWithServerResponse: (_, initiativeId) => {
       queryClient.removeQueries({ queryKey: ['initiatives', { id: initiativeId }] });
       queryClient.removeQueries({ queryKey: ['orderings', { entityType: EntityType.INITIATIVE, entityId: initiativeId }] });
-
-      try {
-        removeEntityFromContext(initiativeId);
-      } catch (error) {
-        console.error('[useInitiativesMutations] Failed to remove initiative from AI chat context:', error);
-      }
     },
 
     captureContext: (initiativeId) => {
@@ -239,14 +225,8 @@ export function useInitiativesMutations(
     mutationFn: async (taskId) => {
       await apiDeleteTask(taskId);
     },
-    onSuccess: (_, taskId) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['initiatives'] });
-
-      try {
-        removeEntityFromContext(taskId);
-      } catch (error) {
-        console.error('[useInitiativesMutations] Failed to remove task from AI chat context:', error);
-      }
     },
   });
 
