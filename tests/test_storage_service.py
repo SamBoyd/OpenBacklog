@@ -1,8 +1,10 @@
 import hashlib
+import tempfile
+from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
-from hamcrest import assert_that, equal_to
+from hamcrest import assert_that, equal_to, raises
 
 from src import storage_service
 from src.config import settings
@@ -69,3 +71,65 @@ def test_can_upload_a_profile_picture_for_a_user():
             settings.r2_profile_picture_bucket_name,
             "05db73715990652447f1476a4f3b99c1.png",
         )
+
+
+def test_use_local_storage_returns_true_when_cloudflare_not_configured():
+    with patch("src.storage_service.settings.cloudflare_account_id", ""):
+        assert_that(storage_service._use_local_storage(), equal_to(True))
+
+
+def test_use_local_storage_returns_false_when_cloudflare_configured():
+    with patch("src.storage_service.settings.cloudflare_account_id", "test-account-id"):
+        assert_that(storage_service._use_local_storage(), equal_to(False))
+
+
+def test_upload_profile_picture_creates_directory_and_writes_file_locally():
+    user_id = "user123"
+    file_content = b"fake image data"
+    file = MagicMock()
+    file.read.return_value = file_content
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        test_uploads_dir = Path(tmpdir) / "uploads" / "profile_pictures"
+        with patch("src.storage_service.LOCAL_UPLOADS_DIR", test_uploads_dir):
+            with patch("src.storage_service.settings.cloudflare_account_id", ""):
+                filename = storage_service.upload_profile_picture(user_id, file)
+
+                expected_filename = "05db73715990652447f1476a4f3b99c1.png"
+                assert_that(filename, equal_to(expected_filename))
+                assert_that(test_uploads_dir.exists(), equal_to(True))
+                expected_filepath = test_uploads_dir / expected_filename
+                assert_that(expected_filepath.exists(), equal_to(True))
+                assert_that(expected_filepath.read_bytes(), equal_to(file_content))
+
+
+def test_get_profile_picture_returns_local_path():
+    filename = "05db73715990652447f1476a4f3b99c1.png"
+    file_content = b"fake image data"
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        test_uploads_dir = Path(tmpdir) / "uploads" / "profile_pictures"
+        test_uploads_dir.mkdir(parents=True, exist_ok=True)
+        test_filepath = test_uploads_dir / filename
+        test_filepath.write_bytes(file_content)
+
+        with patch("src.storage_service.LOCAL_UPLOADS_DIR", test_uploads_dir):
+            with patch("src.storage_service.settings.cloudflare_account_id", ""):
+                result_path = storage_service.get_profile_picture(filename)
+
+                assert_that(result_path, equal_to(str(test_filepath)))
+
+
+def test_get_profile_picture_raises_error_when_file_not_found():
+    filename = "nonexistent.png"
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        test_uploads_dir = Path(tmpdir) / "uploads" / "profile_pictures"
+        test_uploads_dir.mkdir(parents=True, exist_ok=True)
+
+        with patch("src.storage_service.LOCAL_UPLOADS_DIR", test_uploads_dir):
+            with patch("src.storage_service.settings.cloudflare_account_id", ""):
+                assert_that(
+                    lambda: storage_service.get_profile_picture(filename),
+                    raises(FileNotFoundError),
+                )

@@ -122,6 +122,7 @@ services:
       - static_site_domain=${static_site_domain}
     volumes:
       - ${CLUSTER_NAME:-dev}-secrets:/app/secrets
+      - ${CLUSTER_NAME:-dev}-uploads:/app/uploads
       # Preserve build artifacts from Docker image (more specific mounts take precedence)
       - /app/static/react-components
     depends_on:
@@ -214,24 +215,28 @@ volumes:
   dev-postgres-data-memory:
   dev-postgres-data-litellm:
   dev-litellm-data:
+  dev-uploads:
 
   # Agent cluster 1 data volumes
   agent-1-postgres-data:
   agent-1-postgres-data-memory:
   agent-1-postgres-data-litellm:
   agent-1-litellm-data:
+  agent-1-uploads:
 
   # Agent cluster 2 data volumes
   agent-2-postgres-data:
   agent-2-postgres-data-memory:
   agent-2-postgres-data-litellm:
   agent-2-litellm-data:
+  agent-2-uploads:
 
   # Agent cluster 3 data volumes
   agent-3-postgres-data:
   agent-3-postgres-data-memory:
   agent-3-postgres-data-litellm:
   agent-3-litellm-data:
+  agent-3-uploads:
 
   # Secrets volumes (pre-defined for each cluster)
   # These store encrypted credentials and API keys
