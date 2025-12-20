@@ -34,7 +34,7 @@ git clone https://github.com/openbacklog/openbacklog.git
 cd openbacklog
 
 # Start the services
-docker-compose up
+docker-compose --env-file .env.development up
 
 # Access the app
 open http://localhost:8000
