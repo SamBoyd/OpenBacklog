@@ -16,11 +16,12 @@ def test_discover_commands():
     """Test that discover_commands finds available commands."""
     commands = discover_commands()
 
-    # Verify we have at least the process_jobs command
+    # Verify we have at least one command
     assert_that(commands, has_length(greater_than(0)))
-    assert_that("process_jobs" in commands, equal_to(True))
+    assert_that("cleanup_mcp_tokens" in commands, equal_to(True))
     assert_that(
-        commands["process_jobs"], equal_to("src.management.commands.process_jobs")
+        commands["cleanup_mcp_tokens"],
+        equal_to("src.management.commands.cleanup_mcp_tokens"),
     )
 
 
