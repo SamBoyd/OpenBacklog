@@ -152,7 +152,10 @@ from src.api import *
 
 # Auth views removed - now handled by the new auth module
 from src.error_views import *
-from src.github_app.views import *
+
+if settings.github_app_id:
+    from src.github_app.views import *
+
 from src.initiative_management.views import *
 
 # --- Other Application Imports ---
