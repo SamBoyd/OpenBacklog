@@ -134,11 +134,13 @@ class TestGetRepositoriesTemplate:
 
 class TestInstallGithubAppRedirect:
     def test_install_github_app_redirect(self):
+        from src.config import settings
+
         response = install_github_app_redirect()
         assert_that(response.status_code, equal_to(307))
 
         expected_url = (
-            "https://github.com/apps/samboyd-taskmanagement-dev/installations/new"
+            f"https://github.com/apps/{settings.github_app_name}/installations/new"
         )
         assert_that(response.headers.get("Location"), equal_to(expected_url))
 

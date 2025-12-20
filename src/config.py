@@ -17,8 +17,6 @@ load_dotenv(ENV_FILE)
 class Settings(BaseSettings):
     environment: str
 
-    log_prompts: bool = Field(default=False)
-
     static_site_url: str
     static_site_domain: str
 
@@ -35,7 +33,6 @@ class Settings(BaseSettings):
     database_app_user_password: str
     database_url: str = Field(default="")
     async_database_url: str = Field(default="")
-    memory_database_url: str
 
     # Auth0 settings (optional - only required if using Auth0 provider)
     auth0_application_id: str = Field(default="")
@@ -79,29 +76,28 @@ class Settings(BaseSettings):
     postgrest_anonymous__role: str
     postgrest_authenticated_role: str
 
-    cloudflare_account_id: str
-    r2_access_key_id: str
-    r2_secret_access_key: str
-    r2_profile_picture_bucket_name: str
+    # Storage (empty = local filesystem mode)
+    cloudflare_account_id: str = Field(default="")
+    r2_access_key_id: str = Field(default="")
+    r2_secret_access_key: str = Field(default="")
+    r2_profile_picture_bucket_name: str = Field(default="")
+    default_profile_picture: str = Field(default="")
 
-    default_profile_picture: str
+    # GitHub (empty = feature disabled)
+    github_app_id: str = Field(default="")
+    github_app_name: str = Field(default="")
+    github_app_private_key: str = Field(default="")
+    github_webhook_secret: str = Field(default="")
 
-    github_app_id: str
-    github_app_name: str = Field(default="samboyd-taskmanagement-dev")
-    github_app_private_key: str
-    github_webhook_secret: str
-
-    tavily_api_key: str
-
-    sentry_url: str
+    sentry_url: str = Field(default="")
 
     internal_request_timeout: int = Field(default=15)
 
     csrf_token_name: str = Field(default="fastapi-csrf-token")
-    csrf_token_secret_key: str
+    csrf_token_secret_key: str = Field(default="dev-csrf-secret-change-in-production")
 
     # Development auth settings
-    dev_jwt_secret: str
+    dev_jwt_secret: str = Field(default="dev-jwt-secret-change-in-production")
     dev_jwt_algorithm: str = Field(default="HS256")
     dev_jwt_lifetime_seconds: int = Field(default=3600)
     dev_jwt_oauth_account_name: str = Field(default="dev-oauth-account")
