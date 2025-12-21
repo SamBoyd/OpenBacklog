@@ -7,10 +7,18 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import text
 
-from src.models import Base, PrivateBase
+from src.db import Base
 
 if TYPE_CHECKING:
     from src.models import GitHubInstallation
+
+
+class PrivateBase:
+    __abstract__ = True
+    __table_args__ = {"schema": "private"}
+
+    def __init__(self, **kwargs):  # type: ignore
+        super().__init__(**kwargs)
 
 
 class RepositoryFileIndex(PrivateBase, Base):
