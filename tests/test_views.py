@@ -6,7 +6,6 @@ from fastapi.testclient import TestClient
 from fastapi_csrf_protect import CsrfProtect
 from hamcrest import assert_that, contains_string, equal_to, has_entries, is_
 
-from src.config import settings
 from src.main import app
 from src.models import OAuthAccount, User
 from src.views import dependency_to_override
@@ -27,10 +26,21 @@ def test_healthcheck(test_client: TestClient):
     assert_that(response.json(), has_entries({"status": "ok"}))
 
 
-def test_read_root(test_client: TestClient):
+def test_read_root_unauthenticated_shows_landing_page(test_client_no_user: TestClient):
+    response = test_client_no_user.get("/", follow_redirects=False)
+    assert_that(response.status_code, equal_to(200))
+    assert_that(response.text, contains_string("OpenBacklog"))
+    assert_that(response.text, contains_string("Sign in"))
+
+
+@patch("src.views.main_auth_module.get_current_user")
+def test_read_root_authenticated_redirects_to_workspace(
+    mock_get_current_user, user: User, test_client: TestClient
+):
+    mock_get_current_user.return_value = user
     response = test_client.get("/", follow_redirects=False)
     assert_that(response.status_code, equal_to(302))
-    assert_that(response.headers["location"], equal_to(settings.static_site_url))
+    assert_that(response.headers["location"], equal_to("/workspace"))
 
 
 def test_static_files(test_client: TestClient):

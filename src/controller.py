@@ -72,6 +72,14 @@ def get_react_app(request, user):
     )
 
 
+def get_landing_page(request, user=None):
+    return templates.TemplateResponse(
+        request,
+        "pages/landing_page.html",
+        {"user": user},
+    )
+
+
 def get_changelog_template(request, user):
     return templates.TemplateResponse(
         request,

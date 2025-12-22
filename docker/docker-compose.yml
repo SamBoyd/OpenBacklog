@@ -1,21 +1,4 @@
 services:
-  landing-page:
-    image: node:18-alpine
-    working_dir: /app
-    ports:
-      - "${LANDING_PAGE_PORT}:7777"
-    volumes:
-      - ../../openbacklog-landing-page:/app
-    entrypoint: ["sh", "-c"]
-    command: >
-      "npm install && npm run dev"
-    environment:
-      - NODE_ENV=development
-      - APP_DOMAIN=${app_domain}
-      - AUTH_ENDPOINT=${app_url}
-    networks:
-      - app-network
-
   nginx:
     image: nginx:stable-alpine
     ports:
@@ -24,15 +7,13 @@ services:
       - ./nginx.conf.template:/etc/nginx/conf.d/default.conf.template:ro
     environment:
       - APP_DOMAIN=${app_domain}
-      - LANDING_PAGE_DOMAIN=${landing_page_domain}
       - DOCKER_NETWORK_NAME=${DOCKER_NETWORK_NAME}
     entrypoint: /bin/sh
     command: -c "
       CLUSTER_NAME=$${DOCKER_NETWORK_NAME%%-net} &&
       echo 'APP_DOMAIN=${app_domain}' &&
-      echo 'LANDING_PAGE_DOMAIN=${static_site_domain}' &&
       echo 'CLUSTER_NAME='$$CLUSTER_NAME &&
-      sed -e 's|@APP_DOMAIN@|${app_domain}|g' -e 's|@LANDING_PAGE_DOMAIN@|${static_site_domain}|g' -e 's|@CLUSTER_NAME@|'$$CLUSTER_NAME'|g' /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf &&
+      sed -e 's|@APP_DOMAIN@|${app_domain}|g' -e 's|@CLUSTER_NAME@|'$$CLUSTER_NAME'|g' /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf &&
       echo '=== Rendered nginx config ===' &&
       cat /etc/nginx/conf.d/default.conf &&
       echo '=== Testing nginx config ===' &&
@@ -42,7 +23,6 @@ services:
       "
     depends_on:
       - fastapi
-      - landing-page
     networks:
       - app-network
     healthcheck:
@@ -60,66 +40,12 @@ services:
         - CLUSTER_NAME=${CLUSTER_NAME}
     ports:
       - "${FASTAPI_PORT}:8000"
+    env_file:
+      - ../.env.development
     environment:
-      # Database connection strings - match lowercase as expected in Settings class
-      - database_name=${database_name}
-      - database_app_user_username=${database_app_user_username}
-      - database_app_user_password=${database_app_user_password}
-      - database_url=${database_url}
-      - async_database_url=${async_database_url}
-      # Application settings - match lowercase as expected in Settings class
-      - environment=${environment}
-      - app_url=${app_url}
-      - app_domain=${app_domain}
-      # Development auth settings - match lowercase as expected in Settings class
-      - dev_jwt_secret=${dev_jwt_secret:-dev-secret-key}
-      - dev_jwt_algorithm=${dev_jwt_algorithm:-HS256}
-      - dev_jwt_lifetime_seconds=${dev_jwt_lifetime_seconds:-3600}
-      - dev_user_email=${dev_user_email:-dev@localhost}
-      - dev_user_password=${dev_user_password:-devpassword}
-      # Auth0 configuration - match lowercase as expected in Settings class
-      - auth0_application_id=${auth0_application_id}
-      - auth0_audience=${auth0_audience}
-      - auth0_client_id=${auth0_client_id}
-      - auth0_client_secret=${auth0_client_secret}
-      - auth0_domain=${auth0_domain}
-      - cookie_lifetime_seconds=${cookie_lifetime_seconds}
-      - auth0_login_cookie_name=${auth0_login_cookie_name}
-      - auth0_jwt_cookie_name=${auth0_jwt_cookie_name}
-      - auth0_refresh_token_cookie_name=${auth0_refresh_token_cookie_name}
-      # Postgrest roles - match lowercase as expected in Settings class
-      - postgrest_authenticator__role=${postgrest_authenticator__role}
-      - postgrest_anonymous__role=${postgrest_anonymous__role}
-      - postgrest_authenticated_role=${postgrest_authenticated_role}
-      - postgrest_authenticator__password=${postgrest_authenticator__password}
-      # Cloudflare R2 storage - match lowercase as expected in Settings class
-      - cloudflare_account_id=${cloudflare_account_id}
-      - r2_access_key_id=${r2_access_key_id}
-      - r2_secret_access_key=${r2_secret_access_key}
-      - r2_profile_picture_bucket_name=${r2_profile_picture_bucket_name}
-      - default_profile_picture=${default_profile_picture}
-      # GitHub integration - match lowercase as expected in Settings class
-      - github_app_id=${github_app_id}
-      - github_app_private_key=${github_app_private_key}
-      - github_webhook_secret=${github_webhook_secret}
-      # Vault integration - match lowercase as expected in Settings class
-      - vault_type=${vault_type:-file}
-      - vault_url=${vault_url}
-      - vault_cert_path=${vault_cert_path}
-      - vault_cert_key_path=${vault_cert_key_path}
-      - vault_role_id_path=${vault_role_id_path}
-      - vault_secret_id_path=${vault_secret_id_path}
-      - vault_verify_cert=${vault_verify_cert}
-      - secrets_dir=${secrets_dir:-/app/secrets}
-      - sentry_url=${sentry_url}
-      - csrf_token_name=${csrf_token_name}
-      - csrf_token_value=${csrf_token_value}
-      - OPENMETER_API_ENDPOINT=${OPENMETER_API_ENDPOINT}
-      - OPENMETER_API_KEY=${OPENMETER_API_KEY}
-      - auth_provider=dev
-      - allow_new_signups=${allow_new_signups}
-      - static_site_url=${static_site_url}
-      - static_site_domain=${static_site_domain}
+      # Computed database URLs that reference Docker service hostname
+      - database_url=postgresql://${database_app_user_username}:${database_app_user_password}@postgres:5432/${database_name}
+      - async_database_url=postgresql+asyncpg://${database_app_user_username}:${database_app_user_password}@postgres:5432/${database_name}
     volumes:
       - ${CLUSTER_NAME:-dev}-secrets:/app/secrets
       - ${CLUSTER_NAME:-dev}-uploads:/app/uploads
@@ -143,20 +69,11 @@ services:
     image: postgrest/postgrest:v12.2.8
     ports:
       - "${POSTGREST_PORT}:3000"
+    env_file:
+      - ../.env.development
     environment:
-      # Use variables sourced from .env
+      # Computed connection string that references Docker service hostname
       - PGRST_DB_URI=postgres://${postgrest_authenticator__role}:${postgrest_authenticator__password}@postgres:5432/${POSTGRES_DB}
-      - PGRST_DB_SCHEMAS=${POSTGRES_DB_PRIVATE_SCHEMA}
-      - PGRST_DB_ANON_ROLE=${POSTGRES_ANONYMOUS_ROLE}
-      # valid access token check
-      - PGRST_DB_PRE_REQUEST=dev.verify_token
-      # Default to production-safe values if not overridden by .env
-      - PGRST_OPENAPI_MODE=ignore-privileges
-      # JWT settings - use dev JWT secret when dev auth is enabled
-      - PGRST_JWT_SECRET=${dev_jwt_secret:-dev-secret-key}
-      - PGRST_JWT_ROLE_CLAIM_KEY=${POSTGREST_JWT_ROLE_CLAIM_KEY}
-      # Logging and other settings
-      - PGRST_LOG_LEVEL=debug
 
     depends_on:
       postgres:
@@ -165,23 +82,15 @@ services:
       - app-network
 
   postgres:
-    image: postgres:16 # Pinned version
-    # set shared memory limit when using docker-compose
+    image: postgres:16
     ports:
       - "${POSTGRES_PORT}:5432"
     shm_size: 128mb
     volumes:
       - ${CLUSTER_NAME:-dev}-postgres-data:/var/lib/postgresql/data
       - ./postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql
-    environment:
-      # Use variables sourced from .env
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGREST_ANONYMOUS__ROLE=${postgrest_anonymous__role}
-      - POSTGREST_AUTHENTICATED_ROLE=${postgrest_authenticated_role}
-      - POSTGREST_AUTHENTICATOR__ROLE=${postgrest_authenticator__role}
-      - POSTGRES_DB_PRIVATE_SCHEMA=${postgres_db_private_schema:-private}
+    env_file:
+      - ../.env.development
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}"]
       interval: 5s
@@ -205,37 +114,25 @@ volumes:
   #   - agent-2-postgres-data (agent cluster 2)
   #   - etc.
   #
-  # Data volumes (postgres, litellm) are declared for all supported clusters.
+  # Data volumes (postgres) are declared for all supported clusters.
   # Secrets volumes are pre-defined for each cluster to ensure file permissions
   # and isolation. Applications mount these volumes at /app/secrets.
   # ============================================================================
 
   # Primary "dev" cluster data volumes
   dev-postgres-data:
-  dev-postgres-data-memory:
-  dev-postgres-data-litellm:
-  dev-litellm-data:
   dev-uploads:
 
   # Agent cluster 1 data volumes
   agent-1-postgres-data:
-  agent-1-postgres-data-memory:
-  agent-1-postgres-data-litellm:
-  agent-1-litellm-data:
   agent-1-uploads:
 
   # Agent cluster 2 data volumes
   agent-2-postgres-data:
-  agent-2-postgres-data-memory:
-  agent-2-postgres-data-litellm:
-  agent-2-litellm-data:
   agent-2-uploads:
 
   # Agent cluster 3 data volumes
   agent-3-postgres-data:
-  agent-3-postgres-data-memory:
-  agent-3-postgres-data-litellm:
-  agent-3-litellm-data:
   agent-3-uploads:
 
   # Secrets volumes (pre-defined for each cluster)

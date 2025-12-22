@@ -76,7 +76,6 @@ COPY docker/ ./docker/
 
 # Copy static assets (excluding react-components source - we get build from react-builder)
 COPY static/css/ ./static/css/
-COPY static/landing_page/ ./static/landing_page/
 COPY static/github-mark/ ./static/github-mark/
 COPY static/*.png ./static/
 COPY static/*.svg ./static/

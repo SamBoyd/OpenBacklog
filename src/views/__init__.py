@@ -49,18 +49,16 @@ async def healthcheck() -> JSONResponse:
 
 
 # === Routes not requiring being logged in  ===
-@app.get("/", response_class=FileResponse)
-async def serve_react_app(
-    request: Request, db: Session = Depends(get_db)
-) -> RedirectResponse:
+@app.get("/", response_class=HTMLResponse, response_model=None)
+async def serve_react_app(request: Request, db: Session = Depends(get_db)):
     # Check if user is authenticated
     user = await main_auth_module.get_current_user(request, db, None)  # type: ignore
 
     if not user:
-        # User is not authenticated, redirect to landing page
-        return RedirectResponse(url=settings.static_site_url, status_code=302)
+        # User is not authenticated, serve the landing page
+        return controller.get_landing_page(request)
 
-    # User is authenticated, serve the original landing page template or redirect to workspace
+    # User is authenticated, redirect to workspace
     return RedirectResponse(url="/workspace", status_code=302)
 
 
