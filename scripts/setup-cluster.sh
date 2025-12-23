@@ -116,20 +116,18 @@ calculate_ports() {
     local cluster_number="$1"
 
     # Port calculation:
-    # Primary (0):  Nginx=80, FastAPI=8000, PostgREST=3000, Postgres=5433, Memory=5434, LiteLLM_DB=5435, LiteLLM=4000, Landing=7777
-    # Agent-1 (1):  Nginx=81, FastAPI=8001, PostgREST=3001, Postgres=5436, Memory=5437, LiteLLM_DB=5438, LiteLLM=4001, Landing=7778
-    # Agent-2 (2):  Nginx=82, FastAPI=8002, PostgREST=3002, Postgres=5439, Memory=5440, LiteLLM_DB=5441, LiteLLM=4002, Landing=7779
+    # Primary (0):  FastAPI=8000, PostgREST=3000, Postgres=5433, Memory=5434, LiteLLM_DB=5435, LiteLLM=4000
+    # Agent-1 (1):  FastAPI=8001, PostgREST=3001, Postgres=5436, Memory=5437, LiteLLM_DB=5438, LiteLLM=4001
+    # Agent-2 (2):  FastAPI=8002, PostgREST=3002, Postgres=5439, Memory=5440, LiteLLM_DB=5441, LiteLLM=4002
 
-    local nginx_port=$((80 + cluster_number))
     local fastapi_port=$((8000 + cluster_number))
     local postgrest_port=$((3000 + cluster_number))
     local postgres_port=$((5433 + cluster_number * 3))
     local postgres_memory_port=$((5434 + cluster_number * 3))
     local postgres_litellm_port=$((5435 + cluster_number * 3))
     local litellm_port=$((4000 + cluster_number))
-    local landing_page_port=$((7777 + cluster_number))
 
-    echo "$nginx_port $fastapi_port $postgrest_port $postgres_port $postgres_memory_port $postgres_litellm_port $litellm_port $landing_page_port"
+    echo "$fastapi_port $postgrest_port $postgres_port $postgres_memory_port $postgres_litellm_port $litellm_port"
 }
 
 # ============================================================================
@@ -143,34 +141,30 @@ generate_cluster_env() {
     local output_file="$4"
 
     # Read ports
-    read -r nginx_port fastapi_port postgrest_port postgres_port postgres_memory_port postgres_litellm_port litellm_port landing_page_port <<< "$(calculate_ports "$cluster_number")"
+    read -r fastapi_port postgrest_port postgres_port postgres_memory_port postgres_litellm_port litellm_port <<< "$(calculate_ports "$cluster_number")"
 
-    # Calculate PostgREST URL for Docker builds (used by Dockerfile as build arg)
-    local postgrest_url="http://localhost:${postgrest_port}/rest"
+    # Calculate PostgREST URL for Docker builds (direct access, no nginx proxy)
+    local postgrest_url="http://localhost:${postgrest_port}"
 
     # Determine app_domain and related settings
     local docker_network_name="${cluster_name}-net"
 
     if [ "$cluster_type" == "primary" ]; then
         app_domain="dev.openbacklog.ai"
-        app_url="http://dev.openbacklog.ai"
-        static_site_url="http://www.dev.openbacklog.ai"
-        static_site_domain="www.dev.openbacklog.ai"
+        app_url="http://localhost:$fastapi_port"
+        static_site_url="http://localhost:$fastapi_port"
+        static_site_domain="localhost"
     else
-        # Note: app_domain and static_site_domain are used in nginx server_name directives
-        # and must NOT include ports. Nginx matches on hostname only; the port is matched
-        # via the listen directive and docker port mapping.
         app_domain="agent-$cluster_number.openbacklog.ai"
-        app_url="http://agent-$cluster_number.openbacklog.ai:$nginx_port"
-        static_site_url="http://www.agent-$cluster_number.openbacklog.ai:$nginx_port"
-        static_site_domain="www.agent-$cluster_number.openbacklog.ai"
+        app_url="http://localhost:$fastapi_port"
+        static_site_url="http://localhost:$fastapi_port"
+        static_site_domain="localhost"
     fi
 
     # Copy template and replace cluster-specific variables
     cp "$TEMPLATE_FILE" "$output_file"
 
     # Replace cluster-specific port variables
-    sed -i.bak "s/^NGINX_PORT=.*/NGINX_PORT=$nginx_port/" "$output_file"
     sed -i.bak "s/^FASTAPI_PORT=.*/FASTAPI_PORT=$fastapi_port/" "$output_file"
     sed -i.bak "s/^POSTGREST_PORT=.*/POSTGREST_PORT=$postgrest_port/" "$output_file"
     sed -i.bak "s|^POSTGREST_URL=.*|POSTGREST_URL=$postgrest_url|" "$output_file"
@@ -178,7 +172,6 @@ generate_cluster_env() {
     sed -i.bak "s/^POSTGRES_MEMORY_PORT=.*/POSTGRES_MEMORY_PORT=$postgres_memory_port/" "$output_file"
     sed -i.bak "s/^POSTGRES_LITELLM_PORT=.*/POSTGRES_LITELLM_PORT=$postgres_litellm_port/" "$output_file"
     sed -i.bak "s/^LITELLM_PORT=.*/LITELLM_PORT=$litellm_port/" "$output_file"
-    sed -i.bak "s/^LANDING_PAGE_PORT=.*/LANDING_PAGE_PORT=$landing_page_port/" "$output_file"
 
     # Replace Docker network name
     sed -i.bak "s/^DOCKER_NETWORK_NAME=.*/DOCKER_NETWORK_NAME=$docker_network_name/" "$output_file"
@@ -273,7 +266,7 @@ print_cluster_summary() {
     local cluster_type="$2"
     local cluster_number="$3"
 
-    read -r nginx_port fastapi_port postgrest_port postgres_port postgres_memory_port postgres_litellm_port litellm_port landing_page_port <<< "$(calculate_ports "$cluster_number")"
+    read -r fastapi_port postgrest_port postgres_port postgres_memory_port postgres_litellm_port litellm_port <<< "$(calculate_ports "$cluster_number")"
 
     print_header "Cluster Configuration Summary"
 
@@ -282,28 +275,18 @@ print_cluster_summary() {
     echo -e "Docker Network:   ${YELLOW}${cluster_name}-net${NC}"
     echo ""
 
-    if [ "$cluster_type" == "primary" ]; then
-        echo -e "Access URLs (Primary Cluster - Port 80, no port needed in URL):"
-        echo -e "  FastAPI API:      ${GREEN}http://dev.openbacklog.ai${NC}"
-        echo -e "  Landing Page:     ${GREEN}http://www.dev.openbacklog.ai${NC}"
-        echo -e "  PostgREST (int):  ${GREEN}http://localhost:$postgrest_port${NC}"
-    else
-        echo -e "Access URLs (Agent Cluster - Port required in URL):"
-        echo -e "  FastAPI API:      ${GREEN}http://localhost:$fastapi_port${NC}"
-        echo -e "  Landing Page:     ${GREEN}http://localhost:$landing_page_port${NC}"
-        echo -e "  PostgREST (int):  ${GREEN}http://localhost:$postgrest_port${NC}"
-    fi
+    echo -e "Access URLs:"
+    echo -e "  FastAPI API:      ${GREEN}http://localhost:$fastapi_port${NC}"
+    echo -e "  PostgREST:        ${GREEN}http://localhost:$postgrest_port${NC}"
 
     echo ""
     echo -e "Port Mappings (External):"
-    echo -e "  Nginx:            ${BLUE}$nginx_port${NC}"
     echo -e "  FastAPI:          ${BLUE}$fastapi_port${NC}"
     echo -e "  PostgREST:        ${BLUE}$postgrest_port${NC}"
     echo -e "  PostgreSQL:       ${BLUE}$postgres_port${NC}"
     echo -e "  PostgreSQL Memory: ${BLUE}$postgres_memory_port${NC}"
     echo -e "  PostgreSQL LiteLLM: ${BLUE}$postgres_litellm_port${NC}"
     echo -e "  LiteLLM Proxy:    ${BLUE}$litellm_port${NC}"
-    echo -e "  Landing Page:     ${BLUE}$landing_page_port${NC}"
     echo ""
 
     echo -e "Database Names:"
@@ -334,19 +317,17 @@ check_port_available() {
 verify_ports_available() {
     local cluster_number="$1"
 
-    read -r nginx_port fastapi_port postgrest_port postgres_port postgres_memory_port postgres_litellm_port litellm_port landing_page_port <<< "$(calculate_ports "$cluster_number")"
+    read -r fastapi_port postgrest_port postgres_port postgres_memory_port postgres_litellm_port litellm_port <<< "$(calculate_ports "$cluster_number")"
 
     print_header "Checking Port Availability"
 
     local ports_ok=true
-    check_port_available "$nginx_port" "Nginx" || ports_ok=false
     check_port_available "$fastapi_port" "FastAPI" || ports_ok=false
     check_port_available "$postgrest_port" "PostgREST" || ports_ok=false
     check_port_available "$postgres_port" "PostgreSQL" || ports_ok=false
     check_port_available "$postgres_memory_port" "PostgreSQL Memory" || ports_ok=false
     check_port_available "$postgres_litellm_port" "PostgreSQL LiteLLM" || ports_ok=false
     check_port_available "$litellm_port" "LiteLLM" || ports_ok=false
-    check_port_available "$landing_page_port" "Landing Page" || ports_ok=false
 
     if [ "$ports_ok" = true ]; then
         print_success "All ports are available"

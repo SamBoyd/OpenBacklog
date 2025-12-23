@@ -1,37 +1,4 @@
 services:
-  nginx:
-    image: nginx:stable-alpine
-    ports:
-      - "${NGINX_PORT}:80"
-    volumes:
-      - ./nginx.conf.template:/etc/nginx/conf.d/default.conf.template:ro
-    environment:
-      - APP_DOMAIN=${app_domain}
-      - DOCKER_NETWORK_NAME=${DOCKER_NETWORK_NAME}
-    entrypoint: /bin/sh
-    command: -c "
-      CLUSTER_NAME=$${DOCKER_NETWORK_NAME%%-net} &&
-      echo 'APP_DOMAIN=${app_domain}' &&
-      echo 'CLUSTER_NAME='$$CLUSTER_NAME &&
-      sed -e 's|@APP_DOMAIN@|${app_domain}|g' -e 's|@CLUSTER_NAME@|'$$CLUSTER_NAME'|g' /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf &&
-      echo '=== Rendered nginx config ===' &&
-      cat /etc/nginx/conf.d/default.conf &&
-      echo '=== Testing nginx config ===' &&
-      nginx -t &&
-      echo '=== Starting nginx ===' &&
-      nginx -g 'daemon off;'
-      "
-    depends_on:
-      - fastapi
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/healthcheck"]
-      interval: 5s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
   fastapi:
     build:
       context: ..
