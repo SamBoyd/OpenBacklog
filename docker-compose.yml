@@ -17,11 +17,7 @@ services:
     volumes:
       - ${CLUSTER_NAME:-dev}-secrets:/app/secrets
       - ${CLUSTER_NAME:-dev}-uploads:/app/uploads
-      # Preserve build artifacts from Docker image (more specific mounts take precedence)
-      - /app/static/react-components
     depends_on:
-      # litellm_proxy:
-      #   condition: service_healthy
       postgres:
         condition: service_healthy
     networks:
