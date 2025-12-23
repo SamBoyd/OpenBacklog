@@ -89,7 +89,8 @@ COPY .env* ./
 # Build argument for cluster name (used to load .env.cluster-{name})
 ARG CLUSTER_NAME=dev
 ENV CLUSTER_NAME=$CLUSTER_NAME
-COPY .env.cluster-${CLUSTER_NAME} .env
+COPY .env.cluster-${CLUSTER_NAME}* .env
+COPY .env.development* .env
 
 # Build the static assets
 RUN npm install

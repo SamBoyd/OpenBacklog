@@ -1,14 +1,15 @@
+name: openbacklog
+
 services:
   fastapi:
     build:
-      context: ..
       dockerfile: docker/fastapi.Dockerfile
       args:
         - CLUSTER_NAME=${CLUSTER_NAME}
     ports:
       - "${FASTAPI_PORT}:8000"
     env_file:
-      - ../.env.development
+      - .env.development
     environment:
       # Computed database URLs that reference Docker service hostname
       - database_url=postgresql://${database_app_user_username}:${database_app_user_password}@postgres:5432/${database_name}
@@ -37,7 +38,7 @@ services:
     ports:
       - "${POSTGREST_PORT}:3000"
     env_file:
-      - ../.env.development
+      - .env.development
     environment:
       # Computed connection string that references Docker service hostname
       - PGRST_DB_URI=postgres://${postgrest_authenticator__role}:${postgrest_authenticator__password}@postgres:5432/${POSTGRES_DB}
@@ -55,9 +56,9 @@ services:
     shm_size: 128mb
     volumes:
       - ${CLUSTER_NAME:-dev}-postgres-data:/var/lib/postgresql/data
-      - ./postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql
     env_file:
-      - ../.env.development
+      - .env.development
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}"]
       interval: 5s
