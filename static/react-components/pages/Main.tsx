@@ -46,9 +46,9 @@ const Layout: React.FC = () => {
     return (
         <AppBackground>
             <div className="inset-0 flex flex-col h-screen w-screen">
-                {!isMobile && <NavBar />}
+                <NavBar />
                 <ResponsiveLayout>
-                    <div className="relative w-full"><Outlet /></div>
+                    <Outlet />
                 </ResponsiveLayout>
             </div>
         </AppBackground>

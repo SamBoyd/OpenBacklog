@@ -156,7 +156,7 @@ export function RoadmapOverview() {
 
       {/* Main Content - List View */}
       {currentView === 'list' && (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1">
           <RoadmapListView
             prioritizedThemes={filteredPrioritizedThemes}
             unprioritizedThemes={filteredUnprioritizedThemes}
@@ -169,7 +169,7 @@ export function RoadmapOverview() {
       )}
 
       {currentView === 'timeline' && (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1">
           <RoadmapTimelineView
             themes={allFilteredThemes}
             isLoading={isLoading}
@@ -180,7 +180,7 @@ export function RoadmapOverview() {
       )}
 
       {currentView === 'calendar' && (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1">
           <RoadmapCalendarView
             themes={allFilteredThemes}
             isLoading={isLoading}

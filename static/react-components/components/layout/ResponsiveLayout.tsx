@@ -8,5 +8,5 @@ interface ResponsiveLayoutProps {
  * ResponsiveLayout renders the main content area in a single-column layout.
  */
 export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({ children }) => {
-    return <div className="w-full h-full">{children}</div>;
+    return <div className="w-full h-full max-w-7xl mx-auto overflow-y-auto">{children}</div>;
 }
