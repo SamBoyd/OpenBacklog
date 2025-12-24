@@ -99,12 +99,17 @@ volumes:
   agent-3-postgres-data:
   agent-3-uploads:
 
+  # Long-living cluster data volumes (for dog-fooding)
+  longliving-postgres-data:
+  longliving-uploads:
+
   # Secrets volumes (pre-defined for each cluster)
   # These store encrypted credentials and API keys
   dev-secrets:
   agent-1-secrets:
   agent-2-secrets:
   agent-3-secrets:
+  longliving-secrets:
 
 networks:
   app-network:
