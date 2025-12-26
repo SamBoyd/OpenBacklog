@@ -32,7 +32,6 @@ const NavBar = ({ enableNavigation = true }: NavBarProps) => {
             toggleTheme={toggleTheme}
             dashboardPath={'/workspace'}
             initiativesPath={'/workspace/initiatives'}
-            billingPath={'/workspace/billing'}
             supportPath={'/support'}
             accountPath={'/account'}
             roadmapPath={'/workspace/roadmap'}
