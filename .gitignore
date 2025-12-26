@@ -58,6 +58,9 @@ static/react-components/styles/tailwind.scss
 static/css/dist/
 vault/
 
+# Database backups
+backups/
+
 # dev tools
 .aider/
 .claude/
