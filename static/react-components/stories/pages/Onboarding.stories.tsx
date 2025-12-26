@@ -27,9 +27,6 @@ const mockOnboardCustomer = async () => {
     alert('Page will now navigate away from onboarding')
 }
 
-// Note: This story file is primarily for Pro features.
-// Community Edition onboarding is simplified.
-
 const mockAddWorkspace = async (workspace: Omit<WorkspaceDto, 'id'>): Promise<WorkspaceDto> => {
     await new Promise((resolve) => setTimeout(resolve, 3000));
     return mockWorkspace

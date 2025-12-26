@@ -19,7 +19,7 @@ interface AppGuardProps {
  * - Provides user-friendly error states and retry mechanisms
  */
 const AppGuard: React.FC<AppGuardProps> = ({ children }) => {
-  // Check onboarding status from localStorage cache (Community Edition)
+  // Check onboarding status from localStorage cache
   const { userIsOnboarded, isLoading: isAccountDetailsLoading } = useUserAccountDetails();
 
   const {
