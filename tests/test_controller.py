@@ -4,10 +4,10 @@ from unittest.mock import ANY, MagicMock, patch
 import pytest
 from fastapi.responses import HTMLResponse
 from freezegun import freeze_time
-from hamcrest import assert_that, contains_string, equal_to, is_, raises
+from hamcrest import assert_that, contains_string, equal_to, is_
 from starlette.datastructures import Headers, UploadFile
 
-from src.api import WorkspaceUpdate, get_display_pref
+from src.api import WorkspaceUpdate
 from src.config import settings
 from src.controller import (
     PARAMS_FOR_LOGIN_SCRIPT,
@@ -18,8 +18,6 @@ from src.controller import (
     get_changelog_template,
     get_profile_picture,
     get_react_app,
-    get_support_template,
-    update_display_pref,
     update_user,
     update_workspace,
     upload_profile_picture,
@@ -50,28 +48,6 @@ def test_get_changelog_template(mock_template_response, user):
     result = get_changelog_template(request, user)
     mock_template_response.assert_called_once_with(
         request, "pages/changelog.html", {"user": user, "request": request}
-    )
-    assert isinstance(result, HTMLResponse)
-
-
-@patch(
-    "src.main.templates.TemplateResponse", return_value=HTMLResponse("<html></html>")
-)
-def test_get_support_template(mock_template_response, user):
-    request = MagicMock()
-    result = get_support_template(request, user)
-    mock_template_response.assert_called_once_with(
-        request,
-        "pages/support.html",
-        {
-            "user": user,
-            "request": request,
-            "static_site_url": settings.static_site_url,
-            "support_email": settings.support_email_address,
-            "github_repo_url": settings.github_repo_url,
-            "discord_invite_link": settings.discord_invite_link,
-            "reddit_launch_thread_url": settings.reddit_launch_thread_url,
-        },
     )
     assert isinstance(result, HTMLResponse)
 

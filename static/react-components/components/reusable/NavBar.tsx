@@ -6,6 +6,9 @@ import { useUserPreferences } from '#hooks/useUserPreferences';
 export interface NavBarProps {
     enableNavigation?: boolean
 }
+
+const docsSiteUrl = process.env.DOCS_SITE_URL || ''
+
 const NavBar = ({ enableNavigation = true }: NavBarProps) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -32,7 +35,7 @@ const NavBar = ({ enableNavigation = true }: NavBarProps) => {
             toggleTheme={toggleTheme}
             dashboardPath={'/workspace'}
             initiativesPath={'/workspace/initiatives'}
-            supportPath={'/support'}
+            supportPath={`${docsSiteUrl}/support`}
             accountPath={'/account'}
             roadmapPath={'/workspace/roadmap'}
             storyBiblePath={'/workspace/story-bible'}

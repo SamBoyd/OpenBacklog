@@ -91,22 +91,6 @@ def get_changelog_template(request, user):
     )
 
 
-def get_support_template(request, user):
-    return templates.TemplateResponse(
-        request,
-        "pages/support.html",
-        {
-            "user": user,
-            "request": request,
-            "static_site_url": settings.static_site_url,
-            "support_email": settings.support_email_address,
-            "github_repo_url": settings.github_repo_url,
-            "discord_invite_link": settings.discord_invite_link,
-            "reddit_launch_thread_url": settings.reddit_launch_thread_url,
-        },
-    )
-
-
 def get_account_template(request, user: User, session: Session):
     workspaces = session.query(Workspace).filter(Workspace.user_id == user.id).all()
 

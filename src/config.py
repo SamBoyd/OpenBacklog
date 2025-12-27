@@ -117,11 +117,7 @@ class Settings(BaseSettings):
     # User signup control
     allow_new_signups: bool = Field(default=True)
 
-    # Support page settings
-    support_email_address: str = Field(default="support@openbacklog.ai")
-    github_repo_url: str = Field(default="https://github.com/samboyd/openbacklog")
-    discord_invite_link: str = Field(default="https://discord.gg/ZaK5e8wp")
-    reddit_launch_thread_url: str = Field(default="")
+    docs_site_url: str = Field(default="https://docs.openbacklog.ai")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

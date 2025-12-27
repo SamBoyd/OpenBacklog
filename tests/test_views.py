@@ -108,15 +108,6 @@ def test_changelog_controller_call(mock_controller, test_client: TestClient):
 
 
 @patch(
-    "src.controller.get_support_template",
-    return_value=JSONResponse({"message": "Dashboard"}),
-)
-def test_support_controller_call(mock_controller, test_client: TestClient):
-    test_client.get("/support")
-    mock_controller.assert_called_once()
-
-
-@patch(
     "src.controller.get_account_template",
     return_value=JSONResponse({"message": "Dashboard"}),
 )

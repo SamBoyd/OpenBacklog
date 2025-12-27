@@ -90,13 +90,6 @@ async def changelog(
     return controller.get_changelog_template(request, user)
 
 
-@app.get("/support", response_class=HTMLResponse)
-async def support(
-    request: Request, user=Depends(dependency_to_override)
-) -> HTMLResponse:
-    return controller.get_support_template(request, user)
-
-
 @app.get("/account", response_class=HTMLResponse)
 async def account(
     request: Request, user=Depends(dependency_to_override), session=Depends(get_db)

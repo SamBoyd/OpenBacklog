@@ -37,6 +37,7 @@ templates.env.autoescape = jinja2.select_autoescape(
     default=True,
 )
 templates.env.globals["app_domain"] = settings.app_domain
+templates.env.globals["docs_site_url"] = settings.docs_site_url
 
 from src.utils.assets import get_hashed_css_path
 
