@@ -25,7 +25,7 @@ const getStatusBadgeStyle = (status: string | undefined): string => {
     case InitiativeStatus.TO_DO:
       return 'bg-status-todo border-status-todo text-status-todo-foreground';
     case InitiativeStatus.BACKLOG:
-      return 'bg-muted border-muted text-muted-foreground';
+      return 'bg-muted/10 border-muted text-muted-foreground';
     default:
       return 'bg-muted border-muted text-muted-foreground';
   }
