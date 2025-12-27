@@ -10,6 +10,7 @@ import HeroCard from '#components/reusable/HeroCard';
 import VillainCard from '#components/reusable/VillainCard';
 import StakesConflictSection from '#components/StakesConflictSection';
 import InitiativeTasksList from '#components/InitiativeTasksList';
+import MarkdownPreview from '#components/reusable/MarkdownPreview';
 import { statusDisplay, TaskStatus } from '#types';
 import { Compass, Pencil, Plus, Skull, Sparkles, Target, User } from 'lucide-react';
 
@@ -163,9 +164,11 @@ const ViewStrategicInitiative: React.FC = () => {
                       <Pencil size={16} className="text-muted-foreground" />
                     </NoBorderButton>
                   </div>
-                  <p className="text-base text-muted-foreground leading-6">
-                    {initiative.description}
-                  </p>
+                  <MarkdownPreview
+                    content={initiative.description}
+                    showHeader={false}
+                    className="text-base text-muted-foreground"
+                  />
                 </div>
               )}
 
@@ -182,17 +185,21 @@ const ViewStrategicInitiative: React.FC = () => {
 
                 {strategicInitiative.description && (
                   <div className="mb-4">
-                    <p className="text-base text-muted-foreground leading-6">
-                      {strategicInitiative.description}
-                    </p>
+                    <MarkdownPreview
+                      content={strategicInitiative.description}
+                      showHeader={false}
+                      className="text-base text-muted-foreground"
+                    />
                   </div>
                 )}
 
                 {strategicInitiative.narrative_intent && (
                   <div>
-                    <p className="text-base text-muted-foreground leading-6 italic">
-                      {strategicInitiative.narrative_intent}
-                    </p>
+                    <MarkdownPreview
+                      content={strategicInitiative.narrative_intent}
+                      showHeader={false}
+                      className="text-base text-muted-foreground italic"
+                    />
                   </div>
                 )}
 

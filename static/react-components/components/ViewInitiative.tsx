@@ -14,7 +14,7 @@ import TasksKanbanBoard from '#components/TasksKanbanBoard';
 import CompactCreateTask from '#components/CompactCreateTask';
 import ItemView from '#components/reusable/ItemView';
 import EntityDetailsEditor from '#components/reusable/EntityDetailsEditor';
-import EntityDescriptionEditor from '#components/EntityDescriptionEditor';
+import DescriptionSection from '#components/DescriptionSection';
 import TasksList from '#components/TasksList';
 import { Button } from '#components/reusable/Button';
 import TitleInput from '#components/reusable/TitleInput';
@@ -199,12 +199,10 @@ const ViewInitiative = () => {
                     />
 
                     {/* Description */}
-                    <EntityDescriptionEditor
+                    <DescriptionSection
                         description={initiativeData?.description || ''}
-                        onChange={(value) => handleFieldChange('description', value)}
                         loading={pageShouldShowSkeleton || !initiativeData}
                         testId="initiative-description-section"
-                        filepathSuggestionsEnabled={true}
                     />
 
                     {/* View switch button */}

@@ -128,7 +128,23 @@ const mockInitiative: InitiativeDto = {
   user_id: 'user-1',
   workspace: mockWorkspace,
   title: 'Enable ClaudeCode to read product context via MCP',
-  description: 'This initiative implements the technical foundation for AI agents to access product context directly from OpenBacklog. By creating an MCP (Model Context Protocol) server, we enable tools like ClaudeCode to query initiatives, tasks, and strategic context without requiring manual copy-paste or context switching. This is the first step toward true AI-assisted product development. ' + lorem.generateParagraphs(1),
+  description: `## Overview
+This initiative implements the technical foundation for AI agents to access product context directly from OpenBacklog.
+
+## Key Capabilities
+- **MCP Server**: Create a Model Context Protocol server for tool integration
+- **Query Support**: Enable tools like \`ClaudeCode\` to query initiatives, tasks, and strategic context
+- **Zero Context Switching**: No manual copy-paste required
+
+## Technical Approach
+By implementing the [MCP specification](https://modelcontextprotocol.io/), we provide:
+1. Read-only access to product context
+2. Structured JSON responses
+3. Authentication via API tokens
+
+> This is the first step toward *true AI-assisted product development*.
+
+${lorem.generateParagraphs(1)}`,
   type: 'FEATURE',
   status: 'IN_PROGRESS',
   properties: {},
@@ -220,8 +236,32 @@ const mockStrategicInitiative: StrategicInitiativeDto = {
   workspace_id: 'ws-1',
   pillar_id: 'pillar-1',
   theme_id: 'theme-1',
-  description: 'Sarah is constantly breaking flow state to switch between her IDE and separate task management tools. The AI agent doesn\'t have access to the product context it needs—what to build, why, or how it fits into the broader roadmap—forcing her to manually relay this information repeatedly. By enabling ClaudeCode to read product context directly from OpenBacklog via MCP, we eliminate this context switching and empower the AI to propose better, more aligned suggestions. ' + lorem.generateParagraphs(1),
-  narrative_intent: 'This beat is the first step in the "AI-First Product Management" arc, establishing the read-only foundation before we enable write capabilities.',
+  description: `## The Problem
+Sarah is constantly breaking **flow state** to switch between her IDE and separate task management tools.
+
+## Root Cause
+The AI agent doesn't have access to the product context it needs:
+- *What* to build
+- *Why* it matters
+- *How* it fits into the broader roadmap
+
+This forces her to manually relay information repeatedly via \`copy-paste\` workflows.
+
+## The Solution
+By enabling ClaudeCode to read product context directly from OpenBacklog via [MCP](https://modelcontextprotocol.io/), we:
+1. Eliminate context switching
+2. Empower the AI to propose better, more aligned suggestions
+3. Keep developers in their IDE
+
+${lorem.generateParagraphs(1)}`,
+  narrative_intent: `This beat is the **first step** in the *"AI-First Product Management"* arc.
+
+> We're establishing the read-only foundation before we enable write capabilities.
+
+Key milestones:
+- \`Phase 1\`: Read-only MCP access *(this initiative)*
+- \`Phase 2\`: Write capabilities for task updates
+- \`Phase 3\`: Full AI-assisted workflow automation`,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
   initiative: mockInitiative,

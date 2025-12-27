@@ -10,7 +10,7 @@ import { useTasksContext } from '#contexts/TasksContext';
 import ItemView from '#components/reusable/ItemView';
 import EntityDetailsEditor from '#components/reusable/EntityDetailsEditor';
 
-import EntityDescriptionEditor from './EntityDescriptionEditor';
+import DescriptionSection from './DescriptionSection';
 import ChecklistItemsInput from './reusable/ChecklistItemsInput';
 import TitleInput from './reusable/TitleInput';
 
@@ -153,12 +153,9 @@ const ViewTask = () => {
                     }}
                 />
 
-                <EntityDescriptionEditor
+                <DescriptionSection
                     description={task?.description || ''}
-                    onChange={(value: string) => handleFieldChange('description', value)}
                     loading={shouldShowSkeleton}
-                    className='border'
-                    filepathSuggestionsEnabled={true}
                 />
 
                 <div className="mb-8 flex flex-col gap-4" data-testid="description-section">

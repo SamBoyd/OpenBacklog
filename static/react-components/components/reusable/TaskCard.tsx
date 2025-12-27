@@ -1,5 +1,6 @@
 import React from 'react';
 import { NoBorderButton } from '#components/reusable/Button';
+import InlineMarkdownPreview from '#components/reusable/InlineMarkdownPreview';
 import { TaskDto, TaskStatus, statusDisplay } from '#types';
 import { Circle, CircleCheckBig, CircleX, Clock, Eye } from 'lucide-react';
 
@@ -82,10 +83,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onViewTask }) => (
           {statusDisplay(task.status as TaskStatus)}
         </div>
 
-        {/* Description (2 lines max) */}
+        {/* Description (2 lines max) with inline markdown */}
         {task.description && (
           <p className="text-sm text-muted-foreground leading-5 line-clamp-2">
-            {task.description}
+            <InlineMarkdownPreview content={task.description} />
           </p>
         )}
 

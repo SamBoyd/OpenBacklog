@@ -168,7 +168,19 @@ export const mockTasks__unordered: TaskDto[] = [
         user_id: '776ece4a-47c6-497a-bc2f-475c49d623d0',
         initiative_id: 'cd441dc5-1bf8-423f-9f88-f47e1c747579',
         title: 'Implement user authentication flow so that it is compliant with GDPR and CCPA',
-        description: 'Create a secure authentication flow including login, registration, and password reset functionality. Use JWT for session management.',
+        description: `## Overview
+Create a secure authentication flow including **login**, **registration**, and **password reset** functionality.
+
+## Technical Requirements
+- Use \`JWT\` for session management
+- Implement *bcrypt* for password hashing
+- Add rate limiting to prevent brute force attacks
+
+## Key Files
+- \`src/auth/AuthService.ts\` - Main auth logic
+- \`src/auth/TokenManager.ts\` - JWT handling
+
+See [OWASP Auth Guidelines](https://owasp.org/www-project-web-security-testing-guide/) for security best practices.`,
         status: TaskStatus.TO_DO,
 
         created_at: '2025-01-09T17:50:48.340652',
@@ -217,7 +229,15 @@ export const mockTasks__unordered: TaskDto[] = [
         user_id: '776ece4a-47c6-497a-bc2f-475c49d623d0',
         initiative_id: 'cd441dc5-1bf8-423f-9f88-f47e1c747579',
         title: 'Fix responsive layout issues in dashboard',
-        description: 'The dashboard layout breaks on mobile devices and tablets. Implement responsive design fixes to ensure proper rendering across all device sizes.',
+        description: `The dashboard layout breaks on **mobile devices** and *tablets*.
+
+## Issues Identified
+1. Chart components overflow on small screens
+2. Sidebar doesn't collapse properly
+3. Table headers are truncated
+
+## Solution
+Implement responsive design fixes using \`@media\` queries and Tailwind's responsive utilities.`,
 
         status: TaskStatus.IN_PROGRESS,
 
@@ -1651,16 +1671,26 @@ export const mockInitiatives__unordered: InitiativeDto[] = [
         identifier: 'I-245',
         user_id: '776ece4a-47c6-497a-bc2f-475c49d623d0',
         title: 'Revamp authentication system so that it is compliant with GDPR and CCPA',
-        description: `Our current authentication system needs significant updates to improve security and user experience:
+        description: `## Overview
+Our current authentication system needs significant updates to improve **security** and *user experience*.
 
-- Migrate from cookie-based authentication to JWT tokens
+## Key Changes
+- Migrate from cookie-based authentication to \`JWT\` tokens
 - Implement refresh token mechanism to prevent frequent logouts
 - Add multi-factor authentication support
 - Integrate with OAuth providers (Google, GitHub, Facebook)
-- Improve password recovery workflow
-- Update user profile management
 
-This initiative will cover all aspects of the authentication system overhaul, including backend services, API endpoints, and frontend components.`,
+## Technical Approach
+We'll use the [Auth0 SDK](https://auth0.com/docs) for OAuth integration and implement custom \`TokenService\` for JWT handling.
+
+\`\`\`typescript
+interface AuthConfig {
+  jwtSecret: string;
+  refreshTokenExpiry: number;
+}
+\`\`\`
+
+This initiative covers **backend services**, **API endpoints**, and **frontend components**.`,
 
 
 
