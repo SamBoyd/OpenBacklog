@@ -329,16 +329,20 @@ async def submit_strategic_initiative(
         title: Initiative title (e.g., "Smart Context Switching")
         implementation_description: What this initiative delivers and how it will be
             built. This is the practical description of the work involved - the "what".
+            Supports markdown formatting (headings, bold, italic, code, lists, links,
+            blockquotes). Rendered as rich text in the UI.
         strategic_description: How this initiative connects to the larger product
             strategy. Explains the "why" - user needs addressed, strategic alignment,
             and how it fits into the bigger picture. If not provided, defaults to
-            implementation_description. (optional)
+            implementation_description. Supports markdown formatting. Rendered as rich
+            text in the UI. (optional)
         hero_identifiers: List of hero identifiers this initiative helps (e.g., ["H-001"]) (optional)
         villain_identifiers: List of villain identifiers this initiative confronts (e.g., ["V-001"]) (optional)
         conflict_identifiers: List of conflict identifiers this initiative addresses (e.g., ["C-001"]) (optional)
         pillar_identifier: Strategic pillar identifier for alignment (e.g., "P-001") (optional)
         theme_identifier: Roadmap theme identifier for placement (e.g., "T-001") (optional)
-        narrative_intent: Why this initiative matters narratively (optional)
+        narrative_intent: Why this initiative matters narratively. Supports markdown
+            formatting. Rendered with italic styling in the UI. (optional)
         status: Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG
 
     Returns:
@@ -977,16 +981,20 @@ async def update_strategic_initiative(
         query: Strategic initiative ID, initiative ID, or initiative identifier
         title: New initiative title (optional)
         implementation_description: New description of what this initiative delivers
-            and how it will be built - the practical "what" (optional)
+            and how it will be built - the practical "what". Supports markdown
+            formatting (headings, bold, italic, code, lists, links, blockquotes).
+            Rendered as rich text in the UI. (optional)
         status: New status (BACKLOG, TO_DO, IN_PROGRESS) (optional)
         hero_identifiers: New list of hero identifiers (e.g., ["H-001"]) (replaces existing) (optional)
         villain_identifiers: New list of villain identifiers (e.g., ["V-001"]) (replaces existing) (optional)
         conflict_identifiers: New list of conflict identifiers (e.g., ["C-001"]) (replaces existing) (optional)
         pillar_identifier: New strategic pillar identifier (e.g., "P-001") (optional, use "null" to unlink)
         theme_identifier: New roadmap theme identifier (e.g., "T-001") (optional, use "null" to unlink)
-        narrative_intent: New narrative intent (optional)
+        narrative_intent: New narrative intent. Supports markdown formatting.
+            Rendered with italic styling in the UI. (optional)
         strategic_description: New description of how this initiative connects to
-            the larger product strategy - the "why" (optional)
+            the larger product strategy - the "why". Supports markdown formatting.
+            Rendered as rich text in the UI. (optional)
 
     Returns:
         Success response with updated initiative

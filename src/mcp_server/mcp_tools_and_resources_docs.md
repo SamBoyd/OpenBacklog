@@ -5,20 +5,21 @@ This document provides a comprehensive overview of all tools and resources avail
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Authentication](#authentication)
-3. [Core Workflow Tools](#core-workflow-tools)
-4. [Workspace Management Tools](#workspace-management-tools)
-5. [Strategic Initiative Tools](#strategic-initiative-tools)
-6. [Task Management Tools](#task-management-tools)
-7. [Checklist Management Tools](#checklist-management-tools)
-8. [Strategic Planning Tools](#strategic-planning-tools)
-9. [Roadmap Management Tools](#roadmap-management-tools)
-10. [Utility Tools](#utility-tools)
-11. [Prompts](#prompts)
-12. [Narrative Layer Tools](#narrative-layer-tools)
-13. [Error Handling](#error-handling)
-14. [Best Practices](#best-practices)
-15. [Architecture Notes](#architecture-notes)
+2. [Markdown Support](#markdown-support)
+3. [Authentication](#authentication)
+4. [Core Workflow Tools](#core-workflow-tools)
+5. [Workspace Management Tools](#workspace-management-tools)
+6. [Strategic Initiative Tools](#strategic-initiative-tools)
+7. [Task Management Tools](#task-management-tools)
+8. [Checklist Management Tools](#checklist-management-tools)
+9. [Strategic Planning Tools](#strategic-planning-tools)
+10. [Roadmap Management Tools](#roadmap-management-tools)
+11. [Utility Tools](#utility-tools)
+12. [Prompts](#prompts)
+13. [Narrative Layer Tools](#narrative-layer-tools)
+14. [Error Handling](#error-handling)
+15. [Best Practices](#best-practices)
+16. [Architecture Notes](#architecture-notes)
 
 ---
 
@@ -31,6 +32,32 @@ The OpenBacklog MCP server provides a comprehensive set of tools for managing in
 - Transport: HTTP
 - Host: 0.0.0.0
 - Port: 9000
+
+---
+
+## Markdown Support
+
+Description fields in OpenBacklog support **full GitHub-flavored markdown**. The UI renders these as rich text, so MCP clients should format descriptions using markdown for optimal display.
+
+**Supported markdown features:**
+- Headings (`## Heading`)
+- Bold (`**bold**`) and italic (`*italic*`)
+- Inline code (`` `code` ``) and code blocks (triple backticks)
+- Bullet lists (`- item`) and numbered lists (`1. item`)
+- Links (`[text](url)`)
+- Blockquotes (`> quote`)
+
+**Fields with markdown support:**
+
+| Tool | Field | Notes |
+|------|-------|-------|
+| `update_task_description` | `description` | Full markdown rendering |
+| `submit_strategic_initiative` | `implementation_description` | Full markdown rendering |
+| `submit_strategic_initiative` | `strategic_description` | Full markdown rendering |
+| `submit_strategic_initiative` | `narrative_intent` | Full markdown, rendered with italic styling |
+| `update_strategic_initiative` | Same fields as above | Same markdown support |
+
+**Best Practice:** When creating or updating descriptions via MCP tools, use markdown formatting to structure content with headings, bullet points, and emphasis. This creates a better reading experience in the OpenBacklog UI.
 
 ---
 

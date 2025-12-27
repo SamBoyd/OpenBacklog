@@ -455,7 +455,9 @@ async def update_task_description(
 
     Args:
         - task_id: The UUID of the task to update
-        - description: The new description content
+        - description: The new description content. Supports full markdown formatting
+          including headings, bold, italic, code blocks, lists, links, and blockquotes.
+          The UI renders this as rich text.
 
     Returns:
         - Confirmation of the update with the new description
