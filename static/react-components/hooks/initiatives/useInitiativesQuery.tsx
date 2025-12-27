@@ -36,6 +36,12 @@ export function useInitiativesQuery(filters?: InitiativeFilters, cacheVersion?: 
       return initiatives;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchInterval: (query) => {
+      // Poll every 3s when waiting for first initiative, stop once we have data
+      const data = query.state.data;
+      return Array.isArray(data) && data.length > 0 ? false : 3000;
+    },
+    refetchOnWindowFocus: true,
   });
 
   // Adjust data derivation based on filters

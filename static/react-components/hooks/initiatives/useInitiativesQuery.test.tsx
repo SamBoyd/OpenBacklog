@@ -552,4 +552,64 @@ describe('useInitiativesQuery', () => {
             expect(result.current.initiativesData).toEqual(mockOrderedInitiatives);
         });
     });
+
+    describe('Polling Behavior', () => {
+        it('should poll when initiatives data is empty', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+
+            // Start with empty data
+            vi.mocked(initiativesApi.getAllInitiatives).mockResolvedValue([]);
+            vi.mocked(useOrderings).mockReturnValue({
+                ...mockUseOrderings,
+                orderedEntities: [],
+            });
+
+            const { result } = renderHook(() => useInitiativesQuery(), { wrapper: TestWrapper });
+
+            // Wait for initial fetch to complete
+            await vi.waitFor(() => {
+                expect(result.current.isQueryFetching).toBe(false);
+            });
+
+            // Clear initial call
+            vi.mocked(initiativesApi.getAllInitiatives).mockClear();
+
+            // Advance time by 3 seconds (polling interval)
+            await vi.advanceTimersByTimeAsync(3000);
+
+            // Should have polled again
+            expect(initiativesApi.getAllInitiatives).toHaveBeenCalledTimes(1);
+
+            vi.useRealTimers();
+        });
+
+        it('should stop polling once initiatives exist', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+
+            // Return data immediately
+            vi.mocked(initiativesApi.getAllInitiatives).mockResolvedValue(mockInitiatives);
+            vi.mocked(useOrderings).mockReturnValue({
+                ...mockUseOrderings,
+                orderedEntities: mockOrderedInitiatives,
+            });
+
+            const { result } = renderHook(() => useInitiativesQuery(), { wrapper: TestWrapper });
+
+            // Wait for initial fetch to complete
+            await vi.waitFor(() => {
+                expect(result.current.isQueryFetching).toBe(false);
+            });
+
+            // Clear initial call
+            vi.mocked(initiativesApi.getAllInitiatives).mockClear();
+
+            // Advance time by 3 seconds
+            await vi.advanceTimersByTimeAsync(3000);
+
+            // Should NOT have polled (data exists)
+            expect(initiativesApi.getAllInitiatives).not.toHaveBeenCalled();
+
+            vi.useRealTimers();
+        });
+    });
 });
