@@ -48,6 +48,7 @@ class FrameworkBuilder:
         self._natural_questions: List[Dict[str, str]] = []
         self._extraction_guidance: List[Dict[str, Any]] = []
         self._inference_examples: List[Dict[str, Any]] = []
+        self._templates: Dict[str, str] = {}
 
     def set_purpose(self, purpose: str) -> "FrameworkBuilder":
         """Set the purpose/why for this entity.
@@ -292,6 +293,19 @@ class FrameworkBuilder:
         )
         return self
 
+    def add_template(self, field_name: str, template: str) -> "FrameworkBuilder":
+        """Add a markdown template for a description field.
+
+        Args:
+            field_name: The field this template is for (e.g., "implementation_description")
+            template: Markdown template string with section headings and placeholder guidance
+
+        Returns:
+            Self for method chaining
+        """
+        self._templates[field_name] = template
+        return self
+
     def build(self) -> Dict[str, Any]:
         """Build the complete framework dictionary.
 
@@ -334,6 +348,9 @@ class FrameworkBuilder:
 
         if self._inference_examples:
             framework["inference_examples"] = self._inference_examples
+
+        if self._templates:
+            framework["templates"] = self._templates
 
         # Add any additional context
         framework.update(self._additional_context)

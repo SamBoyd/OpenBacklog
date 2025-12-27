@@ -268,6 +268,7 @@ class TestNaturalLanguageMapping:
         assert_that(result, is_not(has_key("natural_questions")))
         assert_that(result, is_not(has_key("extraction_guidance")))
         assert_that(result, is_not(has_key("inference_examples")))
+        assert_that(result, is_not(has_key("templates")))
 
     def test_method_chaining(self):
         """Test that all methods support fluent chaining."""
@@ -285,6 +286,7 @@ class TestNaturalLanguageMapping:
             .add_natural_question("term", "question")
             .add_extraction_guidance(from_input="input", extractions={"k": "v"})
             .add_inference_example(user_says="says", inferences={"k": "v"})
+            .add_template("description", "## Template\n[content]")
             .build()
         )
 
@@ -293,3 +295,74 @@ class TestNaturalLanguageMapping:
         assert_that(result, has_key("natural_questions"))
         assert_that(result, has_key("extraction_guidance"))
         assert_that(result, has_key("inference_examples"))
+        assert_that(result, has_key("templates"))
+
+
+class TestMarkdownTemplates:
+    """Test suite for markdown template features."""
+
+    def test_add_single_template(self):
+        """Test adding a single markdown template."""
+        builder = FrameworkBuilder("strategic_initiative")
+        builder.add_template(
+            "implementation_description",
+            "## What We're Building\n[Description]\n\n## Scope\n- [Item]",
+        )
+
+        result = builder.build()
+
+        assert_that(result, has_key("templates"))
+        assert_that(result["templates"], has_key("implementation_description"))
+        assert_that(
+            result["templates"]["implementation_description"],
+            contains_string("## What We're Building"),
+        )
+
+    def test_add_multiple_templates(self):
+        """Test adding multiple templates for different fields."""
+        builder = FrameworkBuilder("strategic_initiative")
+        builder.add_template(
+            "implementation_description",
+            "## What\n[content]",
+        )
+        builder.add_template(
+            "strategic_description",
+            "## Why\n[content]",
+        )
+        builder.add_template(
+            "narrative_intent",
+            "This helps **[hero]** defeat **[villain]**.",
+        )
+
+        result = builder.build()
+
+        assert_that(result, has_key("templates"))
+        assert_that(result["templates"], has_key("implementation_description"))
+        assert_that(result["templates"], has_key("strategic_description"))
+        assert_that(result["templates"], has_key("narrative_intent"))
+        assert_that(len(result["templates"]), equal_to(3))
+
+    def test_template_preserves_markdown_formatting(self):
+        """Test that templates preserve markdown formatting characters."""
+        template = """## Heading
+
+**Bold** and *italic* text.
+
+- Bullet 1
+- Bullet 2
+
+> Blockquote
+
+`inline code`
+"""
+        builder = FrameworkBuilder("test")
+        builder.add_template("description", template)
+
+        result = builder.build()
+
+        assert_that(result["templates"]["description"], contains_string("**Bold**"))
+        assert_that(result["templates"]["description"], contains_string("*italic*"))
+        assert_that(result["templates"]["description"], contains_string("> Blockquote"))
+        assert_that(
+            result["templates"]["description"], contains_string("`inline code`")
+        )

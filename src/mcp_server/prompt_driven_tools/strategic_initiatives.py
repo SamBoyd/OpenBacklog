@@ -50,6 +50,37 @@ from src.strategic_planning.services.event_publisher import EventPublisher
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Markdown templates for initiative description fields
+IMPLEMENTATION_DESCRIPTION_TEMPLATE = """[One paragraph describing the deliverable and its core functionality]
+
+## Technical Approach
+[Key technical decisions, architecture choices, or implementation strategy]
+
+## Scope
+- [In scope item 1]
+- [In scope item 2]
+
+### Out of Scope
+- [Explicitly excluded item]
+"""
+
+STRATEGIC_DESCRIPTION_TEMPLATE = """[Who needs this and what problem they're experiencing]
+
+## Strategic Alignment
+[How this connects to pillars, themes, or outcomes]
+
+## Why Now
+[What makes this the right time to build this]
+
+## Expected Impact
+[What changes for users when this ships]
+"""
+
+NARRATIVE_INTENT_TEMPLATE = """This initiative helps **[hero name]** defeat **[villain name]** by [how it addresses their core conflict].
+
+It advances the **[theme name]** story arc by [contribution to the larger narrative].
+"""
+
 
 @mcp.tool()
 async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
@@ -285,6 +316,13 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
                 "No active villains defined. Consider defining problems to solve "
                 "using get_villain_definition_framework() first.",
             )
+
+        # Add markdown templates for description fields
+        builder.add_template(
+            "implementation_description", IMPLEMENTATION_DESCRIPTION_TEMPLATE
+        )
+        builder.add_template("strategic_description", STRATEGIC_DESCRIPTION_TEMPLATE)
+        builder.add_template("narrative_intent", NARRATIVE_INTENT_TEMPLATE)
 
         return builder.build()
 

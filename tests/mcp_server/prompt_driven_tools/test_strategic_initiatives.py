@@ -88,9 +88,69 @@ class TestGetStrategicInitiativeDefinitionFramework:
         assert_that(result, has_key("natural_questions"))
         assert_that(result, has_key("extraction_guidance"))
         assert_that(result, has_key("inference_examples"))
+        assert_that(result, has_key("templates"))
 
         # Verify entity type
         assert_that(result["entity_type"], equal_to("strategic_initiative"))
+
+    @pytest.mark.asyncio
+    async def test_framework_includes_markdown_templates(self):
+        """Test that framework includes markdown templates for description fields."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.strategic_initiatives.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            with (
+                patch(
+                    "src.mcp_server.prompt_driven_tools.strategic_initiatives.HeroService"
+                ) as mock_hero_service_class,
+                patch(
+                    "src.mcp_server.prompt_driven_tools.strategic_initiatives.VillainService"
+                ) as mock_villain_service_class,
+                patch(
+                    "src.mcp_server.prompt_driven_tools.strategic_initiatives.strategic_controller.get_strategic_pillars"
+                ) as mock_get_pillars,
+            ):
+                mock_hero_service = MagicMock()
+                mock_hero_service.get_heroes_for_workspace.return_value = []
+                mock_hero_service_class.return_value = mock_hero_service
+
+                mock_villain_service = MagicMock()
+                mock_villain_service.get_villains_for_workspace.return_value = []
+                mock_villain_service_class.return_value = mock_villain_service
+
+                mock_get_pillars.return_value = []
+
+                mock_query = MagicMock()
+                mock_query.filter_by.return_value.order_by.return_value.all.return_value = (
+                    []
+                )
+                mock_session.query.return_value = mock_query
+
+                result = await get_strategic_initiative_definition_framework.fn()
+
+        # Verify templates are present
+        assert_that(result, has_key("templates"))
+        templates = result["templates"]
+
+        # Verify all three description field templates exist
+        assert_that(templates, has_key("implementation_description"))
+        assert_that(templates, has_key("strategic_description"))
+        assert_that(templates, has_key("narrative_intent"))
+
+        # Verify templates contain expected markdown sections
+        assert "## What We're Building" in templates["implementation_description"]
+        assert "## Technical Approach" in templates["implementation_description"]
+        assert "## Scope" in templates["implementation_description"]
+
+        assert "## User Need" in templates["strategic_description"]
+        assert "## Strategic Alignment" in templates["strategic_description"]
+        assert "## Expected Impact" in templates["strategic_description"]
+
+        assert "**[hero name]**" in templates["narrative_intent"]
+        assert "**[villain name]**" in templates["narrative_intent"]
 
     @pytest.mark.asyncio
     async def test_framework_includes_available_heroes_villains(self):
