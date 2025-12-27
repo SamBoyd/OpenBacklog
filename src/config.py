@@ -99,7 +99,7 @@ class Settings(BaseSettings):
     # Development auth settings
     dev_jwt_secret: str = Field(default="dev-jwt-secret-change-in-production")
     dev_jwt_algorithm: str = Field(default="HS256")
-    dev_jwt_lifetime_seconds: int = Field(default=3600)
+    dev_jwt_lifetime_seconds: int = Field(default=2592000)  # 30 days
     dev_jwt_oauth_account_name: str = Field(default="dev-oauth-account")
 
     # Development user settings
