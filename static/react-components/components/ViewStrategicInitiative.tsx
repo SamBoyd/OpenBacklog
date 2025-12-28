@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from '#hooks/useParams';
 import { useNavigate } from 'react-router';
 import { useStrategicInitiative } from '#hooks/useStrategicInitiative';
@@ -11,8 +11,9 @@ import VillainCard from '#components/reusable/VillainCard';
 import StakesConflictSection from '#components/StakesConflictSection';
 import InitiativeTasksList from '#components/InitiativeTasksList';
 import MarkdownPreview from '#components/reusable/MarkdownPreview';
-import { statusDisplay, TaskStatus } from '#types';
+import { statusDisplay, TaskDto, TaskStatus } from '#types';
 import { Compass, Pencil, Plus, Skull, Sparkles, Target, User } from 'lucide-react';
+import { useTasksContext } from '#contexts/TasksContext';
 
 /**
  * Calculates the progress percentage from tasks
@@ -36,6 +37,12 @@ const ViewStrategicInitiative: React.FC = () => {
   const { strategicInitiative, isLoading, error } = useStrategicInitiative(
     initiativeId || ''
   );
+  const { tasks, setInitiativeId  } = useTasksContext();
+
+
+  useEffect(() => {
+    setInitiativeId(strategicInitiative?.initiative?.id);
+  }, [strategicInitiative?.initiative?.id, setInitiativeId]);
 
   /**
    * Handles navigation to task detail view
@@ -110,7 +117,7 @@ const ViewStrategicInitiative: React.FC = () => {
   }
 
   const initiative = strategicInitiative.initiative;
-  const tasks = initiative?.tasks || [];
+  // const tasks = initiative?.tasks || [];
   const progress = calculateProgress(tasks);
   const scenesCount = {
     total: tasks.length,
