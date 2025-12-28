@@ -4,8 +4,19 @@ import { useTasksContext } from '#contexts/TasksContext';
 import { TaskDto, TaskStatus } from '#types';
 import KanbanBoardView from '#components/reusable/KanbanBoardView';
 import { OrderedEntity } from '#hooks/useOrderings';
-import { LexoRank } from 'lexorank';
 import { computeOrderingIds } from '#utils/dragDropUtils';
+
+/**
+ * Canonical display order for task status columns in the Kanban board.
+ * This ensures consistent column ordering regardless of how statuses are passed in.
+ */
+const TASK_STATUS_ORDER: TaskStatus[] = [
+    TaskStatus.TO_DO,
+    TaskStatus.IN_PROGRESS,
+    TaskStatus.BLOCKED,
+    TaskStatus.DONE,
+    TaskStatus.ARCHIVED,
+];
 
 type TasksKanbanBoardProps = {
     filterToInitiativeId?: string;
@@ -17,6 +28,11 @@ type TasksKanbanBoardProps = {
 const TasksKanbanBoard = ({ filterToInitiativeId, reloadCounter, onUpdate, filterToStatus }: TasksKanbanBoardProps) => {
     const { tasks, shouldShowSkeleton, error, updateTask, reloadTasks, setInitiativeId, reorderTask, moveTaskToStatus } = useTasksContext();
     const navigate = useNavigate();
+
+    // Sort selected statuses according to canonical order
+    const orderedStatuses = TASK_STATUS_ORDER.filter(status =>
+        filterToStatus.includes(status)
+    );
 
     // Update the context when filterToInitiativeId changes
     useEffect(() => {
@@ -85,7 +101,7 @@ const TasksKanbanBoard = ({ filterToInitiativeId, reloadCounter, onUpdate, filte
             showBlocked={hasBlockedTasks}
             disabled={filterToInitiativeId === undefined}
             disabledMessage="Select an initiative to view tasks."
-            filterToStatus={filterToStatus}
+            filterToStatus={orderedStatuses}
         />
     );
 };

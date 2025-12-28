@@ -1,10 +1,22 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { LexoRank } from 'lexorank';
 
 import { useInitiativesContext } from '#contexts/InitiativesContext';
 import { InitiativeDto, InitiativeStatus, TaskStatus } from '#types';
 import KanbanBoardView from './reusable/KanbanBoardView';
+
+/**
+ * Canonical display order for initiative status columns in the Kanban board.
+ * This ensures consistent column ordering regardless of how statuses are passed in.
+ */
+const INITIATIVE_STATUS_ORDER: InitiativeStatus[] = [
+    InitiativeStatus.BACKLOG,
+    InitiativeStatus.TO_DO,
+    InitiativeStatus.IN_PROGRESS,
+    InitiativeStatus.BLOCKED,
+    InitiativeStatus.DONE,
+    InitiativeStatus.ARCHIVED,
+];
 
 import { OrderedEntity } from '#hooks/useOrderings';
 import { computeOrderingIds } from '#utils/dragDropUtils';
@@ -18,10 +30,15 @@ interface InitiativesKanbanBoardProps {
 
 const InitiativesKanbanBoard: React.FC<InitiativesKanbanBoardProps> = ({
     reloadCounter,
-    selectedStatuses = Object.values(InitiativeStatus),
+    selectedStatuses = INITIATIVE_STATUS_ORDER,
     data: dataProp,
 }) => {
     const contextData = useInitiativesContext();
+
+    // Sort selected statuses according to canonical order
+    const orderedStatuses = INITIATIVE_STATUS_ORDER.filter(status =>
+        selectedStatuses.includes(status)
+    );
     const navigate = useNavigate();
 
     // Use prop data if provided, otherwise use context data
@@ -90,7 +107,7 @@ const InitiativesKanbanBoard: React.FC<InitiativesKanbanBoardProps> = ({
             onItemDrag={handleItemDrag}
             type="initiative"
             showBlocked={hasBlockedInitiatives}
-            filterToStatus={selectedStatuses}
+            filterToStatus={orderedStatuses}
         />
     );
 };
