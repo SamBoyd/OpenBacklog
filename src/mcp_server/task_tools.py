@@ -1,22 +1,35 @@
 # src/mcp_server/task_tools.py
 import logging
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.db import SessionLocal
 from src.initiative_management.task_controller import (
+    ChecklistItemData,
     TaskController,
     TaskControllerError,
     TaskNotFoundError,
 )
 from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp  # type: ignore
+from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
+    resolve_initiative_identifier,
+)
 from src.models import Initiative, Task, TaskStatus
+from src.strategic_planning.exceptions import DomainException
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class TaskChecklistItem(BaseModel):
+    """Pydantic model for checklist items when creating a task."""
+
+    title: str
+    is_complete: bool = False
 
 
 def _generate_task_context(
@@ -126,17 +139,14 @@ Focus on the specific scope of task {task_dict.get('identifier', 'Unknown')}. Co
 def _task_to_dict(task: Task) -> Dict[str, Any]:
     """Convert Task model to dictionary."""
     return {
-        "id": str(task.id),
+        "identifier": task.identifier,
         "title": task.title,
         "description": task.description,
-        "identifier": task.identifier,
         "status": task.status.value,
         "type": task.type,
-        "created_at": task.created_at.isoformat() if task.created_at else None,
-        "updated_at": task.updated_at.isoformat() if task.updated_at else None,
-        "user_id": str(task.user_id),
-        "workspace_id": str(task.workspace_id),
-        "initiative_id": str(task.initiative_id) if task.initiative_id else None,
+        "initiative_identifier": (
+            task.initiative.identifier if task.initiative else None
+        ),
     }
 
 
@@ -799,6 +809,171 @@ async def update_task_status_done(
         return {
             "status": "error",
             "type": "task_status_update",
+            "error_message": f"Server error: {str(e)}",
+            "error_type": "server_error",
+        }
+    finally:
+        session.close()
+
+
+@mcp.tool()
+async def create_task(
+    initiative_identifier: str,
+    title: str,
+    description: Optional[str] = None,
+    status: Optional[str] = None,
+    task_type: Optional[str] = None,
+    checklist: Optional[List[TaskChecklistItem]] = None,
+) -> Dict[str, Any]:
+    """
+    Create a new task within an initiative.
+
+    Creates a Task entity with optional description, status, type, and checklist items.
+    The task is automatically added to the ordering system for the workspace.
+
+    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+
+    Args:
+        - initiative_identifier: Human-readable initiative identifier (e.g., "I-012")
+        - title: Task title (1-200 characters)
+        - description: Optional task description (supports markdown formatting)
+        - status: Optional initial status (TO_DO, IN_PROGRESS, BLOCKED, DONE). Defaults to TO_DO
+        - task_type: Optional task type (e.g., CODING, TESTING, DOCUMENTATION, DESIGN)
+        - checklist: Optional list of checklist items with title and is_complete fields
+
+    Returns:
+        - Created task with ID, identifier, and all fields including checklist items
+    """
+    logger.info(f"Creating task '{title}' in initiative {initiative_identifier}")
+    session: Session = SessionLocal()
+    try:
+        # Get auth context
+        user_id_str, workspace_id_str = get_auth_context(
+            session, requires_workspace=True
+        )
+        if workspace_id_str is None:
+            raise MCPContextError(
+                "Workspace not found.",
+                error_type="workspace_error",
+            )
+        user_id = uuid.UUID(user_id_str)
+        workspace_id = uuid.UUID(workspace_id_str)
+
+        # Resolve initiative identifier to UUID
+        initiative_id = resolve_initiative_identifier(
+            initiative_identifier, workspace_id, session
+        )
+
+        # Parse and validate status if provided
+        task_status = TaskStatus.TO_DO
+        if status:
+            try:
+                task_status = TaskStatus(status)
+            except ValueError:
+                valid_statuses = [s.value for s in TaskStatus]
+                return {
+                    "status": "error",
+                    "type": "task",
+                    "error_message": f"Invalid status '{status}'. Valid statuses are: {valid_statuses}",
+                    "error_type": "validation_error",
+                }
+
+        # Convert checklist items to ChecklistItemData
+        checklist_data = None
+        if checklist:
+            checklist_data = [
+                ChecklistItemData(
+                    title=item.title,
+                    is_complete=item.is_complete,
+                    order=idx,
+                )
+                for idx, item in enumerate(checklist)
+            ]
+
+        # Create task using controller
+        controller = TaskController(session)
+        task: Task = controller.create_task(
+            title=title,
+            user_id=user_id,
+            workspace_id=workspace_id,
+            initiative_id=initiative_id,
+            status=task_status,
+            task_type=task_type,
+            description=description,
+            checklist=checklist_data,
+        )
+
+        # Build response data
+        task_data = _task_to_dict(task)
+        task_data["initiative_identifier"] = initiative_identifier
+
+        # Include checklist items in response
+        checklist_items_data = [
+            {
+                "id": str(item.id),
+                "title": item.title,
+                "is_complete": item.is_complete,
+                "order": item.order,
+            }
+            for item in task.checklist
+        ]
+
+        logger.info(
+            f"Successfully created task {task.identifier} '{title}' in initiative {initiative_identifier}"
+        )
+
+        return {
+            "status": "success",
+            "type": "task",
+            "message": f"Created task '{title}' ({task.identifier}) in initiative {initiative_identifier}",
+            "data": {
+                **task_data,
+                "checklist": checklist_items_data,
+            },
+            "next_steps": [
+                f"Task {task.identifier} created successfully",
+                "Use update_checklist to modify checklist items",
+                "Use update_task_status_inprogress to start working on the task",
+            ],
+        }
+
+    except MCPContextError as e:
+        logger.warning(f"Authorization error in create_task: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": str(e),
+            "error_type": e.error_type,
+        }
+    except DomainException as e:
+        logger.warning(f"Initiative not found in create_task: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
+    except TaskControllerError as e:
+        logger.exception(f"Controller error in create_task: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": str(e),
+            "error_type": "controller_error",
+        }
+    except ValueError as e:
+        logger.exception(f"Invalid value in create_task: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": f"Invalid value: {str(e)}",
+            "error_type": "validation_error",
+        }
+    except Exception as e:
+        logger.exception(f"Error in create_task MCP tool: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
             "error_message": f"Server error: {str(e)}",
             "error_type": "server_error",
         }

@@ -552,6 +552,50 @@ Retrieves all tasks for a specific initiative.
 
 ---
 
+### `create_task(initiative_identifier, title, description?, status?, task_type?, checklist_items?)`
+
+Creates a new task within an initiative.
+
+**Parameters:**
+- `initiative_identifier` (required): Human-readable initiative identifier (e.g., "I-012")
+- `title` (required): Task title (1-200 characters)
+- `description` (optional): Task description (supports markdown formatting)
+- `status` (optional): Initial status (TO_DO, IN_PROGRESS, BLOCKED, DONE). Defaults to TO_DO
+- `task_type` (optional): Task type (e.g., CODING, TESTING, DOCUMENTATION, DESIGN)
+- `checklist_items` (optional): Array of checklist items with `title` (string) and `is_complete` (boolean) fields
+
+**Returns:**
+```json
+{
+  "status": "success",
+  "type": "task",
+  "message": "Created task 'Task Title' (TM-001) in initiative I-012",
+  "data": {
+    "id": "<uuid>",
+    "identifier": "TM-001",
+    "title": "...",
+    "description": "...",
+    "status": "TO_DO",
+    "type": null,
+    "initiative_id": "<uuid>",
+    "initiative_identifier": "I-012",
+    "checklist_items": [{"id": "<uuid>", "title": "...", "is_complete": false}]
+  },
+  "next_steps": [
+    "Task TM-001 created successfully",
+    "Use update_checklist to modify checklist items",
+    "Use update_task_status_inprogress to start working on the task"
+  ]
+}
+```
+
+**Use Cases:**
+- Creating new tasks from MCP client (Claude Code, etc.)
+- Breaking down initiatives into actionable tasks
+- Creating tasks with initial checklist items
+
+---
+
 ### `get_task_details(task_id: str)`
 
 Pulls complete task context including description, checklist items, initiative context, and related tasks.
