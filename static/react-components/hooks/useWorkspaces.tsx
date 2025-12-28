@@ -153,6 +153,11 @@ export const WorkspacesProvider: React.FC<WorkspacesProviderProps> = ({ children
                 } else {
                     // Current workspace is stale/deleted, set first available workspace as current
                     await setCurrentWorkspace(allWorkspaces[0]);
+
+                    // Invalidate initiatives cache since workspace changed - prevents stale data
+                    // from being served when a user logs in with a stale workspace cookie
+                    queryClient.invalidateQueries({ queryKey: ['initiatives'] });
+
                     return allWorkspaces[0];
                 }
             } catch (error) {
