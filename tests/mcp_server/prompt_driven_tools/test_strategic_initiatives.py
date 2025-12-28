@@ -141,12 +141,11 @@ class TestGetStrategicInitiativeDefinitionFramework:
         assert_that(templates, has_key("narrative_intent"))
 
         # Verify templates contain expected markdown sections
-        assert "## What We're Building" in templates["implementation_description"]
         assert "## Technical Approach" in templates["implementation_description"]
         assert "## Scope" in templates["implementation_description"]
 
-        assert "## User Need" in templates["strategic_description"]
         assert "## Strategic Alignment" in templates["strategic_description"]
+        assert "## Why Now" in templates["strategic_description"]
         assert "## Expected Impact" in templates["strategic_description"]
 
         assert "**[hero name]**" in templates["narrative_intent"]
