@@ -1,5 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
+// Use require for the addon
+// @ts-ignore
+const { reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
+
 import StoryBiblePage from '#pages/Narrative/StoryBible';
 import { useHeroes } from '#hooks/useHeroes.mock';
 import { useVillains } from '#hooks/useVillains.mock';
@@ -10,10 +14,12 @@ import { VillainDto, VillainType } from '#types';
 import { PillarDto } from '#api/productStrategy';
 import { ThemeDto } from '#api/productStrategy';
 import { OutcomeReorderRequest } from '#api/productOutcomes';
-import { mockWorkspace } from '#stories/example_data';
+import { mockWorkspace, mockWorkspacesReturn } from '#stories/example_data';
 import { useWorkspaces } from '#hooks/useWorkspaces.mock';
 import { mockOutcomes } from '#stories/strategyAndRoadmap/mockData';
 import { useProductOutcomes } from '#hooks/useProductOutcomes.mock';
+import { ResponsiveLayout } from '#components/layout/ResponsiveLayout';
+import NavBar from '#components/reusable/NavBar';
 
 const mockNarrativeSummary = `OpenBacklog is pioneering a new category: the AI-native product management layer. We're building for solo developers and small teams who work alongside AI coding assistants like Claude Code, who need their product context to be immediately accessible to both humans and AI without breaking flow state.
 
@@ -171,11 +177,30 @@ const mockThemes: ThemeDto[] = [
     },
 ];
 
+const getStoryBibleWithWrappers = () => {
+    return reactRouterNestedAncestors([
+        {
+            element: <div className="inset-0 flex flex-col h-screen w-screen">
+                <NavBar />
+                <ResponsiveLayout>
+                    <StoryBiblePage />
+                </ResponsiveLayout>
+            </div>
+        }
+    ]);
+};  
+
 const meta: Meta<typeof StoryBiblePage> = {
     title: 'Pages/StoryBible',
     component: StoryBiblePage,
     parameters: {
         layout: 'fullscreen',
+        reactRouter: reactRouterParameters({
+            location: {
+                path: '/'
+            },
+            routing: getStoryBibleWithWrappers()
+        })
     },
     argTypes: {
         narrativeSummary: {
@@ -189,18 +214,6 @@ const meta: Meta<typeof StoryBiblePage> = {
     },
     decorators: [
         (Story) => {
-            // Mock all hooks with data
-            useWorkspaces.mockReturnValue({
-                currentWorkspace: mockWorkspace,
-                workspaces: [mockWorkspace],
-                isLoading: false,
-                error: null,
-                changeWorkspace: async () => { },
-                addWorkspace: async () => mockWorkspace,
-                refresh: () => { },
-                isProcessing: false
-            });
-            
             useHeroes.mockReturnValue({
                 heroes: mockHeroes,
                 isLoading: false,
@@ -267,6 +280,9 @@ const meta: Meta<typeof StoryBiblePage> = {
             return <Story />;
         },
     ],
+    async beforeEach() {
+        useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+    },
 };
 
 export default meta;

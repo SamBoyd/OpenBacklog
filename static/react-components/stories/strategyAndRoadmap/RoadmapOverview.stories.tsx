@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { vi } from 'vitest';
+// Use require for the addon
+// @ts-ignore
+const { reactRouterParameters, reactRouterNestedAncestors } = require('storybook-addon-remix-react-router');
 
 import { RoadmapOverview } from '#pages/RoadmapOverview';
 import { mockPrioritizedThemes, mockUnprioritizedThemes, useRoadmapThemes } from '#hooks/strategyAndRoadmap/useRoadmapThemes.mock';
@@ -9,8 +11,23 @@ import { mockStrategicPillarsReturn, useStrategicPillars } from '#hooks/useStrat
 import { mockProductOutcomesReturn, useProductOutcomes } from '#hooks/useProductOutcomes.mock';
 import { mockHeroesReturn, useHeroes } from '#hooks/useHeroes.mock';
 import { mockVillainsReturn, useVillains } from '#hooks/useVillains.mock';
+import { ResponsiveLayout } from '#components/layout/ResponsiveLayout';
+import NavBar from '#components/reusable/NavBar';
 
 const mockRefetch = () => Promise.resolve({ data: [], isLoading: false, error: null });
+
+const getRoadmapOverviewWithWrappers = () => {
+  return reactRouterNestedAncestors([
+    {
+      element: <div className="inset-0 flex flex-col h-screen w-screen">
+        <NavBar />
+        <ResponsiveLayout>
+          <RoadmapOverview />
+        </ResponsiveLayout>
+      </div>
+    }
+  ]);
+};
 
 const meta: Meta<typeof RoadmapOverview> = {
   component: RoadmapOverview,
@@ -18,13 +35,16 @@ const meta: Meta<typeof RoadmapOverview> = {
   tags: ['autodocs'],
   parameters: {
     layout: 'fullscreen',
+    reactRouter: reactRouterParameters({
+      location: {
+        path: '/'
+      },
+      routing: getRoadmapOverviewWithWrappers()
+    })
   },
-  decorators: [
-    (Story) => {
-      useWorkspaces.mockReturnValue(mockWorkspacesReturn);
-      return <Story />;
-    },
-  ],
+  async beforeEach() {
+    useWorkspaces.mockReturnValue(mockWorkspacesReturn);
+  },
 };
 
 export default meta;
