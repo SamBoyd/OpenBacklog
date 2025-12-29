@@ -28,7 +28,6 @@ __all__ = [
     "submit_strategic_pillar",
     "get_strategic_pillars",
     "get_strategic_pillar_details",
-    "update_strategic_pillar",
     "delete_strategic_pillar",
     # Strategic Foundation - Outcomes
     "get_outcome_definition_framework",
@@ -54,16 +53,13 @@ __all__ = [
     "submit_hero",
     "get_heroes",
     "get_hero_details",
-    "update_hero",
     "delete_hero",
     # Narrative Layer - Villains
     "get_villain_definition_framework",
     "submit_villain",
     "get_villains",
     "get_villain_details",
-    "update_villain",
     "delete_villain",
-    "mark_villain_defeated",
     # Narrative Layer - Conflicts
     "get_conflict_creation_framework",
     "create_conflict",

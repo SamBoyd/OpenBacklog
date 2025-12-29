@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from hamcrest import assert_that, contains_string, equal_to, has_entries, has_key
+from sqlalchemy.orm import Session
 
 from src.mcp_server.auth_utils import MCPContextError
 from src.mcp_server.prompt_driven_tools.narrative_villains import (
@@ -18,14 +19,32 @@ from src.mcp_server.prompt_driven_tools.narrative_villains import (
     get_villain_definition_framework,
     get_villain_details,
     get_villains,
-    mark_villain_defeated,
     submit_villain,
-    update_villain,
 )
-from src.models import Workspace
+from src.models import User, Workspace
 from src.narrative.aggregates.villain import Villain, VillainType
 from src.narrative.exceptions import DomainException
 from src.strategic_planning.services.event_publisher import EventPublisher
+
+
+@pytest.fixture
+def mock_get_workspace_id_from_request(workspace: Workspace):
+    """Fixture that patches get_workspace_id_from_request and returns workspace ID."""
+    with patch(
+        "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
+    ) as mock:
+        mock.return_value = str(workspace.id)
+        yield mock
+
+
+@pytest.fixture
+def mock_get_auth_context(user: User, workspace: Workspace):
+    """Fixture that patches get_auth_context and returns (user_id, workspace_id) tuple."""
+    with patch(
+        "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
+    ) as mock:
+        mock.return_value = (str(user.id), str(workspace.id))
+        yield mock
 
 
 class TestGetVillainDetails:
@@ -68,20 +87,11 @@ class TestGetVillainDetails:
         return villain
 
     @pytest.mark.asyncio
-    async def test_get_villain_details_success(self, session, workspace, villain):
+    async def test_get_villain_details_success(
+        self, session, workspace, villain, mock_get_workspace_id_from_request
+    ):
         """Test successfully retrieving villain details."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await get_villain_details.fn(villain_identifier=villain.identifier)
+        result = await get_villain_details.fn(villain_identifier=villain.identifier)
 
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(result["data"]["name"], equal_to(villain.name))
@@ -89,21 +99,10 @@ class TestGetVillainDetails:
 
     @pytest.mark.asyncio
     async def test_get_villain_details_includes_battle_summary(
-        self, session, workspace, villain
+        self, session, workspace, villain, mock_get_workspace_id_from_request
     ):
         """Test that villain details include battle summary."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await get_villain_details.fn(villain_identifier=villain.identifier)
+        result = await get_villain_details.fn(villain_identifier=villain.identifier)
 
         assert_that(result["data"], has_key("battle_summary"))
         battle_summary = result["data"]["battle_summary"]
@@ -114,40 +113,26 @@ class TestGetVillainDetails:
         assert_that(battle_summary, has_key("initiatives_confronting_count"))
 
     @pytest.mark.asyncio
-    async def test_get_villain_details_not_found(self, session, workspace):
+    async def test_get_villain_details_not_found(
+        self, session, workspace, mock_get_workspace_id_from_request
+    ):
         """Test error when villain not found."""
         fake_identifier = "V-9999"
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await get_villain_details.fn(villain_identifier=fake_identifier)
+        result = await get_villain_details.fn(villain_identifier=fake_identifier)
 
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
 
     @pytest.mark.asyncio
-    async def test_get_villain_details_handles_workspace_error(self, session, villain):
+    async def test_get_villain_details_handles_workspace_error(
+        self, session, villain, mock_get_workspace_id_from_request
+    ):
         """Test handling of workspace error."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.side_effect = ValueError("Invalid workspace ID")
+        mock_get_workspace_id_from_request.side_effect = ValueError(
+            "Invalid workspace ID"
+        )
 
-            result = await get_villain_details.fn(villain_identifier=villain.identifier)
+        result = await get_villain_details.fn(villain_identifier=villain.identifier)
 
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
 
@@ -192,21 +177,11 @@ class TestGetVillainDefinitionFramework:
         return villain
 
     @pytest.mark.asyncio
-    async def test_get_framework_basic_structure(self, session, workspace):
+    async def test_get_framework_basic_structure(
+        self, session, workspace, mock_get_workspace_id_from_request
+    ):
         """Test framework retrieval returns correct structure."""
-        workspace_id = str(workspace.id)
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = workspace_id
-
-            result = await get_villain_definition_framework.fn()
+        result = await get_villain_definition_framework.fn()
 
         # Verify framework structure
         assert_that(result, has_key("entity_type"))
@@ -219,21 +194,10 @@ class TestGetVillainDefinitionFramework:
 
     @pytest.mark.asyncio
     async def test_get_framework_with_existing_villains(
-        self, session, workspace, existing_villain
+        self, session, workspace, existing_villain, mock_get_workspace_id_from_request
     ):
         """Test framework retrieval includes current state with existing villains."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await get_villain_definition_framework.fn()
+        result = await get_villain_definition_framework.fn()
 
         # Verify current state reflects existing villains
         assert_that(result["current_state"]["villain_count"], equal_to(1))
@@ -241,20 +205,11 @@ class TestGetVillainDefinitionFramework:
         assert_that(result["current_state"]["defeated_count"], equal_to(0))
 
     @pytest.mark.asyncio
-    async def test_get_framework_includes_villain_types(self, session, workspace):
+    async def test_get_framework_includes_villain_types(
+        self, session, workspace, mock_get_workspace_id_from_request
+    ):
         """Test framework includes villain type definitions."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await get_villain_definition_framework.fn()
+        result = await get_villain_definition_framework.fn()
 
         # Verify villain types are included in context
         assert_that(result, has_key("villain_types"))
@@ -266,20 +221,11 @@ class TestGetVillainDefinitionFramework:
         assert_that(villain_types, has_key("OTHER"))
 
     @pytest.mark.asyncio
-    async def test_get_framework_includes_coaching_content(self, session, workspace):
+    async def test_get_framework_includes_coaching_content(
+        self, session, workspace, mock_get_workspace_id_from_request
+    ):
         """Test framework includes all required coaching and guidance content."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await get_villain_definition_framework.fn()
+        result = await get_villain_definition_framework.fn()
 
         # Verify coaching and natural questions
         assert_that(result, has_key("conversation_guidelines"))
@@ -306,30 +252,21 @@ class TestSubmitVillain:
         return workspace
 
     @pytest.mark.asyncio
-    async def test_submit_villain_success(self, session, user, workspace):
+    async def test_submit_villain_success(
+        self, session, user, workspace, mock_get_auth_context
+    ):
         """Test successfully submitting a new villain."""
         villain_name = "Context Switching"
         villain_type = "WORKFLOW"
         villain_description = "Jumping between tools breaks flow state"
         severity = 5
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await submit_villain.fn(
-                name=villain_name,
-                villain_type=villain_type,
-                description=villain_description,
-                severity=severity,
-            )
+        result = await submit_villain.fn(
+            name=villain_name,
+            villain_type=villain_type,
+            description=villain_description,
+            severity=severity,
+        )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
@@ -339,151 +276,94 @@ class TestSubmitVillain:
         assert_that(result["data"]["severity"], equal_to(severity))
 
     @pytest.mark.asyncio
-    async def test_submit_villain_external_type(self, session, user, workspace):
+    async def test_submit_villain_external_type(
+        self, session, user, workspace, mock_get_auth_context
+    ):
         """Test submitting a villain with EXTERNAL type."""
         villain_name = "Competitor Product"
         villain_type = "EXTERNAL"
         villain_description = "Competitor X has better feature Y"
         severity = 4
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await submit_villain.fn(
-                name=villain_name,
-                villain_type=villain_type,
-                description=villain_description,
-                severity=severity,
-            )
+        result = await submit_villain.fn(
+            name=villain_name,
+            villain_type=villain_type,
+            description=villain_description,
+            severity=severity,
+        )
 
         # Verify success response with correct type
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(result["data"]["villain_type"], equal_to("EXTERNAL"))
 
     @pytest.mark.asyncio
-    async def test_submit_villain_invalid_type(self, session, user, workspace):
+    async def test_submit_villain_invalid_type(
+        self, session, user, workspace, mock_get_auth_context
+    ):
         """Test error when submitting villain with invalid type."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await submit_villain.fn(
-                name="Test Villain",
-                villain_type="INVALID_TYPE",
-                description="Description",
-                severity=3,
-            )
+        result = await submit_villain.fn(
+            name="Test Villain",
+            villain_type="INVALID_TYPE",
+            description="Description",
+            severity=3,
+        )
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
         assert_that(result["error_message"], contains_string("Invalid villain_type"))
 
     @pytest.mark.asyncio
-    async def test_submit_villain_severity_edge_cases(self, session, user, workspace):
+    async def test_submit_villain_severity_edge_cases(
+        self, session, user, workspace, mock_get_auth_context
+    ):
         """Test villain severity validation with edge cases."""
-        # Save IDs before detachment
-        user_id = str(user.id)
-        workspace_id = str(workspace.id)
-
         # Test minimum severity
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (user_id, workspace_id)
-
-            result = await submit_villain.fn(
-                name="Low Severity Villain",
-                villain_type="INTERNAL",
-                description="Minor issue",
-                severity=1,
-            )
+        result = await submit_villain.fn(
+            name="Low Severity Villain",
+            villain_type="INTERNAL",
+            description="Minor issue",
+            severity=1,
+        )
 
         assert_that(result, has_entries({"status": "success"}))
         assert_that(result["data"]["severity"], equal_to(1))
 
         # Test maximum severity - use different name to avoid constraint
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (user_id, workspace_id)
-
-            result = await submit_villain.fn(
-                name="High Severity Issue",
-                villain_type="TECHNICAL",
-                description="Critical problem",
-                severity=5,
-            )
+        result = await submit_villain.fn(
+            name="High Severity Issue",
+            villain_type="TECHNICAL",
+            description="Critical problem",
+            severity=5,
+        )
 
         assert_that(result, has_entries({"status": "success"}))
         assert_that(result["data"]["severity"], equal_to(5))
 
     @pytest.mark.asyncio
-    async def test_submit_villain_mcp_context_error(self, session, user, workspace):
+    async def test_submit_villain_mcp_context_error(
+        self, session, user, workspace, mock_get_auth_context
+    ):
         """Test handling of MCPContextError during submission."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.side_effect = MCPContextError("No workspace in context")
+        mock_get_auth_context.side_effect = MCPContextError("No workspace in context")
 
-            result = await submit_villain.fn(
-                name="Context Switching",
-                villain_type="WORKFLOW",
-                description="Description",
-                severity=5,
-            )
+        result = await submit_villain.fn(
+            name="Context Switching",
+            villain_type="WORKFLOW",
+            description="Description",
+            severity=5,
+        )
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
 
     @pytest.mark.asyncio
-    async def test_submit_villain_domain_exception(self, session, user, workspace):
+    async def test_submit_villain_domain_exception(
+        self, session, user, workspace, mock_get_auth_context
+    ):
         """Test handling of domain validation errors."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.validate_villain_constraints"
-            ) as mock_validate,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
+        with patch(
+            "src.mcp_server.prompt_driven_tools.narrative_villains.validate_villain_constraints"
+        ) as mock_validate:
             mock_validate.side_effect = DomainException("Villain name must be unique")
 
             result = await submit_villain.fn(
@@ -500,25 +380,16 @@ class TestSubmitVillain:
         )
 
     @pytest.mark.asyncio
-    async def test_submit_villain_includes_next_steps(self, session, user, workspace):
+    async def test_submit_villain_includes_next_steps(
+        self, session, user, workspace, mock_get_auth_context
+    ):
         """Test that submit_villain includes helpful next steps."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await submit_villain.fn(
-                name="Context Switching",
-                villain_type="WORKFLOW",
-                description="Description",
-                severity=5,
-            )
+        result = await submit_villain.fn(
+            name="Context Switching",
+            villain_type="WORKFLOW",
+            description="Description",
+            severity=5,
+        )
 
         # Verify next_steps are included
         assert_that(result, has_key("next_steps"))
@@ -549,20 +420,11 @@ class TestGetVillains:
         return MagicMock(spec=EventPublisher)
 
     @pytest.mark.asyncio
-    async def test_get_villains_empty_workspace(self, session, workspace):
+    async def test_get_villains_empty_workspace(
+        self, session, workspace, mock_get_workspace_id_from_request
+    ):
         """Test retrieving villains from workspace with no villains."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await get_villains.fn()
+        result = await get_villains.fn()
 
         # Verify success response with empty list
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
@@ -570,7 +432,12 @@ class TestGetVillains:
 
     @pytest.mark.asyncio
     async def test_get_villains_multiple_villains(
-        self, session, workspace, user, mock_publisher
+        self,
+        session,
+        workspace,
+        user,
+        mock_publisher,
+        mock_get_workspace_id_from_request,
     ):
         """Test retrieving multiple villains from workspace."""
         # Create multiple villains
@@ -598,38 +465,18 @@ class TestGetVillains:
         )
         session.commit()
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await get_villains.fn()
+        result = await get_villains.fn()
 
         # Verify response contains both villains
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(len(result["data"]["villains"]), equal_to(2))
 
     @pytest.mark.asyncio
-    async def test_get_villains_success_response_structure(self, session, workspace):
+    async def test_get_villains_success_response_structure(
+        self, session, workspace, mock_get_workspace_id_from_request
+    ):
         """Test get_villains returns correctly structured response."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await get_villains.fn()
+        result = await get_villains.fn()
 
         # Verify response structure
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
@@ -639,7 +486,12 @@ class TestGetVillains:
 
     @pytest.mark.asyncio
     async def test_get_villains_includes_defeated_status(
-        self, session, workspace, user, mock_publisher
+        self,
+        session,
+        workspace,
+        user,
+        mock_publisher,
+        mock_get_workspace_id_from_request,
     ):
         """Test that get_villains includes defeated status for each villain."""
         villain = Villain.define_villain(
@@ -654,26 +506,15 @@ class TestGetVillains:
         )
         session.commit()
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await get_villains.fn()
+        result = await get_villains.fn()
 
         # Verify each villain includes is_defeated status
         assert_that(len(result["data"]["villains"]), equal_to(1))
         assert_that(result["data"]["villains"][0], has_key("is_defeated"))
 
 
-class TestMarkVillainDefeated:
-    """Test suite for mark_villain_defeated MCP tool."""
+class TestSubmitVillainUpsert:
+    """Test suite for submit_villain upsert MCP tool (create and update paths)."""
 
     @pytest.fixture
     def workspace(self, user, session):
@@ -696,7 +537,7 @@ class TestMarkVillainDefeated:
 
     @pytest.fixture
     def villain(self, workspace, user, session, mock_publisher):
-        """Create a villain for testing."""
+        """Create a villain for testing updates."""
         villain = Villain.define_villain(
             workspace_id=workspace.id,
             user_id=user.id,
@@ -712,275 +553,116 @@ class TestMarkVillainDefeated:
         return villain
 
     @pytest.mark.asyncio
-    async def test_mark_villain_defeated_success(self, session, workspace, villain):
-        """Test successfully marking a villain as defeated."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await mark_villain_defeated.fn(
-                villain_identifier=villain.identifier
-            )
-
-        # Verify success response
-        assert_that(result, has_entries({"status": "success", "type": "villain"}))
-        assert_that(result["message"], contains_string("marked as defeated"))
-        assert_that(result["data"]["is_defeated"], equal_to(True))
-
-    @pytest.mark.asyncio
-    async def test_mark_villain_defeated_already_defeated(
-        self, session, workspace, villain, mock_publisher
+    async def test_submit_villain_update_name_success(
+        self, session, user, workspace, villain, mock_get_auth_context
     ):
-        """Test error when marking already defeated villain."""
-        # Mark villain as defeated first
-        villain.mark_defeated(mock_publisher)
-        session.commit()
-        session.refresh(villain)
-
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await mark_villain_defeated.fn(
-                villain_identifier=villain.identifier
-            )
-
-        # Verify error response
-        assert_that(result, has_entries({"status": "error", "type": "villain"}))
-        assert_that(result["error_message"], contains_string("already defeated"))
-
-    @pytest.mark.asyncio
-    async def test_mark_villain_defeated_not_found(self, session, workspace):
-        """Test error when villain not found."""
-        fake_identifier = "V-9999"
-
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_workspace_id_from_request"
-            ) as mock_get_ws,
-        ):
-            mock_session_local.return_value = session
-            mock_get_ws.return_value = str(workspace.id)
-
-            result = await mark_villain_defeated.fn(villain_identifier=fake_identifier)
-
-        # Verify error response
-        assert_that(result, has_entries({"status": "error", "type": "villain"}))
-
-
-class TestUpdateVillain:
-    """Test suite for update_villain MCP tool."""
-
-    @pytest.fixture
-    def workspace(self, user, session):
-        """Create a workspace for testing."""
-        workspace = Workspace(
-            id=uuid.uuid4(),
-            name="Test Workspace",
-            description="A test workspace",
-            user_id=user.id,
-        )
-        session.add(workspace)
-        session.commit()
-        session.refresh(workspace)
-        return workspace
-
-    @pytest.fixture
-    def mock_publisher(self):
-        """Mock EventPublisher for testing."""
-        return MagicMock(spec=EventPublisher)
-
-    @pytest.fixture
-    def villain(self, workspace, user, session, mock_publisher):
-        """Create a villain for testing."""
-        villain = Villain.define_villain(
-            workspace_id=workspace.id,
-            user_id=user.id,
-            name="Context Switching",
-            villain_type=VillainType.WORKFLOW,
-            description="Jumping between tools breaks flow",
-            severity=5,
-            session=session,
-            publisher=mock_publisher,
-        )
-        session.commit()
-        session.refresh(villain)
-        return villain
-
-    @pytest.mark.asyncio
-    async def test_update_villain_name_success(self, session, user, workspace, villain):
-        """Test successfully updating villain's name."""
+        """Test successfully updating villain's name via upsert."""
         new_name = "Context Switching (Critical)"
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await update_villain.fn(
-                villain_identifier=villain.identifier,
-                name=new_name,
-            )
+        result = await submit_villain.fn(
+            name=new_name,
+            villain_type=villain.villain_type,
+            description=villain.description,
+            severity=villain.severity,
+            villain_identifier=villain.identifier,
+        )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(result["data"]["name"], equal_to(new_name))
 
     @pytest.mark.asyncio
-    async def test_update_villain_severity_success(
-        self, session, user, workspace, villain
+    async def test_submit_villain_update_severity_success(
+        self, session, user, workspace, villain, mock_get_auth_context
     ):
-        """Test successfully updating villain's severity."""
+        """Test successfully updating villain's severity via upsert."""
         new_severity = 3
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await update_villain.fn(
-                villain_identifier=villain.identifier,
-                severity=new_severity,
-            )
+        result = await submit_villain.fn(
+            name=villain.name,
+            villain_type=villain.villain_type,
+            description=villain.description,
+            severity=new_severity,
+            villain_identifier=villain.identifier,
+        )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(result["data"]["severity"], equal_to(new_severity))
 
     @pytest.mark.asyncio
-    async def test_update_villain_type_success(self, session, user, workspace, villain):
-        """Test successfully updating villain's type."""
+    async def test_submit_villain_update_type_success(
+        self, session, user, workspace, villain, mock_get_auth_context
+    ):
+        """Test successfully updating villain's type via upsert."""
         new_type = "TECHNICAL"
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await update_villain.fn(
-                villain_identifier=villain.identifier,
-                villain_type=new_type,
-            )
+        result = await submit_villain.fn(
+            name=villain.name,
+            villain_type=new_type,
+            description=villain.description,
+            severity=villain.severity,
+            villain_identifier=villain.identifier,
+        )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(result["data"]["villain_type"], equal_to(new_type))
 
     @pytest.mark.asyncio
-    async def test_update_villain_description_success(
-        self, session, user, workspace, villain
+    async def test_submit_villain_update_description_success(
+        self, session, user, workspace, villain, mock_get_auth_context
     ):
-        """Test successfully updating villain's description."""
+        """Test successfully updating villain's description via upsert."""
         new_description = "New description of the problem"
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await update_villain.fn(
-                villain_identifier=villain.identifier,
-                description=new_description,
-            )
+        result = await submit_villain.fn(
+            name=villain.name,
+            villain_type=villain.villain_type,
+            description=new_description,
+            severity=villain.severity,
+            villain_identifier=villain.identifier,
+        )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(result["data"]["description"], equal_to(new_description))
 
     @pytest.mark.asyncio
-    async def test_update_villain_defeated_status(
-        self, session, user, workspace, villain
+    async def test_submit_villain_update_defeated_status(
+        self, session, user, workspace, villain, mock_get_auth_context
     ):
-        """Test updating villain's defeated status."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await update_villain.fn(
-                villain_identifier=villain.identifier,
-                is_defeated=True,
-            )
+        """Test updating villain's defeated status via upsert."""
+        result = await submit_villain.fn(
+            name=villain.name,
+            villain_type=villain.villain_type,
+            description=villain.description,
+            severity=villain.severity,
+            villain_identifier=villain.identifier,
+            is_defeated=True,
+        )
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(result["data"]["is_defeated"], equal_to(True))
 
     @pytest.mark.asyncio
-    async def test_update_villain_all_fields_success(
-        self, session, user, workspace, villain
+    async def test_submit_villain_update_all_fields_success(
+        self, session, user, workspace, villain, mock_get_auth_context
     ):
-        """Test updating all fields at once."""
+        """Test updating all fields at once via upsert."""
         new_name = "Technical Debt"
         new_type = "TECHNICAL"
         new_description = "Legacy code slows development"
         new_severity = 4
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await update_villain.fn(
-                villain_identifier=villain.identifier,
-                name=new_name,
-                villain_type=new_type,
-                description=new_description,
-                severity=new_severity,
-            )
+        result = await submit_villain.fn(
+            name=new_name,
+            villain_type=new_type,
+            description=new_description,
+            severity=new_severity,
+            villain_identifier=villain.identifier,
+        )
 
         # Verify all fields updated
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
@@ -990,94 +672,54 @@ class TestUpdateVillain:
         assert_that(result["data"]["severity"], equal_to(new_severity))
 
     @pytest.mark.asyncio
-    async def test_update_villain_no_fields_error(
-        self, session, user, workspace, villain
+    async def test_submit_villain_update_invalid_type(
+        self, session, user, workspace, villain, mock_get_auth_context
     ):
-        """Test error when no fields provided for update."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await update_villain.fn(
-                villain_identifier=villain.identifier,
-            )
-
-        # Verify error response
-        assert_that(result, has_entries({"status": "error", "type": "villain"}))
-        assert_that(result["error_message"], contains_string("At least one field"))
-
-    @pytest.mark.asyncio
-    async def test_update_villain_invalid_type(self, session, user, workspace, villain):
         """Test error when updating with invalid villain type."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await update_villain.fn(
-                villain_identifier=villain.identifier,
-                villain_type="INVALID_TYPE",
-            )
+        result = await submit_villain.fn(
+            name=villain.name,
+            villain_type="INVALID_TYPE",
+            description=villain.description,
+            severity=villain.severity,
+            villain_identifier=villain.identifier,
+        )
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
         assert_that(result["error_message"], contains_string("Invalid villain_type"))
 
     @pytest.mark.asyncio
-    async def test_update_villain_not_found(self, session, user, workspace):
-        """Test error when villain not found."""
+    async def test_submit_villain_update_not_found(
+        self, session, user, workspace, mock_get_auth_context
+    ):
+        """Test error when villain not found during update."""
         fake_identifier = "V-9999"
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await update_villain.fn(
-                villain_identifier=fake_identifier,
-                name="New Name",
-            )
+        result = await submit_villain.fn(
+            name="New Name",
+            villain_type="WORKFLOW",
+            description="Description",
+            severity=5,
+            villain_identifier=fake_identifier,
+        )
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
 
     @pytest.mark.asyncio
-    async def test_update_villain_mcp_context_error(self, session, villain):
-        """Test handling of MCPContextError."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.side_effect = MCPContextError("No workspace in context")
+    async def test_submit_villain_update_mcp_context_error(
+        self, session, villain, mock_get_auth_context
+    ):
+        """Test handling of MCPContextError during update."""
+        mock_get_auth_context.side_effect = MCPContextError("No workspace in context")
 
-            result = await update_villain.fn(
-                villain_identifier=villain.identifier,
-                name="New Name",
-            )
+        result = await submit_villain.fn(
+            name="New Name",
+            villain_type="WORKFLOW",
+            description="Description",
+            severity=5,
+            villain_identifier=villain.identifier,
+        )
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
@@ -1123,23 +765,19 @@ class TestDeleteVillain:
         return villain
 
     @pytest.mark.asyncio
-    async def test_delete_villain_success(self, session, user, workspace, villain):
+    async def test_delete_villain_success(
+        self,
+        session: Session,
+        user: User,
+        workspace: Workspace,
+        villain: Villain,
+        mock_get_auth_context,
+    ):
         """Test successfully deleting a villain."""
         villain_id = villain.id
         villain_identifier = villain.identifier
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await delete_villain.fn(villain_identifier=villain_identifier)
+        result = await delete_villain.fn(villain_identifier=villain_identifier)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
@@ -1150,64 +788,37 @@ class TestDeleteVillain:
         assert_that(result["data"]["deleted_id"], equal_to(str(villain_id)))
 
     @pytest.mark.asyncio
-    async def test_delete_villain_not_found(self, session, user, workspace):
+    async def test_delete_villain_not_found(
+        self, session, user, workspace, mock_get_auth_context
+    ):
         """Test error when villain not found."""
         fake_identifier = "V-9999"
 
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
-            result = await delete_villain.fn(villain_identifier=fake_identifier)
+        result = await delete_villain.fn(villain_identifier=fake_identifier)
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
 
     @pytest.mark.asyncio
-    async def test_delete_villain_mcp_context_error(self, session, villain):
+    async def test_delete_villain_mcp_context_error(
+        self, session, villain, mock_get_auth_context
+    ):
         """Test handling of MCPContextError."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.side_effect = MCPContextError("No workspace in context")
+        mock_get_auth_context.side_effect = MCPContextError("No workspace in context")
 
-            result = await delete_villain.fn(villain_identifier=villain.identifier)
+        result = await delete_villain.fn(villain_identifier=villain.identifier)
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
 
     @pytest.mark.asyncio
     async def test_delete_villain_generic_exception(
-        self, session, user, workspace, villain
+        self, session, user, workspace, villain, mock_get_auth_context
     ):
         """Test handling of generic exceptions during deletion."""
-        with (
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.SessionLocal"
-            ) as mock_session_local,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.get_auth_context"
-            ) as mock_auth,
-            patch(
-                "src.mcp_server.prompt_driven_tools.narrative_villains.VillainService"
-            ) as mock_service_class,
-        ):
-            mock_session_local.return_value = session
-            mock_auth.return_value = (str(user.id), str(workspace.id))
-
+        with patch(
+            "src.mcp_server.prompt_driven_tools.narrative_villains.VillainService"
+        ) as mock_service_class:
             mock_service = MagicMock()
             mock_service_class.return_value = mock_service
             mock_service.get_villain_by_identifier.side_effect = RuntimeError(

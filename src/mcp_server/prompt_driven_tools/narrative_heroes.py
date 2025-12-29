@@ -217,8 +217,13 @@ async def submit_hero(
     name: str,
     description: Optional[str] = None,
     is_primary: bool = False,
+    hero_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Submit a refined hero (user persona) after collaborative definition.
+    """Submit a refined hero (user persona) - creates new or updates existing.
+
+    UPSERT PATTERN:
+    - If hero_identifier is None: Creates a new hero
+    - If hero_identifier is provided: Updates the existing hero
 
     Called only when Claude Code and user have crafted a high-quality
     hero through dialogue using the framework guidance.
@@ -234,79 +239,154 @@ async def submit_hero(
         description: Rich description including who they are, motivations,
                      jobs-to-be-done, pains, desired gains, and context
         is_primary: Whether this is the primary hero
+        hero_identifier: If provided, updates existing hero instead of creating
 
     Returns:
-        Success response with created hero
+        Success response with created or updated hero
 
-    Example:
+    Example (Create):
         >>> result = await submit_hero(
         ...     name="Sarah, The Solo Builder",
         ...     description="Sarah is a solo developer...",
         ...     is_primary=True
         ... )
+
+    Example (Update):
+        >>> result = await submit_hero(
+        ...     hero_identifier="H-001",
+        ...     name="Sarah, The Senior Builder",
+        ...     description="Updated description..."
+        ... )
     """
     session = SessionLocal()
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
+        workspace_uuid = uuid.UUID(workspace_id)
         logger.info(f"Submitting hero for workspace {workspace_id}")
 
         publisher = EventPublisher(session)
         hero_service = HeroService(session, publisher)
 
-        validate_hero_constraints(
-            workspace_id=uuid.UUID(workspace_id),
-            name=name,
-            description=description,
-            is_primary=is_primary,
-            session=session,
-        )
+        if hero_identifier:
+            # UPDATE PATH
+            logger.info(f"Updating hero {hero_identifier}")
+            hero = hero_service.get_hero_by_identifier(hero_identifier, workspace_uuid)
 
-        if is_primary:
-            existing_primary = hero_service.get_primary_hero(uuid.UUID(workspace_id))
-            if existing_primary:
-                existing_primary.update_hero(
-                    name=existing_primary.name,
-                    description=existing_primary.description,
-                    is_primary=False,
-                    publisher=publisher,
+            if not hero:
+                return build_error_response("hero", f"Hero {hero_identifier} not found")
+
+            # Merge fields: use provided value or keep existing
+            final_name = name if name is not None else hero.name
+            final_description = (
+                description if description is not None else hero.description
+            )
+            final_is_primary = is_primary if is_primary is not None else hero.is_primary
+
+            # Only validate if name changed (to avoid uniqueness check on same name)
+            if final_name != hero.name:
+                validate_hero_constraints(
+                    workspace_id=workspace_uuid,
+                    name=final_name,
+                    description=final_description,
+                    is_primary=final_is_primary,
+                    session=session,
                 )
+            else:
+                # Only validate description format when name hasn't changed
+                if final_description is not None:
+                    Hero._validate_description(final_description)  # type: ignore[attr-defined]
 
-        hero = Hero.define_hero(
-            workspace_id=uuid.UUID(workspace_id),
-            user_id=uuid.UUID(user_id),
-            name=name,
-            description=description,
-            is_primary=is_primary,
-            session=session,
-            publisher=publisher,
-        )
+            # Handle is_primary logic
+            if final_is_primary and not hero.is_primary:
+                existing_primary = hero_service.get_primary_hero(workspace_uuid)
+                if existing_primary and existing_primary.id != hero.id:
+                    existing_primary.update_hero(
+                        name=existing_primary.name,
+                        description=existing_primary.description,
+                        is_primary=False,
+                        publisher=publisher,
+                    )
 
-        session.commit()
-
-        next_steps = [
-            f"Hero '{hero.name}' created successfully with identifier {hero.identifier}",
-        ]
-
-        if is_primary:
-            next_steps.append("This hero is now set as your primary hero")
-        else:
-            next_steps.append(
-                "Consider setting a primary hero if this is your main user persona"
+            hero.update_hero(
+                name=final_name,
+                description=final_description,
+                is_primary=final_is_primary,
+                publisher=publisher,
             )
 
-        next_steps.extend(
-            [
-                "Now define a villain (problem/obstacle) using get_villain_definition_framework()",
-                "Link this hero to a story arc using link_theme_to_hero()",
-            ]
-        )
+            session.commit()
+            session.refresh(hero)
 
-        return build_success_response(
-            entity_type="hero",
-            message="Hero created successfully",
-            data=serialize_hero(hero),
-            next_steps=next_steps,
-        )
+            next_steps = [
+                f"Hero '{hero.name}' ({hero.identifier}) updated successfully"
+            ]
+            if is_primary and final_is_primary:
+                next_steps.append("This hero is now set as your primary hero")
+
+            return build_success_response(
+                entity_type="hero",
+                message=f"Updated hero {hero.identifier}",
+                data=serialize_hero(hero),
+                next_steps=next_steps,
+            )
+
+        else:
+            # CREATE PATH
+            logger.info("Creating new hero")
+            validate_hero_constraints(
+                workspace_id=workspace_uuid,
+                name=name,
+                description=description,
+                is_primary=is_primary,
+                session=session,
+            )
+
+            if is_primary:
+                existing_primary = hero_service.get_primary_hero(workspace_uuid)
+                if existing_primary:
+                    existing_primary.update_hero(
+                        name=existing_primary.name,
+                        description=existing_primary.description,
+                        is_primary=False,
+                        publisher=publisher,
+                    )
+
+            hero = Hero.define_hero(
+                workspace_id=workspace_uuid,
+                user_id=uuid.UUID(user_id),
+                name=name,
+                description=description,
+                is_primary=is_primary,
+                session=session,
+                publisher=publisher,
+            )
+
+            session.commit()
+
+            next_steps = [
+                f"Hero '{hero.name}' created successfully with identifier {hero.identifier}",
+            ]
+
+            if is_primary:
+                next_steps.append("This hero is now set as your primary hero")
+            else:
+                next_steps.append(
+                    "Consider setting a primary hero if this is your main user persona"
+                )
+
+            next_steps.extend(
+                [
+                    "Now define a villain (problem/obstacle) using get_villain_definition_framework()",
+                    "Link this hero to a story arc using link_theme_to_hero()",
+                ]
+            )
+
+            return build_success_response(
+                entity_type="hero",
+                message="Hero created successfully",
+                data=serialize_hero(hero),
+                next_steps=next_steps,
+            )
 
     except DomainException as e:
         logger.warning(f"Domain validation error: {e}")
@@ -403,104 +483,6 @@ async def get_hero_details(hero_identifier: str) -> Dict[str, Any]:
         return build_error_response("hero", str(e))
     except Exception as e:
         logger.exception(f"Error getting hero details: {e}")
-        return build_error_response("hero", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def update_hero(
-    hero_identifier: str,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    is_primary: Optional[bool] = None,
-) -> Dict[str, Any]:
-    """Update an existing hero's fields.
-
-    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        hero_identifier: Human-readable identifier (e.g., "H-2003")
-        name: New hero name (optional)
-        description: New hero description (optional)
-        is_primary: Whether this is the primary hero (optional)
-
-    Returns:
-        Success response with updated hero
-
-    Example:
-        >>> result = await update_hero(
-        ...     hero_identifier="H-2003",
-        ...     name="Sarah, The Senior Builder",
-        ...     description="Updated description...",
-        ... )
-    """
-    session = SessionLocal()
-    try:
-        _, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(f"Updating hero {hero_identifier} for workspace {workspace_id}")
-
-        if name is None and description is None and is_primary is None:
-            return build_error_response(
-                "hero",
-                "At least one field (name, description, is_primary) must be provided",
-            )
-
-        publisher = EventPublisher(session)
-        hero_service = HeroService(session, publisher)
-        hero = hero_service.get_hero_by_identifier(
-            hero_identifier, uuid.UUID(workspace_id)
-        )
-
-        final_name = name if name is not None else hero.name
-        final_description = description if description is not None else hero.description
-        final_is_primary = is_primary if is_primary is not None else hero.is_primary
-
-        if final_is_primary and not hero.is_primary:
-            existing_primary = hero_service.get_primary_hero(uuid.UUID(workspace_id))
-            if existing_primary and existing_primary.id != hero.id:
-                existing_primary.update_hero(
-                    name=existing_primary.name,
-                    description=existing_primary.description,
-                    is_primary=False,
-                    publisher=publisher,
-                )
-
-        hero.update_hero(
-            name=final_name,
-            description=final_description,
-            is_primary=final_is_primary,
-            publisher=publisher,
-        )
-
-        session.commit()
-        session.refresh(hero)
-
-        next_steps = [f"Hero '{hero.name}' ({hero.identifier}) updated successfully"]
-        if is_primary and final_is_primary:
-            next_steps.append("This hero is now set as your primary hero")
-
-        return build_success_response(
-            entity_type="hero",
-            message=f"Updated hero {hero.identifier}",
-            data=serialize_hero(hero),
-            next_steps=next_steps,
-        )
-
-    except DomainException as e:
-        logger.warning(f"Domain validation error: {e}")
-        return build_error_response("hero", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("hero", str(e))
-    except MCPContextError as e:
-        return build_error_response("hero", str(e))
-    except Exception as e:
-        logger.exception(f"Error updating hero: {e}")
         return build_error_response("hero", f"Server error: {str(e)}")
     finally:
         session.close()

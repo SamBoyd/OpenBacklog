@@ -211,8 +211,14 @@ async def submit_villain(
     villain_type: str,
     description: str,
     severity: int,
+    villain_identifier: Optional[str] = None,
+    is_defeated: Optional[bool] = None,
 ) -> Dict[str, Any]:
-    """Submit a refined villain (problem/obstacle) after collaborative definition.
+    """Submit a refined villain (problem/obstacle) - creates new or updates existing.
+
+    UPSERT PATTERN:
+    - If villain_identifier is None: Creates a new villain
+    - If villain_identifier is provided: Updates the existing villain
 
     Called only when Claude Code and user have crafted a high-quality
     villain through dialogue using the framework guidance.
@@ -228,67 +234,161 @@ async def submit_villain(
         villain_type: Type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER)
         description: Rich description including how it manifests, impact, and evidence
         severity: How big a threat (1-5)
+        villain_identifier: If provided, updates existing villain instead of creating
+        is_defeated: Whether the villain is defeated (optional, replaces mark_villain_defeated)
 
     Returns:
-        Success response with created villain
+        Success response with created or updated villain
 
-    Example:
+    Example (Create):
         >>> result = await submit_villain(
         ...     name="Context Switching",
         ...     villain_type="WORKFLOW",
         ...     description="Jumping between tools breaks flow...",
         ...     severity=5
         ... )
+
+    Example (Update):
+        >>> result = await submit_villain(
+        ...     villain_identifier="V-001",
+        ...     name="Context Switching (Updated)",
+        ...     villain_type="WORKFLOW",
+        ...     description="Updated description...",
+        ...     severity=4
+        ... )
+
+    Example (Mark Defeated):
+        >>> result = await submit_villain(
+        ...     villain_identifier="V-001",
+        ...     is_defeated=True
+        ... )
     """
     session = SessionLocal()
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
+        workspace_uuid = uuid.UUID(workspace_id)
         logger.info(f"Submitting villain for workspace {workspace_id}")
 
-        try:
-            villain_type_enum = VillainType[villain_type.upper()]
-        except KeyError:
-            valid_types = ", ".join([vt.name for vt in VillainType])
-            return build_error_response(
-                "villain",
-                f"Invalid villain_type '{villain_type}'. Must be one of: {valid_types}",
+        publisher = EventPublisher(session)
+        villain_service = VillainService(session, publisher)
+
+        if villain_identifier:
+            # UPDATE PATH
+            logger.info(f"Updating villain {villain_identifier}")
+            villain = villain_service.get_villain_by_identifier(
+                villain_identifier, workspace_uuid
             )
 
-        validate_villain_constraints(
-            workspace_id=uuid.UUID(workspace_id),
-            name=name,
-            villain_type=villain_type,
-            description=description,
-            severity=severity,
-            session=session,
-        )
+            if not villain:
+                return build_error_response(
+                    "villain", f"Villain {villain_identifier} not found"
+                )
 
-        publisher = EventPublisher(session)
-        villain = Villain.define_villain(
-            workspace_id=uuid.UUID(workspace_id),
-            user_id=uuid.UUID(user_id),
-            name=name,
-            villain_type=villain_type_enum,
-            description=description,
-            severity=severity,
-            session=session,
-            publisher=publisher,
-        )
+            # Merge fields: use provided value or keep existing
+            final_name = name if name is not None else villain.name
+            final_description = (
+                description if description is not None else villain.description
+            )
+            final_severity = severity if severity is not None else villain.severity
+            final_is_defeated = (
+                is_defeated if is_defeated is not None else villain.is_defeated
+            )
 
-        session.commit()
+            # Only validate if name changed (to avoid uniqueness check on same name)
+            if final_name != villain.name:
+                validate_villain_constraints(
+                    workspace_id=workspace_uuid,
+                    name=final_name,
+                    villain_type=villain_type or villain.villain_type,
+                    description=final_description,
+                    severity=final_severity,
+                    session=session,
+                )
 
-        next_steps = [
-            f"Villain '{villain.name}' created successfully with identifier {villain.identifier}",
-            "Link this villain to a hero to create a conflict using create_conflict()",
-            "Link this villain to a story arc using link_theme_to_villain()",
-        ]
+            # Handle villain_type
+            if villain_type is not None:
+                try:
+                    final_villain_type = VillainType[villain_type.upper()]
+                except KeyError:
+                    valid_types = ", ".join([vt.name for vt in VillainType])
+                    return build_error_response(
+                        "villain",
+                        f"Invalid villain_type '{villain_type}'. Must be one of: {valid_types}",
+                    )
+            else:
+                final_villain_type = VillainType[villain.villain_type]
 
-        return build_success_response(
-            entity_type="villain",
-            message="Villain created successfully",
-            data=serialize_villain(villain),
-            next_steps=next_steps,
-        )
+            villain.update_villain(
+                name=final_name,
+                villain_type=final_villain_type,
+                description=final_description,
+                severity=final_severity,
+                is_defeated=final_is_defeated,
+                publisher=publisher,
+            )
+            session.add(villain)
+            session.commit()
+            session.refresh(villain)
+
+            next_steps = [
+                f"Villain '{villain.name}' ({villain.identifier}) updated successfully"
+            ]
+            if final_is_defeated:
+                next_steps.append(f"Villain '{villain.name}' is now marked as defeated")
+
+            return build_success_response(
+                entity_type="villain",
+                message=f"Updated villain {villain.identifier}",
+                data=serialize_villain(villain),
+                next_steps=next_steps,
+            )
+
+        else:
+            # CREATE PATH
+            logger.info("Creating new villain")
+            try:
+                villain_type_enum = VillainType[villain_type.upper()]
+            except KeyError:
+                valid_types = ", ".join([vt.name for vt in VillainType])
+                return build_error_response(
+                    "villain",
+                    f"Invalid villain_type '{villain_type}'. Must be one of: {valid_types}",
+                )
+
+            validate_villain_constraints(
+                workspace_id=workspace_uuid,
+                name=name,
+                villain_type=villain_type,
+                description=description,
+                severity=severity,
+                session=session,
+            )
+
+            villain = Villain.define_villain(
+                workspace_id=workspace_uuid,
+                user_id=uuid.UUID(user_id),
+                name=name,
+                villain_type=villain_type_enum,
+                description=description,
+                severity=severity,
+                session=session,
+                publisher=publisher,
+            )
+
+            session.commit()
+
+            next_steps = [
+                f"Villain '{villain.name}' created successfully with identifier {villain.identifier}",
+                "Link this villain to a hero to create a conflict using create_conflict()",
+                "Link this villain to a story arc using link_theme_to_villain()",
+            ]
+
+            return build_success_response(
+                entity_type="villain",
+                message="Villain created successfully",
+                data=serialize_villain(villain),
+                next_steps=next_steps,
+            )
 
     except DomainException as e:
         logger.warning(f"Domain validation error: {e}")
@@ -394,176 +494,6 @@ async def get_villain_details(villain_identifier: str) -> Dict[str, Any]:
         return build_error_response("villain", str(e))
     except Exception as e:
         logger.exception(f"Error getting villain details: {e}")
-        return build_error_response("villain", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def mark_villain_defeated(villain_identifier: str) -> Dict[str, Any]:
-    """Marks a villain as defeated.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        villain_identifier: Human-readable identifier (e.g., "V-2003")
-
-    Returns:
-        Success response with updated villain
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-        logger.info(
-            f"Marking villain {villain_identifier} as defeated in workspace {workspace_uuid}"
-        )
-
-        publisher = EventPublisher(session)
-        villain_service = VillainService(session, publisher)
-        villain = villain_service.get_villain_by_identifier(
-            villain_identifier, workspace_uuid
-        )
-
-        if villain.is_defeated:
-            return build_error_response(
-                "villain", f"Villain {villain_identifier} is already defeated"
-            )
-
-        villain.mark_defeated(publisher)
-        session.commit()
-
-        return build_success_response(
-            entity_type="villain",
-            message=f"Villain '{villain.name}' marked as defeated",
-            data=serialize_villain(villain),
-        )
-
-    except DomainException as e:
-        logger.warning(f"Domain error: {e}")
-        return build_error_response("villain", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("villain", str(e))
-    except Exception as e:
-        logger.exception(f"Error marking villain defeated: {e}")
-        return build_error_response("villain", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def update_villain(
-    villain_identifier: str,
-    name: Optional[str] = None,
-    villain_type: Optional[str] = None,
-    description: Optional[str] = None,
-    severity: Optional[int] = None,
-    is_defeated: Optional[bool] = None,
-) -> Dict[str, Any]:
-    """Update an existing villain's fields.
-
-    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        villain_identifier: Human-readable identifier (e.g., "V-2003")
-        name: New villain name (optional)
-        villain_type: New type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER) (optional)
-        description: New villain description (optional)
-        severity: New severity 1-5 (optional)
-        is_defeated: Whether the villain is defeated (optional)
-
-    Returns:
-        Success response with updated villain
-
-    Example:
-        >>> result = await update_villain(
-        ...     villain_identifier="V-2003",
-        ...     name="Context Switching (Updated)",
-        ...     severity=4,
-        ... )
-    """
-    session = SessionLocal()
-    try:
-        _, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(
-            f"Updating villain {villain_identifier} for workspace {workspace_id}"
-        )
-
-        if (
-            name is None
-            and villain_type is None
-            and description is None
-            and severity is None
-            and is_defeated is None
-        ):
-            return build_error_response(
-                "villain",
-                "At least one field (name, villain_type, description, severity) must be provided",
-            )
-
-        publisher = EventPublisher(session)
-        villain_service = VillainService(session, publisher)
-        villain = villain_service.get_villain_by_identifier(
-            villain_identifier, uuid.UUID(workspace_id)
-        )
-
-        final_name = name if name is not None else villain.name
-        final_description = (
-            description if description is not None else villain.description
-        )
-        final_severity = severity if severity is not None else villain.severity
-        final_is_defeated = (
-            is_defeated if is_defeated is not None else villain.is_defeated
-        )
-
-        if villain_type is not None:
-            try:
-                final_villain_type = VillainType[villain_type.upper()]
-            except KeyError:
-                valid_types = ", ".join([vt.name for vt in VillainType])
-                return build_error_response(
-                    "villain",
-                    f"Invalid villain_type '{villain_type}'. Must be one of: {valid_types}",
-                )
-        else:
-            final_villain_type = VillainType[villain.villain_type]
-
-        villain.update_villain(
-            name=final_name,
-            villain_type=final_villain_type,
-            description=final_description,
-            severity=final_severity,
-            is_defeated=final_is_defeated,
-            publisher=publisher,
-        )
-        session.add(villain)
-        session.commit()
-        session.refresh(villain)
-
-        return build_success_response(
-            entity_type="villain",
-            message=f"Updated villain {villain.identifier}",
-            data=serialize_villain(villain),
-            next_steps=[
-                f"Villain '{villain.name}' ({villain.identifier}) updated successfully"
-            ],
-        )
-
-    except DomainException as e:
-        logger.warning(f"Domain validation error: {e}")
-        return build_error_response("villain", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("villain", str(e))
-    except MCPContextError as e:
-        return build_error_response("villain", str(e))
-    except Exception as e:
-        logger.exception(f"Error updating villain: {e}")
         return build_error_response("villain", f"Server error: {str(e)}")
     finally:
         session.close()

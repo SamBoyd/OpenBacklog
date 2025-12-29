@@ -455,8 +455,13 @@ async def get_strategic_pillar_details(pillar_identifier: str) -> Dict[str, Any]
 async def submit_strategic_pillar(
     name: str,
     description: str,
+    pillar_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Submit a refined strategic pillar after collaborative definition.
+    """Submit a refined strategic pillar - creates new or updates existing.
+
+    UPSERT PATTERN:
+    - If pillar_identifier is None: Creates a new pillar
+    - If pillar_identifier is provided: Updates the existing pillar
 
     Called only when Claude Code and user have crafted a high-quality
     pillar through dialogue using the framework guidance.
@@ -471,68 +476,128 @@ async def submit_strategic_pillar(
         name: Pillar name (1-100 characters, unique per workspace)
         description: Pillar description including strategy and anti-strategy (required)
                     Should include both what you'll do and what you won't do
+        pillar_identifier: If provided, updates existing pillar instead of creating
 
     Returns:
-        Success response with created pillar
+        Success response with created or updated pillar
 
-    Example:
+    Example (Create):
         >>> result = await submit_strategic_pillar(
         ...     name="Deep IDE Integration",
         ...     description="Strategy: Seamless developer workflow. Anti-Strategy: No web/mobile."
+        ... )
+
+    Example (Update):
+        >>> result = await submit_strategic_pillar(
+        ...     pillar_identifier="P-001",
+        ...     name="Deep IDE Integration (Updated)",
+        ...     description="Updated strategy..."
         ... )
     """
     session = SessionLocal()
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
+        workspace_uuid = uuid.UUID(workspace_id)
         logger.info(f"Submitting strategic pillar for workspace {workspace_id}")
 
-        validate_pillar_constraints(
-            workspace_id=uuid.UUID(workspace_id),
-            name=name,
-            description=description,
-            session=session,
-        )
-
-        pillar = strategic_controller.create_strategic_pillar(
-            workspace_id=uuid.UUID(workspace_id),
-            user_id=uuid.UUID(user_id),
-            name=name,
-            description=description,
-            session=session,
-        )
-
-        # Build success response with next steps
-        all_pillars = strategic_controller.get_strategic_pillars(
-            uuid.UUID(workspace_id), session
-        )
-        current_pillar_count = len(all_pillars)
-
-        next_steps = []
-
-        if current_pillar_count < 2:
-            next_steps.append(
-                f"Define {2 - current_pillar_count} more pillar(s) to reach minimum of 2 pillars"
-            )
-            next_steps.append(
-                "Use get_pillar_definition_framework() to define additional pillars"
-            )
-        elif current_pillar_count >= 2:
-            next_steps.append(
-                "You now have enough pillars for a complete strategic foundation"
-            )
-            next_steps.append(
-                "Define product outcomes that measure success for these pillars"
-            )
-            next_steps.append(
-                "Use get_outcome_definition_framework() to start defining outcomes"
+        if pillar_identifier:
+            # UPDATE PATH
+            logger.info(f"Updating pillar {pillar_identifier}")
+            pillar = (
+                session.query(StrategicPillar)
+                .filter_by(identifier=pillar_identifier, workspace_id=workspace_uuid)
+                .first()
             )
 
-        return build_success_response(
-            entity_type="pillar",
-            message="Strategic pillar created successfully",
-            data=serialize_pillar(pillar),
-            next_steps=next_steps,
-        )
+            if not pillar:
+                return build_error_response(
+                    "pillar", f"Strategic pillar {pillar_identifier} not found"
+                )
+
+            # Merge fields
+            final_name = name if name is not None else pillar.name
+            final_description = (
+                description if description is not None else pillar.description
+            )
+
+            # Only validate if name changed (to avoid uniqueness check on same name)
+            if final_name != pillar.name:
+                validate_pillar_constraints(
+                    workspace_id=workspace_uuid,
+                    name=final_name,
+                    description=final_description,
+                    session=session,
+                )
+            else:
+                # Only validate description format when name hasn't changed
+                StrategicPillar._validate_description(final_description)  # type: ignore[attr-defined]
+
+            publisher = EventPublisher(session)
+            pillar.update_pillar(
+                name=final_name,
+                description=final_description,
+                publisher=publisher,
+            )
+
+            session.commit()
+            session.refresh(pillar)
+
+            return build_success_response(
+                entity_type="pillar",
+                message=f"Updated strategic pillar '{pillar.name}'",
+                data=serialize_pillar(pillar),
+            )
+
+        else:
+            # CREATE PATH
+            logger.info("Creating new pillar")
+            validate_pillar_constraints(
+                workspace_id=workspace_uuid,
+                name=name,
+                description=description,
+                session=session,
+            )
+
+            pillar = strategic_controller.create_strategic_pillar(
+                workspace_id=workspace_uuid,
+                user_id=uuid.UUID(user_id),
+                name=name,
+                description=description,
+                session=session,
+            )
+
+            # Build success response with next steps
+            all_pillars = strategic_controller.get_strategic_pillars(
+                workspace_uuid, session
+            )
+            current_pillar_count = len(all_pillars)
+
+            next_steps = []
+
+            if current_pillar_count < 2:
+                next_steps.append(
+                    f"Define {2 - current_pillar_count} more pillar(s) to reach minimum of 2 pillars"
+                )
+                next_steps.append(
+                    "Use get_pillar_definition_framework() to define additional pillars"
+                )
+            elif current_pillar_count >= 2:
+                next_steps.append(
+                    "You now have enough pillars for a complete strategic foundation"
+                )
+                next_steps.append(
+                    "Define product outcomes that measure success for these pillars"
+                )
+                next_steps.append(
+                    "Use get_outcome_definition_framework() to start defining outcomes"
+                )
+
+            return build_success_response(
+                entity_type="pillar",
+                message="Strategic pillar created successfully",
+                data=serialize_pillar(pillar),
+                next_steps=next_steps,
+            )
 
     except DomainException as e:
         logger.warning(f"Domain validation error: {e}")
@@ -544,97 +609,6 @@ async def submit_strategic_pillar(
         return build_error_response("pillar", str(e))
     except Exception as e:
         logger.exception(f"Error submitting pillar: {e}")
-        return build_error_response("pillar", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def update_strategic_pillar(
-    pillar_identifier: str,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Update an existing strategic pillar.
-
-    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        pillar_identifier: Human-readable identifier of the strategic pillar to update (e.g., "P-001")
-        name: New pillar name (optional, 1-100 characters)
-        description: New pillar description (optional, 1-3000 characters)
-
-    Returns:
-        Success response with updated pillar
-
-    Example:
-        >>> result = await update_strategic_pillar(
-        ...     pillar_identifier="P-001",
-        ...     name="Updated Pillar Name",
-        ...     description="Updated description with strategy and anti-strategy..."
-        ... )
-    """
-    session = SessionLocal()
-    try:
-        _, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(
-            f"Updating strategic pillar {pillar_identifier} for workspace {workspace_id}"
-        )
-
-        if name is None and description is None:
-            return build_error_response(
-                "pillar",
-                "At least one field (name, description) must be provided",
-            )
-
-        workspace_uuid = uuid.UUID(workspace_id)
-
-        pillar = (
-            session.query(StrategicPillar)
-            .filter_by(identifier=pillar_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not pillar:
-            return build_error_response(
-                "pillar", f"Strategic pillar {pillar_identifier} not found"
-            )
-
-        final_name = name if name is not None else pillar.name
-        final_description = (
-            description if description is not None else pillar.description
-        )
-
-        publisher = EventPublisher(session)
-        pillar.update_pillar(
-            name=final_name,
-            description=final_description,
-            publisher=publisher,
-        )
-
-        session.commit()
-        session.refresh(pillar)
-
-        return build_success_response(
-            entity_type="pillar",
-            message=f"Updated strategic pillar '{pillar.name}'",
-            data=serialize_pillar(pillar),
-        )
-
-    except DomainException as e:
-        logger.warning(f"Domain validation error: {e}")
-        return build_error_response("pillar", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("pillar", str(e))
-    except MCPContextError as e:
-        return build_error_response("pillar", str(e))
-    except Exception as e:
-        logger.exception(f"Error updating strategic pillar: {e}")
         return build_error_response("pillar", f"Server error: {str(e)}")
     finally:
         session.close()
