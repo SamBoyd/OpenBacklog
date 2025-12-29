@@ -338,8 +338,8 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
 
 @mcp.tool()
 async def submit_strategic_initiative(
-    title: str,
-    implementation_description: str,
+    title: str = None,
+    implementation_description: str = None,
     strategic_description: Optional[str] = None,
     hero_identifiers: Optional[List[str]] = None,
     villain_identifiers: Optional[List[str]] = None,
@@ -348,11 +348,12 @@ async def submit_strategic_initiative(
     theme_identifier: Optional[str] = None,
     narrative_intent: Optional[str] = None,
     status: Optional[str] = None,
+    strategic_initiative_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Submit a strategic initiative optionally with full narrative connections.
 
     Creates both an Initiative and its StrategicInitiative context in one
-    operation, linking to heroes, villains, conflicts, pillars, and themes.
+    operation, or updates an existing one, linking to heroes, villains, conflicts, pillars, and themes.
 
     Uses graceful degradation: invalid narrative IDs are skipped with warnings
     rather than failing the entire operation.
@@ -360,41 +361,45 @@ async def submit_strategic_initiative(
     IMPORTANT: Reflect the initiative back to the user and get explicit confirmation
     BEFORE calling this function. This persists immediately.
 
+    **Upsert Behavior:**
+    - If `strategic_initiative_identifier` is **omitted**: Creates new initiative
+    - If `strategic_initiative_identifier` is **provided**: Updates existing initiative
+
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        title: Initiative title (e.g., "Smart Context Switching")
+        title: Initiative title (required for create, optional for update)
         implementation_description: What this initiative delivers and how it will be
-            built. This is the practical description of the work involved - the "what".
-            Supports markdown formatting (headings, bold, italic, code, lists, links,
-            blockquotes). Rendered as rich text in the UI.
+            built (required for create, optional for update). Supports markdown formatting.
         strategic_description: How this initiative connects to the larger product
-            strategy. Explains the "why" - user needs addressed, strategic alignment,
-            and how it fits into the bigger picture. If not provided, defaults to
-            implementation_description. Supports markdown formatting. Rendered as rich
-            text in the UI. (optional)
-        hero_identifiers: List of hero identifiers this initiative helps (e.g., ["H-001"]) (optional)
-        villain_identifiers: List of villain identifiers this initiative confronts (e.g., ["V-001"]) (optional)
-        conflict_identifiers: List of conflict identifiers this initiative addresses (e.g., ["C-001"]) (optional)
-        pillar_identifier: Strategic pillar identifier for alignment (e.g., "P-001") (optional)
-        theme_identifier: Roadmap theme identifier for placement (e.g., "T-001") (optional)
-        narrative_intent: Why this initiative matters narratively. Supports markdown
-            formatting. Rendered with italic styling in the UI. (optional)
-        status: Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG
+            strategy (optional, defaults to implementation_description for create)
+        hero_identifiers: List of hero identifiers this initiative helps (optional)
+        villain_identifiers: List of villain identifiers this initiative confronts (optional)
+        conflict_identifiers: List of conflict identifiers this initiative addresses (optional)
+        pillar_identifier: Strategic pillar identifier for alignment (optional, use "null" to unlink)
+        theme_identifier: Roadmap theme identifier for placement (optional, use "null" to unlink)
+        narrative_intent: Why this initiative matters narratively (optional)
+        status: Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG (optional)
+        strategic_initiative_identifier: If provided, updates existing initiative (optional)
 
     Returns:
-        Success response with created initiative and strategic context
+        Success response with created or updated initiative and strategic context
 
     Example:
+        >>> # Create
         >>> result = await submit_strategic_initiative(
         ...     title="Smart Context Switching",
         ...     implementation_description="Auto-save and restore IDE context...",
         ...     strategic_description="Addresses user need for seamless workflow...",
         ...     hero_identifiers=["H-001"],
         ...     villain_identifiers=["V-001"],
-        ...     pillar_identifier="P-001",
-        ...     narrative_intent="Defeats context switching for Sarah"
+        ... )
+        >>> # Update
+        >>> result = await submit_strategic_initiative(
+        ...     strategic_initiative_identifier="I-1001",
+        ...     status="IN_PROGRESS",
+        ...     hero_identifiers=["H-002"]
         ... )
     """
     session = SessionLocal()
@@ -411,128 +416,306 @@ async def submit_strategic_initiative(
         user_id = uuid.UUID(user_id_str)
         workspace_id = uuid.UUID(workspace_id_str)
 
-        logger.info(f"Submitting strategic initiative for workspace {workspace_id}")
+        # UPDATE PATH
+        if strategic_initiative_identifier:
+            logger.info(
+                f"Updating strategic initiative {strategic_initiative_identifier}"
+            )
 
-        initiative_status = InitiativeStatus.BACKLOG
-        if status:
-            try:
-                initiative_status = InitiativeStatus(status.upper())
-            except ValueError:
-                valid_statuses = ", ".join(s.value for s in InitiativeStatus)
+            # Look up the strategic initiative
+            strategic_initiative = _lookup_strategic_initiative(
+                session, strategic_initiative_identifier, workspace_id
+            )
+
+            if not strategic_initiative:
                 return build_error_response(
                     "strategic_initiative",
-                    f"Invalid status '{status}'. Valid statuses are: {valid_statuses}",
+                    f"Strategic initiative not found for query: {strategic_initiative_identifier}",
                 )
 
-        hero_identifiers = hero_identifiers or []
-        villain_identifiers = villain_identifiers or []
-        conflict_identifiers = conflict_identifiers or []
+            warnings = []
+            initiative = strategic_initiative.initiative
 
-        validation_result = validate_strategic_initiative_constraints(
-            workspace_id=workspace_id,
-            title=title,
-            description=implementation_description,
-            hero_identifiers=hero_identifiers,
-            villain_identifiers=villain_identifiers,
-            conflict_identifiers=conflict_identifiers,
-            pillar_identifier=pillar_identifier,
-            theme_identifier=theme_identifier,
-            narrative_intent=narrative_intent,
-            session=session,
-        )
+            if (
+                title is not None
+                or implementation_description is not None
+                or status is not None
+            ):
+                controller = InitiativeController(session)
 
-        valid_hero_ids = validation_result["valid_hero_ids"]
-        valid_villain_ids = validation_result["valid_villain_ids"]
-        valid_conflict_ids = validation_result["valid_conflict_ids"]
-        valid_pillar_id = validation_result["valid_pillar_id"]
-        valid_theme_id = validation_result["valid_theme_id"]
-        warnings = validation_result["warnings"]
+                initiative_status = None
+                if status is not None:
+                    try:
+                        initiative_status = InitiativeStatus(status.upper())
+                    except ValueError:
+                        valid_statuses = ", ".join(s.value for s in InitiativeStatus)
+                        return build_error_response(
+                            "strategic_initiative",
+                            f"Invalid status '{status}'. Valid statuses are: {valid_statuses}",
+                        )
 
-        if not valid_hero_ids:
-            warnings.append(
-                "NARRATIVE GAP: No heroes linked. Strategic initiatives should connect "
-                "to the hero they help. Consider calling submit_hero() first if you "
-                "discussed who this helps but haven't created the entity yet."
+                controller.update_initiative(
+                    initiative_id=initiative.id,
+                    user_id=user_id,
+                    title=title,
+                    description=implementation_description,
+                    status=initiative_status,
+                )
+
+            # Update strategic context via aggregate method
+            publisher = EventPublisher(session)
+
+            # Validate and prepare narrative link updates
+            if (
+                hero_identifiers is not None
+                or villain_identifiers is not None
+                or conflict_identifiers is not None
+                or pillar_identifier is not None
+                or theme_identifier is not None
+            ):
+                validation_result = validate_strategic_initiative_constraints(
+                    workspace_id=workspace_id,
+                    title=initiative.title,
+                    description=initiative.description,
+                    hero_identifiers=hero_identifiers or [],
+                    villain_identifiers=villain_identifiers or [],
+                    conflict_identifiers=conflict_identifiers or [],
+                    pillar_identifier=pillar_identifier,
+                    theme_identifier=theme_identifier,
+                    narrative_intent=narrative_intent,
+                    session=session,
+                )
+
+                if hero_identifiers is not None:
+                    strategic_initiative.link_heroes(
+                        validation_result["valid_hero_ids"], session
+                    )
+                if villain_identifiers is not None:
+                    strategic_initiative.link_villains(
+                        validation_result["valid_villain_ids"], session
+                    )
+                if conflict_identifiers is not None:
+                    strategic_initiative.link_conflicts(
+                        validation_result["valid_conflict_ids"], session
+                    )
+
+                warnings.extend(validation_result.get("warnings", []))
+
+            # Update pillar/theme/narrative_intent
+            final_pillar_id = strategic_initiative.pillar_id
+            if pillar_identifier is not None:
+                if pillar_identifier.lower() == "null" or pillar_identifier == "":
+                    final_pillar_id = None
+                else:
+                    final_pillar_id = resolve_pillar_identifier(
+                        pillar_identifier, workspace_id, session
+                    )
+
+            final_theme_id = strategic_initiative.theme_id
+            if theme_identifier is not None:
+                if theme_identifier.lower() == "null" or theme_identifier == "":
+                    final_theme_id = None
+                else:
+                    final_theme_id = resolve_theme_identifier(
+                        theme_identifier, workspace_id, session
+                    )
+
+            final_strategic_description = (
+                strategic_description
+                if strategic_description is not None
+                else strategic_initiative.description
+            )
+            final_narrative_intent = (
+                narrative_intent
+                if narrative_intent is not None
+                else strategic_initiative.narrative_intent
             )
 
-        if not valid_villain_ids:
-            warnings.append(
-                "NARRATIVE GAP: No villains linked. Consider calling submit_villain() "
-                "to create the villain this initiative confronts."
+            if any(
+                [
+                    pillar_identifier is not None,
+                    theme_identifier is not None,
+                    strategic_description is not None,
+                    narrative_intent is not None,
+                ]
+            ):
+                strategic_initiative.update_strategic_context(
+                    publisher=publisher,
+                    pillar_id=final_pillar_id,
+                    theme_id=final_theme_id,
+                    description=final_strategic_description,
+                    narrative_intent=final_narrative_intent,
+                )
+
+            session.commit()
+            session.refresh(strategic_initiative)
+            session.refresh(initiative)
+
+            initiative_data = {
+                "id": str(strategic_initiative.id),
+                "initiative": {
+                    "id": str(initiative.id),
+                    "title": initiative.title,
+                    "description": initiative.description,
+                    "identifier": initiative.identifier,
+                    "status": initiative.status.value,
+                },
+                "strategic_context": serialize_strategic_initiative(
+                    strategic_initiative
+                ),
+                "narrative_summary": _build_narrative_summary(strategic_initiative),
+            }
+
+            return build_success_response(
+                entity_type="strategic_initiative",
+                message=f"Updated strategic initiative {initiative.identifier}",
+                data=initiative_data,
+                next_steps=[
+                    f"Strategic initiative '{initiative.title}' updated successfully"
+                ],
+                warnings=warnings if warnings else None,
             )
 
-        if not valid_conflict_ids:
-            warnings.append(
-                "NARRATIVE GAP: No conflicts linked. Consider calling create_conflict() "
-                "to establish the hero vs villain tension this initiative resolves."
+        # CREATE PATH
+        else:
+            logger.info("Creating new strategic initiative")
+
+            # Validate required fields for creation
+            if not title:
+                return build_error_response(
+                    "strategic_initiative",
+                    "title is required for creating a new initiative",
+                )
+            if not implementation_description:
+                return build_error_response(
+                    "strategic_initiative",
+                    "implementation_description is required for creating a new initiative",
+                )
+
+            initiative_status = InitiativeStatus.BACKLOG
+            if status:
+                try:
+                    initiative_status = InitiativeStatus(status.upper())
+                except ValueError:
+                    valid_statuses = ", ".join(s.value for s in InitiativeStatus)
+                    return build_error_response(
+                        "strategic_initiative",
+                        f"Invalid status '{status}'. Valid statuses are: {valid_statuses}",
+                    )
+
+            hero_identifiers = hero_identifiers or []
+            villain_identifiers = villain_identifiers or []
+            conflict_identifiers = conflict_identifiers or []
+
+            validation_result = validate_strategic_initiative_constraints(
+                workspace_id=workspace_id,
+                title=title,
+                description=implementation_description,
+                hero_identifiers=hero_identifiers,
+                villain_identifiers=villain_identifiers,
+                conflict_identifiers=conflict_identifiers,
+                pillar_identifier=pillar_identifier,
+                theme_identifier=theme_identifier,
+                narrative_intent=narrative_intent,
+                session=session,
             )
 
-        controller = InitiativeController(session)
-        initiative = controller.create_initiative(
-            title=title,
-            description=implementation_description,
-            user_id=user_id,
-            workspace_id=workspace_id,
-            status=initiative_status,
-        )
+            valid_hero_ids = validation_result["valid_hero_ids"]
+            valid_villain_ids = validation_result["valid_villain_ids"]
+            valid_conflict_ids = validation_result["valid_conflict_ids"]
+            valid_pillar_id = validation_result["valid_pillar_id"]
+            valid_theme_id = validation_result["valid_theme_id"]
+            warnings = validation_result["warnings"]
 
-        controller.complete_onboarding_if_first_initiative(user_id)
+            if not valid_hero_ids:
+                warnings.append(
+                    "NARRATIVE GAP: No heroes linked. Strategic initiatives should connect "
+                    "to the hero they help. Consider calling submit_hero() first if you "
+                    "discussed who this helps but haven't created the entity yet."
+                )
 
-        strategic_initiative = create_strategic_context(
-            initiative_id=initiative.id,
-            workspace_id=workspace_id,
-            user_id=user_id,
-            pillar_id=valid_pillar_id,
-            theme_id=valid_theme_id,
-            description=strategic_description,
-            narrative_intent=narrative_intent,
-            session=session,
-            hero_ids=valid_hero_ids,
-            villain_ids=valid_villain_ids,
-            conflict_ids=valid_conflict_ids,
-        )
+            if not valid_villain_ids:
+                warnings.append(
+                    "NARRATIVE GAP: No villains linked. Consider calling submit_villain() "
+                    "to create the villain this initiative confronts."
+                )
 
-        session.refresh(strategic_initiative)
+            if not valid_conflict_ids:
+                warnings.append(
+                    "NARRATIVE GAP: No conflicts linked. Consider calling create_conflict() "
+                    "to establish the hero vs villain tension this initiative resolves."
+                )
 
-        response_data = {
-            "initiative": {
-                "id": str(initiative.id),
-                "title": initiative.title,
-                "description": initiative.description,
-                "identifier": initiative.identifier,
-                "status": initiative.status.value,
-            },
-            "strategic_context": serialize_strategic_initiative(strategic_initiative),
-        }
+            controller = InitiativeController(session)
+            initiative = controller.create_initiative(
+                title=title,
+                description=implementation_description,
+                user_id=user_id,
+                workspace_id=workspace_id,
+                status=initiative_status,
+            )
 
-        next_steps = [
-            f"Strategic initiative '{initiative.title}' created with identifier {initiative.identifier}",
-        ]
+            controller.complete_onboarding_if_first_initiative(user_id)
 
-        if valid_hero_ids:
+            strategic_initiative = create_strategic_context(
+                initiative_id=initiative.id,
+                workspace_id=workspace_id,
+                user_id=user_id,
+                pillar_id=valid_pillar_id,
+                theme_id=valid_theme_id,
+                description=strategic_description,
+                narrative_intent=narrative_intent,
+                session=session,
+                hero_ids=valid_hero_ids,
+                villain_ids=valid_villain_ids,
+                conflict_ids=valid_conflict_ids,
+            )
+
+            session.refresh(strategic_initiative)
+
+            response_data = {
+                "initiative": {
+                    "id": str(initiative.id),
+                    "title": initiative.title,
+                    "description": initiative.description,
+                    "identifier": initiative.identifier,
+                    "status": initiative.status.value,
+                },
+                "strategic_context": serialize_strategic_initiative(
+                    strategic_initiative
+                ),
+            }
+
+            next_steps = [
+                f"Strategic initiative '{initiative.title}' created with identifier {initiative.identifier}",
+            ]
+
+            if valid_hero_ids:
+                next_steps.append(
+                    f"Linked to {len(valid_hero_ids)} hero(es) - they will benefit from this"
+                )
+            if valid_villain_ids:
+                next_steps.append(
+                    f"Confronts {len(valid_villain_ids)} villain(s) - progress defeats them"
+                )
+            if valid_pillar_id:
+                next_steps.append(
+                    "Aligned with strategic pillar for strategic coherence"
+                )
+            if valid_theme_id:
+                next_steps.append("Placed in roadmap theme for planning visibility")
+
             next_steps.append(
-                f"Linked to {len(valid_hero_ids)} hero(es) - they will benefit from this"
+                "Use get_initiative_details() to see the full context anytime"
             )
-        if valid_villain_ids:
-            next_steps.append(
-                f"Confronts {len(valid_villain_ids)} villain(s) - progress defeats them"
+
+            return build_success_response(
+                entity_type="strategic_initiative",
+                message="Strategic initiative created with narrative connections",
+                data=response_data,
+                next_steps=next_steps,
+                warnings=warnings if warnings else None,
             )
-        if valid_pillar_id:
-            next_steps.append("Aligned with strategic pillar for strategic coherence")
-        if valid_theme_id:
-            next_steps.append("Placed in roadmap theme for planning visibility")
-
-        next_steps.append(
-            "Use get_initiative_details() to see the full context anytime"
-        )
-
-        return build_success_response(
-            entity_type="strategic_initiative",
-            message="Strategic initiative created with narrative connections",
-            data=response_data,
-            next_steps=next_steps,
-            warnings=warnings if warnings else None,
-        )
 
     except DomainException as e:
         logger.warning(f"Domain validation error: {e}")
@@ -986,271 +1169,6 @@ def _lookup_strategic_initiative(
             )
 
     return strategic_initiative
-
-
-@mcp.tool()
-async def update_strategic_initiative(
-    query: str,
-    title: Optional[str] = None,
-    implementation_description: Optional[str] = None,
-    status: Optional[str] = None,
-    hero_identifiers: Optional[List[str]] = None,
-    villain_identifiers: Optional[List[str]] = None,
-    conflict_identifiers: Optional[List[str]] = None,
-    pillar_identifier: Optional[str] = None,
-    theme_identifier: Optional[str] = None,
-    narrative_intent: Optional[str] = None,
-    strategic_description: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Update an existing strategic initiative's fields.
-
-    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Accepts a flexible query that tries multiple lookup strategies:
-    1. First tries as StrategicInitiative UUID
-    2. Then tries as Initiative UUID
-    3. Finally tries as Initiative identifier (e.g., "I-1001")
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        query: Strategic initiative ID, initiative ID, or initiative identifier
-        title: New initiative title (optional)
-        implementation_description: New description of what this initiative delivers
-            and how it will be built - the practical "what". Supports markdown
-            formatting (headings, bold, italic, code, lists, links, blockquotes).
-            Rendered as rich text in the UI. (optional)
-        status: New status (BACKLOG, TO_DO, IN_PROGRESS) (optional)
-        hero_identifiers: New list of hero identifiers (e.g., ["H-001"]) (replaces existing) (optional)
-        villain_identifiers: New list of villain identifiers (e.g., ["V-001"]) (replaces existing) (optional)
-        conflict_identifiers: New list of conflict identifiers (e.g., ["C-001"]) (replaces existing) (optional)
-        pillar_identifier: New strategic pillar identifier (e.g., "P-001") (optional, use "null" to unlink)
-        theme_identifier: New roadmap theme identifier (e.g., "T-001") (optional, use "null" to unlink)
-        narrative_intent: New narrative intent. Supports markdown formatting.
-            Rendered with italic styling in the UI. (optional)
-        strategic_description: New description of how this initiative connects to
-            the larger product strategy - the "why". Supports markdown formatting.
-            Rendered as rich text in the UI. (optional)
-
-    Returns:
-        Success response with updated initiative
-
-    Example:
-        >>> result = await update_strategic_initiative(
-        ...     query="I-1001",
-        ...     title="Updated Title",
-        ...     implementation_description="New implementation details...",
-        ...     strategic_description="Updated strategic context...",
-        ...     status="IN_PROGRESS",
-        ... )
-    """
-    session = SessionLocal()
-    try:
-        user_id_str, workspace_id_str = get_auth_context(
-            session, requires_workspace=True
-        )
-        if workspace_id_str is None:
-            raise MCPContextError(
-                "Workspace not found.",
-                error_type="workspace_error",
-            )
-
-        user_id = uuid.UUID(user_id_str)
-        workspace_id = uuid.UUID(workspace_id_str)
-
-        logger.info(
-            f"Updating strategic initiative '{query}' for workspace {workspace_id}"
-        )
-
-        has_updates = any(
-            [
-                title is not None,
-                implementation_description is not None,
-                strategic_description is not None,
-                status is not None,
-                hero_identifiers is not None,
-                villain_identifiers is not None,
-                conflict_identifiers is not None,
-                pillar_identifier is not None,
-                theme_identifier is not None,
-                narrative_intent is not None,
-            ]
-        )
-
-        if not has_updates:
-            return build_error_response(
-                "strategic_initiative",
-                "At least one field must be provided for update",
-            )
-
-        # Look up the strategic initiative
-        strategic_initiative = _lookup_strategic_initiative(
-            session, query, workspace_id
-        )
-
-        if not strategic_initiative:
-            return build_error_response(
-                "strategic_initiative",
-                f"Strategic initiative not found for query: {query}",
-            )
-
-        warnings = []
-        initiative = strategic_initiative.initiative
-
-        if (
-            title is not None
-            or implementation_description is not None
-            or status is not None
-        ):
-            controller = InitiativeController(session)
-
-            initiative_status = None
-            if status is not None:
-                try:
-                    initiative_status = InitiativeStatus(status.upper())
-                except ValueError:
-                    valid_statuses = ", ".join(s.value for s in InitiativeStatus)
-                    return build_error_response(
-                        "strategic_initiative",
-                        f"Invalid status '{status}'. Valid statuses are: {valid_statuses}",
-                    )
-
-            controller.update_initiative(
-                initiative_id=initiative.id,
-                user_id=user_id,
-                title=title,
-                description=implementation_description,
-                status=initiative_status,
-            )
-
-        # Update strategic context via aggregate method
-        publisher = EventPublisher(session)
-
-        # Validate and prepare narrative link updates
-        if (
-            hero_identifiers is not None
-            or villain_identifiers is not None
-            or conflict_identifiers is not None
-            or pillar_identifier is not None
-            or theme_identifier is not None
-        ):
-            validation_result = validate_strategic_initiative_constraints(
-                workspace_id=workspace_id,
-                title=initiative.title,
-                description=initiative.description,
-                hero_identifiers=hero_identifiers or [],
-                villain_identifiers=villain_identifiers or [],
-                conflict_identifiers=conflict_identifiers or [],
-                pillar_identifier=pillar_identifier,
-                theme_identifier=theme_identifier,
-                narrative_intent=narrative_intent,
-                session=session,
-            )
-
-            if hero_identifiers is not None:
-                strategic_initiative.link_heroes(
-                    validation_result["valid_hero_ids"], session
-                )
-            if villain_identifiers is not None:
-                strategic_initiative.link_villains(
-                    validation_result["valid_villain_ids"], session
-                )
-            if conflict_identifiers is not None:
-                strategic_initiative.link_conflicts(
-                    validation_result["valid_conflict_ids"], session
-                )
-
-            warnings.extend(validation_result.get("warnings", []))
-
-        # Update pillar/theme/narrative_intent
-        final_pillar_id = strategic_initiative.pillar_id
-        if pillar_identifier is not None:
-            if pillar_identifier.lower() == "null" or pillar_identifier == "":
-                final_pillar_id = None
-            else:
-                final_pillar_id = resolve_pillar_identifier(
-                    pillar_identifier, workspace_id, session
-                )
-
-        final_theme_id = strategic_initiative.theme_id
-        if theme_identifier is not None:
-            if theme_identifier.lower() == "null" or theme_identifier == "":
-                final_theme_id = None
-            else:
-                final_theme_id = resolve_theme_identifier(
-                    theme_identifier, workspace_id, session
-                )
-
-        final_strategic_description = (
-            strategic_description
-            if strategic_description is not None
-            else strategic_initiative.description
-        )
-        final_narrative_intent = (
-            narrative_intent
-            if narrative_intent is not None
-            else strategic_initiative.narrative_intent
-        )
-
-        if any(
-            [
-                pillar_identifier is not None,
-                theme_identifier is not None,
-                strategic_description is not None,
-                narrative_intent is not None,
-            ]
-        ):
-            strategic_initiative.update_strategic_context(
-                publisher=publisher,
-                pillar_id=final_pillar_id,
-                theme_id=final_theme_id,
-                description=final_strategic_description,
-                narrative_intent=final_narrative_intent,
-            )
-
-        session.commit()
-        session.refresh(strategic_initiative)
-        session.refresh(initiative)
-
-        initiative_data = {
-            "id": str(strategic_initiative.id),
-            "initiative": {
-                "id": str(initiative.id),
-                "title": initiative.title,
-                "description": initiative.description,
-                "identifier": initiative.identifier,
-                "status": initiative.status.value,
-            },
-            "strategic_context": serialize_strategic_initiative(strategic_initiative),
-            "narrative_summary": _build_narrative_summary(strategic_initiative),
-        }
-
-        return build_success_response(
-            entity_type="strategic_initiative",
-            message=f"Updated strategic initiative {initiative.identifier}",
-            data=initiative_data,
-            next_steps=[
-                f"Strategic initiative '{initiative.title}' updated successfully"
-            ],
-            warnings=warnings if warnings else None,
-        )
-
-    except DomainException as e:
-        logger.warning(f"Domain validation error: {e}")
-        return build_error_response("strategic_initiative", str(e))
-    except MCPContextError as e:
-        logger.warning(f"Context error: {e}")
-        return build_error_response("strategic_initiative", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("strategic_initiative", str(e))
-    except Exception as e:
-        logger.exception(f"Error updating strategic initiative: {e}")
-        return build_error_response("strategic_initiative", f"Server error: {str(e)}")
-    finally:
-        session.close()
 
 
 @mcp.tool()

@@ -17,7 +17,6 @@ from src.mcp_server.prompt_driven_tools.strategic_initiatives import (
     get_strategic_initiative_details,
     get_strategic_initiatives,
     submit_strategic_initiative,
-    update_strategic_initiative,
 )
 from src.mcp_server.prompt_driven_tools.utils.validation_runner import (
     validate_strategic_initiative_constraints,
@@ -748,14 +747,14 @@ class TestGetStrategicInitiativeDetails:
         assert "To prove the tool works" in result["data"]["narrative_summary"]
 
 
-class TestUpdateStrategicInitiative:
-    """Test suite for update_strategic_initiative tool."""
+class TestSubmitStrategicInitiativeUpsert:
+    """Test suite for submit_strategic_initiative upsert functionality."""
 
     @pytest.mark.asyncio
-    async def test_update_title_and_implementation_description(
+    async def test_upsert_title_and_implementation_description(
         self, session: Session, user: User, workspace: Workspace
     ):
-        """Test updating initiative title and implementation description."""
+        """Test upsert (update) of initiative title and implementation description."""
         initiative = Initiative(
             title="Original Title",
             description="Original description",
@@ -779,8 +778,8 @@ class TestUpdateStrategicInitiative:
         new_title = "Updated Title"
         new_impl_description = "Updated implementation description"
 
-        result = await update_strategic_initiative.fn(
-            query=initiative.identifier,
+        result = await submit_strategic_initiative.fn(
+            strategic_initiative_identifier=initiative.identifier,
             title=new_title,
             implementation_description=new_impl_description,
         )
@@ -796,10 +795,10 @@ class TestUpdateStrategicInitiative:
         assert initiative.description == new_impl_description
 
     @pytest.mark.asyncio
-    async def test_update_status(
+    async def test_upsert_status(
         self, session: Session, user: User, workspace: Workspace
     ):
-        """Test updating initiative status."""
+        """Test upsert (update) of initiative status."""
         from src.models import ContextType
         from src.services.ordering_service import OrderingService
 
@@ -834,8 +833,8 @@ class TestUpdateStrategicInitiative:
         session.add(strategic_init)
         session.commit()
 
-        result = await update_strategic_initiative.fn(
-            query=initiative_identifier,
+        result = await submit_strategic_initiative.fn(
+            strategic_initiative_identifier=initiative_identifier,
             status="IN_PROGRESS",
         )
 
@@ -852,10 +851,10 @@ class TestUpdateStrategicInitiative:
         assert updated_initiative.status == InitiativeStatus.IN_PROGRESS
 
     @pytest.mark.asyncio
-    async def test_update_narrative_intent(
+    async def test_upsert_narrative_intent(
         self, session: Session, user: User, workspace: Workspace
     ):
-        """Test updating narrative intent."""
+        """Test upsert (update) of narrative intent."""
         initiative = Initiative(
             title="Test Initiative",
             description="Test description",
@@ -879,8 +878,8 @@ class TestUpdateStrategicInitiative:
 
         new_intent = "Updated narrative intent"
 
-        result = await update_strategic_initiative.fn(
-            query=initiative.identifier,
+        result = await submit_strategic_initiative.fn(
+            strategic_initiative_identifier=initiative.identifier,
             narrative_intent=new_intent,
         )
 
@@ -894,10 +893,10 @@ class TestUpdateStrategicInitiative:
         assert strategic_init.narrative_intent == new_intent
 
     @pytest.mark.asyncio
-    async def test_update_with_no_changes(
+    async def test_upsert_with_no_changes(
         self, session: Session, user: User, workspace: Workspace
     ):
-        """Test update with no fields provided."""
+        """Test upsert (update) with no fields provided."""
         initiative = Initiative(
             title="Test Initiative",
             description="Test description",
@@ -917,21 +916,23 @@ class TestUpdateStrategicInitiative:
         session.add(strategic_init)
         session.commit()
 
-        result = await update_strategic_initiative.fn(query=initiative.identifier)
-
-        # Verify error response
-        assert_that(
-            result, has_entries({"status": "error", "type": "strategic_initiative"})
+        result = await submit_strategic_initiative.fn(
+            strategic_initiative_identifier=initiative.identifier
         )
-        assert "must be provided" in result["error_message"]
+
+        # Verify success - upsert should succeed even with no changes
+        assert_that(
+            result, has_entries({"status": "success", "type": "strategic_initiative"})
+        )
+        assert initiative.title == "Test Initiative"
 
     @pytest.mark.asyncio
-    async def test_update_nonexistent_initiative(self):
-        """Test updating nonexistent initiative."""
+    async def test_upsert_nonexistent_initiative(self):
+        """Test upserting nonexistent initiative."""
         fake_id = str(uuid.uuid4())
 
-        result = await update_strategic_initiative.fn(
-            query=fake_id,
+        result = await submit_strategic_initiative.fn(
+            strategic_initiative_identifier=fake_id,
             title="New Title",
         )
 
@@ -939,6 +940,61 @@ class TestUpdateStrategicInitiative:
         assert_that(
             result, has_entries({"status": "error", "type": "strategic_initiative"})
         )
+
+    @pytest.mark.asyncio
+    async def test_upsert_can_modify_descriptions_independently(
+        self, session: Session, user: User, workspace: Workspace
+    ):
+        """Test that upsert can modify implementation and strategic descriptions independently."""
+        initiative = Initiative(
+            title="Initiative for Independent Updates",
+            description="Original implementation description",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+        )
+        session.add(initiative)
+        session.commit()
+        session.refresh(initiative)
+
+        strategic_init = StrategicInitiative(
+            initiative_id=initiative.id,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            description="Original strategic description",
+        )
+        session.add(strategic_init)
+        session.commit()
+
+        new_impl_desc = "Updated implementation description"
+        result = await submit_strategic_initiative.fn(
+            strategic_initiative_identifier=initiative.identifier,
+            implementation_description=new_impl_desc,
+        )
+
+        assert_that(
+            result, has_entries({"status": "success", "type": "strategic_initiative"})
+        )
+
+        session.refresh(initiative)
+        session.refresh(strategic_init)
+        assert initiative.description == new_impl_desc
+        assert strategic_init.description == "Original strategic description"
+
+        new_strategic_desc = "Updated strategic description"
+        result = await submit_strategic_initiative.fn(
+            strategic_initiative_identifier=initiative.identifier,
+            strategic_description=new_strategic_desc,
+        )
+
+        assert_that(
+            result, has_entries({"status": "success", "type": "strategic_initiative"})
+        )
+
+        session.refresh(initiative)
+        session.refresh(strategic_init)
+        assert initiative.description == new_impl_desc
+        assert strategic_init.description == new_strategic_desc
 
 
 class TestDeleteStrategicInitiative:
@@ -1300,58 +1356,3 @@ class TestDescriptionFieldsSeparation:
         )
         assert strategic_init is not None
         assert strategic_init.description is None
-
-    @pytest.mark.asyncio
-    async def test_update_can_modify_descriptions_independently(
-        self, session: Session, user: User, workspace: Workspace
-    ):
-        """Test that update can modify implementation and strategic descriptions independently."""
-        initiative = Initiative(
-            title="Initiative for Independent Updates",
-            description="Original implementation description",
-            user_id=user.id,
-            workspace_id=workspace.id,
-            status=InitiativeStatus.BACKLOG,
-        )
-        session.add(initiative)
-        session.commit()
-        session.refresh(initiative)
-
-        strategic_init = StrategicInitiative(
-            initiative_id=initiative.id,
-            workspace_id=workspace.id,
-            user_id=user.id,
-            description="Original strategic description",
-        )
-        session.add(strategic_init)
-        session.commit()
-
-        new_impl_desc = "Updated implementation description"
-        result = await update_strategic_initiative.fn(
-            query=initiative.identifier,
-            implementation_description=new_impl_desc,
-        )
-
-        assert_that(
-            result, has_entries({"status": "success", "type": "strategic_initiative"})
-        )
-
-        session.refresh(initiative)
-        session.refresh(strategic_init)
-        assert initiative.description == new_impl_desc
-        assert strategic_init.description == "Original strategic description"
-
-        new_strategic_desc = "Updated strategic description"
-        result = await update_strategic_initiative.fn(
-            query=initiative.identifier,
-            strategic_description=new_strategic_desc,
-        )
-
-        assert_that(
-            result, has_entries({"status": "success", "type": "strategic_initiative"})
-        )
-
-        session.refresh(initiative)
-        session.refresh(strategic_init)
-        assert initiative.description == new_impl_desc
-        assert strategic_init.description == new_strategic_desc

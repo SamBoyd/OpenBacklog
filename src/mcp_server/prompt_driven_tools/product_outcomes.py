@@ -360,84 +360,172 @@ async def get_outcome_definition_framework() -> Dict[str, Any]:
 
 @mcp.tool()
 async def submit_product_outcome(
-    name: str,
-    description: str,
+    name: str = None,
+    description: str = None,
     pillar_identifiers: Optional[List[str]] = None,
+    outcome_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Submit a refined product outcome after collaborative definition.
 
+    Creates a new product outcome or updates an existing one.
+
     IMPORTANT: Reflect the outcome back to the user and get explicit confirmation
     BEFORE calling this function. This persists immediately.
+
+    **Upsert Behavior:**
+    - If `outcome_identifier` is **omitted**: Creates new outcome
+    - If `outcome_identifier` is **provided**: Updates existing outcome
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        name: Outcome name (1-150 characters)
-        description: Outcome description including goal, baseline, target, and timeline (required)
-                    Should include specific metrics, baseline values, target values, and timeline
+        name: Outcome name (1-150 characters, required for create, optional for update)
+        description: Outcome description including goal, baseline, target, and timeline
+                    (required for create, optional for update)
         pillar_identifiers: List of pillar identifiers (e.g., "P-001") to link (optional)
+        outcome_identifier: If provided, updates existing outcome (optional)
 
     Returns:
-        Success response with created outcome
+        Success response with created or updated outcome
 
     Example:
+        >>> # Create
         >>> result = await submit_product_outcome(
         ...     name="Developer Daily Adoption",
-        ...     description="Goal: Increase daily active IDE plugin users to measure adoption. Baseline: 30% of users daily active. Target: 80% daily active. Timeline: 6 months. Metric: Daily active users %",
+        ...     description="Goal: Increase daily active IDE plugin users...",
         ...     pillar_identifiers=["P-001"]
+        ... )
+        >>> # Update
+        >>> result = await submit_product_outcome(
+        ...     outcome_identifier="O-002",
+        ...     name="Updated Name",
+        ...     description="Updated description...",
         ... )
     """
     session = SessionLocal()
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
+        workspace_uuid = uuid.UUID(workspace_id)
         logger.info(f"Submitting product outcome for workspace {workspace_id}")
 
-        warnings = []
-        if not pillar_identifiers:
-            warnings.append(
-                "ALIGNMENT GAP: No pillars linked. Outcomes should connect to the strategic "
-                "pillars they advance. Consider which pillar(s) this outcome measures."
+        # UPDATE PATH
+        if outcome_identifier:
+            logger.info(f"Updating product outcome {outcome_identifier}")
+
+            outcome = (
+                session.query(ProductOutcome)
+                .filter_by(identifier=outcome_identifier, workspace_id=workspace_uuid)
+                .first()
             )
 
-        validate_outcome_constraints(
-            workspace_id=uuid.UUID(workspace_id),
-            name=name,
-            description=description,
-            pillar_identifiers=pillar_identifiers,
-            session=session,
-        )
+            if not outcome:
+                return build_error_response(
+                    "outcome", f"Product outcome {outcome_identifier} not found"
+                )
 
-        pillar_uuids = []
-        if pillar_identifiers:
-            pillar_uuids = resolve_pillar_identifiers(
-                pillar_identifiers, uuid.UUID(workspace_id), session
+            publisher = EventPublisher(session)
+
+            # Merge fields: use provided values or preserve existing
+            final_name = name if name is not None else outcome.name
+            final_description = (
+                description if description is not None else outcome.description
             )
 
-        # Call controller to create outcome
-        outcome = strategic_controller.create_product_outcome(
-            workspace_id=uuid.UUID(workspace_id),
-            user_id=uuid.UUID(user_id),
-            name=name,
-            description=description,
-            pillar_ids=pillar_uuids,
-            session=session,
-        )
+            # Update name and description
+            outcome.update_outcome(
+                name=final_name,
+                description=final_description,
+                publisher=publisher,
+            )
 
-        # Build success response with next steps
-        next_steps = [
-            "You've defined a measurable outcome for your strategic pillars",
-            "Consider defining additional outcomes for other pillars",
-            "Once you have outcomes for all pillars, explore roadmap themes",
-        ]
+            # Update pillar links if provided
+            if pillar_identifiers is not None:
+                pillar_uuids = resolve_pillar_identifiers(
+                    pillar_identifiers, workspace_uuid, session
+                )
+                outcome.link_to_pillars(
+                    pillar_ids=pillar_uuids,
+                    user_id=uuid.UUID(user_id),
+                    session=session,
+                    publisher=publisher,
+                )
 
-        return build_success_response(
-            entity_type="outcome",
-            message="Product outcome created successfully",
-            data=serialize_outcome(outcome),
-            next_steps=next_steps,
-            warnings=warnings if warnings else None,
-        )
+            session.commit()
+            session.refresh(outcome)
+
+            next_steps = [f"Product outcome '{outcome.name}' updated successfully"]
+            if pillar_identifiers is not None:
+                next_steps.append(
+                    f"Outcome now linked to {len(pillar_identifiers)} pillar(s)"
+                )
+
+            return build_success_response(
+                entity_type="outcome",
+                message=f"Updated product outcome '{outcome.name}'",
+                data=serialize_outcome(outcome),
+                next_steps=next_steps,
+            )
+
+        # CREATE PATH
+        else:
+            logger.info("Creating new product outcome")
+
+            # Validate required fields for creation
+            if not name:
+                return build_error_response(
+                    "outcome", "name is required for creating a new outcome"
+                )
+            if not description:
+                return build_error_response(
+                    "outcome", "description is required for creating a new outcome"
+                )
+
+            warnings = []
+            if not pillar_identifiers:
+                warnings.append(
+                    "ALIGNMENT GAP: No pillars linked. Outcomes should connect to the strategic "
+                    "pillars they advance. Consider which pillar(s) this outcome measures."
+                )
+
+            validate_outcome_constraints(
+                workspace_id=workspace_uuid,
+                name=name,
+                description=description,
+                pillar_identifiers=pillar_identifiers,
+                session=session,
+            )
+
+            pillar_uuids = []
+            if pillar_identifiers:
+                pillar_uuids = resolve_pillar_identifiers(
+                    pillar_identifiers, workspace_uuid, session
+                )
+
+            # Call controller to create outcome
+            outcome = strategic_controller.create_product_outcome(
+                workspace_id=workspace_uuid,
+                user_id=uuid.UUID(user_id),
+                name=name,
+                description=description,
+                pillar_ids=pillar_uuids,
+                session=session,
+            )
+
+            # Build success response with next steps
+            next_steps = [
+                "You've defined a measurable outcome for your strategic pillars",
+                "Consider defining additional outcomes for other pillars",
+                "Once you have outcomes for all pillars, explore roadmap themes",
+            ]
+
+            return build_success_response(
+                entity_type="outcome",
+                message="Product outcome created successfully",
+                data=serialize_outcome(outcome),
+                next_steps=next_steps,
+                warnings=warnings if warnings else None,
+            )
 
     except DomainException as e:
         logger.warning(f"Domain validation error: {e}")
@@ -557,123 +645,6 @@ async def get_product_outcome_details(outcome_identifier: str) -> Dict[str, Any]
         return build_error_response("outcome", str(e))
     except Exception as e:
         logger.exception(f"Error getting product outcome details: {e}")
-        return build_error_response("outcome", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def update_product_outcome(
-    outcome_identifier: str,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    pillar_identifiers: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    """Update an existing product outcome.
-
-    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        outcome_identifier: Human-readable identifier of the product outcome to update (e.g., "O-002")
-        name: New outcome name (optional, 1-150 characters)
-        description: New outcome description (optional, 1-3000 characters)
-        pillar_identifiers: List of pillar identifiers to link (optional, replaces existing links)
-
-    Returns:
-        Success response with updated outcome
-
-    Example:
-        >>> result = await update_product_outcome(
-        ...     outcome_identifier="O-002",
-        ...     name="Updated Outcome Name",
-        ...     description="Updated description with goal, baseline, target...",
-        ...     pillar_identifiers=["P-001", "P-002"]
-        ... )
-    """
-    session = SessionLocal()
-    try:
-        user_id, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(
-            f"Updating product outcome {outcome_identifier} for workspace {workspace_id}"
-        )
-
-        if name is None and description is None and pillar_identifiers is None:
-            return build_error_response(
-                "outcome",
-                "At least one field (name, description, pillar_identifiers) must be provided",
-            )
-
-        workspace_uuid = uuid.UUID(workspace_id)
-
-        outcome = (
-            session.query(ProductOutcome)
-            .filter_by(identifier=outcome_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not outcome:
-            return build_error_response(
-                "outcome", f"Product outcome {outcome_identifier} not found"
-            )
-
-        publisher = EventPublisher(session)
-
-        # Update name and description if provided
-        if name is not None or description is not None:
-            final_name = name if name is not None else outcome.name
-            final_description = (
-                description if description is not None else outcome.description
-            )
-
-            outcome.update_outcome(
-                name=final_name,
-                description=final_description,
-                publisher=publisher,
-            )
-
-        # Update pillar links if provided
-        if pillar_identifiers is not None:
-            pillar_uuids = resolve_pillar_identifiers(
-                pillar_identifiers, workspace_uuid, session
-            )
-
-            outcome.link_to_pillars(
-                pillar_ids=pillar_uuids,
-                user_id=uuid.UUID(user_id),
-                session=session,
-                publisher=publisher,
-            )
-
-        session.commit()
-        session.refresh(outcome)
-
-        next_steps = [f"Product outcome '{outcome.name}' updated successfully"]
-        if pillar_identifiers is not None:
-            next_steps.append(
-                f"Outcome now linked to {len(pillar_identifiers)} pillar(s)"
-            )
-
-        return build_success_response(
-            entity_type="outcome",
-            message=f"Updated product outcome '{outcome.name}'",
-            data=serialize_outcome(outcome),
-            next_steps=next_steps,
-        )
-
-    except DomainException as e:
-        logger.warning(f"Domain validation error: {e}")
-        return build_error_response("outcome", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("outcome", str(e))
-    except MCPContextError as e:
-        return build_error_response("outcome", str(e))
-    except Exception as e:
-        logger.exception(f"Error updating product outcome: {e}")
         return build_error_response("outcome", f"Server error: {str(e)}")
     finally:
         session.close()

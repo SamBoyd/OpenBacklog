@@ -4,14 +4,13 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
-from hamcrest import assert_that, equal_to, has_entries, has_key
+from hamcrest import assert_that, equal_to, has_entries, has_key, not_
 
 from src.mcp_server.prompt_driven_tools.product_outcomes import (
     delete_product_outcome,
     get_outcome_definition_framework,
     get_product_outcomes,
     submit_product_outcome,
-    update_product_outcome,
 )
 from src.models import Workspace
 from src.strategic_planning.aggregates.product_outcome import ProductOutcome
@@ -363,13 +362,13 @@ class TestGetProductOutcomes:
 
 
 class TestUpdateProductOutcome:
-    """Test suite for update_product_outcome tool."""
+    """Test suite for submit_product_outcome upsert functionality."""
 
     @pytest.mark.asyncio
     async def test_update_outcome_name_successfully(
         self, session, workspace: Workspace
     ):
-        """Test that update successfully changes outcome name."""
+        """Test that upsert successfully changes outcome name."""
         from src.strategic_planning import controller as strategic_controller
 
         outcome = strategic_controller.create_product_outcome(
@@ -382,7 +381,7 @@ class TestUpdateProductOutcome:
         )
 
         new_name = "Updated Name"
-        result = await update_product_outcome.fn(
+        result = await submit_product_outcome.fn(
             outcome_identifier=outcome.identifier, name=new_name
         )
 
@@ -393,7 +392,7 @@ class TestUpdateProductOutcome:
     async def test_update_outcome_description_successfully(
         self, session, workspace: Workspace
     ):
-        """Test that update successfully changes outcome description."""
+        """Test that upsert successfully changes outcome description."""
         from src.strategic_planning import controller as strategic_controller
 
         outcome = strategic_controller.create_product_outcome(
@@ -406,7 +405,7 @@ class TestUpdateProductOutcome:
         )
 
         new_description = "Updated description with new metrics"
-        result = await update_product_outcome.fn(
+        result = await submit_product_outcome.fn(
             outcome_identifier=outcome.identifier, description=new_description
         )
 
@@ -417,7 +416,7 @@ class TestUpdateProductOutcome:
     async def test_update_outcome_pillar_links_successfully(
         self, session, workspace: Workspace
     ):
-        """Test that update successfully changes pillar linkages."""
+        """Test that upsert successfully changes pillar linkages."""
         from src.strategic_planning import controller as strategic_controller
 
         outcome = strategic_controller.create_product_outcome(
@@ -437,7 +436,7 @@ class TestUpdateProductOutcome:
             session=session,
         )
 
-        result = await update_product_outcome.fn(
+        result = await submit_product_outcome.fn(
             outcome_identifier=outcome.identifier,
             pillar_identifiers=[pillar.identifier],
         )
@@ -446,10 +445,10 @@ class TestUpdateProductOutcome:
         assert_that(result, has_key("next_steps"))
 
     @pytest.mark.asyncio
-    async def test_update_outcome_requires_at_least_one_field(
+    async def test_update_outcome_requires_identifier(
         self, session, workspace: Workspace
     ):
-        """Test that update requires at least one field to be provided."""
+        """Test that upsert creates new outcome when no identifier is provided."""
         from src.strategic_planning import controller as strategic_controller
 
         outcome = strategic_controller.create_product_outcome(
@@ -461,15 +460,19 @@ class TestUpdateProductOutcome:
             session=session,
         )
 
-        result = await update_product_outcome.fn(outcome_identifier=outcome.identifier)
+        # When no identifier is provided, it should create a new outcome
+        result = await submit_product_outcome.fn(
+            name="New Outcome", description="New description"
+        )
 
-        assert_that(result, has_entries({"status": "error"}))
+        assert_that(result, has_entries({"status": "success"}))
+        assert_that(result["data"]["identifier"], not_(equal_to(outcome.identifier)))
 
     @pytest.mark.asyncio
     async def test_update_nonexistent_outcome_fails(self, workspace: Workspace):
-        """Test that update fails when outcome doesn't exist."""
+        """Test that upsert fails when outcome doesn't exist."""
         fake_identifier = "O-99999"
-        result = await update_product_outcome.fn(
+        result = await submit_product_outcome.fn(
             outcome_identifier=fake_identifier, name="New Name"
         )
 
@@ -477,8 +480,8 @@ class TestUpdateProductOutcome:
 
     @pytest.mark.asyncio
     async def test_update_with_invalid_outcome_id_fails(self, workspace: Workspace):
-        """Test that update fails with invalid outcome identifier."""
-        result = await update_product_outcome.fn(
+        """Test that upsert fails with invalid outcome identifier."""
+        result = await submit_product_outcome.fn(
             outcome_identifier="INVALID", name="New Name"
         )
 
@@ -488,7 +491,7 @@ class TestUpdateProductOutcome:
     async def test_update_with_invalid_pillar_ids_fails(
         self, session, workspace: Workspace
     ):
-        """Test that update fails with invalid pillar IDs."""
+        """Test that upsert fails with invalid pillar IDs."""
         from src.strategic_planning import controller as strategic_controller
 
         outcome = strategic_controller.create_product_outcome(
@@ -500,7 +503,7 @@ class TestUpdateProductOutcome:
             session=session,
         )
 
-        result = await update_product_outcome.fn(
+        result = await submit_product_outcome.fn(
             outcome_identifier=outcome.identifier, pillar_identifiers=["INVALID"]
         )
 

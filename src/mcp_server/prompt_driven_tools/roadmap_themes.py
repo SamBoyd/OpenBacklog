@@ -343,13 +343,16 @@ async def get_theme_exploration_framework() -> Dict[str, Any]:
 
 @mcp.tool()
 async def submit_roadmap_theme(
-    name: str,
-    description: str,
+    name: str = None,
+    description: str = None,
     outcome_identifiers: Optional[List[str]] = None,
     hero_identifier: Optional[str] = None,
     primary_villain_identifier: Optional[str] = None,
+    theme_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Submit a refined roadmap theme after collaborative definition.
+
+    Creates a new roadmap theme or updates an existing one.
 
     Called only when Claude Code and user have crafted a high-quality
     hypothesis-driven theme through dialogue.
@@ -357,25 +360,36 @@ async def submit_roadmap_theme(
     IMPORTANT: Reflect the theme back to the user and get explicit confirmation
     BEFORE calling this function. This persists immediately.
 
+    **Upsert Behavior:**
+    - If `theme_identifier` is **omitted**: Creates new theme
+    - If `theme_identifier` is **provided**: Updates existing theme
+
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        name: Theme name (1-100 characters, unique per workspace)
-        description: Theme description including problem statement, hypothesis, metrics, and timeline (required)
-                    Should include specific problem, testable hypothesis, indicative metrics, and timeline
+        name: Theme name (1-100 characters, unique per workspace, required for create, optional for update)
+        description: Theme description (required for create, optional for update)
         outcome_identifiers: List of outcome identifiers to link (optional but recommended)
         hero_identifier: Optional human-readable hero identifier (e.g., "H-001")
         primary_villain_identifier: Optional human-readable villain identifier (e.g., "V-001")
+        theme_identifier: If provided, updates existing theme (optional)
 
     Returns:
-        Success response with created theme
+        Success response with created or updated theme
 
     Example:
+        >>> # Create
         >>> result = await submit_roadmap_theme(
         ...     name="First-Week Configuration Success",
-        ...     description="Problem Statement: New users abandon initial configuration (40% drop-off)...",
+        ...     description="Problem Statement: New users abandon initial configuration...",
         ...     outcome_identifiers=["O-001"]
+        ... )
+        >>> # Update
+        >>> result = await submit_roadmap_theme(
+        ...     theme_identifier="T-001",
+        ...     name="Updated Theme Name",
+        ...     hero_identifier="H-001"
         ... )
     """
     session = SessionLocal()
@@ -383,104 +397,216 @@ async def submit_roadmap_theme(
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
         workspace_uuid = uuid.UUID(workspace_id)
 
-        warnings = []
-        if not outcome_identifiers:
-            warnings.append(
-                "ALIGNMENT GAP: No outcomes linked. Themes should connect to the product "
-                "outcomes they drive. Consider which outcome(s) this theme advances."
+        # UPDATE PATH
+        if theme_identifier:
+            logger.info(f"Updating roadmap theme {theme_identifier}")
+
+            theme = (
+                session.query(RoadmapTheme)
+                .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
+                .first()
             )
 
-        # Resolve outcome identifiers to UUIDs
-        outcome_uuids = []
-        if outcome_identifiers:
-            outcome_uuids = resolve_outcome_identifiers(
-                outcome_identifiers, workspace_uuid, session
+            if not theme:
+                return build_error_response(
+                    "theme", f"Roadmap theme {theme_identifier} not found"
+                )
+
+            # Merge fields: use provided values or preserve existing
+            final_name = name if name is not None else theme.name
+            final_description = (
+                description if description is not None else theme.description
             )
 
-        # Resolve hero and villain identifiers if provided
-        hero_uuid = None
-        villain_uuid = None
-        if hero_identifier:
-            from src.narrative.services.hero_service import HeroService
+            # Resolve outcome identifiers to UUIDs if provided
+            outcome_uuids = None
+            if outcome_identifiers is not None:
+                outcome_uuids = resolve_outcome_identifiers(
+                    outcome_identifiers, workspace_uuid, session
+                )
 
-            publisher = EventPublisher(session)
-            hero_service = HeroService(session, publisher)
-            hero = hero_service.get_hero_by_identifier(
-                hero_identifier, uuid.UUID(workspace_id)
+            # Use controller to update name, description, and outcomes
+            updated_theme = roadmap_controller.update_roadmap_theme(
+                theme_id=theme.id,
+                workspace_id=workspace_uuid,
+                name=final_name,
+                description=final_description,
+                outcome_ids=(
+                    outcome_uuids
+                    if outcome_uuids is not None
+                    else [o.id for o in theme.outcomes]
+                ),
+                session=session,
             )
-            hero_uuid = hero.id
 
-        if primary_villain_identifier:
-            from src.narrative.services.villain_service import VillainService
+            # Update hero link if provided
+            if hero_identifier is not None:
+                from src.narrative.services.hero_service import HeroService
 
-            publisher = EventPublisher(session)
-            villain_service = VillainService(session, publisher)
-            villain = villain_service.get_villain_by_identifier(
-                primary_villain_identifier, uuid.UUID(workspace_id)
+                publisher = EventPublisher(session)
+                hero_service = HeroService(session, publisher)
+                hero = hero_service.get_hero_by_identifier(
+                    hero_identifier, workspace_uuid
+                )
+                updated_theme.link_heroes([hero.id], session)
+                session.commit()
+                session.refresh(updated_theme)
+
+            # Update villain link if provided
+            if primary_villain_identifier is not None:
+                from src.narrative.services.villain_service import VillainService
+
+                publisher = EventPublisher(session)
+                villain_service = VillainService(session, publisher)
+                villain = villain_service.get_villain_by_identifier(
+                    primary_villain_identifier, workspace_uuid
+                )
+                updated_theme.primary_villain_id = villain.id
+                session.commit()
+                session.refresh(updated_theme)
+
+            # Calculate alignment score for response
+            all_outcomes = strategic_controller.get_product_outcomes(
+                workspace_uuid, session
             )
-            villain_uuid = villain.id
-
-        validate_theme_constraints(
-            workspace_id=uuid.UUID(workspace_id),
-            name=name,
-            description=description,
-            outcome_ids=[str(outcome_uuid) for outcome_uuid in outcome_uuids],
-            session=session,
-            hero_identifier=hero_identifier,
-            primary_villain_identifier=primary_villain_identifier,
-        )
-
-        # Create theme via controller
-        theme = roadmap_controller.create_roadmap_theme(
-            workspace_id=workspace_uuid,
-            user_id=uuid.UUID(user_id),
-            name=name,
-            description=description,
-            outcome_ids=outcome_uuids,
-            session=session,
-        )
-
-        if hero_uuid:
-            theme.link_heroes([hero_uuid], session)
-            session.commit()
-            session.refresh(theme)
-
-        if villain_uuid:
-            theme.link_villains([villain_uuid], session)
-            session.commit()
-            session.refresh(theme)
-
-        # Build next steps
-        next_steps = [
-            "Theme created successfully and starts in unprioritized state (backlog)",
-            "Review strategic alignment: Does this theme support key outcomes?",
-        ]
-
-        if len(outcome_uuids) == 0:
-            next_steps.append(
-                "Consider linking to product outcomes for better strategic alignment"
+            alignment_score = calculate_alignment_score(
+                updated_theme, len(all_outcomes)
             )
+
+            next_steps = [f"Roadmap theme '{updated_theme.name}' updated successfully"]
+            if outcome_identifiers is not None:
+                next_steps.append(
+                    f"Theme now linked to {len(outcome_identifiers)} outcome(s)"
+                )
+            if hero_identifier is not None:
+                next_steps.append(f"Theme linked to hero {hero_identifier}")
+            if primary_villain_identifier is not None:
+                next_steps.append(
+                    f"Theme linked to villain {primary_villain_identifier}"
+                )
+            next_steps.append(f"Strategic alignment score: {alignment_score:.2f}")
+
+            return build_success_response(
+                entity_type="theme",
+                message=f"Updated roadmap theme '{updated_theme.name}'",
+                data=serialize_theme(updated_theme),
+                next_steps=next_steps,
+            )
+
+        # CREATE PATH
         else:
-            next_steps.append(
-                f"Theme linked to {len(outcome_uuids)} outcome(s) - good strategic alignment"
+            logger.info("Creating new roadmap theme")
+
+            # Validate required fields for creation
+            if not name:
+                return build_error_response(
+                    "theme", "name is required for creating a new theme"
+                )
+            if not description:
+                return build_error_response(
+                    "theme", "description is required for creating a new theme"
+                )
+
+            warnings = []
+            if not outcome_identifiers:
+                warnings.append(
+                    "ALIGNMENT GAP: No outcomes linked. Themes should connect to the product "
+                    "outcomes they drive. Consider which outcome(s) this theme advances."
+                )
+
+            # Resolve outcome identifiers to UUIDs
+            outcome_uuids = []
+            if outcome_identifiers:
+                outcome_uuids = resolve_outcome_identifiers(
+                    outcome_identifiers, workspace_uuid, session
+                )
+
+            # Resolve hero and villain identifiers if provided
+            hero_uuid = None
+            villain_uuid = None
+            if hero_identifier:
+                from src.narrative.services.hero_service import HeroService
+
+                publisher = EventPublisher(session)
+                hero_service = HeroService(session, publisher)
+                hero = hero_service.get_hero_by_identifier(
+                    hero_identifier, workspace_uuid
+                )
+                hero_uuid = hero.id
+
+            if primary_villain_identifier:
+                from src.narrative.services.villain_service import VillainService
+
+                publisher = EventPublisher(session)
+                villain_service = VillainService(session, publisher)
+                villain = villain_service.get_villain_by_identifier(
+                    primary_villain_identifier, workspace_uuid
+                )
+                villain_uuid = villain.id
+
+            validate_theme_constraints(
+                workspace_id=workspace_uuid,
+                name=name,
+                description=description,
+                outcome_ids=[str(outcome_uuid) for outcome_uuid in outcome_uuids],
+                session=session,
+                hero_identifier=hero_identifier,
+                primary_villain_identifier=primary_villain_identifier,
             )
 
-        if hero_identifier:
-            next_steps.append(f"Theme linked to hero {hero_identifier}")
-        if primary_villain_identifier:
-            next_steps.append(f"Theme linked to villain {primary_villain_identifier}")
+            # Create theme via controller
+            theme = roadmap_controller.create_roadmap_theme(
+                workspace_id=workspace_uuid,
+                user_id=uuid.UUID(user_id),
+                name=name,
+                description=description,
+                outcome_ids=outcome_uuids,
+                session=session,
+            )
 
-        next_steps.append(
-            "When ready to commit to this theme, use prioritize_workstream() to move to active roadmap"
-        )
+            if hero_uuid:
+                theme.link_heroes([hero_uuid], session)
+                session.commit()
+                session.refresh(theme)
 
-        return build_success_response(
-            entity_type="theme",
-            message="Roadmap theme created successfully",
-            data=serialize_theme(theme),
-            next_steps=next_steps,
-            warnings=warnings if warnings else None,
-        )
+            if villain_uuid:
+                theme.link_villains([villain_uuid], session)
+                session.commit()
+                session.refresh(theme)
+
+            # Build next steps
+            next_steps = [
+                "Theme created successfully and starts in unprioritized state (backlog)",
+                "Review strategic alignment: Does this theme support key outcomes?",
+            ]
+
+            if len(outcome_uuids) == 0:
+                next_steps.append(
+                    "Consider linking to product outcomes for better strategic alignment"
+                )
+            else:
+                next_steps.append(
+                    f"Theme linked to {len(outcome_uuids)} outcome(s) - good strategic alignment"
+                )
+
+            if hero_identifier:
+                next_steps.append(f"Theme linked to hero {hero_identifier}")
+            if primary_villain_identifier:
+                next_steps.append(
+                    f"Theme linked to villain {primary_villain_identifier}"
+                )
+
+            next_steps.append(
+                "When ready to commit to this theme, use prioritize_workstream() to move to active roadmap"
+            )
+
+            return build_success_response(
+                entity_type="theme",
+                message="Roadmap theme created successfully",
+                data=serialize_theme(theme),
+                next_steps=next_steps,
+                warnings=warnings if warnings else None,
+            )
 
     except DomainException as e:
         return build_error_response("theme", str(e))
@@ -908,114 +1034,6 @@ async def connect_theme_to_outcomes(
         session.close()
 
 
-@mcp.tool()
-async def link_theme_to_hero(
-    theme_identifier: str, hero_identifier: str
-) -> Dict[str, Any]:
-    """Links a roadmap theme to a hero.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        theme_identifier: Human-readable identifier of roadmap theme (e.g., "T-001")
-        hero_identifier: Human-readable hero identifier (e.g., "H-001")
-
-    Returns:
-        Success response with updated theme
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-
-        from src.narrative.services.hero_service import HeroService
-
-        publisher = EventPublisher(session)
-        hero_service = HeroService(session, publisher)
-        hero = hero_service.get_hero_by_identifier(hero_identifier, workspace_uuid)
-
-        theme = (
-            session.query(roadmap_controller.RoadmapTheme)
-            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not theme:
-            return build_error_response("theme", "Theme not found")
-
-        theme.link_heroes([hero.id], session)
-        session.commit()
-        session.refresh(theme)
-
-        return build_success_response(
-            entity_type="theme",
-            message=f"Theme '{theme.name}' linked to hero '{hero.name}' ({hero_identifier})",
-            data=serialize_theme(theme),
-        )
-
-    except DomainException as e:
-        return build_error_response("theme", str(e))
-    except ValueError as e:
-        return build_error_response("theme", str(e))
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def link_theme_to_villain(
-    theme_identifier: str, villain_identifier: str
-) -> Dict[str, Any]:
-    """Links a roadmap theme to a villain.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        theme_identifier: Human-readable identifier of roadmap theme (e.g., "T-001")
-        villain_identifier: Human-readable villain identifier (e.g., "V-001")
-
-    Returns:
-        Success response with updated theme
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-
-        from src.narrative.services.villain_service import VillainService
-
-        publisher = EventPublisher(session)
-        villain_service = VillainService(session, publisher)
-        villain = villain_service.get_villain_by_identifier(
-            villain_identifier, workspace_uuid
-        )
-
-        theme = (
-            session.query(roadmap_controller.RoadmapTheme)
-            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not theme:
-            return build_error_response("theme", "Theme not found")
-
-        theme.primary_villain_id = villain.id
-        session.commit()
-        session.refresh(theme)
-
-        return build_success_response(
-            entity_type="theme",
-            message=f"Theme '{theme.name}' linked to villain '{villain.name}' ({villain_identifier})",
-            data=serialize_theme(theme),
-        )
-
-    except DomainException as e:
-        return build_error_response("theme", str(e))
-    except ValueError as e:
-        return build_error_response("theme", str(e))
-    finally:
-        session.close()
-
-
 # ============================================================================
 # Roadmap Theme CRUD Tools
 # ============================================================================
@@ -1144,127 +1162,6 @@ async def get_roadmap_theme_details(theme_identifier: str) -> Dict[str, Any]:
         return build_error_response("theme", str(e))
     except Exception as e:
         logger.exception(f"Error getting roadmap theme details: {e}")
-        return build_error_response("theme", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def update_roadmap_theme(
-    theme_identifier: str,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    outcome_identifiers: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    """Update an existing roadmap theme.
-
-    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        theme_identifier: Human-readable identifier of the roadmap theme to update (e.g., "T-001")
-        name: New theme name (optional, 1-100 characters)
-        description: New theme description (optional)
-        outcome_identifiers: List of outcome identifiers to link (optional, replaces existing links)
-
-    Returns:
-        Success response with updated theme
-
-    Example:
-        >>> result = await update_roadmap_theme(
-        ...     theme_identifier="T-001",
-        ...     name="Updated Theme Name",
-        ...     description="Updated description with problem statement, hypothesis...",
-        ...     outcome_identifiers=["O-001", "O-002"]
-        ... )
-    """
-    session = SessionLocal()
-    try:
-        _, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(
-            f"Updating roadmap theme {theme_identifier} for workspace {workspace_id}"
-        )
-
-        if name is None and description is None and outcome_identifiers is None:
-            return build_error_response(
-                "theme",
-                "At least one field (name, description, outcome_identifiers) must be provided",
-            )
-
-        workspace_uuid = uuid.UUID(workspace_id)
-
-        # Get theme first to check existence and get current values
-        theme = (
-            session.query(roadmap_controller.RoadmapTheme)
-            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not theme:
-            return build_error_response(
-                "theme", f"Roadmap theme {theme_identifier} not found"
-            )
-
-        # Merge with existing values
-        final_name = name if name is not None else theme.name
-        final_description = (
-            description if description is not None else theme.description
-        )
-
-        # Resolve outcome identifiers to UUIDs if provided
-        outcome_uuids = None
-        if outcome_identifiers is not None:
-            outcome_uuids = resolve_outcome_identifiers(
-                outcome_identifiers, workspace_uuid, session
-            )
-
-        # Use controller to update
-        updated_theme = roadmap_controller.update_roadmap_theme(
-            theme_id=theme.id,
-            workspace_id=workspace_uuid,
-            name=final_name,
-            description=final_description,
-            outcome_ids=(
-                outcome_uuids
-                if outcome_uuids is not None
-                else [o.id for o in theme.outcomes]
-            ),
-            session=session,
-        )
-
-        # Calculate alignment score for response
-        all_outcomes = strategic_controller.get_product_outcomes(
-            workspace_uuid, session
-        )
-        alignment_score = calculate_alignment_score(updated_theme, len(all_outcomes))
-
-        next_steps = [f"Roadmap theme '{updated_theme.name}' updated successfully"]
-        if outcome_identifiers is not None:
-            next_steps.append(
-                f"Theme now linked to {len(outcome_identifiers)} outcome(s)"
-            )
-        next_steps.append(f"Strategic alignment score: {alignment_score:.2f}")
-
-        return build_success_response(
-            entity_type="theme",
-            message=f"Updated roadmap theme '{updated_theme.name}'",
-            data=serialize_theme(updated_theme),
-            next_steps=next_steps,
-        )
-
-    except DomainException as e:
-        logger.warning(f"Domain validation error: {e}")
-        return build_error_response("theme", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("theme", str(e))
-    except MCPContextError as e:
-        return build_error_response("theme", str(e))
-    except Exception as e:
-        logger.exception(f"Error updating roadmap theme: {e}")
         return build_error_response("theme", f"Server error: {str(e)}")
     finally:
         session.close()
