@@ -75,6 +75,7 @@ quickNotes*
 documentation/
 content-design-system/
 specs/
+research/
 
 # Jupyter lab
 .cache/
@@ -86,4 +87,3 @@ specs/
 # gitmodules which I use for internal docs
 .gitmodules
 documentation/
-OpenBacklogDocumentation/
