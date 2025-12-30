@@ -11,8 +11,6 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy.orm import selectinload
-
 from src.db import SessionLocal
 from src.mcp_server.auth_utils import MCPContextError, get_auth_context
 from src.mcp_server.main import mcp
@@ -37,15 +35,6 @@ from src.strategic_planning.exceptions import DomainException
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-def _get_theme_eager_load_options() -> List[Any]:
-    """Return common selectinload options for RoadmapTheme queries."""
-    return [
-        selectinload(RoadmapTheme.outcomes),
-        selectinload(RoadmapTheme.heroes),
-        selectinload(RoadmapTheme.villains),
-    ]
 
 
 # ============================================================================
@@ -330,7 +319,7 @@ async def get_theme_exploration_framework() -> Dict[str, Any]:
 
         builder.add_context(
             "prioritization_note",
-            "New themes start unprioritized. Use prioritize_workstream() to commit to working on it.",
+            "New themes start unprioritized. Use set_theme_priority() to commit to working on it.",
         )
 
         return builder.build()
@@ -343,8 +332,8 @@ async def get_theme_exploration_framework() -> Dict[str, Any]:
 
 @mcp.tool()
 async def submit_roadmap_theme(
-    name: str = None,
-    description: str = None,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
     outcome_identifiers: Optional[List[str]] = None,
     hero_identifier: Optional[str] = None,
     primary_villain_identifier: Optional[str] = None,
@@ -597,7 +586,7 @@ async def submit_roadmap_theme(
                 )
 
             next_steps.append(
-                "When ready to commit to this theme, use prioritize_workstream() to move to active roadmap"
+                "When ready to commit to this theme, use set_theme_priority() to move to active roadmap"
             )
 
             return build_success_response(
@@ -754,113 +743,49 @@ async def get_prioritization_context() -> Dict[str, Any]:
         session.close()
 
 
-@mcp.tool()
-async def prioritize_workstream(
-    theme_identifier: str, priority_position: int
-) -> Dict[str, Any]:
-    """Add theme to prioritized roadmap at specified position.
+# ============================================================================
+# Priority Management Workflow
+# ============================================================================
 
-    Commits to working on a theme by moving it from backlog to active roadmap.
+
+@mcp.tool()
+async def set_theme_priority(
+    theme_identifier: str,
+    priority_position: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Set theme priority position or deprioritize theme.
+
+    Sets a theme's priority position on the active roadmap, or removes it
+    from prioritization when priority_position is None.
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        theme_identifier: Human-readable identifier of the theme to prioritize (e.g., "T-001")
-        priority_position: Position in priority list (0-indexed, 0 = highest priority)
+        theme_identifier: Human-readable identifier of the theme (e.g., "T-001")
+        priority_position: Priority position (0-indexed, 0 = highest priority).
+                          If None, removes theme from prioritized roadmap.
 
     Returns:
         Success response with theme data and next steps, or error response.
 
-    Example:
-        >>> result = await prioritize_workstream(
+    Example (Prioritize):
+        >>> result = await set_theme_priority(
         ...     theme_identifier="T-001",
         ...     priority_position=0
+        ... )
+
+    Example (Deprioritize):
+        >>> result = await set_theme_priority(
+        ...     theme_identifier="T-001",
+        ...     priority_position=None
         ... )
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
 
-        theme = (
-            session.query(roadmap_controller.RoadmapTheme)
-            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not theme:
-            return build_error_response(
-                "prioritization", f"Theme {theme_identifier} not found"
-            )
-
-        # Get current prioritized count for capacity warning
-        prioritized_themes = roadmap_controller.get_prioritized_themes(
-            workspace_uuid, session
-        )
-        current_count = len(prioritized_themes)
-
-        # Prioritize the theme
-        theme = roadmap_controller.prioritize_roadmap_theme(
-            theme_id=theme.id,
-            new_order=priority_position,
-            workspace_id=workspace_uuid,
-            session=session,
-        )
-
-        # Build next steps
-        next_steps = [
-            f"Theme prioritized successfully at position {priority_position}",
-            "Theme is now part of your active roadmap",
-        ]
-
-        # Warn if capacity exceeded
-        if current_count + 1 > 3:
-            next_steps.append(
-                f"⚠️  You now have {current_count + 1} prioritized themes. Consider focusing on fewer themes for better execution."
-            )
-
-        next_steps.append("Next: Create strategic initiatives to execute this theme")
-
-        return build_success_response(
-            entity_type="prioritization",
-            message="Theme prioritized successfully",
-            data=serialize_theme(theme),
-            next_steps=next_steps,
-        )
-
-    except DomainException as e:
-        return build_error_response("prioritization", str(e))
-    except ValueError as e:
-        return build_error_response("prioritization", str(e))
-    finally:
-        session.close()
-
-
-# ============================================================================
-# Single-Turn Utility Tools
-# ============================================================================
-
-
-@mcp.tool()
-async def deprioritize_workstream(theme_identifier: str) -> Dict[str, Any]:
-    """Remove theme from prioritized roadmap (move back to backlog).
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        theme_identifier: Human-readable identifier of the theme to deprioritize (e.g., "T-001")
-
-    Returns:
-        Success response with theme data, or error response.
-
-    Example:
-        >>> result = await deprioritize_workstream(theme_identifier="T-001")
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-
+        # Fetch theme
         theme = (
             session.query(roadmap_controller.RoadmapTheme)
             .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
@@ -870,18 +795,58 @@ async def deprioritize_workstream(theme_identifier: str) -> Dict[str, Any]:
         if not theme:
             return build_error_response("theme", f"Theme {theme_identifier} not found")
 
-        # Deprioritize the theme
-        theme = roadmap_controller.deprioritize_roadmap_theme(
-            theme_id=theme.id,
-            workspace_id=workspace_uuid,
-            session=session,
-        )
+        # Branch: Prioritize vs Deprioritize
+        if priority_position is not None:
+            # PRIORITIZE PATH
+            # Get current prioritized count for capacity warning
+            prioritized_themes = roadmap_controller.get_prioritized_themes(
+                workspace_uuid, session
+            )
+            current_count = len(prioritized_themes)
 
-        return build_success_response(
-            entity_type="theme",
-            message="Theme deprioritized successfully (moved to backlog)",
-            data=serialize_theme(theme),
-        )
+            # Prioritize the theme
+            theme = roadmap_controller.prioritize_roadmap_theme(
+                theme_id=theme.id,
+                new_order=priority_position,
+                workspace_id=workspace_uuid,
+                session=session,
+            )
+
+            # Build next steps with capacity warning
+            next_steps = [
+                f"Theme prioritized successfully at position {priority_position}",
+                "Theme is now part of your active roadmap",
+            ]
+
+            if current_count + 1 > 3:
+                next_steps.append(
+                    f"⚠️  You now have {current_count + 1} prioritized themes. "
+                    f"Consider focusing on fewer themes for better execution."
+                )
+
+            next_steps.append(
+                "Next: Create strategic initiatives to execute this theme"
+            )
+
+            return build_success_response(
+                entity_type="theme",
+                message="Theme prioritized successfully",
+                data=serialize_theme(theme),
+                next_steps=next_steps,
+            )
+        else:
+            # DEPRIORITIZE PATH
+            theme = roadmap_controller.deprioritize_roadmap_theme(
+                theme_id=theme.id,
+                workspace_id=workspace_uuid,
+                session=session,
+            )
+
+            return build_success_response(
+                entity_type="theme",
+                message="Theme deprioritized successfully (moved to backlog)",
+                data=serialize_theme(theme),
+            )
 
     except DomainException as e:
         return build_error_response("theme", str(e))
@@ -889,6 +854,11 @@ async def deprioritize_workstream(theme_identifier: str) -> Dict[str, Any]:
         return build_error_response("theme", str(e))
     finally:
         session.close()
+
+
+# ============================================================================
+# Single-Turn Utility Tools
+# ============================================================================
 
 
 @mcp.tool()

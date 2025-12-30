@@ -4,8 +4,6 @@ These tools handle simple operations that don't require iterative refinement:
 - Reviewing foundation health
 - Linking outcomes to pillars
 
-Note: Phase 2 already implemented roadmap-related utilities (deprioritize_workstream,
-organize_roadmap, connect_theme_to_outcomes) in roadmap_themes.py.
 """
 
 from typing import Any, Dict, List
@@ -19,7 +17,6 @@ from src.mcp_server.prompt_driven_tools.utils import (
     get_workspace_id_from_request,
     serialize_outcome,
     serialize_strategic_foundation,
-    validate_uuid,
 )
 from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
     resolve_outcome_identifier,
@@ -149,11 +146,3 @@ async def connect_outcome_to_pillars(
         return build_error_response("outcome_pillar_link", f"Invalid input: {str(e)}")
     finally:
         session.close()
-
-
-# Note: The following utility tools were implemented in Phase 2 (roadmap_themes.py):
-# - connect_theme_to_outcomes
-# - deprioritize_workstream
-# - organize_roadmap
-#
-# Phase 3 adds the new utility tools above: review_strategic_foundation and connect_outcome_to_pillars

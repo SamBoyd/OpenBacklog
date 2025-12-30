@@ -10,13 +10,12 @@ from sqlalchemy.orm.session import Session
 from src.mcp_server.prompt_driven_tools.roadmap_themes import (
     connect_theme_to_outcomes,
     delete_roadmap_theme,
-    deprioritize_workstream,
     get_prioritization_context,
     get_roadmap_theme_details,
     get_roadmap_themes,
     get_theme_exploration_framework,
     organize_roadmap,
-    prioritize_workstream,
+    set_theme_priority,
     submit_roadmap_theme,
 )
 from src.models import Workspace
@@ -292,12 +291,12 @@ class TestGetPrioritizationContext:
         assert_that(unprioritized[0], has_key("strategic_alignment_score"))
 
 
-class TestPrioritizeWorkstream:
-    """Test suite for prioritize_workstream tool."""
+class TestSetThemePriority:
+    """Test suite for set_theme_priority tool (consolidates prioritize/deprioritize)."""
 
     @pytest.mark.asyncio
-    async def test_prioritize_succeeds_with_valid_input(self, workspace: Workspace):
-        """Test that prioritize successfully prioritizes theme."""
+    async def test_prioritize_with_valid_position(self, workspace: Workspace):
+        """Test prioritizing theme with valid priority_position."""
         theme_identifier = "T-001"
         priority_position = 0
 
@@ -337,20 +336,19 @@ class TestPrioritizeWorkstream:
                 mock_get_prioritized.return_value = []
                 mock_prioritize.return_value = mock_theme
 
-                result = await prioritize_workstream.fn(
+                result = await set_theme_priority.fn(
                     theme_identifier, priority_position
                 )
 
-        # Verify success response
-        assert_that(
-            result, has_entries({"status": "success", "type": "prioritization"})
-        )
+        # Verify success response with standardized entity_type="theme"
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
         assert_that(result, has_key("data"))
         assert_that(result, has_key("next_steps"))
+        assert_that(result["data"]["identifier"], equal_to(theme_identifier))
 
     @pytest.mark.asyncio
     async def test_prioritize_warns_on_capacity_exceeded(self, workspace: Workspace):
-        """Test that prioritize warns when capacity exceeded."""
+        """Test capacity warning when >3 themes are prioritized."""
         theme_identifier = "T-001"
         priority_position = 0
 
@@ -392,7 +390,7 @@ class TestPrioritizeWorkstream:
                 mock_get_prioritized.return_value = existing_themes
                 mock_prioritize.return_value = mock_theme
 
-                result = await prioritize_workstream.fn(
+                result = await set_theme_priority.fn(
                     theme_identifier, priority_position
                 )
 
@@ -402,41 +400,8 @@ class TestPrioritizeWorkstream:
         assert_that(warning_found, equal_to(True))
 
     @pytest.mark.asyncio
-    async def test_prioritize_handles_domain_exception(self):
-        """Test that prioritize handles domain validation errors."""
-        theme_id = str(uuid.uuid4())
-
-        with patch(
-            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
-
-            with (
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.get_prioritized_themes"
-                ) as mock_get_prioritized,
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.prioritize_roadmap_theme"
-                ) as mock_prioritize,
-            ):
-                mock_get_prioritized.return_value = []
-                mock_prioritize.side_effect = DomainException(
-                    "Theme already prioritized"
-                )
-
-                result = await prioritize_workstream.fn(theme_id, 0)
-
-        # Verify error response
-        assert_that(result, has_entries({"status": "error", "type": "prioritization"}))
-
-
-class TestUtilityTools:
-    """Test suite for utility tools (deprioritize, organize, connect)."""
-
-    @pytest.mark.asyncio
-    async def test_deprioritize_removes_from_priority_list(self, workspace: Workspace):
-        """Test that deprioritize successfully removes theme."""
+    async def test_deprioritize_with_none_position(self, workspace: Workspace):
+        """Test deprioritizing theme with priority_position=None."""
         theme_identifier = "T-001"
 
         with patch(
@@ -468,11 +433,101 @@ class TestUtilityTools:
                 )
                 mock_deprioritize.return_value = mock_theme
 
-                result = await deprioritize_workstream.fn(theme_identifier)
+                result = await set_theme_priority.fn(theme_identifier, None)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
         assert_that(result, has_key("data"))
+        assert_that(
+            result["message"],
+            equal_to("Theme deprioritized successfully (moved to backlog)"),
+        )
+
+    @pytest.mark.asyncio
+    async def test_theme_not_found_error(self):
+        """Test error when theme_identifier doesn't exist."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+            mock_session.query.return_value.filter_by.return_value.first.return_value = (
+                None
+            )
+
+            # Test prioritize path
+            result = await set_theme_priority.fn("T-99999", 0)
+            assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+            # Test deprioritize path
+            result = await set_theme_priority.fn("T-99999", None)
+            assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+    @pytest.mark.asyncio
+    async def test_prioritize_handles_domain_exception(self):
+        """Test DomainException handling in prioritize path."""
+        theme_id = str(uuid.uuid4())
+
+        with patch(
+            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            mock_theme = MagicMock(spec=RoadmapTheme)
+            mock_theme.id = uuid.uuid4()
+
+            with (
+                patch(
+                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.get_prioritized_themes"
+                ) as mock_get_prioritized,
+                patch(
+                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.prioritize_roadmap_theme"
+                ) as mock_prioritize,
+            ):
+                mock_session.query.return_value.filter_by.return_value.first.return_value = (
+                    mock_theme
+                )
+                mock_get_prioritized.return_value = []
+                mock_prioritize.side_effect = DomainException(
+                    "Theme already prioritized"
+                )
+
+                result = await set_theme_priority.fn(theme_id, 0)
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+    @pytest.mark.asyncio
+    async def test_deprioritize_handles_domain_exception(self):
+        """Test DomainException handling in deprioritize path."""
+        with patch(
+            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
+        ) as mock_session_local:
+            mock_session = MagicMock()
+            mock_session_local.return_value = mock_session
+
+            mock_theme = MagicMock(spec=RoadmapTheme)
+            mock_theme.id = uuid.uuid4()
+
+            with patch(
+                "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.deprioritize_roadmap_theme"
+            ) as mock_deprioritize:
+                mock_session.query.return_value.filter_by.return_value.first.return_value = (
+                    mock_theme
+                )
+                mock_deprioritize.side_effect = DomainException(
+                    "Theme not in prioritized list"
+                )
+
+                result = await set_theme_priority.fn("T-001", None)
+
+        # Verify error response
+        assert_that(result, has_entries({"status": "error", "type": "theme"}))
+
+
+class TestUtilityTools:
+    """Test suite for utility tools (organize, connect)."""
 
     @pytest.mark.asyncio
     async def test_organize_reorders_themes_correctly(self):

@@ -40,8 +40,7 @@ __all__ = [
     "get_roadmap_themes",
     "delete_roadmap_theme",
     "get_prioritization_context",
-    "prioritize_workstream",
-    "deprioritize_workstream",
+    "set_theme_priority",
     "organize_roadmap",
     "connect_theme_to_outcomes",
     # Narrative Layer - Heroes
