@@ -50,7 +50,7 @@ def mock_get_auth_context(request, user, workspace):
         patch("src.mcp_server.workspace_tools.get_auth_context"),
         MagicMock(),  # Replacing a removed file
         patch("src.mcp_server.task_tools.get_auth_context"),
-        patch("src.mcp_server.checklist_tools.get_auth_context"),
+        MagicMock(),
         # Prompt-driven tools also use get_auth_context
         patch("src.mcp_server.prompt_driven_tools.product_outcomes.get_auth_context"),
         patch("src.mcp_server.prompt_driven_tools.product_vision.get_auth_context"),

@@ -451,94 +451,6 @@ async def search_tasks(
 
 
 @mcp.tool()
-async def update_task_description(
-    task_id: str,
-    description: str,
-) -> Dict[str, Any]:
-    """
-    Update a task's description with additional implementation context.
-
-    Used during implementation planning to add context, notes, and implementation
-    details to the task description.
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
-
-    Args:
-        - task_id: The UUID of the task to update
-        - description: The new description content. Supports full markdown formatting
-          including headings, bold, italic, code blocks, lists, links, and blockquotes.
-          The UI renders this as rich text.
-
-    Returns:
-        - Confirmation of the update with the new description
-    """
-    logger.info(f"Updating description for task {task_id}")
-    session: Session = SessionLocal()
-    try:
-        user_id_str, _ = get_auth_context(session, requires_workspace=True)
-        user_id = uuid.UUID(user_id_str)
-
-        task_uuid = uuid.UUID(task_id)
-
-        # Use TaskController to update task description
-        controller = TaskController(session)
-        task = controller.update_task_description(user_id, task_uuid, description)
-
-        logger.info(f"Successfully updated description for task {task_id}")
-
-        return {
-            "status": "success",
-            "type": "task_update",
-            "message": f"Successfully updated task description",
-            "task_id": task_id,
-            "updated_description": description,
-        }
-
-    except MCPContextError as e:
-        logger.warning(f"Authorization error in update_task_description: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_update",
-            "error_message": str(e),
-            "error_type": e.error_type,
-        }
-    except TaskNotFoundError as e:
-        logger.exception(f"Task not found: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_update",
-            "error_message": str(e),
-            "error_type": "not_found",
-        }
-    except TaskControllerError as e:
-        logger.exception(f"Controller error in update_task_description: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_update",
-            "error_message": str(e),
-            "error_type": "controller_error",
-        }
-    except ValueError as e:
-        logger.exception(f"Invalid UUID format: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_update",
-            "error_message": f"Invalid task ID format: {str(e)}",
-            "error_type": "validation_error",
-        }
-    except Exception as e:
-        logger.exception(f"Error in update_task_description MCP tool: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_update",
-            "error_message": f"Server error: {str(e)}",
-            "error_type": "server_error",
-        }
-    finally:
-        session.close()
-
-
-@mcp.tool()
 async def validate_context(
     task_id: str,
 ) -> Dict[str, Any]:
@@ -651,203 +563,39 @@ async def validate_context(
 
 
 @mcp.tool()
-async def update_task_status_inprogress(
-    task_id: str,
-) -> Dict[str, Any]:
-    """
-    Update a task's status to 'IN_PROGRESS'.
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
-
-    Args:
-        - task_id: The UUID of the task to update
-
-    Returns:
-        - Confirmation of the status update
-    """
-    logger.info(f"Updating task {task_id} status to IN_PROGRESS")
-    session: Session = SessionLocal()
-    try:
-        user_id_str, _ = get_auth_context(session, requires_workspace=True)
-        user_id = uuid.UUID(user_id_str)
-
-        task_uuid = uuid.UUID(task_id)
-
-        # Use TaskController to update task status
-        controller = TaskController(session)
-        task = controller.move_task_to_status(
-            user_id, task_uuid, TaskStatus.IN_PROGRESS
-        )
-
-        logger.info(f"Successfully updated task {task_id} status to IN_PROGRESS")
-
-        return {
-            "status": "success",
-            "type": "task_status_update",
-            "message": f"Successfully updated task status to IN_PROGRESS",
-            "task_id": task_id,
-            "new_status": "IN_PROGRESS",
-        }
-
-    except MCPContextError as e:
-        logger.warning(
-            f"Authorization error in update_task_status_inprogress: {str(e)}"
-        )
-        return {
-            "status": "error",
-            "type": "task_status_update",
-            "error_message": str(e),
-            "error_type": e.error_type,
-        }
-    except TaskNotFoundError as e:
-        logger.exception(f"Task not found: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_status_update",
-            "error_message": str(e),
-            "error_type": "not_found",
-        }
-    except TaskControllerError as e:
-        logger.exception(f"Controller error in update_task_status_inprogress: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_status_update",
-            "error_message": str(e),
-            "error_type": "controller_error",
-        }
-    except ValueError as e:
-        logger.exception(f"Invalid UUID format: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_status_update",
-            "error_message": f"Invalid task ID format: {str(e)}",
-            "error_type": "validation_error",
-        }
-    except Exception as e:
-        logger.exception(f"Error in update_task_status_inprogress MCP tool: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_status_update",
-            "error_message": f"Server error: {str(e)}",
-            "error_type": "server_error",
-        }
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def update_task_status_done(
-    task_id: str,
-) -> Dict[str, Any]:
-    """
-    Update a task's status to 'DONE'.
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
-
-    Args:
-        - task_id: The UUID of the task to update
-
-    Returns:
-        - Confirmation of the status update
-    """
-    logger.info(f"Updating task {task_id} status to DONE")
-    session: Session = SessionLocal()
-    try:
-        user_id_str, _ = get_auth_context(session, requires_workspace=True)
-        user_id = uuid.UUID(user_id_str)
-
-        task_uuid = uuid.UUID(task_id)
-
-        # Use TaskController to update task status
-        controller = TaskController(session)
-        task = controller.move_task_to_status(user_id, task_uuid, TaskStatus.DONE)
-
-        logger.info(f"Successfully updated task {task_id} status to DONE")
-
-        return {
-            "status": "success",
-            "type": "task_status_update",
-            "message": f"Successfully updated task status to DONE",
-            "task_id": task_id,
-            "new_status": "DONE",
-        }
-
-    except MCPContextError as e:
-        logger.warning(f"Authorization error in update_task_status_done: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_status_update",
-            "error_message": str(e),
-            "error_type": e.error_type,
-        }
-    except TaskNotFoundError as e:
-        logger.exception(f"Task not found: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_status_update",
-            "error_message": str(e),
-            "error_type": "not_found",
-        }
-    except TaskControllerError as e:
-        logger.exception(f"Controller error in update_task_status_done: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_status_update",
-            "error_message": str(e),
-            "error_type": "controller_error",
-        }
-    except ValueError as e:
-        logger.exception(f"Invalid UUID format: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_status_update",
-            "error_message": f"Invalid task ID format: {str(e)}",
-            "error_type": "validation_error",
-        }
-    except Exception as e:
-        logger.exception(f"Error in update_task_status_done MCP tool: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_status_update",
-            "error_message": f"Server error: {str(e)}",
-            "error_type": "server_error",
-        }
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def create_task(
-    initiative_identifier: str,
-    title: str,
+async def submit_task(
+    task_identifier: Optional[str] = None,
+    initiative_identifier: Optional[str] = None,
+    title: Optional[str] = None,
     description: Optional[str] = None,
     status: Optional[str] = None,
     task_type: Optional[str] = None,
     checklist: Optional[List[TaskChecklistItem]] = None,
 ) -> Dict[str, Any]:
     """
-    Create a new task within an initiative.
+    Create a new task or update an existing one.
 
-    Creates a Task entity with optional description, status, type, and checklist items.
-    The task is automatically added to the ordering system for the workspace.
+    Uses upsert pattern: creates when task_identifier is omitted, updates when provided.
 
     REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Args:
-        - initiative_identifier: Human-readable initiative identifier (e.g., "I-012")
-        - title: Task title (1-200 characters)
-        - description: Optional task description (supports markdown formatting)
-        - status: Optional initial status (TO_DO, IN_PROGRESS, BLOCKED, DONE). Defaults to TO_DO
-        - task_type: Optional task type (e.g., CODING, TESTING, DOCUMENTATION, DESIGN)
-        - checklist: Optional list of checklist items with title and is_complete fields
+        task_identifier: Task identifier (e.g., "T-001") for updates (optional)
+        initiative_identifier: Initiative identifier (required for create)
+        title: Task title (required for create, optional for update)
+        description: Task description (optional)
+        status: Task status (TO_DO, IN_PROGRESS, BLOCKED, DONE, ARCHIVED) (optional)
+        task_type: Task type (CODING, TESTING, DOCUMENTATION, DESIGN) (optional)
+        checklist: List of checklist items (replaces entire checklist if provided) (optional)
 
     Returns:
-        - Created task with ID, identifier, and all fields including checklist items
+        Success response with created or updated task
     """
-    logger.info(f"Creating task '{title}' in initiative {initiative_identifier}")
+    logger.info(
+        f"Processing task submission: identifier={task_identifier}, title={title}"
+    )
     session: Session = SessionLocal()
     try:
-        # Get auth context
         user_id_str, workspace_id_str = get_auth_context(
             session, requires_workspace=True
         )
@@ -859,86 +607,155 @@ async def create_task(
         user_id = uuid.UUID(user_id_str)
         workspace_id = uuid.UUID(workspace_id_str)
 
-        # Resolve initiative identifier to UUID
-        initiative_id = resolve_initiative_identifier(
-            initiative_identifier, workspace_id, session
-        )
+        controller = TaskController(session)
 
-        # Parse and validate status if provided
-        task_status = TaskStatus.TO_DO
-        if status:
-            try:
-                task_status = TaskStatus(status)
-            except ValueError:
-                valid_statuses = [s.value for s in TaskStatus]
+        # UPDATE PATH
+        if task_identifier:
+            logger.info(f"Updating task {task_identifier}")
+
+            # Resolve task identifier to UUID
+            task = (
+                session.query(Task)
+                .filter(
+                    Task.identifier == task_identifier,
+                    Task.workspace_id == workspace_id,
+                    Task.user_id == user_id,
+                )
+                .first()
+            )
+
+            if not task:
                 return {
                     "status": "error",
                     "type": "task",
-                    "error_message": f"Invalid status '{status}'. Valid statuses are: {valid_statuses}",
+                    "error_message": f"Task {task_identifier} not found",
+                    "error_type": "not_found",
+                }
+
+            # Update description if provided
+            if description is not None:
+                controller.update_task_description(user_id, task.id, description)
+
+            # Update status if provided
+            if status is not None:
+                try:
+                    task_status = TaskStatus(status)
+                except ValueError:
+                    valid_statuses = [s.value for s in TaskStatus]
+                    return {
+                        "status": "error",
+                        "type": "task",
+                        "error_message": f"Invalid status '{status}'. Valid: {valid_statuses}",
+                        "error_type": "validation_error",
+                    }
+                controller.move_task_to_status(user_id, task.id, task_status)
+
+            # Update type if provided
+            if task_type is not None:
+                task.type = task_type
+                session.add(task)
+                session.commit()
+
+            # Update title if provided
+            if title is not None:
+                task.title = title
+                session.add(task)
+                session.commit()
+
+            # Replace checklist if provided
+            if checklist is not None:
+                items_data = [
+                    ChecklistItemData(
+                        title=item.title, is_complete=item.is_complete, order=idx
+                    )
+                    for idx, item in enumerate(checklist)
+                ]
+                controller.update_checklist(user_id, task.id, items_data)
+
+            session.refresh(task)
+
+            logger.info(f"Successfully updated task {task_identifier}")
+
+            return {
+                "status": "success",
+                "type": "task",
+                "message": f"Updated task {task_identifier}",
+                "data": _task_to_dict(task),
+            }
+
+        # CREATE PATH
+        else:
+            logger.info(f"Creating task '{title}'")
+
+            # Validate required fields for creation
+            if not initiative_identifier:
+                return {
+                    "status": "error",
+                    "type": "task",
+                    "error_message": "initiative_identifier is required for task creation",
                     "error_type": "validation_error",
                 }
 
-        # Convert checklist items to ChecklistItemData
-        checklist_data = None
-        if checklist:
-            checklist_data = [
-                ChecklistItemData(
-                    title=item.title,
-                    is_complete=item.is_complete,
-                    order=idx,
-                )
-                for idx, item in enumerate(checklist)
-            ]
+            if not title:
+                return {
+                    "status": "error",
+                    "type": "task",
+                    "error_message": "title is required for task creation",
+                    "error_type": "validation_error",
+                }
 
-        # Create task using controller
-        controller = TaskController(session)
-        task: Task = controller.create_task(
-            title=title,
-            user_id=user_id,
-            workspace_id=workspace_id,
-            initiative_id=initiative_id,
-            status=task_status,
-            task_type=task_type,
-            description=description,
-            checklist=checklist_data,
-        )
+            # Resolve initiative identifier to UUID
+            initiative_id = resolve_initiative_identifier(
+                initiative_identifier, workspace_id, session
+            )
 
-        # Build response data
-        task_data = _task_to_dict(task)
-        task_data["initiative_identifier"] = initiative_identifier
+            # Parse status if provided
+            task_status = TaskStatus.TO_DO
+            if status:
+                try:
+                    task_status = TaskStatus(status)
+                except ValueError:
+                    valid_statuses = [s.value for s in TaskStatus]
+                    return {
+                        "status": "error",
+                        "type": "task",
+                        "error_message": f"Invalid status '{status}'. Valid: {valid_statuses}",
+                        "error_type": "validation_error",
+                    }
 
-        # Include checklist items in response
-        checklist_items_data = [
-            {
-                "id": str(item.id),
-                "title": item.title,
-                "is_complete": item.is_complete,
-                "order": item.order,
+            # Convert checklist items
+            checklist_data = None
+            if checklist:
+                checklist_data = [
+                    ChecklistItemData(
+                        title=item.title, is_complete=item.is_complete, order=idx
+                    )
+                    for idx, item in enumerate(checklist)
+                ]
+
+            # Create task
+            task: Task = controller.create_task(
+                title=title,
+                user_id=user_id,
+                workspace_id=workspace_id,
+                initiative_id=initiative_id,
+                status=task_status,
+                task_type=task_type,
+                description=description,
+                checklist=checklist_data,
+            )
+
+            logger.info(f"Successfully created task {task.identifier}")
+
+            return {
+                "status": "success",
+                "type": "task",
+                "message": f"Created task {task.identifier}",
+                "data": _task_to_dict(task),
             }
-            for item in task.checklist
-        ]
-
-        logger.info(
-            f"Successfully created task {task.identifier} '{title}' in initiative {initiative_identifier}"
-        )
-
-        return {
-            "status": "success",
-            "type": "task",
-            "message": f"Created task '{title}' ({task.identifier}) in initiative {initiative_identifier}",
-            "data": {
-                **task_data,
-                "checklist": checklist_items_data,
-            },
-            "next_steps": [
-                f"Task {task.identifier} created successfully",
-                "Use update_checklist to modify checklist items",
-                "Use update_task_status_inprogress to start working on the task",
-            ],
-        }
 
     except MCPContextError as e:
-        logger.warning(f"Authorization error in create_task: {str(e)}")
+        logger.warning(f"Authorization error in submit_task: {str(e)}")
         return {
             "status": "error",
             "type": "task",
@@ -946,7 +763,7 @@ async def create_task(
             "error_type": e.error_type,
         }
     except DomainException as e:
-        logger.warning(f"Initiative not found in create_task: {str(e)}")
+        logger.warning(f"Domain error in submit_task: {str(e)}")
         return {
             "status": "error",
             "type": "task",
@@ -954,7 +771,7 @@ async def create_task(
             "error_type": "not_found",
         }
     except TaskControllerError as e:
-        logger.exception(f"Controller error in create_task: {str(e)}")
+        logger.exception(f"Controller error in submit_task: {str(e)}")
         return {
             "status": "error",
             "type": "task",
@@ -962,7 +779,7 @@ async def create_task(
             "error_type": "controller_error",
         }
     except ValueError as e:
-        logger.exception(f"Invalid value in create_task: {str(e)}")
+        logger.exception(f"Invalid value in submit_task: {str(e)}")
         return {
             "status": "error",
             "type": "task",
@@ -970,7 +787,7 @@ async def create_task(
             "error_type": "validation_error",
         }
     except Exception as e:
-        logger.exception(f"Error in create_task MCP tool: {str(e)}")
+        logger.exception(f"Error in submit_task MCP tool: {str(e)}")
         return {
             "status": "error",
             "type": "task",
