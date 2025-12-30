@@ -11,21 +11,20 @@ This document provides a comprehensive overview of all tools and resources avail
 5. [Workspace Management Tools](#workspace-management-tools)
 6. [Strategic Initiative Tools](#strategic-initiative-tools)
 7. [Task Management Tools](#task-management-tools)
-8. [Checklist Management Tools](#checklist-management-tools)
-9. [Strategic Planning Tools](#strategic-planning-tools)
-10. [Roadmap Management Tools](#roadmap-management-tools)
-11. [Utility Tools](#utility-tools)
-12. [Prompts](#prompts)
-13. [Narrative Layer Tools](#narrative-layer-tools)
-14. [Error Handling](#error-handling)
-15. [Best Practices](#best-practices)
-16. [Architecture Notes](#architecture-notes)
+8. [Strategic Planning Tools](#strategic-planning-tools)
+9. [Roadmap Management Tools](#roadmap-management-tools)
+10. [Utility Tools](#utility-tools)
+11. [Prompts](#prompts)
+12. [Narrative Layer Tools](#narrative-layer-tools)
+13. [Error Handling](#error-handling)
+14. [Best Practices](#best-practices)
+15. [Architecture Notes](#architecture-notes)
 
 ---
 
 ## Overview
 
-The OpenBacklog MCP server provides a comprehensive set of tools for managing initiatives, tasks, checklists, and strategic planning through Claude Code. All tools follow a consistent pattern of returning structured JSON responses with status indicators.
+The OpenBacklog MCP server provides a comprehensive set of tools for managing initiatives, tasks, and strategic planning through Claude Code. All tools follow a consistent pattern of returning structured JSON responses with status indicators.
 
 **Server Configuration:**
 - Name: OpenBacklog MCP server
@@ -51,11 +50,10 @@ Description fields in OpenBacklog support **full GitHub-flavored markdown**. The
 
 | Tool | Field | Notes |
 |------|-------|-------|
-| `update_task_description` | `description` | Full markdown rendering |
+| `submit_task` | `description` | Full markdown rendering |
 | `submit_strategic_initiative` | `implementation_description` | Full markdown rendering |
 | `submit_strategic_initiative` | `strategic_description` | Full markdown rendering |
 | `submit_strategic_initiative` | `narrative_intent` | Full markdown, rendered with italic styling |
-| `update_strategic_initiative` | Same fields as above | Same markdown support |
 
 **Best Practice:** When creating or updating descriptions via MCP tools, use markdown formatting to structure content with headings, bullet points, and emphasis. This creates a better reading experience in the OpenBacklog UI.
 
@@ -219,9 +217,13 @@ Returns comprehensive framework for defining a strategic initiative with narrati
 
 ---
 
-### `submit_strategic_initiative(title, implementation_description, hero_identifiers, villain_identifiers, conflict_identifiers, pillar_identifier, theme_identifier, narrative_intent, status, strategic_description)`
+### `submit_strategic_initiative(title, implementation_description, hero_identifiers, villain_identifiers, conflict_identifiers, pillar_identifier, theme_identifier, narrative_intent, status, strategic_description, strategic_initiative_identifier?)` **(UPSERT)**
 
-Submits a strategic initiative with optional narrative connections.
+Creates a new strategic initiative or updates an existing one with optional narrative connections.
+
+**UPSERT BEHAVIOR:**
+- `strategic_initiative_identifier=None` → Creates new initiative
+- `strategic_initiative_identifier="I-1001"` → Updates existing initiative
 
 Creates both an Initiative and its StrategicInitiative context in one operation. Uses graceful degradation: invalid identifiers are skipped with warnings rather than failing.
 
@@ -238,6 +240,7 @@ Creates both an Initiative and its StrategicInitiative context in one operation.
 - `narrative_intent` (optional): Why this initiative matters narratively
 - `status` (optional): Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG
 - `strategic_description` (optional): How this initiative connects to the larger product strategy. Explains the "why" - user needs addressed, strategic alignment, and how it fits into the bigger picture. Defaults to `implementation_description` if not provided.
+- `strategic_initiative_identifier` (optional): Initiative identifier (e.g., "I-1001") for updates - if provided, updates existing initiative instead of creating new
 
 **Returns:**
 ```json
@@ -257,9 +260,36 @@ Creates both an Initiative and its StrategicInitiative context in one operation.
 }
 ```
 
+**Create New Example:**
+```python
+submit_strategic_initiative(
+    title="Smart Context Switching",
+    implementation_description="Auto-save and restore IDE context...",
+    strategic_description="Addresses user need for seamless workflow...",
+    hero_identifiers=["H-001"],
+    villain_identifiers=["V-001"],
+    pillar_identifier="P-001",
+    status="TO_DO"
+)
+```
+
+**Update Existing Example:**
+```python
+submit_strategic_initiative(
+    strategic_initiative_identifier="I-1001",
+    title="Updated Title",
+    status="IN_PROGRESS",
+    implementation_description="Updated implementation details..."
+)
+```
+
 **Use Cases:**
 - Creating initiatives with full strategic context
 - Linking initiatives to heroes, villains, and conflicts
+- Updating initiative titles, descriptions, or status
+- Changing narrative connections
+
+**Note:** Previously separate `update_strategic_initiative()` has been consolidated into this function. Use the `strategic_initiative_identifier` parameter to update existing initiatives.
 
 ---
 
@@ -437,61 +467,6 @@ Accepts a flexible query that tries multiple lookup strategies:
 
 ---
 
-### `update_strategic_initiative(initiative_identifier, title, implementation_description, status, hero_identifiers, villain_identifiers, conflict_identifiers, pillar_identifier, theme_identifier, narrative_intent, strategic_description)`
-
-Updates an existing strategic initiative's fields.
-
-**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
-
-Accepts a flexible identifier that tries multiple lookup strategies:
-1. First tries as initiative identifier (e.g., "I-1001")
-2. Then tries as StrategicInitiative UUID
-3. Finally tries as Initiative UUID
-
-**Parameters:**
-- `initiative_identifier` (required): Initiative identifier (e.g., "I-1001")
-- `title` (optional): New initiative title
-- `implementation_description` (optional): New description of what this initiative delivers and how it will be built - the practical "what"
-- `status` (optional): New status (BACKLOG, TO_DO, IN_PROGRESS)
-- `hero_identifiers` (optional): New list of hero identifiers (e.g., ["H-001"]) - replaces existing
-- `villain_identifiers` (optional): New list of villain identifiers (e.g., ["V-001"]) - replaces existing
-- `conflict_identifiers` (optional): New list of conflict identifiers (e.g., ["C-001"]) - replaces existing
-- `pillar_identifier` (optional): New strategic pillar identifier (e.g., "P-001") - use "null" to unlink
-- `theme_identifier` (optional): New roadmap theme identifier (e.g., "T-001") - use "null" to unlink
-- `narrative_intent` (optional): New narrative intent
-- `strategic_description` (optional): New description of how this initiative connects to the larger product strategy - the "why"
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "strategic_initiative",
-  "message": "Updated strategic initiative I-1001",
-  "data": {
-    "initiative": {
-      "identifier": "I-1001",
-      "title": "...",
-      "description": "...",
-      "status": "IN_PROGRESS"
-    },
-    "strategic_context": {/* full strategic initiative details */},
-    "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Why: ..."
-  },
-  "next_steps": [
-    "Strategic initiative 'Title' updated successfully"
-  ]
-}
-```
-
-**Use Cases:**
-- Updating initiative titles, implementation descriptions, or status
-- Updating strategic descriptions separately from implementation details
-- Changing narrative connections (heroes, villains, conflicts)
-- Re-linking to different pillars or themes
-- Updating narrative intent
-
----
-
 ### `delete_strategic_initiative(query: str)`
 
 Deletes a strategic initiative permanently.
@@ -552,17 +527,22 @@ Retrieves all tasks for a specific initiative.
 
 ---
 
-### `create_task(initiative_identifier, title, description?, status?, task_type?, checklist_items?)`
+### `submit_task(initiative_identifier, title, description?, status?, task_type?, checklist?, task_identifier?)` **(UPSERT)**
 
-Creates a new task within an initiative.
+Creates a new task or updates an existing task within an initiative.
+
+**UPSERT BEHAVIOR:**
+- `task_identifier=None` → Creates new task
+- `task_identifier="T-001"` → Updates existing task
 
 **Parameters:**
 - `initiative_identifier` (required): Human-readable initiative identifier (e.g., "I-012")
 - `title` (required): Task title (1-200 characters)
 - `description` (optional): Task description (supports markdown formatting)
-- `status` (optional): Initial status (TO_DO, IN_PROGRESS, BLOCKED, DONE). Defaults to TO_DO
+- `status` (optional): Task status (TO_DO, IN_PROGRESS, BLOCKED, DONE). Defaults to TO_DO for new tasks
 - `task_type` (optional): Task type (e.g., CODING, TESTING, DOCUMENTATION, DESIGN)
-- `checklist_items` (optional): Array of checklist items with `title` (string) and `is_complete` (boolean) fields
+- `checklist` (optional): Array of checklist items with `title` (string) and `is_complete` (boolean) fields. Replaces entire checklist if provided.
+- `task_identifier` (optional): Task identifier (e.g., "T-001") - if provided, updates existing task instead of creating new
 
 **Returns:**
 ```json
@@ -582,17 +562,56 @@ Creates a new task within an initiative.
     "checklist_items": [{"id": "<uuid>", "title": "...", "is_complete": false}]
   },
   "next_steps": [
-    "Task TM-001 created successfully",
-    "Use update_checklist to modify checklist items",
-    "Use update_task_status_inprogress to start working on the task"
+    "Task TM-001 created successfully"
   ]
 }
 ```
+
+**Create New Task Example:**
+```python
+submit_task(
+    initiative_identifier="I-012",
+    title="Implement authentication",
+    description="Add OAuth login flow",
+    status="TO_DO",
+    checklist=[
+        {"title": "Design login flow", "is_complete": false},
+        {"title": "Implement OAuth provider", "is_complete": false}
+    ]
+)
+```
+
+**Update Existing Task Example:**
+```python
+submit_task(
+    task_identifier="T-001",
+    title="Updated task title",
+    status="IN_PROGRESS",
+    description="Updated description"
+)
+```
+
+**Checklist Management:**
+To update a task's checklist, use the `checklist` parameter with a full array of checklist items:
+```python
+submit_task(
+    task_identifier="T-001",
+    checklist=[
+        {"title": "Step 1", "is_complete": true},
+        {"title": "Step 2", "is_complete": false},
+        {"title": "New step", "is_complete": false}
+    ]
+)
+```
+This replaces the entire checklist. To preserve existing items, retrieve the current checklist via `get_task_details()` first, then include all items in the new array.
 
 **Use Cases:**
 - Creating new tasks from MCP client (Claude Code, etc.)
 - Breaking down initiatives into actionable tasks
 - Creating tasks with initial checklist items
+- Updating task titles, descriptions, or status
+- Replacing task checklists
+- Moving tasks between statuses
 
 ---
 
@@ -651,32 +670,6 @@ Searches tasks by title, description, and identifier using PostgreSQL full-text 
 
 ---
 
-### `update_task_description(task_id: str, description: str)`
-
-Updates a task's description with additional implementation context.
-
-**Parameters:**
-- `task_id`: UUID of the task
-- `description`: New description content
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "task_update",
-  "message": "Successfully updated task description",
-  "task_id": "<task_uuid>",
-  "updated_description": "..."
-}
-```
-
-**Use Cases:**
-- Adding implementation notes
-- Documenting decisions
-- Recording plan details
-
----
-
 ### `validate_context(task_id: str)`
 
 Verifies current task state matches expected state.
@@ -706,124 +699,6 @@ Verifies current task state matches expected state.
 - Ensuring no external changes
 - Progress tracking
 - Debugging context issues
-
----
-
-### `update_task_status_inprogress(task_id: str)`
-
-Updates a task's status to 'IN_PROGRESS'.
-
-**Parameters:**
-- `task_id`: UUID of the task
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "task_status_update",
-  "message": "Successfully updated task status to IN_PROGRESS",
-  "task_id": "<task_uuid>",
-  "new_status": "IN_PROGRESS"
-}
-```
-
-**Use Cases:**
-- Prioritizing selected task
-- Starting work on a task
-- Status tracking
-
----
-
-### `update_task_status_done(task_id: str)`
-
-Updates a task's status to 'DONE'.
-
-**Parameters:**
-- `task_id`: UUID of the task
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "task_status_update",
-  "message": "Successfully updated task status to DONE",
-  "task_id": "<task_uuid>",
-  "new_status": "DONE"
-}
-```
-
-**Use Cases:**
-- Completing a task
-- Marking work finished
-- Workflow progression
-
----
-
-## Checklist Management Tools
-
-### `update_checklist(task_id: str, checklist_items: List[ChecklistItem])`
-
-Replaces the entire checklist for a task with a new implementation plan.
-
-**Parameters:**
-- `task_id`: UUID of the task
-- `checklist_items`: Array of checklist items
-  ```json
-  [
-    {"title": "Step description", "is_complete": false},
-    {"title": "Another step", "is_complete": false}
-  ]
-  ```
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "checklist_update",
-  "message": "Successfully updated checklist with N items",
-  "task_id": "<task_uuid>",
-  "created_items": [/* array of created items */]
-}
-```
-
-**Behavior:**
-- Deletes all existing checklist items for the task
-- Creates new items in order
-- Sets all items to incomplete by default
-
-**Use Cases:**
-- Storing implementation plan
-- Breaking down task into steps
-- Creating actionable checklist
-
----
-
-### `update_checklist_item(task_id: str, item_id: str, is_complete: bool)`
-
-Marks a specific checklist item as complete or incomplete.
-
-**Parameters:**
-- `task_id`: UUID of the task (for validation)
-- `item_id`: UUID of the checklist item
-- `is_complete`: true to mark complete, false for incomplete
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "checklist_item_update",
-  "message": "Successfully marked checklist item as complete/incomplete",
-  "task_id": "<task_uuid>",
-  "item_id": "<item_uuid>",
-  "is_complete": true,
-  "updated_items": [/* updated items */]
-}
-```
-
-**Use Cases:**
-- Tracking implementation progress
-- Marking steps complete
-- Progress reporting
 
 ---
 
@@ -1035,51 +910,42 @@ Returns the pillar with its full details including all linked product outcomes f
 
 ---
 
-#### `submit_strategic_pillar(name: str, description: str)`
+#### `submit_strategic_pillar(name: str, description: str, pillar_identifier?: str)` **(UPSERT)**
 
-Submits a refined strategic pillar.
+Creates a new strategic pillar or updates an existing one.
+
+**UPSERT BEHAVIOR:**
+- `pillar_identifier=None` → Creates new pillar
+- `pillar_identifier="P-001"` → Updates existing pillar
 
 **Parameters:**
 - `name`: Pillar name (1-100 characters, unique per workspace)
 - `description`: Pillar description including strategy and anti-strategy (required)
   - Should include both what you'll do and what you won't do
   - Example: "Strategy: Provide seamless experience within developer's existing workflow. Anti-Strategy: No web-first experience, no mobile app, no Slack/Teams bots."
+- `pillar_identifier` (optional): Pillar identifier (e.g., "P-001") - if provided, updates existing pillar instead of creating new
 
 **Returns:**
 Success response with saved pillar data and next steps.
 
----
-
-
-#### `update_strategic_pillar(pillar_identifier: str, name: str | None, description: str | None)`
-
-Updates an existing strategic pillar.
-
-**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
-
-**Parameters:**
-- `pillar_identifier`: Human-readable identifier (e.g., "P-001")
-- `name`: New pillar name (optional, 1-100 characters)
-- `description`: New pillar description (optional, 1-3000 characters)
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "pillar",
-  "message": "Updated strategic pillar 'Pillar Name'",
-  "data": {
-    "identifier": "P-001",
-    "name": "...",
-    "description": "..."
-  }
-}
+**Create New Example:**
+```python
+submit_strategic_pillar(
+    name="Deep IDE Integration",
+    description="Strategy: Seamless workflow. Anti-Strategy: No web/mobile"
+)
 ```
 
-**Use Cases:**
-- Refining pillar descriptions
-- Updating strategy and anti-strategy
-- Renaming pillars
+**Update Existing Example:**
+```python
+submit_strategic_pillar(
+    pillar_identifier="P-001",
+    name="Updated Pillar Name",
+    description="Updated strategy..."
+)
+```
+
+**Note:** Previously separate `update_strategic_pillar()` has been consolidated into this function. Use the `pillar_identifier` parameter to update existing pillars.
 
 ---
 
@@ -1126,19 +992,44 @@ Framework with outcome-specific guidance:
 
 ---
 
-#### `submit_product_outcome(name: str, description: str, pillar_identifiers: List[str] | None)`
+#### `submit_product_outcome(name: str, description: str, pillar_identifiers?: List[str], outcome_identifier?: str)` **(UPSERT)**
 
-Submits a refined product outcome.
+Creates a new product outcome or updates an existing one.
+
+**UPSERT BEHAVIOR:**
+- `outcome_identifier=None` → Creates new outcome
+- `outcome_identifier="O-002"` → Updates existing outcome
 
 **Parameters:**
 - `name`: Outcome name (1-150 characters)
 - `description`: Outcome description including goal, baseline, target, and timeline (required)
   - Should include: specific metric, baseline value, target value, and timeline
   - Example: "Goal: Increase daily active IDE plugin users. Baseline: 30% of users daily active. Target: 80% daily active. Timeline: 6 months."
-- `pillar_identifiers`: Optional list of pillar identifiers (e.g., ["P-001", "P-002"]) to link (recommended for strategic alignment)
+- `pillar_identifiers` (optional): List of pillar identifiers (e.g., ["P-001", "P-002"]) to link (recommended for strategic alignment)
+- `outcome_identifier` (optional): Outcome identifier (e.g., "O-002") - if provided, updates existing outcome instead of creating new
 
 **Returns:**
 Success response with saved outcome data and next steps.
+
+**Create New Example:**
+```python
+submit_product_outcome(
+    name="Developer Daily Adoption",
+    description="Goal: Increase daily active IDE plugin users. Baseline: 30% of users daily active. Target: 80% daily active. Timeline: 6 months.",
+    pillar_identifiers=["P-001"]
+)
+```
+
+**Update Existing Example:**
+```python
+submit_product_outcome(
+    outcome_identifier="O-002",
+    description="Updated description...",
+    pillar_identifiers=["P-001", "P-002"]
+)
+```
+
+**Note:** Previously separate `update_product_outcome()` has been consolidated into this function. The `pillar_identifiers` parameter handles linking to pillars. Use the `outcome_identifier` parameter to update existing outcomes.
 
 ---
 
@@ -1169,44 +1060,6 @@ Lists all product outcomes for the workspace.
 - Viewing all defined product outcomes
 - Getting outcome IDs for linking to themes
 - Strategic planning review
-
----
-
-#### `update_product_outcome(outcome_identifier: str, name: str | None, description: str | None, pillar_identifiers: List[str] | None)`
-
-Updates an existing product outcome.
-
-**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
-
-**Parameters:**
-- `outcome_identifier`: Human-readable identifier (e.g., "O-001")
-- `name`: New outcome name (optional, 1-150 characters)
-- `description`: New outcome description (optional, 1-3000 characters)
-- `pillar_identifiers`: List of pillar identifiers (e.g., "P-001") to link (optional, replaces existing links)
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "outcome",
-  "message": "Updated product outcome 'Outcome Name'",
-  "data": {
-    "identifier": "O-001",
-    "name": "...",
-    "description": "...",
-    "pillars": [/* linked pillars with identifiers */]
-  },
-  "next_steps": [
-    "Product outcome 'Outcome Name' updated successfully",
-    "Outcome now linked to N pillar(s)"
-  ]
-}
-```
-
-**Use Cases:**
-- Updating metrics, baselines, or targets
-- Changing pillar linkages
-- Refining outcome descriptions
 
 ---
 
@@ -1257,21 +1110,48 @@ Framework with:
 
 ---
 
-#### `submit_roadmap_theme(name: str, description: str, outcome_identifiers: List[str] | None, hero_identifier: str | None, primary_villain_identifier: str | None)`
+#### `submit_roadmap_theme(name: str, description: str, outcome_identifiers?: List[str], hero_identifier?: str, primary_villain_identifier?: str, theme_identifier?: str)` **(UPSERT)**
 
-Submits a refined roadmap theme.
+Creates a new roadmap theme or updates an existing one.
+
+**UPSERT BEHAVIOR:**
+- `theme_identifier=None` → Creates new theme
+- `theme_identifier="T-001"` → Updates existing theme
 
 **Parameters:**
 - `name`: Theme name (1-100 characters, unique per workspace)
 - `description`: Theme description including problem statement, hypothesis, metrics, and timeline (required)
   - Should include: specific problem, testable hypothesis, indicative metrics, and timeline
   - Example: "Problem Statement: New users abandon setup (40% drop-off). Hypothesis: Smart defaults will increase completion from 40% to 70%. Indicative Metrics: Setup completion rate. Timeline: 6 months."
-- `outcome_identifiers`: Optional list of outcome identifiers (e.g., ["O-001", "O-002"]) to link (recommended for strategic alignment)
-- `hero_identifier`: Optional human-readable hero identifier (e.g., "H-001") to link who benefits
-- `primary_villain_identifier`: Optional human-readable villain identifier (e.g., "V-001") to link what problem is solved
+- `outcome_identifiers` (optional): List of outcome identifiers (e.g., ["O-001", "O-002"]) to link (recommended for strategic alignment)
+- `hero_identifier` (optional): Human-readable hero identifier (e.g., "H-001") to link who benefits
+- `primary_villain_identifier` (optional): Human-readable villain identifier (e.g., "V-001") to link what problem is solved
+- `theme_identifier` (optional): Theme identifier (e.g., "T-001") - if provided, updates existing theme instead of creating new
 
 **Returns:**
 Success response with theme data and next steps.
+
+**Create New Example:**
+```python
+submit_roadmap_theme(
+    name="First-Week Configuration Success",
+    description="Problem Statement: New users abandon setup (40% drop-off)...",
+    outcome_identifiers=["O-001"],
+    hero_identifier="H-001",
+    primary_villain_identifier="V-001"
+)
+```
+
+**Update Existing Example:**
+```python
+submit_roadmap_theme(
+    theme_identifier="T-001",
+    description="Updated problem statement...",
+    outcome_identifiers=["O-001", "O-002"]
+)
+```
+
+**Note:** Previously separate `update_roadmap_theme()` has been consolidated into this function. Hero and villain linking is now handled via identifier parameters. Use the `theme_identifier` parameter to update existing themes.
 
 ---
 
@@ -1293,28 +1173,43 @@ Returns context for prioritizing roadmap themes.
 
 ---
 
-#### `prioritize_workstream(theme_identifier: str, priority_position: int)`
+#### `set_theme_priority(theme_identifier: str, priority_position?: int)`
 
-Adds a theme to the prioritized roadmap at a specified position.
+Sets theme priority position or deprioritizes a theme.
 
-**Parameters:**
-- `theme_identifier`: Human-readable identifier (e.g., "T-001")
-- `priority_position`: Position in the prioritized list (0-indexed)
-
-**Returns:**
-Success response confirming prioritization.
-
----
-
-#### `deprioritize_workstream(theme_identifier: str)`
-
-Moves a theme back to backlog (unprioritized).
+**BEHAVIOR:**
+- `priority_position=0,1,2,...` → Prioritizes theme at specified position (0 = highest priority)
+- `priority_position=None` → Deprioritizes theme (moves to backlog)
 
 **Parameters:**
 - `theme_identifier`: Human-readable identifier (e.g., "T-001")
+- `priority_position` (optional): Priority position (0-indexed, None to deprioritize)
 
 **Returns:**
-Success response confirming deprioritization.
+Success response confirming priority change.
+
+**Prioritize Example:**
+```python
+set_theme_priority(
+    theme_identifier="T-001",
+    priority_position=0  # Highest priority
+)
+```
+
+**Deprioritize Example:**
+```python
+set_theme_priority(
+    theme_identifier="T-001",
+    priority_position=None  # Move to backlog
+)
+```
+
+**Use Cases:**
+- Adding theme to active roadmap
+- Changing theme priority order
+- Moving theme back to backlog
+
+**Note:** Previously separate `prioritize_workstream()` and `deprioritize_workstream()` functions have been consolidated into this single function.
 
 ---
 
@@ -1374,47 +1269,6 @@ Lists all roadmap themes for the workspace (both prioritized and unprioritized).
 - Viewing all themes (prioritized and unprioritized)
 - Getting theme IDs for linking to initiatives
 - Roadmap planning review
-
----
-
-#### `update_roadmap_theme(theme_identifier: str, name: str | None, description: str | None, outcome_identifiers: List[str] | None)`
-
-Updates an existing roadmap theme.
-
-**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
-
-**Parameters:**
-- `theme_identifier`: Human-readable identifier (e.g., "T-001")
-- `name`: New theme name (optional, 1-100 characters)
-- `description`: New theme description (optional)
-- `outcome_identifiers`: List of outcome identifiers (e.g., "O-001") to link (optional, replaces existing links)
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "theme",
-  "message": "Updated roadmap theme 'Theme Name'",
-  "data": {
-    "identifier": "T-001",
-    "name": "...",
-    "description": "...",
-    "is_prioritized": true,
-    "priority_order": 0,
-    "outcomes": [/* linked outcomes with identifiers */]
-  },
-  "next_steps": [
-    "Roadmap theme 'Theme Name' updated successfully",
-    "Theme now linked to N outcome(s)",
-    "Strategic alignment score: 0.75"
-  ]
-}
-```
-
-**Use Cases:**
-- Updating problem statement, hypothesis, or metrics
-- Changing outcome linkages
-- Refining theme descriptions
 
 ---
 
@@ -1601,9 +1455,11 @@ All tools return consistent error responses:
 5. **Update OpenBacklog first** before local implementation
 6. **Use framework tools** for strategic planning (get framework, collaborate, submit)
 7. **Link entities** for strategic alignment (outcomes to pillars, themes to outcomes)
-8. **Track progress** using checklist item updates
+8. **Track progress** using checklist updates via the `checklist` parameter in `submit_task()`
 9. **Framework-invisible conversations**: Use `framework_invisible_conversation` prompt for strategic planning sessions to ensure natural product conversations. Never expose framework terminology (Hero, Villain, Pillar) to users - use their own product language instead.
 10. **Natural language extraction**: Use `conversation_guidelines` and `natural_questions` from framework responses to ask questions in the user's domain language, then extract structured data using `extraction_guidance` patterns.
+11. **Use upsert pattern**: All `submit_*` functions support both create and update via optional identifier parameters. Pass identifier to update (e.g., `hero_identifier="H-001"`), omit to create.
+12. **Partial updates**: When updating entities, only provide fields you want to change. Omitted fields preserve existing values. For example, `submit_hero(hero_identifier="H-001", name="New Name")` updates only the name.
 
 ---
 
@@ -1645,17 +1501,42 @@ Framework dict with all standard fields. Key conversation guideline: Use the her
 
 ---
 
-#### `submit_hero(name: str, description: str | None, is_primary: bool)`
+#### `submit_hero(name: str, description: str | None, is_primary: bool, hero_identifier?: str)` **(UPSERT)**
 
-Submits refined hero (user persona) to workspace.
+Creates a new hero or updates an existing hero (user persona).
+
+**UPSERT BEHAVIOR:**
+- `hero_identifier=None` → Creates new hero
+- `hero_identifier="H-001"` → Updates existing hero
 
 **Parameters:**
 - `name`: Hero name (e.g., "Sarah, The Solo Builder")
 - `description`: Rich description including who they are, motivations, jobs-to-be-done, pains, desired gains, and context
-- `is_primary`: Whether this is the primary hero
+- `is_primary`: Whether this is the primary hero (default: false)
+- `hero_identifier` (optional): Hero identifier (e.g., "H-001") - if provided, updates existing hero instead of creating new
 
 **Returns:**
-Success response with created hero (including identifier like "H-001") and next steps.
+Success response with created/updated hero (including identifier like "H-001") and next steps.
+
+**Create New Example:**
+```python
+submit_hero(
+    name="Sarah, The Solo Builder",
+    description="Sarah is a solo developer building her own SaaS...",
+    is_primary=True
+)
+```
+
+**Update Existing Example:**
+```python
+submit_hero(
+    hero_identifier="H-001",
+    name="Sarah Updated",
+    is_primary=False
+)
+```
+
+**Note:** Previously separate `update_hero()` has been consolidated into this function. Use the `hero_identifier` parameter to update existing heroes.
 
 ---
 
@@ -1677,44 +1558,6 @@ Retrieves full hero details including journey summary.
 
 **Returns:**
 Hero details + journey summary (active arcs, open conflicts).
-
----
-
-#### `update_hero(hero_identifier: str, name: str | None, description: str | None, is_primary: bool | None)`
-
-Updates an existing hero's fields.
-
-**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
-
-**Parameters:**
-- `hero_identifier`: Human-readable identifier (e.g., "H-001")
-- `name`: New hero name (optional)
-- `description`: New hero description (optional)
-- `is_primary`: Whether this is the primary hero (optional)
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "hero",
-  "message": "Updated hero H-001",
-  "data": {
-    "identifier": "H-001",
-    "name": "...",
-    "description": "...",
-    "is_primary": true
-  },
-  "next_steps": [
-    "Hero 'Sarah' (H-001) updated successfully",
-    "This hero is now set as your primary hero"
-  ]
-}
-```
-
-**Use Cases:**
-- Refining hero descriptions
-- Updating motivations, pains, or context
-- Changing primary hero designation
 
 ---
 
@@ -1764,18 +1607,45 @@ Framework dict with purpose, criteria, examples, questions, anti-patterns, curre
 
 ---
 
-#### `submit_villain(name: str, villain_type: str, description: str, severity: int)`
+#### `submit_villain(name: str, villain_type: str, description: str, severity: int, is_defeated?: bool, villain_identifier?: str)` **(UPSERT)**
 
-Submits refined villain to workspace.
+Creates a new villain or updates an existing villain (problem/obstacle).
+
+**UPSERT BEHAVIOR:**
+- `villain_identifier=None` → Creates new villain
+- `villain_identifier="V-001"` → Updates existing villain
 
 **Parameters:**
 - `name`: Villain name (e.g., "Context Switching")
 - `villain_type`: Type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER)
 - `description`: Rich description including how it manifests, impact, and evidence
 - `severity`: How big a threat (1-5)
+- `is_defeated` (optional): Whether the villain is defeated (default: false)
+- `villain_identifier` (optional): Villain identifier (e.g., "V-001") - if provided, updates existing villain instead of creating new
 
 **Returns:**
-Success response with created villain (including identifier like "V-001") and next steps.
+Success response with created/updated villain (including identifier like "V-001") and next steps.
+
+**Create New Example:**
+```python
+submit_villain(
+    name="Context Switching",
+    villain_type="WORKFLOW",
+    description="Jumping between tools breaks developer flow...",
+    severity=4
+)
+```
+
+**Update Existing Example:**
+```python
+submit_villain(
+    villain_identifier="V-001",
+    severity=5,
+    is_defeated=True
+)
+```
+
+**Note:** Previously separate `update_villain()` and `mark_villain_defeated()` have been consolidated into this function. Use the `is_defeated` parameter to mark villains as defeated.
 
 ---
 
@@ -1827,60 +1697,6 @@ Returns enriched villain data including counts of conflicts, linked themes, and 
 - Understanding what initiatives are fighting this villain
 - Reviewing conflicts and themes related to a villain
 - Strategic planning around specific problems
-
----
-
-#### `mark_villain_defeated(villain_identifier: str)`
-
-Marks a villain as defeated.
-
-**Parameters:**
-- `villain_identifier`: Human-readable identifier (e.g., "V-001")
-
-**Returns:**
-Success response with updated villain.
-
----
-
-#### `update_villain(villain_identifier: str, name: str | None, villain_type: str | None, description: str | None, severity: int | None, is_defeated: bool | None)`
-
-Updates an existing villain's fields.
-
-**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
-
-**Parameters:**
-- `villain_identifier`: Human-readable identifier (e.g., "V-001")
-- `name`: New villain name (optional)
-- `villain_type`: New type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER) (optional)
-- `description`: New villain description (optional)
-- `severity`: New severity 1-5 (optional)
-- `is_defeated`: Whether the villain is defeated (optional)
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "villain",
-  "message": "Updated villain V-001",
-  "data": {
-    "identifier": "V-001",
-    "name": "...",
-    "villain_type": "WORKFLOW",
-    "description": "...",
-    "severity": 4,
-    "is_defeated": false
-  },
-  "next_steps": [
-    "Villain 'Context Switching' (V-001) updated successfully"
-  ]
-}
-```
-
-**Use Cases:**
-- Refining villain descriptions
-- Updating severity assessments
-- Changing villain type
-- Marking villains as defeated/undefeated
 
 ---
 
@@ -2117,7 +1933,6 @@ Success response with updated theme.
 ## Related Documentation
 
 - Main server: `src/mcp_server/main.py`
-- Checklist tools: `src/mcp_server/checklist_tools.py`
 - Health check: `src/mcp_server/healthcheck_tool.py`
 - Initiative tools: `src/mcp_server/initiative_tools.py`
 - Task tools: `src/mcp_server/task_tools.py`
