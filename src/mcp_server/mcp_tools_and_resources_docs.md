@@ -1739,18 +1739,47 @@ Framework dict with purpose, criteria, examples, questions, anti-patterns, curre
 
 ---
 
-#### `create_conflict(hero_identifier: str, villain_identifier: str, description: str, roadmap_theme_identifier: str | None)`
+#### `submit_conflict(hero_identifier: str | None, villain_identifier: str | None, description: str | None, roadmap_theme_identifier: str | None, resolved_by_initiative_identifier: str | None, conflict_identifier: str | None)` **(UPSERT)**
 
-Creates a new conflict between a hero and villain.
+Creates a new conflict or updates an existing conflict.
+
+**Upsert Behavior:**
+- If `conflict_identifier` is **omitted**: Creates new conflict
+- If `conflict_identifier` is **provided**: Updates existing conflict
+
+**Important:** Reflect the conflict back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
 
 **Parameters:**
-- `hero_identifier`: Human-readable hero identifier (e.g., "H-001")
-- `villain_identifier`: Human-readable villain identifier (e.g., "V-001")
-- `description`: Rich description including conflict statement, impact, and stakes
-- `roadmap_theme_identifier`: Optional roadmap theme identifier (e.g., "T-001") addressing this conflict
+- `hero_identifier`: Human-readable hero identifier (required for create, e.g., "H-001")
+- `villain_identifier`: Human-readable villain identifier (required for create, e.g., "V-001")
+- `description`: Rich description including conflict statement, impact, and stakes (required for create, optional for update)
+- `roadmap_theme_identifier`: Optional roadmap theme identifier to link (e.g., "T-001"), use "null" or "" to unlink
+- `resolved_by_initiative_identifier`: Initiative identifier that resolved this conflict (e.g., "I-1001")
+- `conflict_identifier`: If provided, updates existing conflict (e.g., "C-001")
+
+**Create Example:**
+```python
+submit_conflict(
+    hero_identifier="H-001",
+    villain_identifier="V-001",
+    description="Sarah cannot access product context from IDE...",
+    roadmap_theme_identifier="T-001"
+)
+```
+
+**Update Example:**
+```python
+submit_conflict(
+    conflict_identifier="C-001",
+    description="Updated description...",
+    resolved_by_initiative_identifier="I-1001"
+)
+```
 
 **Returns:**
-Success response with created conflict (including identifier like "C-001").
+Success response with created or updated conflict.
+
+**Note:** Previously separate `create_conflict()`, `update_conflict()`, and `mark_conflict_resolved()` functions have been consolidated into this single upsert function.
 
 ---
 
@@ -1765,57 +1794,6 @@ Retrieves conflicts with optional filtering.
 
 **Returns:**
 List of conflicts matching filters.
-
----
-
-#### `mark_conflict_resolved(conflict_identifier: str, resolved_by_initiative_identifier: str)`
-
-Marks a conflict as resolved by an initiative.
-
-**Parameters:**
-- `conflict_identifier`: Human-readable conflict identifier (e.g., "C-001")
-- `resolved_by_initiative_identifier`: Initiative identifier (e.g., "I-1001") that resolved it
-
-**Returns:**
-Success response with updated conflict.
-
----
-
-#### `update_conflict(conflict_identifier: str, description: str | None, roadmap_theme_identifier: str | None)`
-
-Updates an existing conflict's fields.
-
-**Important:** Reflect the changes back to the user and get explicit confirmation BEFORE calling this function. This persists immediately.
-
-**Parameters:**
-- `conflict_identifier`: Human-readable identifier (e.g., "C-001")
-- `description`: New conflict description (optional)
-- `roadmap_theme_identifier`: Roadmap theme identifier (e.g., "T-001") to link (optional, use "null" to unlink)
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "conflict",
-  "message": "Updated conflict C-001",
-  "data": {
-    "identifier": "C-001",
-    "hero_identifier": "H-001",
-    "villain_identifier": "V-001",
-    "description": "...",
-    "status": "OPEN",
-    "roadmap_theme_identifier": "T-001"
-  },
-  "next_steps": [
-    "Conflict 'C-001' updated successfully"
-  ]
-}
-```
-
-**Use Cases:**
-- Refining conflict descriptions
-- Linking/unlinking conflicts to story arcs
-- Updating impact or stakes
 
 ---
 

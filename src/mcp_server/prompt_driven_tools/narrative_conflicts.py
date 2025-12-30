@@ -244,97 +244,214 @@ async def get_conflict_creation_framework() -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def create_conflict(
-    hero_identifier: str,
-    villain_identifier: str,
-    description: str,
-    roadmap_theme_id: Optional[str] = None,
+async def submit_conflict(
+    hero_identifier: Optional[str] = None,
+    villain_identifier: Optional[str] = None,
+    description: Optional[str] = None,
+    roadmap_theme_identifier: Optional[str] = None,
+    resolved_by_initiative_identifier: Optional[str] = None,
+    conflict_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Creates a new conflict between a hero and villain.
+    """Creates a new conflict or updates an existing conflict.
 
     IMPORTANT: Reflect the conflict back to the user and get explicit confirmation
     BEFORE calling this function. This persists immediately.
+
+    **Upsert Behavior:**
+    - If `conflict_identifier` is **omitted**: Creates new conflict
+    - If `conflict_identifier` is **provided**: Updates existing conflict
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        hero_identifier: Human-readable hero identifier (e.g., "H-2003")
-        villain_identifier: Human-readable villain identifier (e.g., "V-2003")
-        description: Rich description including conflict statement, impact, and stakes
-        roadmap_theme_id: Optional UUID of story arc addressing this conflict
+        hero_identifier: Human-readable hero identifier (required for create, e.g., "H-2003")
+        villain_identifier: Human-readable villain identifier (required for create, e.g., "V-2003")
+        description: Rich description including conflict statement, impact, and stakes (required for create, optional for update)
+        roadmap_theme_identifier: Optional roadmap theme identifier to link (e.g., "T-001"), use "null" or "" to unlink
+        resolved_by_initiative_identifier: Initiative identifier that resolved this conflict (e.g., "I-1001")
+        conflict_identifier: If provided, updates existing conflict (e.g., "C-001")
 
     Returns:
-        Success response with created conflict
+        Success response with created or updated conflict
 
     Example:
-        >>> result = await create_conflict(
+        >>> # Create
+        >>> result = await submit_conflict(
         ...     hero_identifier="H-2003",
         ...     villain_identifier="V-2003",
         ...     description="Sarah cannot access product context from IDE...",
-        ...     roadmap_theme_id="..."
+        ...     roadmap_theme_identifier="T-001"
+        ... )
+        >>> # Update
+        >>> result = await submit_conflict(
+        ...     conflict_identifier="C-001",
+        ...     description="Updated description...",
+        ...     resolved_by_initiative_identifier="I-1001"
         ... )
     """
     session = SessionLocal()
     try:
         user_id, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(f"Creating conflict for workspace {workspace_id}")
-
+        workspace_uuid = uuid.UUID(workspace_id)
         publisher = EventPublisher(session)
-        hero_service = HeroService(session, publisher)
-        villain_service = VillainService(session, publisher)
 
-        hero = hero_service.get_hero_by_identifier(
-            hero_identifier, uuid.UUID(workspace_id)
-        )
-        villain = villain_service.get_villain_by_identifier(
-            villain_identifier, uuid.UUID(workspace_id)
-        )
+        # UPDATE PATH
+        if conflict_identifier:
+            logger.info(f"Updating conflict {conflict_identifier}")
 
-        roadmap_theme_uuid = None
-        if roadmap_theme_id:
-            try:
-                roadmap_theme_uuid = uuid.UUID(roadmap_theme_id)
-            except ValueError:
+            # Validate that at least one field is provided for update
+            if (
+                description is None
+                and roadmap_theme_identifier is None
+                and resolved_by_initiative_identifier is None
+            ):
                 return build_error_response(
-                    "conflict", f"Invalid story_arc_id format: {roadmap_theme_id}"
+                    "conflict",
+                    "At least one field (description, roadmap_theme_identifier, resolved_by_initiative_identifier) must be provided",
                 )
 
-        conflict = Conflict.create_conflict(
-            workspace_id=uuid.UUID(workspace_id),
-            user_id=uuid.UUID(user_id),
-            hero_id=hero.id,
-            villain_id=villain.id,
-            description=description,
-            roadmap_theme_id=roadmap_theme_uuid,
-            session=session,
-            publisher=publisher,
-        )
-
-        session.commit()
-
-        next_steps = [
-            f"Conflict created successfully with identifier {conflict.identifier}",
-            f"Hero: {hero.name} ({hero_identifier}) vs Villain: {villain.name} ({villain_identifier})",
-        ]
-
-        if roadmap_theme_id:
-            next_steps.append(f"Conflict linked to story arc {roadmap_theme_id}")
-        else:
-            next_steps.append(
-                "Consider linking this conflict to a story arc for better tracking"
+            conflict = (
+                session.query(Conflict)
+                .options(*_get_conflict_eager_load_options())
+                .filter_by(identifier=conflict_identifier, workspace_id=workspace_uuid)
+                .first()
             )
 
-        next_steps.append(
-            "When an initiative resolves this conflict, use mark_conflict_resolved()"
-        )
+            if not conflict:
+                return build_error_response(
+                    "conflict",
+                    f"Conflict with identifier '{conflict_identifier}' not found",
+                )
 
-        return build_success_response(
-            entity_type="conflict",
-            message="Conflict created successfully",
-            data=serialize_conflict(conflict),
-            next_steps=next_steps,
-        )
+            # Update description if provided
+            final_description = (
+                description if description is not None else conflict.description
+            )
+
+            # Handle roadmap theme linking
+            final_roadmap_theme_id = conflict.story_arc_id
+            if roadmap_theme_identifier is not None:
+                if (
+                    roadmap_theme_identifier.lower() == "null"
+                    or roadmap_theme_identifier == ""
+                ):
+                    final_roadmap_theme_id = None
+                else:
+                    theme_uuid = resolve_theme_identifier(
+                        roadmap_theme_identifier, workspace_uuid, session
+                    )
+                    final_roadmap_theme_id = theme_uuid
+
+            # Update conflict
+            conflict.update_conflict(
+                description=final_description,
+                roadmap_theme_id=final_roadmap_theme_id,
+                publisher=publisher,
+            )
+
+            # Mark as resolved if initiative provided
+            if resolved_by_initiative_identifier:
+                initiative_uuid = resolve_initiative_identifier(
+                    resolved_by_initiative_identifier, workspace_uuid, session
+                )
+                conflict.mark_resolved(initiative_uuid, publisher)
+
+            session.commit()
+            session.refresh(conflict)
+
+            next_steps = [f"Conflict '{conflict.identifier}' updated successfully"]
+            if roadmap_theme_identifier is not None:
+                if final_roadmap_theme_id:
+                    next_steps.append(f"Linked to theme {roadmap_theme_identifier}")
+                else:
+                    next_steps.append("Unlinked from roadmap theme")
+            if resolved_by_initiative_identifier:
+                next_steps.append(
+                    f"Marked as resolved by initiative {resolved_by_initiative_identifier}"
+                )
+
+            return build_success_response(
+                entity_type="conflict",
+                message=f"Updated conflict {conflict.identifier}",
+                data=serialize_conflict(conflict),
+                next_steps=next_steps,
+            )
+
+        # CREATE PATH
+        else:
+            logger.info("Creating new conflict")
+
+            # Validate required fields for creation
+            if not hero_identifier:
+                return build_error_response(
+                    "conflict",
+                    "hero_identifier is required for creating a new conflict",
+                )
+            if not villain_identifier:
+                return build_error_response(
+                    "conflict",
+                    "villain_identifier is required for creating a new conflict",
+                )
+            if not description:
+                return build_error_response(
+                    "conflict",
+                    "description is required for creating a new conflict",
+                )
+
+            hero_service = HeroService(session, publisher)
+            villain_service = VillainService(session, publisher)
+
+            hero = hero_service.get_hero_by_identifier(hero_identifier, workspace_uuid)
+            villain = villain_service.get_villain_by_identifier(
+                villain_identifier, workspace_uuid
+            )
+
+            # Resolve roadmap theme if provided
+            roadmap_theme_uuid = None
+            if roadmap_theme_identifier:
+                roadmap_theme_uuid = resolve_theme_identifier(
+                    roadmap_theme_identifier, workspace_uuid, session
+                )
+
+            # Create the conflict
+            conflict = Conflict.create_conflict(
+                workspace_id=workspace_uuid,
+                user_id=uuid.UUID(user_id),
+                hero_id=hero.id,
+                villain_id=villain.id,
+                description=description,
+                roadmap_theme_id=roadmap_theme_uuid,
+                session=session,
+                publisher=publisher,
+            )
+
+            session.commit()
+
+            next_steps = [
+                f"Conflict created successfully with identifier {conflict.identifier}",
+                f"Hero: {hero.name} ({hero_identifier}) vs Villain: {villain.name} ({villain_identifier})",
+            ]
+
+            if roadmap_theme_uuid:
+                next_steps.append(
+                    f"Conflict linked to roadmap theme {roadmap_theme_identifier}"
+                )
+            else:
+                next_steps.append(
+                    "Consider linking this conflict to a roadmap theme for better tracking"
+                )
+
+            next_steps.append(
+                "When an initiative resolves this conflict, use submit_conflict() with resolved_by_initiative_identifier"
+            )
+
+            return build_success_response(
+                entity_type="conflict",
+                message="Conflict created successfully",
+                data=serialize_conflict(conflict),
+                next_steps=next_steps,
+            )
 
     except DomainException as e:
         logger.warning(f"Domain validation error: {e}")
@@ -345,7 +462,7 @@ async def create_conflict(
     except MCPContextError as e:
         return build_error_response("conflict", str(e))
     except Exception as e:
-        logger.exception(f"Error creating conflict: {e}")
+        logger.exception(f"Error submitting conflict: {e}")
         return build_error_response("conflict", f"Server error: {str(e)}")
     finally:
         session.close()
@@ -486,184 +603,6 @@ async def get_conflict_details(conflict_identifier: str) -> Dict[str, Any]:
         return build_error_response("conflict", str(e))
     except Exception as e:
         logger.exception(f"Error getting conflict details: {e}")
-        return build_error_response("conflict", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def mark_conflict_resolved(
-    conflict_identifier: str,
-    resolved_by_initiative_identifier: str,
-) -> Dict[str, Any]:
-    """Marks a conflict as resolved by an initiative.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        conflict_identifier: Human-readable conflict identifier (e.g., "C-001")
-        resolved_by_initiative_identifier: Human-readable identifier of initiative that resolved it (e.g., "I-1001")
-
-    Returns:
-        Success response with updated conflict
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-        logger.info(
-            f"Marking conflict {conflict_identifier} as resolved in workspace {workspace_uuid}"
-        )
-
-        publisher = EventPublisher(session)
-
-        conflict = (
-            session.query(Conflict)
-            .options(*_get_conflict_eager_load_options())
-            .filter_by(identifier=conflict_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not conflict:
-            return build_error_response(
-                "conflict",
-                f"Conflict with identifier '{conflict_identifier}' not found",
-            )
-
-        if conflict.status == ConflictStatus.RESOLVED:
-            return build_error_response(
-                "conflict", f"Conflict {conflict_identifier} is already resolved"
-            )
-
-        initiative_uuid = resolve_initiative_identifier(
-            resolved_by_initiative_identifier, workspace_uuid, session
-        )
-
-        conflict.mark_resolved(initiative_uuid, publisher)
-        session.commit()
-        session.refresh(conflict)
-
-        return build_success_response(
-            entity_type="conflict",
-            message=f"Conflict '{conflict.identifier}' marked as resolved",
-            data=serialize_conflict(conflict),
-        )
-
-    except DomainException as e:
-        logger.warning(f"Domain error: {e}")
-        return build_error_response("conflict", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("conflict", str(e))
-    except Exception as e:
-        logger.exception(f"Error marking conflict resolved: {e}")
-        return build_error_response("conflict", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def update_conflict(
-    conflict_identifier: str,
-    description: Optional[str] = None,
-    roadmap_theme_identifier: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Update an existing conflict's fields.
-
-    IMPORTANT: Reflect the changes back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        conflict_identifier: Human-readable identifier (e.g., "C-001")
-        description: New conflict description (optional)
-        roadmap_theme_identifier: New roadmap theme identifier to link (optional, use "null" to unlink)
-
-    Returns:
-        Success response with updated conflict
-
-    Example:
-        >>> result = await update_conflict(
-        ...     conflict_identifier="C-001",
-        ...     description="Updated conflict description...",
-        ...     roadmap_theme_identifier="T-001"
-        ... )
-    """
-    session = SessionLocal()
-    try:
-        _, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(
-            f"Updating conflict {conflict_identifier} for workspace {workspace_id}"
-        )
-
-        if description is None and roadmap_theme_identifier is None:
-            return build_error_response(
-                "conflict",
-                "At least one field (description, roadmap_theme_identifier) must be provided",
-            )
-
-        workspace_uuid = uuid.UUID(workspace_id)
-        publisher = EventPublisher(session)
-
-        conflict = (
-            session.query(Conflict)
-            .options(*_get_conflict_eager_load_options())
-            .filter_by(identifier=conflict_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not conflict:
-            return build_error_response(
-                "conflict",
-                f"Conflict with identifier '{conflict_identifier}' not found",
-            )
-
-        final_description = (
-            description if description is not None else conflict.description
-        )
-
-        if roadmap_theme_identifier is not None:
-            if (
-                roadmap_theme_identifier.lower() == "null"
-                or roadmap_theme_identifier == ""
-            ):
-                final_roadmap_theme_id = None
-            else:
-                theme_uuid = resolve_theme_identifier(
-                    roadmap_theme_identifier, workspace_uuid, session
-                )
-                final_roadmap_theme_id = theme_uuid
-        else:
-            final_roadmap_theme_id = conflict.story_arc_id
-
-        conflict.update_conflict(
-            description=final_description,
-            roadmap_theme_id=final_roadmap_theme_id,
-            publisher=publisher,
-        )
-
-        session.commit()
-        session.refresh(conflict)
-
-        return build_success_response(
-            entity_type="conflict",
-            message=f"Updated conflict {conflict.identifier}",
-            data=serialize_conflict(conflict),
-            next_steps=[f"Conflict '{conflict.identifier}' updated successfully"],
-        )
-
-    except DomainException as e:
-        logger.warning(f"Domain validation error: {e}")
-        return build_error_response("conflict", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("conflict", str(e))
-    except MCPContextError as e:
-        return build_error_response("conflict", str(e))
-    except Exception as e:
-        logger.exception(f"Error updating conflict: {e}")
         return build_error_response("conflict", f"Server error: {str(e)}")
     finally:
         session.close()

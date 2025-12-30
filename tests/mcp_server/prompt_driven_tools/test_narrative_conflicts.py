@@ -1,6 +1,6 @@
 """Unit tests for narrative conflict MCP tools.
 
-Tests verify that get_conflict_details, update_conflict and delete_conflict tools work correctly,
+Tests verify that submit_conflict (create/update), get_conflict_details, and delete_conflict tools work correctly,
 handle errors appropriately, and emit domain events when expected.
 
 Pattern: Tool calls aggregate methods → verifies success response → validates db state
@@ -24,7 +24,7 @@ from src.mcp_server.auth_utils import MCPContextError
 from src.mcp_server.prompt_driven_tools.narrative_conflicts import (
     delete_conflict,
     get_conflict_details,
-    update_conflict,
+    submit_conflict,
 )
 from src.models import User, Workspace
 from src.narrative.aggregates.conflict import Conflict
@@ -153,8 +153,8 @@ class TestGetConflictDetails:
         assert_that(result, has_key("error_message"))
 
 
-class TestUpdateConflict:
-    """Test suite for update_conflict MCP tool."""
+class TestSubmitConflict:
+    """Test suite for submit_conflict MCP tool (create and update)."""
 
     @pytest.fixture
     def workspace(self, user: User, session: Session):
@@ -246,7 +246,48 @@ class TestUpdateConflict:
         return conflict
 
     @pytest.mark.asyncio
-    async def test_update_conflict_description_success(
+    async def test_submit_conflict_create_success(
+        self,
+        session: Session,
+        workspace: Workspace,
+        user: User,
+        hero: Hero,
+        villain: Villain,
+    ):
+        """Test successfully creating a new conflict."""
+        with (
+            patch(
+                "src.mcp_server.prompt_driven_tools.narrative_conflicts.SessionLocal"
+            ) as mock_session_local,
+            patch(
+                "src.mcp_server.prompt_driven_tools.narrative_conflicts.get_auth_context"
+            ) as mock_auth,
+        ):
+            mock_session_local.return_value = session
+            mock_auth.return_value = (str(user.id), str(workspace.id))
+
+            result = await submit_conflict.fn(
+                hero_identifier=hero.identifier,
+                villain_identifier=villain.identifier,
+                description="Sarah cannot access product context from IDE.",
+            )
+
+        # Verify success response
+        assert_that(result, has_entries({"status": "success", "type": "conflict"}))
+        assert_that(result, has_key("data"))
+        assert_that(result["data"]["hero"]["name"], equal_to(hero.name))
+        assert_that(result["data"]["villain"]["name"], equal_to(villain.name))
+
+        # Verify database was created
+        created_conflict = (
+            session.query(Conflict)
+            .filter_by(identifier=result["data"]["identifier"])
+            .first()
+        )
+        assert_that(created_conflict, not_none())
+
+    @pytest.mark.asyncio
+    async def test_submit_conflict_update_description_success(
         self, session: Session, conflict: Conflict
     ):
         """Test successfully updating a conflict's description."""
@@ -265,7 +306,7 @@ class TestUpdateConflict:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(conflict.user_id), str(conflict.workspace_id))
 
-            result = await update_conflict.fn(
+            result = await submit_conflict.fn(
                 conflict_identifier=conflict.identifier,
                 description=new_description,
             )
@@ -284,7 +325,7 @@ class TestUpdateConflict:
         )  # pyright: ignore[reportOptionalMemberAccess]
 
     @pytest.mark.asyncio
-    async def test_update_conflict_roadmap_theme_identifier_linking_fails_without_roadmap_theme(
+    async def test_submit_conflict_update_roadmap_theme_linking_fails_without_roadmap_theme(
         self, session: Session, conflict: Conflict
     ):
         """Test that linking to non-existent roadmap theme fails with FK constraint."""
@@ -301,7 +342,7 @@ class TestUpdateConflict:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(conflict.user_id), str(conflict.workspace_id))
 
-            result = await update_conflict.fn(
+            result = await submit_conflict.fn(
                 conflict_identifier=conflict.identifier,
                 roadmap_theme_identifier=invalid_theme_identifier,
             )
@@ -311,7 +352,7 @@ class TestUpdateConflict:
         assert_that(result, has_key("error_message"))
 
     @pytest.mark.asyncio
-    async def test_update_conflict_both_fields_success(
+    async def test_submit_conflict_update_both_fields_success(
         self, session: Session, conflict: Conflict
     ):
         """Test successfully updating both description and unlinking roadmap theme."""
@@ -328,7 +369,7 @@ class TestUpdateConflict:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(conflict.user_id), str(conflict.workspace_id))
 
-            result = await update_conflict.fn(
+            result = await submit_conflict.fn(
                 conflict_identifier=conflict.identifier,
                 description=new_description,
                 roadmap_theme_identifier="null",
@@ -339,7 +380,7 @@ class TestUpdateConflict:
         assert_that(result["data"]["description"], equal_to(new_description))
 
     @pytest.mark.asyncio
-    async def test_update_conflict_unlink_roadmap_theme_with_null(
+    async def test_submit_conflict_unlink_roadmap_theme_with_null(
         self, session: Session, conflict: Conflict
     ):
         """Test unlinking conflict from roadmap theme using 'null' string."""
@@ -354,7 +395,7 @@ class TestUpdateConflict:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(conflict.user_id), str(conflict.workspace_id))
 
-            result = await update_conflict.fn(
+            result = await submit_conflict.fn(
                 conflict_identifier=conflict.identifier,
                 roadmap_theme_identifier="null",
             )
@@ -364,7 +405,7 @@ class TestUpdateConflict:
         assert_that(result["data"]["theme"], equal_to(None))
 
     @pytest.mark.asyncio
-    async def test_update_conflict_unlink_roadmap_theme_with_empty_string(
+    async def test_submit_conflict_unlink_roadmap_theme_with_empty_string(
         self, session: Session, conflict: Conflict
     ):
         """Test unlinking conflict from roadmap theme using empty string."""
@@ -379,7 +420,7 @@ class TestUpdateConflict:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(conflict.user_id), str(conflict.workspace_id))
 
-            result = await update_conflict.fn(
+            result = await submit_conflict.fn(
                 conflict_identifier=conflict.identifier,
                 roadmap_theme_identifier="",
             )
@@ -389,7 +430,7 @@ class TestUpdateConflict:
         assert_that(result["data"]["theme"], equal_to(None))
 
     @pytest.mark.asyncio
-    async def test_update_conflict_no_fields_provided_error(
+    async def test_submit_conflict_update_no_fields_provided_error(
         self, session: Session, conflict: Conflict
     ):
         """Test error when no fields provided for update."""
@@ -404,7 +445,7 @@ class TestUpdateConflict:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(conflict.user_id), str(conflict.workspace_id))
 
-            result = await update_conflict.fn(
+            result = await submit_conflict.fn(
                 conflict_identifier=conflict.identifier,
             )
 
@@ -416,7 +457,7 @@ class TestUpdateConflict:
         )
 
     @pytest.mark.asyncio
-    async def test_update_conflict_invalid_roadmap_theme_identifier_format(
+    async def test_submit_conflict_update_invalid_roadmap_theme_identifier_format(
         self, session: Session, conflict: Conflict
     ):
         """Test error when roadmap_theme_identifier is invalid."""
@@ -433,7 +474,7 @@ class TestUpdateConflict:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(conflict.user_id), str(conflict.workspace_id))
 
-            result = await update_conflict.fn(
+            result = await submit_conflict.fn(
                 conflict_identifier=conflict.identifier,
                 roadmap_theme_identifier=invalid_identifier,
             )
@@ -443,7 +484,7 @@ class TestUpdateConflict:
         assert_that(result, has_key("error_message"))
 
     @pytest.mark.asyncio
-    async def test_update_conflict_not_found_error(
+    async def test_submit_conflict_update_not_found_error(
         self, session: Session, conflict: Conflict
     ):
         """Test error when conflict not found."""
@@ -469,7 +510,7 @@ class TestUpdateConflict:
                 f"Conflict {fake_identifier} not found"
             )
 
-            result = await update_conflict.fn(
+            result = await submit_conflict.fn(
                 conflict_identifier=fake_identifier,
                 description="New description",
             )
@@ -479,7 +520,7 @@ class TestUpdateConflict:
         assert_that(result, has_key("error_message"))
 
     @pytest.mark.asyncio
-    async def test_update_conflict_mcp_context_error(
+    async def test_submit_conflict_update_mcp_context_error(
         self, session: Session, conflict: Conflict
     ):
         """Test handling of MCPContextError."""
@@ -494,7 +535,7 @@ class TestUpdateConflict:
             mock_session_local.return_value = session
             mock_auth.side_effect = MCPContextError("No workspace in context")
 
-            result = await update_conflict.fn(
+            result = await submit_conflict.fn(
                 conflict_identifier=conflict.identifier,
                 description="New description",
             )
@@ -503,7 +544,7 @@ class TestUpdateConflict:
         assert_that(result, has_entries({"status": "error", "type": "conflict"}))
 
     @pytest.mark.asyncio
-    async def test_update_conflict_preserves_other_fields(
+    async def test_submit_conflict_update_preserves_other_fields(
         self, session: Session, conflict: Conflict
     ):
         """Test that updating one field doesn't modify other fields."""
@@ -523,14 +564,14 @@ class TestUpdateConflict:
             mock_session_local.return_value = session
             mock_auth.return_value = (str(conflict.user_id), str(conflict.workspace_id))
 
-            await update_conflict.fn(
+            await submit_conflict.fn(
                 conflict_identifier=conflict.identifier,
                 description=new_description,
             )
 
         # Verify immutable fields unchanged
         updated_conflict = session.query(Conflict).filter_by(id=conflict.id).first()
-        assert_that(update_conflict, not_none())
+        assert_that(updated_conflict, not_none())
         assert_that(
             updated_conflict.hero_id, equal_to(original_hero_id)
         )  # pyright: ignore[reportOptionalMemberAccess]

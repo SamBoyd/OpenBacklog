@@ -57,11 +57,10 @@ __all__ = [
     "delete_villain",
     # Narrative Layer - Conflicts
     "get_conflict_creation_framework",
-    "create_conflict",
+    "submit_conflict",
     "get_conflicts",
-    "update_conflict",
+    "get_conflict_details",
     "delete_conflict",
-    "mark_conflict_resolved",
     # Narrative Recap
     "get_recent_turning_points",
     "generate_previously_on",
