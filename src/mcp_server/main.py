@@ -23,7 +23,6 @@ mcp = FastMCP(
         Icon(
             src="https://www.openbacklog.ai/assets/ob_v2_64x64.png",
             mimeType="image/png",
-            sizes=["64x64"],
         ),
     ],
 )
