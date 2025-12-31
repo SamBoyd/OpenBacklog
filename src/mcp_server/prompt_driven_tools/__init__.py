@@ -26,18 +26,17 @@ __all__ = [
     # Strategic Foundation - Pillars
     "get_pillar_definition_framework",
     "submit_strategic_pillar",
-    "get_strategic_pillars",
-    "get_strategic_pillar_details",
+    "query_strategic_pillars",
     "delete_strategic_pillar",
     # Strategic Foundation - Outcomes
     "get_outcome_definition_framework",
     "submit_product_outcome",
-    "get_product_outcomes",
+    "query_product_outcomes",
     "delete_product_outcome",
     # Roadmap Themes
     "get_theme_exploration_framework",
     "submit_roadmap_theme",
-    "get_roadmap_themes",
+    "query_roadmap_themes",
     "delete_roadmap_theme",
     "get_prioritization_context",
     "set_theme_priority",
@@ -46,20 +45,17 @@ __all__ = [
     # Narrative Layer - Heroes
     "get_hero_definition_framework",
     "submit_hero",
-    "get_heroes",
-    "get_hero_details",
+    "query_heroes",
     "delete_hero",
     # Narrative Layer - Villains
     "get_villain_definition_framework",
     "submit_villain",
-    "get_villains",
-    "get_villain_details",
+    "query_villains",
     "delete_villain",
     # Narrative Layer - Conflicts
     "get_conflict_creation_framework",
     "submit_conflict",
-    "get_conflicts",
-    "get_conflict_details",
+    "query_conflicts",
     "delete_conflict",
     # Narrative Recap
     "get_recent_turning_points",
@@ -68,10 +64,7 @@ __all__ = [
     # Strategic Initiatives
     "get_strategic_initiative_definition_framework",
     "submit_strategic_initiative",
-    "get_strategic_initiatives",
-    "get_active_strategic_initiatives",
-    "search_strategic_initiatives",
-    "get_strategic_initiative_details",
+    "query_strategic_initiatives",
     "delete_strategic_initiative",
     # Utility Tools
     "review_strategic_foundation",

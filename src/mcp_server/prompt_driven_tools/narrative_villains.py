@@ -406,84 +406,83 @@ async def submit_villain(
 
 
 @mcp.tool()
-async def get_villains() -> Dict[str, Any]:
-    """Retrieves all villains for a workspace.
+async def query_villains(
+    identifier: Optional[str] = None,
+    active_only: bool = False,
+) -> Dict[str, Any]:
+    """Query villains with optional filtering and single-entity lookup.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    A unified query tool that replaces get_villains and get_villain_details.
 
-    Returns:
-        List of villains with full details
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-        logger.info(f"Getting villains for workspace {workspace_uuid}")
-
-        publisher = EventPublisher(session)
-        villain_service = VillainService(session, publisher)
-        villains = villain_service.get_villains_for_workspace(workspace_uuid)
-
-        return build_success_response(
-            entity_type="villain",
-            message=f"Found {len(villains)} villain(s)",
-            data={
-                "villains": [serialize_villain(villain) for villain in villains],
-            },
-        )
-
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("villain", str(e))
-    except Exception as e:
-        logger.exception(f"Error getting villains: {e}")
-        return build_error_response("villain", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def get_villain_details(villain_identifier: str) -> Dict[str, Any]:
-    """Retrieves full villain details including battle summary.
-
-    Returns enriched villain data including counts of conflicts,
-    linked themes, and initiatives confronting this villain.
+    **Query modes:**
+    - No params: Returns all villains
+    - identifier: Returns single villain with full details + battle_summary
+    - active_only: Filters to non-defeated villains only
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        villain_identifier: Human-readable identifier (e.g., "V-2003")
+        identifier: Villain identifier (e.g., "V-001") for single lookup
+        active_only: If True, filters to non-defeated villains only
 
     Returns:
-        Villain details + battle summary (conflicts, themes, initiatives)
+        For single: villain details with battle_summary
+        For list: array of villains
 
-    Example:
-        >>> result = await get_villain_details(villain_identifier="V-2003")
-        >>> print(result["data"]["battle_summary"])
+    Examples:
+        >>> # Get all villains
+        >>> await query_villains()
+
+        >>> # Get single villain by identifier
+        >>> await query_villains(identifier="V-001")
+
+        >>> # Get only active (non-defeated) villains
+        >>> await query_villains(active_only=True)
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        logger.info(
-            f"Getting villain details for {villain_identifier} in workspace {workspace_uuid}"
-        )
 
         publisher = EventPublisher(session)
         villain_service = VillainService(session, publisher)
-        villain = villain_service.get_villain_by_identifier(
-            villain_identifier, workspace_uuid
+
+        # SINGLE VILLAIN MODE: identifier provided
+        if identifier:
+            logger.info(f"Getting villain '{identifier}' in workspace {workspace_uuid}")
+
+            villain = villain_service.get_villain_by_identifier(
+                identifier, workspace_uuid
+            )
+            battle_summary = villain_service.get_villain_battle_summary(villain.id)
+
+            villain_data = serialize_villain(villain)
+            villain_data["battle_summary"] = battle_summary
+
+            return build_success_response(
+                entity_type="villain",
+                message=f"Found villain: {villain.name}",
+                data=villain_data,
+            )
+
+        # LIST MODE: return all or active villains
+        logger.info(
+            f"Getting villains for workspace {workspace_uuid} (active_only={active_only})"
         )
 
-        battle_summary = villain_service.get_villain_battle_summary(villain.id)
-
-        villain_data = serialize_villain(villain)
-        villain_data["battle_summary"] = battle_summary
+        if active_only:
+            villains = villain_service.get_active_villains(workspace_uuid)
+            message = f"Found {len(villains)} active villain(s)"
+        else:
+            villains = villain_service.get_villains_for_workspace(workspace_uuid)
+            message = f"Found {len(villains)} villain(s)"
 
         return build_success_response(
             entity_type="villain",
-            message=f"Retrieved villain details for {villain.name}",
-            data=villain_data,
+            message=message,
+            data={
+                "villains": [serialize_villain(villain) for villain in villains],
+            },
         )
 
     except DomainException as e:
@@ -493,7 +492,7 @@ async def get_villain_details(villain_identifier: str) -> Dict[str, Any]:
         logger.error(f"Validation error: {e}")
         return build_error_response("villain", str(e))
     except Exception as e:
-        logger.exception(f"Error getting villain details: {e}")
+        logger.exception(f"Error querying villains: {e}")
         return build_error_response("villain", f"Server error: {str(e)}")
     finally:
         session.close()

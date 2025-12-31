@@ -404,22 +404,60 @@ async def submit_hero(
 
 
 @mcp.tool()
-async def get_heroes() -> Dict[str, Any]:
-    """Retrieves all heroes for a workspace.
+async def query_heroes(
+    identifier: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Query heroes with optional single-entity lookup.
+
+    A unified query tool that replaces get_heroes and get_hero_details.
+
+    **Query modes:**
+    - No params: Returns all heroes (list view)
+    - identifier: Returns single hero with full details + journey_summary
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
+    Args:
+        identifier: Hero identifier (e.g., "H-001") for single lookup
+
     Returns:
-        List of heroes with full details
+        For single: hero details with journey_summary
+        For list: array of heroes
+
+    Examples:
+        >>> # Get all heroes
+        >>> await query_heroes()
+
+        >>> # Get single hero by identifier
+        >>> await query_heroes(identifier="H-001")
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        logger.info(f"Getting heroes for workspace {workspace_uuid}")
 
         publisher = EventPublisher(session)
         hero_service = HeroService(session, publisher)
+
+        # SINGLE HERO MODE: identifier provided
+        if identifier:
+            logger.info(f"Getting hero '{identifier}' in workspace {workspace_uuid}")
+
+            hero = hero_service.get_hero_by_identifier(identifier, workspace_uuid)
+            journey_summary = hero_service.get_hero_journey_summary(hero.id)
+
+            hero_data = serialize_hero(hero)
+            hero_data["journey_summary"] = journey_summary
+
+            return build_success_response(
+                entity_type="hero",
+                message=f"Found hero: {hero.name}",
+                data=hero_data,
+            )
+
+        # LIST MODE: return all heroes
+        logger.info(f"Getting all heroes for workspace {workspace_uuid}")
+
         heroes = hero_service.get_heroes_for_workspace(workspace_uuid)
 
         return build_success_response(
@@ -430,51 +468,6 @@ async def get_heroes() -> Dict[str, Any]:
             },
         )
 
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("hero", str(e))
-    except Exception as e:
-        logger.exception(f"Error getting heroes: {e}")
-        return build_error_response("hero", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def get_hero_details(hero_identifier: str) -> Dict[str, Any]:
-    """Retrieves full hero details including journey summary.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        hero_identifier: Human-readable identifier (e.g., "H-2003")
-
-    Returns:
-        Hero details + linked arcs + conflicts + journey summary
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-        logger.info(
-            f"Getting hero details for {hero_identifier} in workspace {workspace_uuid}"
-        )
-
-        publisher = EventPublisher(session)
-        hero_service = HeroService(session, publisher)
-        hero = hero_service.get_hero_by_identifier(hero_identifier, workspace_uuid)
-
-        journey_summary = hero_service.get_hero_journey_summary(hero.id)
-
-        hero_data = serialize_hero(hero)
-        hero_data["journey_summary"] = journey_summary
-
-        return build_success_response(
-            entity_type="hero",
-            message=f"Retrieved hero details for {hero.name}",
-            data=hero_data,
-        )
-
     except DomainException as e:
         logger.warning(f"Domain error: {e}")
         return build_error_response("hero", str(e))
@@ -482,7 +475,7 @@ async def get_hero_details(hero_identifier: str) -> Dict[str, Any]:
         logger.error(f"Validation error: {e}")
         return build_error_response("hero", str(e))
     except Exception as e:
-        logger.exception(f"Error getting hero details: {e}")
+        logger.exception(f"Error querying heroes: {e}")
         return build_error_response("hero", f"Server error: {str(e)}")
     finally:
         session.close()

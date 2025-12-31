@@ -17,8 +17,7 @@ from src.mcp_server.auth_utils import MCPContextError
 from src.mcp_server.prompt_driven_tools.narrative_villains import (
     delete_villain,
     get_villain_definition_framework,
-    get_villain_details,
-    get_villains,
+    query_villains,
     submit_villain,
 )
 from src.models import User, Workspace
@@ -47,8 +46,8 @@ def mock_get_auth_context(user: User, workspace: Workspace):
         yield mock
 
 
-class TestGetVillainDetails:
-    """Test suite for get_villain_details MCP tool."""
+class TestQueryVillainsSingle:
+    """Test suite for query_villains MCP tool in single mode."""
 
     @pytest.fixture
     def workspace(self, user, session):
@@ -87,22 +86,22 @@ class TestGetVillainDetails:
         return villain
 
     @pytest.mark.asyncio
-    async def test_get_villain_details_success(
+    async def test_query_villain_single_success(
         self, session, workspace, villain, mock_get_workspace_id_from_request
     ):
         """Test successfully retrieving villain details."""
-        result = await get_villain_details.fn(villain_identifier=villain.identifier)
+        result = await query_villains.fn(identifier=villain.identifier)
 
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(result["data"]["name"], equal_to(villain.name))
         assert_that(result["data"]["identifier"], equal_to(villain.identifier))
 
     @pytest.mark.asyncio
-    async def test_get_villain_details_includes_battle_summary(
+    async def test_query_villain_single_includes_battle_summary(
         self, session, workspace, villain, mock_get_workspace_id_from_request
     ):
         """Test that villain details include battle summary."""
-        result = await get_villain_details.fn(villain_identifier=villain.identifier)
+        result = await query_villains.fn(identifier=villain.identifier)
 
         assert_that(result["data"], has_key("battle_summary"))
         battle_summary = result["data"]["battle_summary"]
@@ -113,18 +112,18 @@ class TestGetVillainDetails:
         assert_that(battle_summary, has_key("initiatives_confronting_count"))
 
     @pytest.mark.asyncio
-    async def test_get_villain_details_not_found(
+    async def test_query_villain_single_not_found(
         self, session, workspace, mock_get_workspace_id_from_request
     ):
         """Test error when villain not found."""
         fake_identifier = "V-9999"
 
-        result = await get_villain_details.fn(villain_identifier=fake_identifier)
+        result = await query_villains.fn(identifier=fake_identifier)
 
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
 
     @pytest.mark.asyncio
-    async def test_get_villain_details_handles_workspace_error(
+    async def test_query_villain_single_handles_workspace_error(
         self, session, villain, mock_get_workspace_id_from_request
     ):
         """Test handling of workspace error."""
@@ -132,7 +131,7 @@ class TestGetVillainDetails:
             "Invalid workspace ID"
         )
 
-        result = await get_villain_details.fn(villain_identifier=villain.identifier)
+        result = await query_villains.fn(identifier=villain.identifier)
 
         assert_that(result, has_entries({"status": "error", "type": "villain"}))
 
@@ -397,8 +396,8 @@ class TestSubmitVillain:
         assert_that(len(result["next_steps"]), equal_to(3))  # Should have 3 next steps
 
 
-class TestGetVillains:
-    """Test suite for get_villains MCP tool."""
+class TestQueryVillainsList:
+    """Test suite for query_villains MCP tool in list mode."""
 
     @pytest.fixture
     def workspace(self, user, session):
@@ -420,18 +419,18 @@ class TestGetVillains:
         return MagicMock(spec=EventPublisher)
 
     @pytest.mark.asyncio
-    async def test_get_villains_empty_workspace(
+    async def test_query_villains_list_empty_workspace(
         self, session, workspace, mock_get_workspace_id_from_request
     ):
         """Test retrieving villains from workspace with no villains."""
-        result = await get_villains.fn()
+        result = await query_villains.fn()
 
         # Verify success response with empty list
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(result["data"]["villains"], equal_to([]))
 
     @pytest.mark.asyncio
-    async def test_get_villains_multiple_villains(
+    async def test_query_villains_list_multiple_villains(
         self,
         session,
         workspace,
@@ -465,18 +464,18 @@ class TestGetVillains:
         )
         session.commit()
 
-        result = await get_villains.fn()
+        result = await query_villains.fn()
 
         # Verify response contains both villains
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
         assert_that(len(result["data"]["villains"]), equal_to(2))
 
     @pytest.mark.asyncio
-    async def test_get_villains_success_response_structure(
+    async def test_query_villains_list_success_response_structure(
         self, session, workspace, mock_get_workspace_id_from_request
     ):
-        """Test get_villains returns correctly structured response."""
-        result = await get_villains.fn()
+        """Test query_villains returns correctly structured response."""
+        result = await query_villains.fn()
 
         # Verify response structure
         assert_that(result, has_entries({"status": "success", "type": "villain"}))
@@ -485,7 +484,7 @@ class TestGetVillains:
         assert_that(result["data"], has_key("villains"))
 
     @pytest.mark.asyncio
-    async def test_get_villains_includes_defeated_status(
+    async def test_query_villains_list_includes_defeated_status(
         self,
         session,
         workspace,
@@ -493,7 +492,7 @@ class TestGetVillains:
         mock_publisher,
         mock_get_workspace_id_from_request,
     ):
-        """Test that get_villains includes defeated status for each villain."""
+        """Test that query_villains includes defeated status for each villain."""
         villain = Villain.define_villain(
             workspace_id=workspace.id,
             user_id=user.id,
@@ -506,11 +505,236 @@ class TestGetVillains:
         )
         session.commit()
 
-        result = await get_villains.fn()
+        result = await query_villains.fn()
 
         # Verify each villain includes is_defeated status
         assert_that(len(result["data"]["villains"]), equal_to(1))
         assert_that(result["data"]["villains"][0], has_key("is_defeated"))
+
+
+class TestQueryVillainsActiveFilter:
+    """Test suite for query_villains MCP tool with active_only filter."""
+
+    @pytest.fixture
+    def workspace(self, user, session):
+        """Create a workspace for testing."""
+        workspace = Workspace(
+            id=uuid.uuid4(),
+            name="Test Workspace",
+            description="A test workspace",
+            user_id=user.id,
+        )
+        session.add(workspace)
+        session.commit()
+        session.refresh(workspace)
+        return workspace
+
+    @pytest.fixture
+    def mock_publisher(self):
+        """Mock EventPublisher for testing."""
+        return MagicMock(spec=EventPublisher)
+
+    @pytest.mark.asyncio
+    async def test_query_villains_active_only_returns_non_defeated(
+        self,
+        session,
+        workspace,
+        user,
+        mock_publisher,
+        mock_get_workspace_id_from_request,
+    ):
+        """Test that active_only filter returns only non-defeated villains."""
+        # Create active villain
+        active_villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Active Problem",
+            villain_type=VillainType.WORKFLOW,
+            description="Still a problem",
+            severity=5,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+
+        # Create defeated villain
+        defeated_villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Solved Problem",
+            villain_type=VillainType.TECHNICAL,
+            description="No longer a problem",
+            severity=3,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        defeated_villain.update_villain(
+            name=defeated_villain.name,
+            villain_type=VillainType[defeated_villain.villain_type],
+            description=defeated_villain.description,
+            severity=defeated_villain.severity,
+            is_defeated=True,
+            publisher=mock_publisher,
+        )
+        session.add(defeated_villain)
+        session.commit()
+
+        result = await query_villains.fn(active_only=True)
+
+        # Verify only active villain returned
+        assert_that(result, has_entries({"status": "success", "type": "villain"}))
+        assert_that(len(result["data"]["villains"]), equal_to(1))
+        assert_that(result["data"]["villains"][0]["name"], equal_to("Active Problem"))
+        assert_that(result["data"]["villains"][0]["is_defeated"], equal_to(False))
+
+    @pytest.mark.asyncio
+    async def test_query_villains_active_only_empty_when_all_defeated(
+        self,
+        session,
+        workspace,
+        user,
+        mock_publisher,
+        mock_get_workspace_id_from_request,
+    ):
+        """Test that active_only returns empty list when all villains are defeated."""
+        # Create defeated villain
+        defeated_villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Solved Problem",
+            villain_type=VillainType.TECHNICAL,
+            description="No longer a problem",
+            severity=3,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        defeated_villain.update_villain(
+            name=defeated_villain.name,
+            villain_type=VillainType[defeated_villain.villain_type],
+            description=defeated_villain.description,
+            severity=defeated_villain.severity,
+            is_defeated=True,
+            publisher=mock_publisher,
+        )
+        session.add(defeated_villain)
+        session.commit()
+
+        result = await query_villains.fn(active_only=True)
+
+        # Verify empty list
+        assert_that(result, has_entries({"status": "success", "type": "villain"}))
+        assert_that(result["data"]["villains"], equal_to([]))
+
+    @pytest.mark.asyncio
+    async def test_query_villains_active_only_counts_correctly(
+        self,
+        session,
+        workspace,
+        user,
+        mock_publisher,
+        mock_get_workspace_id_from_request,
+    ):
+        """Test that active_only correctly counts active villains."""
+        # Create 3 active villains
+        for i in range(3):
+            villain = Villain.define_villain(
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name=f"Active Problem {i}",
+                villain_type=VillainType.WORKFLOW,
+                description=f"Problem {i}",
+                severity=i + 1,
+                session=session,
+                publisher=mock_publisher,
+            )
+            session.commit()
+
+        # Create 2 defeated villains
+        for i in range(2):
+            villain = Villain.define_villain(
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name=f"Solved Problem {i}",
+                villain_type=VillainType.TECHNICAL,
+                description=f"Solved {i}",
+                severity=i + 1,
+                session=session,
+                publisher=mock_publisher,
+            )
+            session.commit()
+            villain.update_villain(
+                name=villain.name,
+                villain_type=VillainType[villain.villain_type],
+                description=villain.description,
+                severity=villain.severity,
+                is_defeated=True,
+                publisher=mock_publisher,
+            )
+            session.add(villain)
+            session.commit()
+
+        result = await query_villains.fn(active_only=True)
+
+        # Verify only 3 active villains returned
+        assert_that(result, has_entries({"status": "success", "type": "villain"}))
+        assert_that(len(result["data"]["villains"]), equal_to(3))
+        for villain in result["data"]["villains"]:
+            assert_that(villain["is_defeated"], equal_to(False))
+
+    @pytest.mark.asyncio
+    async def test_query_villains_without_active_only_returns_all(
+        self,
+        session,
+        workspace,
+        user,
+        mock_publisher,
+        mock_get_workspace_id_from_request,
+    ):
+        """Test that without active_only filter, all villains are returned."""
+        # Create 2 active villains
+        for i in range(2):
+            villain = Villain.define_villain(
+                workspace_id=workspace.id,
+                user_id=user.id,
+                name=f"Active Problem {i}",
+                villain_type=VillainType.WORKFLOW,
+                description=f"Problem {i}",
+                severity=i + 1,
+                session=session,
+                publisher=mock_publisher,
+            )
+            session.commit()
+
+        # Create 1 defeated villain
+        villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Solved Problem",
+            villain_type=VillainType.TECHNICAL,
+            description="Solved",
+            severity=1,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        villain.update_villain(
+            name=villain.name,
+            villain_type=VillainType[villain.villain_type],
+            description=villain.description,
+            severity=villain.severity,
+            is_defeated=True,
+            publisher=mock_publisher,
+        )
+        session.add(villain)
+        session.commit()
+
+        result = await query_villains.fn(active_only=False)
+
+        # Verify all 3 villains returned
+        assert_that(result, has_entries({"status": "success", "type": "villain"}))
+        assert_that(len(result["data"]["villains"]), equal_to(3))
 
 
 class TestSubmitVillainUpsert:

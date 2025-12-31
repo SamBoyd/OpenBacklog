@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from src.mcp_server.auth_utils import MCPContextError
 from src.mcp_server.prompt_driven_tools.narrative_conflicts import (
     delete_conflict,
-    get_conflict_details,
+    query_conflicts,
     submit_conflict,
 )
 from src.models import User, Workspace
@@ -34,8 +34,8 @@ from src.narrative.exceptions import DomainException
 from src.strategic_planning.services.event_publisher import EventPublisher
 
 
-class TestGetConflictDetails:
-    """Test suite for get_conflict_details MCP tool."""
+class TestQueryConflictsSingleMode:
+    """Test suite for query_conflicts MCP tool in single mode."""
 
     @pytest.fixture
     def workspace(self, user: User, session: Session):
@@ -127,12 +127,12 @@ class TestGetConflictDetails:
         return conflict
 
     @pytest.mark.asyncio
-    async def test_get_conflict_details_success(
+    async def test_query_conflicts_single_mode_success(
         self, session: Session, conflict: Conflict, hero: Hero, villain: Villain
     ):
         """Test successfully retrieving conflict details with full nested objects."""
-        result = await get_conflict_details.fn(
-            conflict_identifier=conflict.identifier,
+        result = await query_conflicts.fn(
+            identifier=conflict.identifier,
         )
 
         assert_that(result, has_entries({"status": "success", "type": "conflict"}))
@@ -143,14 +143,313 @@ class TestGetConflictDetails:
         assert_that(result["data"]["theme"], equal_to(None))
 
     @pytest.mark.asyncio
-    async def test_get_conflict_details_not_found(self, session: Session):
+    async def test_query_conflicts_single_mode_not_found(self, session: Session):
         """Test error when conflict not found."""
-        result = await get_conflict_details.fn(
-            conflict_identifier="C-9999",
+        result = await query_conflicts.fn(
+            identifier="C-9999",
         )
 
         assert_that(result, has_entries({"status": "error", "type": "conflict"}))
         assert_that(result, has_key("error_message"))
+
+
+class TestQueryConflictsList:
+    """Test suite for query_conflicts MCP tool in list mode with filters."""
+
+    @pytest.fixture
+    def workspace(self, user: User, session: Session):
+        """Create a workspace for testing."""
+        workspace = Workspace(
+            id=uuid.uuid4(),
+            name="Test Workspace",
+            description="A test workspace",
+            user_id=user.id,
+        )
+        session.add(workspace)
+        session.commit()
+        session.refresh(workspace)
+        return workspace
+
+    @pytest.fixture
+    def mock_publisher(self) -> MagicMock:
+        """Mock EventPublisher for testing."""
+        return MagicMock(spec=EventPublisher)
+
+    @pytest.fixture
+    def hero(
+        self,
+        workspace: Workspace,
+        user: User,
+        session: Session,
+        mock_publisher: MagicMock,
+    ) -> Hero:
+        """Create a Hero instance for testing."""
+        hero = Hero.define_hero(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Sarah, The Solo Builder",
+            description="Sarah is a solo developer.",
+            is_primary=True,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(hero)
+        return hero
+
+    @pytest.fixture
+    def other_hero(
+        self,
+        workspace: Workspace,
+        user: User,
+        session: Session,
+        mock_publisher: MagicMock,
+    ) -> Hero:
+        """Create another Hero instance for testing."""
+        hero = Hero.define_hero(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Alex, The Team Lead",
+            description="Alex leads a development team.",
+            is_primary=False,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(hero)
+        return hero
+
+    @pytest.fixture
+    def villain(
+        self,
+        workspace: Workspace,
+        user: User,
+        session: Session,
+        mock_publisher: MagicMock,
+    ) -> Villain:
+        """Create a Villain instance for testing."""
+        villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Context Switching",
+            villain_type=VillainType.WORKFLOW,
+            description="Jumping between tools breaks flow.",
+            severity=5,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(villain)
+        return villain
+
+    @pytest.fixture
+    def other_villain(
+        self,
+        workspace: Workspace,
+        user: User,
+        session: Session,
+        mock_publisher: MagicMock,
+    ) -> Villain:
+        """Create another Villain instance for testing."""
+        villain = Villain.define_villain(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            name="Legacy Codebase",
+            villain_type=VillainType.TECHNICAL,
+            description="Old code slows down development.",
+            severity=4,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(villain)
+        return villain
+
+    @pytest.fixture
+    def conflict_open(
+        self,
+        workspace: Workspace,
+        user: User,
+        hero: Hero,
+        villain: Villain,
+        session: Session,
+        mock_publisher: MagicMock,
+    ) -> Conflict:
+        """Create an open conflict for testing."""
+        conflict = Conflict.create_conflict(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            hero_id=hero.id,
+            villain_id=villain.id,
+            description="Sarah cannot access product context from IDE.",
+            roadmap_theme_id=None,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(conflict)
+        return conflict
+
+    @pytest.fixture
+    def conflict_other_hero(
+        self,
+        workspace: Workspace,
+        user: User,
+        other_hero: Hero,
+        other_villain: Villain,
+        session: Session,
+        mock_publisher: MagicMock,
+    ) -> Conflict:
+        """Create a conflict with different hero/villain."""
+        conflict = Conflict.create_conflict(
+            workspace_id=workspace.id,
+            user_id=user.id,
+            hero_id=other_hero.id,
+            villain_id=other_villain.id,
+            description="Alex struggles with technical debt.",
+            roadmap_theme_id=None,
+            session=session,
+            publisher=mock_publisher,
+        )
+        session.commit()
+        session.refresh(conflict)
+        return conflict
+
+    @pytest.mark.asyncio
+    async def test_query_conflicts_list_all(
+        self,
+        session: Session,
+        conflict_open: Conflict,
+        conflict_other_hero: Conflict,
+    ):
+        """Test retrieving all conflicts without filters."""
+        result = await query_conflicts.fn()
+
+        assert_that(result, has_entries({"status": "success", "type": "conflict"}))
+        assert_that(result, has_key("data"))
+        assert_that(result["data"], has_key("conflicts"))
+        conflicts = result["data"]["conflicts"]
+        assert_that(len(conflicts), equal_to(2))
+
+    @pytest.mark.asyncio
+    async def test_query_conflicts_list_empty(self, session: Session):
+        """Test retrieving conflicts when none exist."""
+        result = await query_conflicts.fn()
+
+        assert_that(result, has_entries({"status": "success", "type": "conflict"}))
+        assert_that(result, has_key("data"))
+        conflicts = result["data"]["conflicts"]
+        assert_that(len(conflicts), equal_to(0))
+
+    @pytest.mark.asyncio
+    async def test_query_conflicts_filter_by_status(
+        self,
+        session: Session,
+        conflict_open: Conflict,
+    ):
+        """Test filtering conflicts by status."""
+        result = await query_conflicts.fn(status="OPEN")
+
+        assert_that(result, has_entries({"status": "success", "type": "conflict"}))
+        conflicts = result["data"]["conflicts"]
+        assert_that(len(conflicts), equal_to(1))
+        assert_that(conflicts[0]["status"], equal_to("OPEN"))
+
+    @pytest.mark.asyncio
+    async def test_query_conflicts_filter_by_status_invalid(self, session: Session):
+        """Test error when invalid status is provided."""
+        result = await query_conflicts.fn(status="INVALID_STATUS")
+
+        assert_that(result, has_entries({"status": "error", "type": "conflict"}))
+        assert_that(result, has_key("error_message"))
+
+    @pytest.mark.asyncio
+    async def test_query_conflicts_filter_by_hero(
+        self,
+        session: Session,
+        conflict_open: Conflict,
+        conflict_other_hero: Conflict,
+        hero: Hero,
+    ):
+        """Test filtering conflicts by hero identifier."""
+        result = await query_conflicts.fn(hero_identifier=hero.identifier)
+
+        assert_that(result, has_entries({"status": "success", "type": "conflict"}))
+        conflicts = result["data"]["conflicts"]
+        assert_that(len(conflicts), equal_to(1))
+        assert_that(conflicts[0]["hero"]["identifier"], equal_to(hero.identifier))
+
+    @pytest.mark.asyncio
+    async def test_query_conflicts_filter_by_hero_not_found(self, session: Session):
+        """Test error when hero doesn't exist."""
+        result = await query_conflicts.fn(hero_identifier="H-9999")
+
+        assert_that(result, has_entries({"status": "error", "type": "conflict"}))
+        assert_that(result, has_key("error_message"))
+
+    @pytest.mark.asyncio
+    async def test_query_conflicts_filter_by_villain(
+        self,
+        session: Session,
+        conflict_open: Conflict,
+        conflict_other_hero: Conflict,
+        villain: Villain,
+    ):
+        """Test filtering conflicts by villain identifier."""
+        result = await query_conflicts.fn(villain_identifier=villain.identifier)
+
+        assert_that(result, has_entries({"status": "success", "type": "conflict"}))
+        conflicts = result["data"]["conflicts"]
+        assert_that(len(conflicts), equal_to(1))
+        assert_that(conflicts[0]["villain"]["identifier"], equal_to(villain.identifier))
+
+    @pytest.mark.asyncio
+    async def test_query_conflicts_filter_by_villain_not_found(self, session: Session):
+        """Test error when villain doesn't exist."""
+        result = await query_conflicts.fn(villain_identifier="V-9999")
+
+        assert_that(result, has_entries({"status": "error", "type": "conflict"}))
+        assert_that(result, has_key("error_message"))
+
+    @pytest.mark.asyncio
+    async def test_query_conflicts_combine_filters(
+        self,
+        session: Session,
+        conflict_open: Conflict,
+        conflict_other_hero: Conflict,
+        hero: Hero,
+        villain: Villain,
+    ):
+        """Test filtering by multiple criteria combined."""
+        result = await query_conflicts.fn(
+            status="OPEN",
+            hero_identifier=hero.identifier,
+            villain_identifier=villain.identifier,
+        )
+
+        assert_that(result, has_entries({"status": "success", "type": "conflict"}))
+        conflicts = result["data"]["conflicts"]
+        assert_that(len(conflicts), equal_to(1))
+        assert_that(conflicts[0]["status"], equal_to("OPEN"))
+        assert_that(conflicts[0]["hero"]["identifier"], equal_to(hero.identifier))
+        assert_that(conflicts[0]["villain"]["identifier"], equal_to(villain.identifier))
+
+    @pytest.mark.asyncio
+    async def test_query_conflicts_combine_filters_no_match(
+        self,
+        session: Session,
+        conflict_open: Conflict,
+        other_hero: Hero,
+    ):
+        """Test that combining filters returns empty list if no matches."""
+        result = await query_conflicts.fn(
+            hero_identifier=other_hero.identifier,
+            status="OPEN",
+        )
+
+        assert_that(result, has_entries({"status": "success", "type": "conflict"}))
+        conflicts = result["data"]["conflicts"]
+        assert_that(len(conflicts), equal_to(0))
 
 
 class TestSubmitConflict:

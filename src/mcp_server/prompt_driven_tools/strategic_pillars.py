@@ -348,23 +348,70 @@ async def get_pillar_definition_framework() -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def get_strategic_pillars() -> Dict[str, Any]:
-    """List all strategic pillars for the workspace.
+async def query_strategic_pillars(
+    identifier: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Query strategic pillars with optional single-entity lookup.
+
+    A unified query tool that replaces get_strategic_pillars and get_strategic_pillar_details.
+
+    **Query modes:**
+    - No params: Returns all strategic pillars
+    - identifier: Returns single pillar with linked outcomes
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
-    Returns:
-        List of strategic pillars with full details
+    Args:
+        identifier: Pillar identifier (e.g., "P-001") for single lookup
 
-    Example:
-        >>> result = await get_strategic_pillars()
-        >>> print(result["data"]["pillars"])
+    Returns:
+        For single: pillar details with linked_outcomes
+        For list: array of pillars
+
+    Examples:
+        >>> # Get all pillars
+        >>> await query_strategic_pillars()
+
+        >>> # Get single pillar by identifier
+        >>> await query_strategic_pillars(identifier="P-001")
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        logger.info(f"Getting strategic pillars for workspace {workspace_uuid}")
+
+        # SINGLE PILLAR MODE: identifier provided
+        if identifier:
+            logger.info(
+                f"Getting strategic pillar '{identifier}' in workspace {workspace_uuid}"
+            )
+
+            pillar = (
+                session.query(StrategicPillar)
+                .filter_by(identifier=identifier, workspace_id=workspace_uuid)
+                .first()
+            )
+
+            if not pillar:
+                return build_error_response(
+                    "pillar", f"Strategic pillar not found: {identifier}"
+                )
+
+            from src.mcp_server.prompt_driven_tools.utils import serialize_outcome
+
+            pillar_data = serialize_pillar(pillar)
+            pillar_data["linked_outcomes"] = [
+                serialize_outcome(outcome) for outcome in pillar.outcomes
+            ]
+
+            return build_success_response(
+                entity_type="pillar",
+                message=f"Found strategic pillar: {pillar.name}",
+                data=pillar_data,
+            )
+
+        # LIST MODE: return all pillars
+        logger.info(f"Getting all strategic pillars for workspace {workspace_uuid}")
 
         pillars = strategic_controller.get_strategic_pillars(workspace_uuid, session)
 
@@ -380,72 +427,7 @@ async def get_strategic_pillars() -> Dict[str, Any]:
         logger.error(f"Validation error: {e}")
         return build_error_response("pillar", str(e))
     except Exception as e:
-        logger.exception(f"Error getting strategic pillars: {e}")
-        return build_error_response("pillar", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def get_strategic_pillar_details(pillar_identifier: str) -> Dict[str, Any]:
-    """Retrieves a single strategic pillar with linked outcomes.
-
-    Returns the pillar with its full details including all linked
-    product outcomes for comprehensive context.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        pillar_identifier: Human-readable identifier of the strategic pillar (e.g., "P-001")
-
-    Returns:
-        Pillar details with linked outcomes
-
-    Example:
-        >>> result = await get_strategic_pillar_details(pillar_identifier="P-001")
-        >>> print(result["data"]["linked_outcomes"])
-    """
-    session = SessionLocal()
-    try:
-        _, workspace_id = get_auth_context(session, requires_workspace=True)
-        logger.info(
-            f"Getting strategic pillar {pillar_identifier} for workspace {workspace_id}"
-        )
-
-        workspace_uuid = uuid.UUID(workspace_id)
-
-        pillar = (
-            session.query(StrategicPillar)
-            .filter_by(identifier=pillar_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not pillar:
-            return build_error_response(
-                "pillar", f"Strategic pillar {pillar_identifier} not found"
-            )
-
-        from src.mcp_server.prompt_driven_tools.utils import serialize_outcome
-
-        pillar_data = serialize_pillar(pillar)
-        pillar_data["linked_outcomes"] = [
-            serialize_outcome(outcome) for outcome in pillar.outcomes
-        ]
-
-        return build_success_response(
-            entity_type="pillar",
-            message=f"Retrieved strategic pillar '{pillar.name}'",
-            data=pillar_data,
-        )
-
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("pillar", str(e))
-    except MCPContextError as e:
-        return build_error_response("pillar", str(e))
-    except Exception as e:
-        logger.exception(f"Error getting strategic pillar: {e}")
+        logger.exception(f"Error querying strategic pillars: {e}")
         return build_error_response("pillar", f"Server error: {str(e)}")
     finally:
         session.close()

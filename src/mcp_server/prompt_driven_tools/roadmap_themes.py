@@ -1010,118 +1010,116 @@ async def connect_theme_to_outcomes(
 
 
 @mcp.tool()
-async def get_roadmap_themes() -> Dict[str, Any]:
-    """List all roadmap themes for the workspace.
+async def query_roadmap_themes(
+    identifier: Optional[str] = None,
+    prioritized_only: bool = False,
+) -> Dict[str, Any]:
+    """Query roadmap themes with optional filtering and single-entity lookup.
 
-    Returns both prioritized and unprioritized themes with full details.
+    A unified query tool that replaces get_roadmap_themes and get_roadmap_theme_details.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        List of roadmap themes with full details
-
-    Example:
-        >>> result = await get_roadmap_themes()
-        >>> print(result["data"]["themes"])
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-        logger.info(f"Getting roadmap themes for workspace {workspace_uuid}")
-
-        themes = roadmap_controller.get_roadmap_themes(workspace_uuid, session)
-
-        return build_success_response(
-            entity_type="theme",
-            message=f"Found {len(themes)} roadmap theme(s)",
-            data={
-                "themes": [serialize_theme(theme) for theme in themes],
-            },
-        )
-
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("theme", str(e))
-    except Exception as e:
-        logger.exception(f"Error getting roadmap themes: {e}")
-        return build_error_response("theme", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def get_roadmap_theme_details(theme_identifier: str) -> Dict[str, Any]:
-    """Retrieves full roadmap theme details including linked entities.
-
-    Returns enriched theme data including linked outcomes, hero, villain,
-    prioritization status, and strategic alignment score.
+    **Query modes:**
+    - No params: Returns all themes (prioritized and unprioritized)
+    - identifier: Returns single theme with full linked entities and alignment score
+    - prioritized_only: Returns only prioritized themes
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        theme_identifier: Human-readable identifier (e.g., "T-001")
+        identifier: Theme identifier (e.g., "T-001") for single lookup
+        prioritized_only: If True, filters to prioritized themes only
 
     Returns:
-        Theme details + linked outcomes + hero/villain + alignment score
+        For single: theme details with outcomes, hero/villain, alignment score
+        For list: array of themes
 
-    Example:
-        >>> result = await get_roadmap_theme_details(theme_identifier="T-001")
-        >>> print(result["data"]["outcome_names"])
+    Examples:
+        >>> # Get all themes
+        >>> await query_roadmap_themes()
+
+        >>> # Get single theme by identifier
+        >>> await query_roadmap_themes(identifier="T-001")
+
+        >>> # Get only prioritized themes
+        >>> await query_roadmap_themes(prioritized_only=True)
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
+
+        # SINGLE THEME MODE: identifier provided
+        if identifier:
+            logger.info(
+                f"Getting roadmap theme '{identifier}' in workspace {workspace_uuid}"
+            )
+
+            theme = (
+                session.query(roadmap_controller.RoadmapTheme)
+                .filter_by(identifier=identifier, workspace_id=workspace_uuid)
+                .first()
+            )
+
+            if not theme:
+                return build_error_response(
+                    "theme", f"Roadmap theme not found: {identifier}"
+                )
+
+            theme_data = serialize_theme(theme)
+
+            # Add enrichments
+            theme_data["outcome_names"] = [outcome.name for outcome in theme.outcomes]
+            theme_data["hero_names"] = [hero.name for hero in theme.heroes]
+            theme_data["villain_names"] = [villain.name for villain in theme.villains]
+
+            if hasattr(theme, "primary_villain_id") and theme.primary_villain_id:
+                primary_villain = next(
+                    (v for v in theme.villains if v.id == theme.primary_villain_id),
+                    None,
+                )
+                theme_data["primary_villain_name"] = (
+                    primary_villain.name if primary_villain else None
+                )
+            else:
+                theme_data["primary_villain_name"] = None
+
+            prioritized_themes = roadmap_controller.get_prioritized_themes(
+                workspace_uuid, session
+            )
+            is_prioritized = any(t.id == theme.id for t in prioritized_themes)
+            theme_data["is_prioritized"] = is_prioritized
+
+            all_outcomes = strategic_controller.get_product_outcomes(
+                workspace_uuid, session
+            )
+            alignment_score = calculate_alignment_score(theme, len(all_outcomes))
+            theme_data["alignment_score"] = round(alignment_score, 2)
+
+            return build_success_response(
+                entity_type="theme",
+                message=f"Found roadmap theme: {theme.name}",
+                data=theme_data,
+            )
+
+        # LIST MODE: return themes based on filter
         logger.info(
-            f"Getting roadmap theme details for {theme_identifier} in workspace {workspace_uuid}"
+            f"Getting roadmap themes for workspace {workspace_uuid} "
+            f"(prioritized_only={prioritized_only})"
         )
 
-        theme = (
-            session.query(roadmap_controller.RoadmapTheme)
-            .filter_by(identifier=theme_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not theme:
-            return build_error_response(
-                "theme", f"Roadmap theme {theme_identifier} not found"
-            )
-
-        theme_data = serialize_theme(theme)
-
-        theme_data["outcome_names"] = [outcome.name for outcome in theme.outcomes]
-
-        theme_data["hero_names"] = [hero.name for hero in theme.heroes]
-
-        theme_data["villain_names"] = [villain.name for villain in theme.villains]
-
-        if hasattr(theme, "primary_villain_id") and theme.primary_villain_id:
-            primary_villain = next(
-                (v for v in theme.villains if v.id == theme.primary_villain_id), None
-            )
-            theme_data["primary_villain_name"] = (
-                primary_villain.name if primary_villain else None
-            )
+        if prioritized_only:
+            themes = roadmap_controller.get_prioritized_themes(workspace_uuid, session)
+            message = f"Found {len(themes)} prioritized roadmap theme(s)"
         else:
-            theme_data["primary_villain_name"] = None
-
-        prioritized_themes = roadmap_controller.get_prioritized_themes(
-            workspace_uuid, session
-        )
-        is_prioritized = any(t.id == theme.id for t in prioritized_themes)
-        theme_data["is_prioritized"] = is_prioritized
-
-        all_outcomes = strategic_controller.get_product_outcomes(
-            workspace_uuid, session
-        )
-        alignment_score = calculate_alignment_score(theme, len(all_outcomes))
-        theme_data["alignment_score"] = round(alignment_score, 2)
+            themes = roadmap_controller.get_roadmap_themes(workspace_uuid, session)
+            message = f"Found {len(themes)} roadmap theme(s)"
 
         return build_success_response(
             entity_type="theme",
-            message=f"Retrieved roadmap theme details for {theme.name}",
-            data=theme_data,
+            message=message,
+            data={
+                "themes": [serialize_theme(theme) for theme in themes],
+            },
         )
 
     except DomainException as e:
@@ -1131,7 +1129,7 @@ async def get_roadmap_theme_details(theme_identifier: str) -> Dict[str, Any]:
         logger.error(f"Validation error: {e}")
         return build_error_response("theme", str(e))
     except Exception as e:
-        logger.exception(f"Error getting roadmap theme details: {e}")
+        logger.exception(f"Error querying roadmap themes: {e}")
         return build_error_response("theme", f"Server error: {str(e)}")
     finally:
         session.close()

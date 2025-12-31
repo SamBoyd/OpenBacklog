@@ -14,8 +14,7 @@ from src.initiative_management.aggregates.strategic_initiative import (
 from src.mcp_server.prompt_driven_tools.strategic_initiatives import (
     delete_strategic_initiative,
     get_strategic_initiative_definition_framework,
-    get_strategic_initiative_details,
-    get_strategic_initiatives,
+    query_strategic_initiatives,
     submit_strategic_initiative,
 )
 from src.mcp_server.prompt_driven_tools.utils.validation_runner import (
@@ -490,12 +489,12 @@ class TestSubmitStrategicInitiative:
         )
 
 
-class TestGetStrategicInitiatives:
-    """Test suite for get_strategic_initiatives tool."""
+class TestQueryStrategicInitiativesList:
+    """Test suite for query_strategic_initiatives tool in list mode."""
 
     @pytest.mark.asyncio
-    async def test_get_empty_initiatives(self):
-        """Test getting initiatives when none exist."""
+    async def test_query_empty_initiatives(self):
+        """Test querying initiatives when none exist."""
         with patch(
             "src.mcp_server.prompt_driven_tools.strategic_initiatives.SessionLocal"
         ) as mock_session_local:
@@ -506,7 +505,7 @@ class TestGetStrategicInitiatives:
             mock_query.options.return_value.filter_by.return_value.all.return_value = []
             mock_session.query.return_value = mock_query
 
-            result = await get_strategic_initiatives.fn()
+            result = await query_strategic_initiatives.fn()
 
         # Verify response structure
         assert_that(
@@ -516,10 +515,10 @@ class TestGetStrategicInitiatives:
         assert len(result["data"]["strategic_initiatives"]) == 0
 
     @pytest.mark.asyncio
-    async def test_get_multiple_initiatives(
+    async def test_query_multiple_initiatives(
         self, session: Session, user: User, workspace: Workspace
     ):
-        """Test getting multiple strategic initiatives."""
+        """Test querying multiple strategic initiatives."""
         # Create multiple initiatives
         initiatives: List[Initiative] = []
         for i in range(3):
@@ -551,7 +550,7 @@ class TestGetStrategicInitiatives:
 
         session.commit()
 
-        result = await get_strategic_initiatives.fn()
+        result = await query_strategic_initiatives.fn()
 
         # Verify response
         assert_that(
@@ -583,7 +582,7 @@ class TestGetStrategicInitiatives:
         ) as mock_get_workspace:
             mock_get_workspace.return_value = workspace.id
 
-            result = await get_strategic_initiatives.fn()
+            result = await query_strategic_initiatives.fn()
 
         assert_that(result["status"], equal_to("success"))
         assert len(result["data"]["strategic_initiatives"]) > 0
@@ -594,14 +593,14 @@ class TestGetStrategicInitiatives:
         assert "narrative_summary" in initiative_data
 
 
-class TestGetStrategicInitiativeDetails:
-    """Test suite for get_strategic_initiative_details tool."""
+class TestQueryStrategicInitiativesSingle:
+    """Test suite for query_strategic_initiatives tool in single mode."""
 
     @pytest.mark.asyncio
-    async def test_get_by_identifier(
+    async def test_query_by_identifier(
         self, session: Session, user: User, workspace: Workspace
     ):
-        """Test getting initiative by identifier."""
+        """Test querying initiative by identifier."""
         initiative = Initiative(
             title="Test Initiative",
             description="Test description",
@@ -622,7 +621,7 @@ class TestGetStrategicInitiativeDetails:
         session.add(strategic_init)
         session.commit()
 
-        result = await get_strategic_initiative_details.fn(initiative.identifier)
+        result = await query_strategic_initiatives.fn(identifier=initiative.identifier)
 
         # Verify response
         assert_that(
@@ -631,10 +630,10 @@ class TestGetStrategicInitiativeDetails:
         assert_that(result["data"]["initiative"]["title"], equal_to("Test Initiative"))
 
     @pytest.mark.asyncio
-    async def test_get_by_uuid(
+    async def test_query_by_uuid(
         self, session: Session, user: User, workspace: Workspace
     ):
-        """Test getting initiative by UUID."""
+        """Test querying initiative by UUID."""
         initiative = Initiative(
             title="Test Initiative",
             description="Test description",
@@ -655,7 +654,7 @@ class TestGetStrategicInitiativeDetails:
         session.add(strategic_init)
         session.commit()
 
-        result = await get_strategic_initiative_details.fn(str(initiative.id))
+        result = await query_strategic_initiatives.fn(identifier=str(initiative.id))
 
         # Verify response
         assert_that(
@@ -664,11 +663,11 @@ class TestGetStrategicInitiativeDetails:
         assert_that(result["data"]["initiative"]["title"], equal_to("Test Initiative"))
 
     @pytest.mark.asyncio
-    async def test_get_nonexistent_initiative(self):
-        """Test getting nonexistent initiative."""
+    async def test_query_nonexistent_initiative(self):
+        """Test querying nonexistent initiative."""
         fake_id = str(uuid.uuid4())
 
-        result = await get_strategic_initiative_details.fn(fake_id)
+        result = await query_strategic_initiatives.fn(identifier=fake_id)
 
         # Verify error response
         assert_that(
@@ -677,7 +676,7 @@ class TestGetStrategicInitiativeDetails:
         assert "not found" in result["error_message"]
 
     @pytest.mark.asyncio
-    async def test_finds_by_initiative_identifier(
+    async def test_query_by_initiative_identifier(
         self, workspace: Workspace, session: Session, user: User
     ):
         """Test lookup by initiative identifier (e.g., I-1001)."""
@@ -701,8 +700,8 @@ class TestGetStrategicInitiativeDetails:
         ) as mock_get_workspace:
             mock_get_workspace.return_value = workspace.id
 
-            result = await get_strategic_initiative_details.fn(
-                query=initiative_identifier
+            result = await query_strategic_initiatives.fn(
+                identifier=initiative_identifier
             )
 
         assert_that(result["status"], equal_to("success"))
@@ -715,7 +714,7 @@ class TestGetStrategicInitiativeDetails:
         )
 
     @pytest.mark.asyncio
-    async def test_returns_narrative_summary(
+    async def test_query_returns_narrative_summary(
         self, workspace: Workspace, session: Session, user: User
     ):
         """Test that response includes narrative summary."""
@@ -740,11 +739,273 @@ class TestGetStrategicInitiativeDetails:
         ) as mock_get_workspace:
             mock_get_workspace.return_value = workspace.id
 
-            result = await get_strategic_initiative_details.fn(query=initiative_id)
+            result = await query_strategic_initiatives.fn(identifier=initiative_id)
 
         assert_that(result["status"], equal_to("success"))
         assert "narrative_summary" in result["data"]
         assert "To prove the tool works" in result["data"]["narrative_summary"]
+
+
+class TestQueryStrategicInitiativesFilters:
+    """Test suite for query_strategic_initiatives tool with filters."""
+
+    @pytest.mark.asyncio
+    async def test_query_by_status_filter(
+        self, session: Session, user: User, workspace: Workspace
+    ):
+        """Test querying initiatives filtered by status."""
+        # Create initiatives with different statuses
+        backlog_init = Initiative(
+            title="Backlog Initiative",
+            description="In backlog",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+        )
+        in_progress_init = Initiative(
+            title="In Progress Initiative",
+            description="Currently in progress",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.IN_PROGRESS,
+        )
+        session.add(backlog_init)
+        session.add(in_progress_init)
+        session.commit()
+
+        # Create strategic initiatives
+        for initiative in [backlog_init, in_progress_init]:
+            session.refresh(initiative)
+            strategic_init = StrategicInitiative(
+                initiative_id=initiative.id,
+                workspace_id=workspace.id,
+                user_id=user.id,
+                description="Strategic context",
+            )
+            session.add(strategic_init)
+
+        session.commit()
+
+        # Query for IN_PROGRESS only
+        result = await query_strategic_initiatives.fn(status="IN_PROGRESS")
+
+        assert_that(result["status"], equal_to("success"))
+        assert len(result["data"]["strategic_initiatives"]) == 1
+        assert (
+            result["data"]["strategic_initiatives"][0]["initiative"]["status"]
+            == "IN_PROGRESS"
+        )
+
+    @pytest.mark.asyncio
+    async def test_query_by_search_filter(
+        self, session: Session, user: User, workspace: Workspace
+    ):
+        """Test querying initiatives by search term."""
+        # Create initiatives
+        matching_init = Initiative(
+            title="Context Switching Platform",
+            description="Solve context switching issues",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+        )
+        non_matching_init = Initiative(
+            title="Performance Optimization",
+            description="Make things faster",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+        )
+        session.add(matching_init)
+        session.add(non_matching_init)
+        session.commit()
+
+        # Create strategic initiatives
+        for initiative in [matching_init, non_matching_init]:
+            session.refresh(initiative)
+            strategic_init = StrategicInitiative(
+                initiative_id=initiative.id,
+                workspace_id=workspace.id,
+                user_id=user.id,
+                description="Strategic context",
+            )
+            session.add(strategic_init)
+
+        session.commit()
+
+        # Search for "context"
+        result = await query_strategic_initiatives.fn(search="context")
+
+        assert_that(result["status"], equal_to("success"))
+        assert len(result["data"]["strategic_initiatives"]) >= 1
+        # Verify matching initiative is in results
+        found = False
+        for init_data in result["data"]["strategic_initiatives"]:
+            if "Context Switching" in init_data["initiative"]["title"]:
+                found = True
+                break
+        assert found
+
+    @pytest.mark.asyncio
+    async def test_query_with_combined_filters(
+        self, session: Session, user: User, workspace: Workspace
+    ):
+        """Test querying with multiple filters combined."""
+        # Create initiatives
+        matching_init = Initiative(
+            title="Context Switching Solution",
+            description="Solve context switching",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.IN_PROGRESS,
+        )
+        non_matching_status = Initiative(
+            title="Context Switching Design",
+            description="Design phase",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+        )
+        session.add(matching_init)
+        session.add(non_matching_status)
+        session.commit()
+
+        # Create strategic initiatives
+        for initiative in [matching_init, non_matching_status]:
+            session.refresh(initiative)
+            strategic_init = StrategicInitiative(
+                initiative_id=initiative.id,
+                workspace_id=workspace.id,
+                user_id=user.id,
+                description="Strategic context",
+            )
+            session.add(strategic_init)
+
+        session.commit()
+
+        # Query with both filters
+        result = await query_strategic_initiatives.fn(
+            search="context", status="IN_PROGRESS"
+        )
+
+        assert_that(result["status"], equal_to("success"))
+        # Should only get the IN_PROGRESS initiative matching "context"
+        assert len(result["data"]["strategic_initiatives"]) >= 1
+        for init_data in result["data"]["strategic_initiatives"]:
+            assert init_data["initiative"]["status"] == "IN_PROGRESS"
+
+
+class TestQueryStrategicInitiativesWithTasks:
+    """Test suite for query_strategic_initiatives with include_tasks parameter."""
+
+    @pytest.mark.asyncio
+    async def test_query_single_initiative_with_tasks(
+        self, session: Session, user: User, workspace: Workspace
+    ):
+        """Test that include_tasks returns tasks array when querying single initiative."""
+        from src.models import ContextType, Task
+        from src.services.ordering_service import OrderingService
+
+        # Create initiative
+        initiative = Initiative(
+            title="Initiative With Tasks",
+            description="Test description",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+        )
+        session.add(initiative)
+        session.commit()
+        session.refresh(initiative)
+
+        # Create strategic initiative
+        strategic_init = StrategicInitiative(
+            initiative_id=initiative.id,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            description="Strategic context",
+        )
+        session.add(strategic_init)
+        session.commit()
+
+        # Create tasks
+        task1 = Task(
+            title="Task 1",
+            description="First task",
+            user_id=user.id,
+            initiative_id=initiative.id,
+            workspace_id=workspace.id,
+        )
+        task2 = Task(
+            title="Task 2",
+            description="Second task",
+            user_id=user.id,
+            initiative_id=initiative.id,
+            workspace_id=workspace.id,
+        )
+        session.add(task1)
+        session.add(task2)
+        session.commit()
+        session.refresh(task1)
+        session.refresh(task2)
+
+        # Add to ordering
+        ordering_service = OrderingService(session)
+        ordering_service.add_item(
+            context_type=ContextType.STATUS_LIST,
+            context_id=None,
+            item=task1,
+        )
+        ordering_service.add_item(
+            context_type=ContextType.STATUS_LIST,
+            context_id=None,
+            item=task2,
+        )
+
+        # Query with include_tasks
+        result = await query_strategic_initiatives.fn(
+            identifier=initiative.identifier, include_tasks=True
+        )
+
+        assert_that(result["status"], equal_to("success"))
+        assert "tasks" in result["data"]
+        assert len(result["data"]["tasks"]) == 2
+        task_titles = [t["title"] for t in result["data"]["tasks"]]
+        assert "Task 1" in task_titles
+        assert "Task 2" in task_titles
+
+    @pytest.mark.asyncio
+    async def test_query_without_include_tasks_no_tasks_array(
+        self, session: Session, user: User, workspace: Workspace
+    ):
+        """Test that tasks array is not included when include_tasks is False."""
+        # Create initiative
+        initiative = Initiative(
+            title="Initiative Without Tasks Array",
+            description="Test description",
+            user_id=user.id,
+            workspace_id=workspace.id,
+            status=InitiativeStatus.BACKLOG,
+        )
+        session.add(initiative)
+        session.commit()
+        session.refresh(initiative)
+
+        # Create strategic initiative
+        strategic_init = StrategicInitiative(
+            initiative_id=initiative.id,
+            workspace_id=workspace.id,
+            user_id=user.id,
+            description="Strategic context",
+        )
+        session.add(strategic_init)
+        session.commit()
+
+        # Query without include_tasks
+        result = await query_strategic_initiatives.fn(identifier=initiative.identifier)
+
+        assert_that(result["status"], equal_to("success"))
+        assert "tasks" not in result["data"]
 
 
 class TestSubmitStrategicInitiativeUpsert:
@@ -1147,7 +1408,7 @@ class TestStrategicInitiativeNarrativeSummary:
         session.add(strategic_init)
         session.commit()
 
-        result = await get_strategic_initiative_details.fn(initiative.identifier)
+        result = await query_strategic_initiatives.fn(identifier=initiative.identifier)
 
         # Verify narrative summary includes strategic elements
         narrative_summary = result["data"]["narrative_summary"]

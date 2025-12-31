@@ -151,249 +151,47 @@ def _task_to_dict(task: Task) -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def get_initiative_tasks(
-    initiative_id: str,
+async def query_tasks(
+    identifier: Optional[str] = None,
+    initiative_identifier: Optional[str] = None,
+    search: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Retrieve all tasks for a specific initiative.
+    """Query tasks with flexible filtering and single-entity lookup.
 
-    Used in the workflow after user selects an initiative to show available tasks
-    for that initiative that they can work on.
+    A unified query tool that replaces get_initiative_tasks, get_task_details,
+    and search_tasks.
 
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+    **Query modes:**
+    - identifier: Returns single task with full context (checklist, initiative, related tasks)
+    - initiative_identifier: Returns all tasks for that initiative
+    - search: Returns tasks matching search term (title/description/identifier)
+    - No params: Returns error (must specify at least one filter)
+
+    Authentication is handled by FastMCP's RemoteAuthProvider.
+    Workspace is automatically loaded from the authenticated user.
 
     Args:
-        - initiative_id: The UUID of the initiative to get tasks for
+        identifier: Task identifier (e.g., "TM-001") for single lookup
+        initiative_identifier: Initiative identifier (e.g., "I-1001") to list tasks
+        search: Search string for title/description matching
 
     Returns:
-        - List of tasks belonging to the initiative with full context
+        For single: task details with checklist, initiative context, related tasks
+        For list: array of tasks
+
+    Examples:
+        >>> # Get single task by identifier
+        >>> await query_tasks(identifier="TM-001")
+
+        >>> # Get all tasks for an initiative
+        >>> await query_tasks(initiative_identifier="I-1001")
+
+        >>> # Search tasks
+        >>> await query_tasks(search="authentication")
     """
-    logger.info(f"Fetching tasks for initiative {initiative_id}")
-    session: Session = SessionLocal()
-    try:
-        user_id_str, _ = get_auth_context(session, requires_workspace=True)
-        user_id = uuid.UUID(user_id_str)
-
-        initiative_uuid = uuid.UUID(initiative_id)
-
-        # Use TaskController to get initiative tasks
-        controller = TaskController(session)
-        tasks = controller.get_initiative_tasks(user_id, initiative_uuid)
-
-        # Convert to dict format
-        tasks_data = [_task_to_dict(task) for task in tasks]
-
-        logger.info(f"Found {len(tasks_data)} tasks for initiative {initiative_id}")
-
-        return {
-            "status": "success",
-            "type": "task",
-            "message": f"Found {len(tasks_data)} tasks for initiative {initiative_id}",
-            "initiative_id": initiative_id,
-            "data": tasks_data,
-        }
-
-    except MCPContextError as e:
-        logger.warning(f"Authorization error in get_initiative_tasks: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task",
-            "error_message": str(e),
-            "error_type": e.error_type,
-        }
-    except TaskControllerError as e:
-        logger.exception(f"Controller error in get_initiative_tasks: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task",
-            "error_message": str(e),
-            "error_type": "controller_error",
-        }
-    except ValueError as e:
-        logger.exception(f"Invalid UUID format: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task",
-            "error_message": f"Invalid initiative ID format: {str(e)}",
-            "error_type": "validation_error",
-        }
-    except Exception as e:
-        logger.exception(f"Error in get_initiative_tasks MCP tool: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task",
-            "error_message": f"Server error: {str(e)}",
-            "error_type": "server_error",
-        }
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def get_task_details(
-    task_id: str,
-) -> Dict[str, Any]:
-    """
-    Pull complete task context including description, checklist items, and dependencies.
-
-    Used in the workflow after user selects a task to get full context needed
-    for implementation planning.
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
-
-    Args:
-        - task_id: The UUID of the task to get details for
-
-    Returns:
-        - Complete task details with checklist items and relationships
-    """
-    logger.info(f"Fetching details for task {task_id}")
-    session: Session = SessionLocal()
-    try:
-        user_id_str, _ = get_auth_context(session, requires_workspace=True)
-        user_id = uuid.UUID(user_id_str)
-
-        task_uuid = uuid.UUID(task_id)
-
-        # Use TaskController to get task details
-        controller = TaskController(session)
-        task = controller.get_task_details(user_id, task_uuid)
-
-        if not task:
-            return {
-                "status": "error",
-                "type": "task_details",
-                "error_message": f"Task {task_id} not found",
-            }
-
-        # Convert task to dict
-        task_dict = _task_to_dict(task)
-
-        # Convert checklist items to dict
-        checklist_items = [
-            {
-                "id": str(item.id),
-                "title": item.title,
-                "is_complete": item.is_complete,
-                "order": item.order,
-                "task_id": str(item.task_id),
-            }
-            for item in task.checklist_items
-        ]
-
-        # Get initiative details
-        initiative_dict = None
-        if task.initiative_id:
-            initiative = (
-                session.query(Initiative)
-                .filter(
-                    Initiative.id == task.initiative_id, Initiative.user_id == user_id
-                )
-                .first()
-            )
-            if initiative:
-                initiative_dict = {
-                    "id": str(initiative.id),
-                    "title": initiative.title,
-                    "description": initiative.description,
-                    "identifier": initiative.identifier,
-                    "status": initiative.status.value,
-                }
-
-        # Get related tasks in the same initiative
-        related_tasks_dicts = []
-        if task.initiative_id:
-            related_tasks = controller.get_initiative_tasks(user_id, task.initiative_id)
-            related_tasks_dicts = [
-                {
-                    "id": str(rt.id),
-                    "identifier": rt.identifier,
-                    "title": rt.title,
-                    "status": rt.status.value,
-                    "type": rt.type,
-                }
-                for rt in related_tasks
-                if rt.id != task.id
-            ]
-
-        # Generate task context summary
-        task_context = _generate_task_context(
-            task_dict, initiative_dict, related_tasks_dicts, checklist_items
-        )
-
-        logger.info(
-            f"Found task details for {task_id} with {len(checklist_items)} checklist items, initiative context, and {len(related_tasks_dicts)} related tasks"
-        )
-
-        return {
-            "status": "success",
-            "type": "task_details",
-            "message": f"Retrieved comprehensive task context for {task.title}",
-            "task": task_dict,
-            "checklist_items": checklist_items,
-            "task_context": task_context,
-        }
-
-    except MCPContextError as e:
-        logger.warning(f"Authorization error in get_task_details: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_details",
-            "error_message": str(e),
-            "error_type": e.error_type,
-        }
-    except TaskNotFoundError as e:
-        logger.exception(f"Task not found: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_details",
-            "error_message": str(e),
-            "error_type": "not_found",
-        }
-    except TaskControllerError as e:
-        logger.exception(f"Controller error in get_task_details: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_details",
-            "error_message": str(e),
-            "error_type": "controller_error",
-        }
-    except ValueError as e:
-        logger.exception(f"Invalid UUID format: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_details",
-            "error_message": f"Invalid task ID format: {str(e)}",
-            "error_type": "validation_error",
-        }
-    except Exception as e:
-        logger.exception(f"Error in get_task_details MCP tool: {str(e)}")
-        return {
-            "status": "error",
-            "type": "task_details",
-            "error_message": f"Server error: {str(e)}",
-            "error_type": "server_error",
-        }
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def search_tasks(
-    query: str,
-) -> Dict[str, Any]:
-    """
-    Search for tasks by title, description, and identifier. Uses LIKE operator.
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
-
-    Args:
-        - query: The query string to search the titles, descriptions, and identifiers of the user's tasks
-
-    Returns:
-        - a list of tasks that match the query
-    """
-    logger.info(f"Searching for tasks with query {query}")
+    logger.info(
+        f"Querying tasks: identifier={identifier}, initiative={initiative_identifier}, search={search}"
+    )
     session: Session = SessionLocal()
     try:
         user_id_str, workspace_id_str = get_auth_context(
@@ -407,31 +205,178 @@ async def search_tasks(
         user_id = uuid.UUID(user_id_str)
         workspace_id = uuid.UUID(workspace_id_str)
 
-        # Use TaskController to search tasks
         controller = TaskController(session)
-        tasks = controller.search_tasks(user_id, workspace_id, query)
 
-        # Convert to dict format
-        tasks_data = [_task_to_dict(task) for task in tasks]
+        # SINGLE TASK MODE: identifier provided
+        if identifier:
+            logger.info(f"Getting task '{identifier}' in workspace {workspace_id}")
 
-        logger.info(f"Found {len(tasks_data)} tasks")
+            # Look up task by identifier
+            task = (
+                session.query(Task)
+                .filter(
+                    Task.identifier == identifier,
+                    Task.workspace_id == workspace_id,
+                    Task.user_id == user_id,
+                )
+                .first()
+            )
 
+            if not task:
+                return {
+                    "status": "error",
+                    "type": "task",
+                    "error_message": f"Task not found: {identifier}",
+                    "error_type": "not_found",
+                }
+
+            # Convert task to dict
+            task_dict = _task_to_dict(task)
+
+            # Convert checklist items to dict
+            checklist_items = [
+                {
+                    "id": str(item.id),
+                    "title": item.title,
+                    "is_complete": item.is_complete,
+                    "order": item.order,
+                    "task_identifier": task.identifier,
+                }
+                for item in task.checklist
+            ]
+
+            # Get initiative details
+            initiative_dict = None
+            if task.initiative_id:
+                initiative = (
+                    session.query(Initiative)
+                    .filter(
+                        Initiative.id == task.initiative_id,
+                        Initiative.user_id == user_id,
+                    )
+                    .first()
+                )
+                if initiative:
+                    initiative_dict = {
+                        "id": str(initiative.id),
+                        "title": initiative.title,
+                        "description": initiative.description,
+                        "identifier": initiative.identifier,
+                        "status": initiative.status.value,
+                    }
+
+            # Get related tasks in the same initiative
+            related_tasks_dicts = []
+            if task.initiative_id:
+                related_tasks = controller.get_initiative_tasks(
+                    user_id, task.initiative_id
+                )
+                related_tasks_dicts = [
+                    {
+                        "identifier": rt.identifier,
+                        "title": rt.title,
+                        "status": rt.status.value,
+                        "type": rt.type,
+                    }
+                    for rt in related_tasks
+                    if rt.id != task.id
+                ]
+
+            # Generate task context summary
+            task_context = _generate_task_context(
+                task_dict, initiative_dict, related_tasks_dicts, checklist_items
+            )
+
+            logger.info(
+                f"Found task {identifier} with {len(checklist_items)} checklist items"
+            )
+
+            return {
+                "status": "success",
+                "type": "task",
+                "message": f"Found task: {task.title}",
+                "data": {
+                    "task": task_dict,
+                    "checklist_items": checklist_items,
+                    "task_context": task_context,
+                },
+            }
+
+        # LIST BY INITIATIVE MODE
+        if initiative_identifier:
+            logger.info(
+                f"Getting tasks for initiative '{initiative_identifier}' in workspace {workspace_id}"
+            )
+
+            # Resolve initiative identifier to UUID
+            initiative_id = resolve_initiative_identifier(
+                initiative_identifier, workspace_id, session
+            )
+
+            tasks = controller.get_initiative_tasks(user_id, initiative_id)
+            tasks_data = [_task_to_dict(task) for task in tasks]
+
+            logger.info(
+                f"Found {len(tasks_data)} tasks for initiative {initiative_identifier}"
+            )
+
+            return {
+                "status": "success",
+                "type": "task",
+                "message": f"Found {len(tasks_data)} task(s) for initiative {initiative_identifier}",
+                "data": {"tasks": tasks_data},
+            }
+
+        # SEARCH MODE
+        if search:
+            logger.info(f"Searching tasks for '{search}' in workspace {workspace_id}")
+
+            tasks = controller.search_tasks(user_id, workspace_id, search)
+            tasks_data = [_task_to_dict(task) for task in tasks]
+
+            logger.info(f"Found {len(tasks_data)} tasks matching '{search}'")
+
+            return {
+                "status": "success",
+                "type": "task",
+                "message": f"Found {len(tasks_data)} task(s) matching '{search}'",
+                "data": {"tasks": tasks_data},
+            }
+
+        # NO PARAMS - return error
         return {
-            "status": "success",
+            "status": "error",
             "type": "task",
-            "data": tasks_data,
+            "error_message": "At least one filter required: identifier, initiative_identifier, or search",
+            "error_type": "validation_error",
         }
 
     except MCPContextError as e:
-        logger.warning(f"Authorization error in search_tasks: {str(e)}")
+        logger.warning(f"Authorization error in query_tasks: {str(e)}")
         return {
             "status": "error",
             "type": "task",
             "error_message": str(e),
             "error_type": e.error_type,
         }
+    except DomainException as e:
+        logger.warning(f"Domain error in query_tasks: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
+    except TaskNotFoundError as e:
+        logger.exception(f"Task not found: {str(e)}")
+        return {
+            "status": "error",
+            "type": "task",
+            "error_message": str(e),
+            "error_type": "not_found",
+        }
     except TaskControllerError as e:
-        logger.exception(f"Controller error in search_tasks: {str(e)}")
+        logger.exception(f"Controller error in query_tasks: {str(e)}")
         return {
             "status": "error",
             "type": "task",
@@ -439,7 +384,7 @@ async def search_tasks(
             "error_type": "controller_error",
         }
     except Exception as e:
-        logger.exception(f"Error in search_tasks MCP tool: {str(e)}")
+        logger.exception(f"Error in query_tasks MCP tool: {str(e)}")
         return {
             "status": "error",
             "type": "task",
@@ -489,7 +434,7 @@ async def validate_context(
             }
 
         # Calculate checklist progress
-        checklist_items = task.checklist_items
+        checklist_items = task.checklist
         completed_items = [item for item in checklist_items if item.is_complete]
         total_items = len(checklist_items)
         completion_percentage = (

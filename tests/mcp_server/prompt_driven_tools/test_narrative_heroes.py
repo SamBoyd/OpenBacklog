@@ -16,8 +16,7 @@ from src.mcp_server.auth_utils import MCPContextError
 from src.mcp_server.prompt_driven_tools.narrative_heroes import (
     delete_hero,
     get_hero_definition_framework,
-    get_hero_details,
-    get_heroes,
+    query_heroes,
     submit_hero,
 )
 from src.models import User, Workspace
@@ -263,8 +262,8 @@ class TestSubmitHero:
         assert_that(steps_text, contains_string("villain"))
 
 
-class TestGetHeroes:
-    """Test suite for get_heroes MCP tool."""
+class TestQueryHeroesListMode:
+    """Test suite for query_heroes MCP tool in list mode (no identifier)."""
 
     @pytest.fixture
     def workspace(self, user, session):
@@ -290,7 +289,7 @@ class TestGetHeroes:
         self, session, workspace, mock_get_workspace_id_from_request
     ):
         """Test retrieving heroes from workspace with no heroes."""
-        result = await get_heroes.fn()
+        result = await query_heroes.fn()
 
         # Verify success response with empty list
         assert_that(result, has_entries({"status": "success", "type": "hero"}))
@@ -329,7 +328,7 @@ class TestGetHeroes:
         )
         session.commit()
 
-        result = await get_heroes.fn()
+        result = await query_heroes.fn()
 
         # Verify response contains both heroes
         assert_that(result, has_entries({"status": "success", "type": "hero"}))
@@ -339,8 +338,8 @@ class TestGetHeroes:
     async def test_get_heroes_success_response_structure(
         self, session, workspace, mock_get_workspace_id_from_request
     ):
-        """Test get_heroes returns correctly structured response."""
-        result = await get_heroes.fn()
+        """Test query_heroes returns correctly structured response."""
+        result = await query_heroes.fn()
 
         # Verify response structure
         assert_that(result, has_entries({"status": "success", "type": "hero"}))
@@ -349,8 +348,8 @@ class TestGetHeroes:
         assert_that(result["data"], has_key("heroes"))
 
 
-class TestGetHeroDetails:
-    """Test suite for get_hero_details MCP tool."""
+class TestQueryHeroesSingleMode:
+    """Test suite for query_heroes MCP tool in single mode (with identifier)."""
 
     @pytest.fixture
     def workspace(self, user, session):
@@ -392,7 +391,7 @@ class TestGetHeroDetails:
         self, session, workspace, hero, mock_get_workspace_id_from_request
     ):
         """Test successfully retrieving hero details."""
-        result = await get_hero_details.fn(hero_identifier=hero.identifier)
+        result = await query_heroes.fn(identifier=hero.identifier)
 
         # Verify success response
         assert_that(result, has_entries({"status": "success", "type": "hero"}))
@@ -404,7 +403,7 @@ class TestGetHeroDetails:
         self, session, workspace, hero, mock_get_workspace_id_from_request
     ):
         """Test that hero details include journey summary."""
-        result = await get_hero_details.fn(hero_identifier=hero.identifier)
+        result = await query_heroes.fn(identifier=hero.identifier)
 
         # Verify journey summary is included
         assert_that(result["data"], has_key("journey_summary"))
@@ -416,7 +415,7 @@ class TestGetHeroDetails:
         """Test error when hero not found."""
         fake_identifier = "H-9999"
 
-        result = await get_hero_details.fn(hero_identifier=fake_identifier)
+        result = await query_heroes.fn(identifier=fake_identifier)
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "hero"}))

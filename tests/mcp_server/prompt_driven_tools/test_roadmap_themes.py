@@ -11,10 +11,9 @@ from src.mcp_server.prompt_driven_tools.roadmap_themes import (
     connect_theme_to_outcomes,
     delete_roadmap_theme,
     get_prioritization_context,
-    get_roadmap_theme_details,
-    get_roadmap_themes,
     get_theme_exploration_framework,
     organize_roadmap,
+    query_roadmap_themes,
     set_theme_priority,
     submit_roadmap_theme,
 )
@@ -641,14 +640,14 @@ class TestUtilityTools:
         assert_that(result, has_key("next_steps"))
 
 
-class TestGetRoadmapThemes:
-    """Test suite for get_roadmap_themes tool."""
+class TestQueryRoadmapThemesList:
+    """Test suite for query_roadmap_themes tool in list mode."""
 
     @pytest.mark.asyncio
-    async def test_get_themes_returns_empty_list(
+    async def test_query_themes_returns_empty_list(
         self, session: Session, workspace: Workspace
     ):
-        """Test that get_roadmap_themes returns empty list when no themes exist."""
+        """Test that query_roadmap_themes returns empty list when no themes exist."""
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
         ) as mock_session_local:
@@ -660,17 +659,17 @@ class TestGetRoadmapThemes:
             ) as mock_get_themes:
                 mock_get_themes.return_value = []
 
-                result = await get_roadmap_themes.fn()
+                result = await query_roadmap_themes.fn()
 
         # Verify success response with empty list
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
         assert_that(result["data"]["themes"], equal_to([]))
 
     @pytest.mark.asyncio
-    async def test_get_themes_returns_list_of_themes(
+    async def test_query_themes_returns_list_of_themes(
         self, session: Session, workspace: Workspace
     ):
-        """Test that get_roadmap_themes returns list of existing themes."""
+        """Test that query_roadmap_themes returns list of existing themes."""
         # Create test themes
         theme1 = RoadmapTheme(
             name="Test Theme 1",
@@ -688,15 +687,15 @@ class TestGetRoadmapThemes:
         session.add(theme2)
         session.commit()
 
-        result = await get_roadmap_themes.fn()
+        result = await query_roadmap_themes.fn()
 
         # Verify success response with themes
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
         assert_that(len(result["data"]["themes"]), equal_to(2))
 
     @pytest.mark.asyncio
-    async def test_get_themes_handles_error(self):
-        """Test that get_roadmap_themes handles errors gracefully."""
+    async def test_query_themes_handles_error(self):
+        """Test that query_roadmap_themes handles errors gracefully."""
         with patch(
             "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
         ) as mock_session_local:
@@ -708,7 +707,7 @@ class TestGetRoadmapThemes:
             ) as mock_get_themes:
                 mock_get_themes.side_effect = Exception("Database error")
 
-                result = await get_roadmap_themes.fn()
+                result = await query_roadmap_themes.fn()
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
@@ -1020,11 +1019,11 @@ class TestDeleteRoadmapTheme:
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
 
 
-class TestGetRoadmapThemeDetails:
-    """Test suite for get_roadmap_theme_details MCP tool."""
+class TestQueryRoadmapThemesSingle:
+    """Test suite for query_roadmap_themes tool in single mode."""
 
     @pytest.mark.asyncio
-    async def test_get_theme_details_success(
+    async def test_query_theme_details_success(
         self, session: Session, workspace: Workspace
     ):
         """Test successfully retrieving theme details."""
@@ -1037,8 +1036,8 @@ class TestGetRoadmapThemeDetails:
         session.add(theme)
         session.commit()
 
-        result = await get_roadmap_theme_details.fn(
-            theme_identifier=theme.identifier,
+        result = await query_roadmap_themes.fn(
+            identifier=theme.identifier,
         )
 
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
@@ -1053,7 +1052,7 @@ class TestGetRoadmapThemeDetails:
         assert_that(result["data"], has_key("alignment_score"))
 
     @pytest.mark.asyncio
-    async def test_get_theme_details_includes_hero_and_villain_names(
+    async def test_query_theme_details_includes_hero_and_villain_names(
         self, session: Session, workspace: Workspace
     ):
         """Test retrieving theme details includes hero and villain name lists."""
@@ -1066,8 +1065,8 @@ class TestGetRoadmapThemeDetails:
         session.add(theme)
         session.commit()
 
-        result = await get_roadmap_theme_details.fn(
-            theme_identifier=theme.identifier,
+        result = await query_roadmap_themes.fn(
+            identifier=theme.identifier,
         )
 
         assert_that(result, has_entries({"status": "success", "type": "theme"}))
@@ -1077,11 +1076,129 @@ class TestGetRoadmapThemeDetails:
         assert_that(result["data"], has_key("primary_villain_name"))
 
     @pytest.mark.asyncio
-    async def test_get_theme_details_not_found(self):
+    async def test_query_theme_details_not_found(self):
         """Test error when theme not found."""
-        result = await get_roadmap_theme_details.fn(
-            theme_identifier="T-9999",
+        result = await query_roadmap_themes.fn(
+            identifier="T-9999",
         )
 
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
         assert_that(result, has_key("error_message"))
+
+
+class TestQueryRoadmapThemesPrioritizedFilter:
+    """Test suite for query_roadmap_themes tool with prioritized_only filter."""
+
+    @pytest.mark.asyncio
+    async def test_query_prioritized_themes_returns_empty_list(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that query with prioritized_only=True returns empty list when no themes prioritized."""
+        from src.roadmap_intelligence import controller as roadmap_controller
+
+        theme1 = RoadmapTheme(
+            name="Unprioritized Theme 1",
+            description="Problem 1",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        theme2 = RoadmapTheme(
+            name="Unprioritized Theme 2",
+            description="Problem 2",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme1)
+        session.add(theme2)
+        session.commit()
+
+        result = await query_roadmap_themes.fn(prioritized_only=True)
+
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(result["data"]["themes"], equal_to([]))
+
+    @pytest.mark.asyncio
+    async def test_query_prioritized_themes_returns_only_prioritized(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that query with prioritized_only=True returns only prioritized themes."""
+        from src.roadmap_intelligence import controller as roadmap_controller
+
+        theme1 = RoadmapTheme(
+            name="Prioritized Theme 1",
+            description="Problem 1",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        theme2 = RoadmapTheme(
+            name="Unprioritized Theme",
+            description="Problem 2",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        theme3 = RoadmapTheme(
+            name="Prioritized Theme 2",
+            description="Problem 3",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme1)
+        session.add(theme2)
+        session.add(theme3)
+        session.commit()
+
+        roadmap_controller.prioritize_roadmap_theme(
+            theme_id=theme1.id,
+            new_order=0,
+            workspace_id=workspace.id,
+            session=session,
+        )
+        roadmap_controller.prioritize_roadmap_theme(
+            theme_id=theme3.id,
+            new_order=1,
+            workspace_id=workspace.id,
+            session=session,
+        )
+
+        result = await query_roadmap_themes.fn(prioritized_only=True)
+
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(len(result["data"]["themes"]), equal_to(2))
+        theme_names = [t["name"] for t in result["data"]["themes"]]
+        assert_that("Prioritized Theme 1" in theme_names, equal_to(True))
+        assert_that("Prioritized Theme 2" in theme_names, equal_to(True))
+
+    @pytest.mark.asyncio
+    async def test_query_all_themes_with_prioritized_false(
+        self, session: Session, workspace: Workspace
+    ):
+        """Test that query with prioritized_only=False returns all themes."""
+        from src.roadmap_intelligence import controller as roadmap_controller
+
+        theme1 = RoadmapTheme(
+            name="Theme 1",
+            description="Problem 1",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        theme2 = RoadmapTheme(
+            name="Theme 2",
+            description="Problem 2",
+            workspace_id=workspace.id,
+            user_id=workspace.user_id,
+        )
+        session.add(theme1)
+        session.add(theme2)
+        session.commit()
+
+        roadmap_controller.prioritize_roadmap_theme(
+            theme_id=theme1.id,
+            new_order=0,
+            workspace_id=workspace.id,
+            session=session,
+        )
+
+        result = await query_roadmap_themes.fn(prioritized_only=False)
+
+        assert_that(result, has_entries({"status": "success", "type": "theme"}))
+        assert_that(len(result["data"]["themes"]), equal_to(2))

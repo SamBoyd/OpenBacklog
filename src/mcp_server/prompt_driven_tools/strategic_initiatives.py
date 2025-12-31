@@ -734,160 +734,53 @@ async def submit_strategic_initiative(
 
 
 @mcp.tool()
-async def get_strategic_initiatives() -> Dict[str, Any]:
-    """Retrieve all strategic initiatives with their narrative connections.
+async def query_strategic_initiatives(
+    identifier: Optional[str] = None,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    include_tasks: bool = False,
+) -> Dict[str, Any]:
+    """Query strategic initiatives with flexible filtering.
 
-    Returns initiatives that have strategic context (heroes, villains, pillars,
-    themes) attached, providing the full picture of what's being built and why.
+    A unified query tool that replaces get_strategic_initiatives,
+    get_active_strategic_initiatives, search_strategic_initiatives,
+    and get_strategic_initiative_details.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        List of strategic initiatives with full narrative context
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-        logger.info(f"Getting strategic initiatives for workspace {workspace_uuid}")
-
-        strategic_initiatives = (
-            session.query(StrategicInitiative)
-            .options(*_get_strategic_initiative_eager_load_options())
-            .filter_by(workspace_id=workspace_uuid)
-            .all()
-        )
-
-        initiatives_data = []
-        for si in strategic_initiatives:
-            initiative_data = {
-                "id": str(si.id),
-                "initiative": {
-                    "id": str(si.initiative.id),
-                    "title": si.initiative.title,
-                    "description": si.initiative.description,
-                    "identifier": si.initiative.identifier,
-                    "status": si.initiative.status.value,
-                },
-                "strategic_context": serialize_strategic_initiative(si),
-                "narrative_summary": _build_narrative_summary(si),
-            }
-            initiatives_data.append(initiative_data)
-
-        return build_success_response(
-            entity_type="strategic_initiative",
-            message=f"Found {len(initiatives_data)} strategic initiative(s)",
-            data={"strategic_initiatives": initiatives_data},
-        )
-
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("strategic_initiative", str(e))
-    except Exception as e:
-        logger.exception(f"Error getting strategic initiatives: {e}")
-        return build_error_response("strategic_initiative", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def get_active_strategic_initiatives() -> Dict[str, Any]:
-    """Retrieve all strategic initiatives with IN_PROGRESS status.
-
-    Returns initiatives that are currently active and available for work,
-    with their full narrative connections (heroes, villains, pillars, themes).
-
-    Initiatives without a StrategicInitiative record will have one auto-created
-    with minimal context to ensure all initiatives are visible.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        List of active strategic initiatives with full narrative context
-    """
-    session = SessionLocal()
-    try:
-        user_id_str, workspace_id_str = get_auth_context(
-            session, requires_workspace=True
-        )
-        if workspace_id_str is None:
-            raise MCPContextError(
-                "Workspace not found.",
-                error_type="workspace_error",
-            )
-
-        user_id = uuid.UUID(user_id_str)
-        workspace_uuid = uuid.UUID(workspace_id_str)
-
-        logger.info(
-            f"Getting active strategic initiatives for workspace {workspace_uuid}"
-        )
-
-        active_initiatives = (
-            session.query(Initiative)
-            .filter_by(workspace_id=workspace_uuid, status=InitiativeStatus.IN_PROGRESS)
-            .order_by(Initiative.updated_at.desc())
-            .all()
-        )
-
-        initiatives_data = []
-        for initiative in active_initiatives:
-            si = _ensure_strategic_context(session, initiative, user_id)
-
-            initiative_data = {
-                "id": str(si.id),
-                "initiative": {
-                    "id": str(initiative.id),
-                    "title": initiative.title,
-                    "description": initiative.description,
-                    "identifier": initiative.identifier,
-                    "status": initiative.status.value,
-                },
-                "strategic_context": serialize_strategic_initiative(si),
-                "narrative_summary": _build_narrative_summary(si),
-            }
-            initiatives_data.append(initiative_data)
-
-        session.commit()
-
-        return build_success_response(
-            entity_type="strategic_initiative",
-            message=f"Found {len(initiatives_data)} active strategic initiative(s)",
-            data={"strategic_initiatives": initiatives_data},
-        )
-
-    except MCPContextError as e:
-        logger.warning(f"Context error: {e}")
-        return build_error_response("strategic_initiative", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("strategic_initiative", str(e))
-    except Exception as e:
-        logger.exception(f"Error getting active strategic initiatives: {e}")
-        return build_error_response("strategic_initiative", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def search_strategic_initiatives(query: str) -> Dict[str, Any]:
-    """Search for strategic initiatives by title, description, or identifier.
-
-    Searches initiatives and returns them with their full narrative connections
-    (heroes, villains, pillars, themes). Uses ILIKE for case-insensitive matching.
-
-    Initiatives without a StrategicInitiative record will have one auto-created
-    with minimal context to ensure all initiatives are visible.
+    **Query modes:**
+    - No params: Returns all strategic initiatives
+    - identifier: Returns single initiative with full details + narrative summary
+    - search: Returns initiatives matching search term (title/description)
+    - status: Filters by status (e.g., "IN_PROGRESS" for active only)
+    - include_tasks: Include tasks array (only when identifier provided)
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        query: Search string to match against title, description, or identifier
+        identifier: Initiative identifier (e.g., "I-1001") for single lookup
+        search: Search string for title/description matching
+        status: Filter by status (BACKLOG, TO_DO, IN_PROGRESS)
+        include_tasks: Include tasks array (only for single initiative)
 
     Returns:
-        List of matching strategic initiatives with full narrative context
+        For single: initiative details with optional tasks
+        For list/search: array of initiatives with narrative summaries
+
+    Examples:
+        >>> # Get all initiatives
+        >>> await query_strategic_initiatives()
+
+        >>> # Get single initiative by identifier
+        >>> await query_strategic_initiatives(identifier="I-1001")
+
+        >>> # Get active initiatives only
+        >>> await query_strategic_initiatives(status="IN_PROGRESS")
+
+        >>> # Search initiatives
+        >>> await query_strategic_initiatives(search="context switching")
+
+        >>> # Get initiative with tasks
+        >>> await query_strategic_initiatives(identifier="I-1001", include_tasks=True)
     """
     session = SessionLocal()
     try:
@@ -903,13 +796,139 @@ async def search_strategic_initiatives(query: str) -> Dict[str, Any]:
         user_id = uuid.UUID(user_id_str)
         workspace_uuid = uuid.UUID(workspace_id_str)
 
+        # SINGLE INITIATIVE MODE: identifier provided
+        if identifier:
+            logger.info(
+                f"Getting strategic initiative '{identifier}' in workspace {workspace_uuid}"
+            )
+
+            strategic_initiative = _lookup_strategic_initiative(
+                session, identifier, workspace_uuid
+            )
+
+            if not strategic_initiative:
+                return build_error_response(
+                    "strategic_initiative",
+                    f"Strategic initiative not found: {identifier}",
+                )
+
+            initiative = strategic_initiative.initiative
+            initiative_data: Dict[str, Any] = {
+                "initiative": {
+                    "id": str(initiative.id),
+                    "identifier": initiative.identifier,
+                    "title": initiative.title,
+                    "description": initiative.description,
+                    "status": initiative.status.value,
+                },
+                "strategic_context": serialize_strategic_initiative(
+                    strategic_initiative
+                ),
+                "narrative_summary": _build_narrative_summary(strategic_initiative),
+            }
+
+            if include_tasks:
+                tasks_data = [
+                    {
+                        "id": str(task.id),
+                        "identifier": task.identifier,
+                        "title": task.title,
+                        "description": task.description,
+                        "status": task.status.value,
+                        "type": task.type,
+                        "created_at": (
+                            task.created_at.isoformat() if task.created_at else None
+                        ),
+                        "updated_at": (
+                            task.updated_at.isoformat() if task.updated_at else None
+                        ),
+                    }
+                    for task in initiative.tasks
+                ]
+                initiative_data["tasks"] = tasks_data
+
+            message = f"Found strategic initiative: {initiative.title}"
+            if include_tasks:
+                message += f" with {len(initiative.tasks)} task(s)"
+
+            return build_success_response(
+                entity_type="strategic_initiative",
+                message=message,
+                data=initiative_data,
+            )
+
+        # LIST MODE: search, status filter, or all
         logger.info(
-            f"Searching strategic initiatives for '{query}' in workspace {workspace_uuid}"
+            f"Querying strategic initiatives in workspace {workspace_uuid} "
+            f"(search={search}, status={status})"
         )
 
-        controller = InitiativeController(session)
-        initiatives = controller.search_initiatives(user_id, workspace_uuid, query)
+        # Build base query
+        if search:
+            # Use search functionality
+            controller = InitiativeController(session)
+            initiatives = controller.search_initiatives(user_id, workspace_uuid, search)
 
+            # Apply status filter if provided
+            if status:
+                try:
+                    status_enum = InitiativeStatus(status.upper())
+                    initiatives = [i for i in initiatives if i.status == status_enum]
+                except ValueError:
+                    valid_statuses = ", ".join(s.value for s in InitiativeStatus)
+                    return build_error_response(
+                        "strategic_initiative",
+                        f"Invalid status '{status}'. Valid statuses are: {valid_statuses}",
+                    )
+        elif status:
+            # Status filter only
+            try:
+                status_enum = InitiativeStatus(status.upper())
+            except ValueError:
+                valid_statuses = ", ".join(s.value for s in InitiativeStatus)
+                return build_error_response(
+                    "strategic_initiative",
+                    f"Invalid status '{status}'. Valid statuses are: {valid_statuses}",
+                )
+
+            initiatives = (
+                session.query(Initiative)
+                .filter_by(workspace_id=workspace_uuid, status=status_enum)
+                .order_by(Initiative.updated_at.desc())
+                .all()
+            )
+        else:
+            # Get all - query via StrategicInitiative for full context
+            strategic_initiatives = (
+                session.query(StrategicInitiative)
+                .options(*_get_strategic_initiative_eager_load_options())
+                .filter_by(workspace_id=workspace_uuid)
+                .all()
+            )
+
+            initiatives_data = []
+            for si in strategic_initiatives:
+                initiative_data = {
+                    "id": str(si.id),
+                    "initiative": {
+                        "id": str(si.initiative.id),
+                        "identifier": si.initiative.identifier,
+                        "title": si.initiative.title,
+                        "description": si.initiative.description,
+                        "status": si.initiative.status.value,
+                    },
+                    "strategic_context": serialize_strategic_initiative(si),
+                    "narrative_summary": _build_narrative_summary(si),
+                }
+                initiatives_data.append(initiative_data)
+
+            return build_success_response(
+                entity_type="strategic_initiative",
+                message=f"Found {len(initiatives_data)} strategic initiative(s)",
+                data={"strategic_initiatives": initiatives_data},
+            )
+
+        # Process initiatives from search or status filter
         initiatives_data = []
         for initiative in initiatives:
             si = _ensure_strategic_context(session, initiative, user_id)
@@ -918,9 +937,9 @@ async def search_strategic_initiatives(query: str) -> Dict[str, Any]:
                 "id": str(si.id),
                 "initiative": {
                     "id": str(initiative.id),
+                    "identifier": initiative.identifier,
                     "title": initiative.title,
                     "description": initiative.description,
-                    "identifier": initiative.identifier,
                     "status": initiative.status.value,
                 },
                 "strategic_context": serialize_strategic_initiative(si),
@@ -930,9 +949,19 @@ async def search_strategic_initiatives(query: str) -> Dict[str, Any]:
 
         session.commit()
 
+        # Build message based on query type
+        if search and status:
+            message = f"Found {len(initiatives_data)} strategic initiative(s) matching '{search}' with status {status}"
+        elif search:
+            message = f"Found {len(initiatives_data)} strategic initiative(s) matching '{search}'"
+        elif status:
+            message = f"Found {len(initiatives_data)} strategic initiative(s) with status {status}"
+        else:
+            message = f"Found {len(initiatives_data)} strategic initiative(s)"
+
         return build_success_response(
             entity_type="strategic_initiative",
-            message=f"Found {len(initiatives_data)} strategic initiative(s) matching '{query}'",
+            message=message,
             data={"strategic_initiatives": initiatives_data},
         )
 
@@ -943,99 +972,7 @@ async def search_strategic_initiatives(query: str) -> Dict[str, Any]:
         logger.error(f"Validation error: {e}")
         return build_error_response("strategic_initiative", str(e))
     except Exception as e:
-        logger.exception(f"Error searching strategic initiatives: {e}")
-        return build_error_response("strategic_initiative", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def get_strategic_initiative_details(
-    query: str,
-    include_tasks: bool = False,
-) -> Dict[str, Any]:
-    """Retrieve a single strategic initiative by ID or identifier.
-
-    Accepts a flexible query that tries multiple lookup strategies:
-    1. First tries as StrategicInitiative UUID
-    2. Then tries as Initiative UUID
-    3. Finally tries as Initiative identifier (e.g., "I-1001")
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        query: Strategic initiative ID, initiative ID, or initiative identifier
-        include_tasks: If True, include the initiative's tasks in the response
-
-    Returns:
-        Strategic initiative with full narrative context, optionally with tasks
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-        logger.info(
-            f"Getting strategic initiative for query '{query}' in workspace {workspace_uuid}"
-        )
-
-        strategic_initiative = _lookup_strategic_initiative(
-            session, query, workspace_uuid
-        )
-
-        if not strategic_initiative:
-            return build_error_response(
-                "strategic_initiative",
-                f"Strategic initiative not found for query: {query}",
-            )
-
-        initiative = strategic_initiative.initiative
-        initiative_data: Dict[str, Any] = {
-            "initiative": {
-                "identifier": initiative.identifier,
-                "title": initiative.title,
-                "description": initiative.description,
-                "identifier": initiative.identifier,
-                "status": initiative.status.value,
-            },
-            "strategic_context": serialize_strategic_initiative(strategic_initiative),
-            "narrative_summary": _build_narrative_summary(strategic_initiative),
-        }
-
-        if include_tasks:
-            tasks_data = [
-                {
-                    "id": str(task.id),
-                    "title": task.title,
-                    "description": task.description,
-                    "identifier": task.identifier,
-                    "status": task.status.value,
-                    "type": task.type,
-                    "created_at": (
-                        task.created_at.isoformat() if task.created_at else None
-                    ),
-                    "updated_at": (
-                        task.updated_at.isoformat() if task.updated_at else None
-                    ),
-                }
-                for task in initiative.tasks
-            ]
-            initiative_data["tasks"] = tasks_data
-
-        message = f"Found strategic initiative: {initiative.title}"
-        if include_tasks:
-            message += f" with {len(initiative.tasks)} task(s)"
-
-        return build_success_response(
-            entity_type="strategic_initiative",
-            message=message,
-            data=initiative_data,
-        )
-
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("strategic_initiative", str(e))
-    except Exception as e:
-        logger.exception(f"Error getting strategic initiative: {e}")
+        logger.exception(f"Error querying strategic initiatives: {e}")
         return build_error_response("strategic_initiative", f"Server error: {str(e)}")
     finally:
         session.close()

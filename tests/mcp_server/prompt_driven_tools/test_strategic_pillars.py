@@ -9,14 +9,13 @@ from sqlalchemy.orm import Session
 
 from src.mcp_server.prompt_driven_tools.strategic_pillars import (
     get_pillar_definition_framework,
-    get_strategic_pillar_details,
+    query_strategic_pillars,
     submit_strategic_pillar,
 )
 from src.models import User, Workspace
 from src.strategic_planning import controller as strategic_controller
 from src.strategic_planning.aggregates.strategic_pillar import StrategicPillar
 from src.strategic_planning.exceptions import DomainException
-from src.strategic_planning.services.event_publisher import EventPublisher
 
 
 @pytest.fixture
@@ -39,11 +38,11 @@ def mock_get_auth_context(user: User, workspace: Workspace):
         yield mock_auth
 
 
-class TestGetStrategicPillarDetails:
-    """Test suite for get_strategic_pillar_details tool."""
+class TestQueryStrategicPillars:
+    """Test suite for query_strategic_pillars tool."""
 
     @pytest.fixture
-    def pillar(self, workspace, user, session):
+    def pillar(self, workspace: Workspace, user: User, session: Session):
         """Create a pillar for testing."""
         pillar = strategic_controller.create_strategic_pillar(
             workspace_id=workspace.id,
@@ -57,67 +56,119 @@ class TestGetStrategicPillarDetails:
         return pillar
 
     @pytest.mark.asyncio
-    async def test_get_strategic_pillar_details_success(
-        self, session, user, workspace, pillar, mock_get_auth_context
+    async def test_query_strategic_pillars_single_success(
+        self,
+        session: Session,
+        user: User,
+        workspace: Workspace,
+        pillar: StrategicPillar,
+        mock_get_workspace_id_from_request: MagicMock,
     ):
-        """Test successfully retrieving a strategic pillar."""
-        result = await get_strategic_pillar_details.fn(
-            pillar_identifier=pillar.identifier
-        )
+        """Test successfully retrieving a single strategic pillar."""
+        result = await query_strategic_pillars.fn(identifier=pillar.identifier)
 
         assert_that(result, has_entries({"status": "success", "type": "pillar"}))
         assert_that(result["data"]["name"], equal_to(pillar.name))
         assert_that(result["data"]["identifier"], equal_to(pillar.identifier))
 
     @pytest.mark.asyncio
-    async def test_get_strategic_pillar_details_includes_linked_outcomes(
-        self, session, user, workspace, pillar, mock_get_auth_context
+    async def test_query_strategic_pillars_includes_linked_outcomes(
+        self,
+        session: Session,
+        user: User,
+        workspace: Workspace,
+        pillar: StrategicPillar,
+        mock_get_workspace_id_from_request: MagicMock,
     ):
         """Test that pillar details include linked outcomes."""
-        result = await get_strategic_pillar_details.fn(
-            pillar_identifier=pillar.identifier
-        )
+        result = await query_strategic_pillars.fn(identifier=pillar.identifier)
 
         assert_that(result["data"], has_key("linked_outcomes"))
         assert isinstance(result["data"]["linked_outcomes"], list)
 
     @pytest.mark.asyncio
-    async def test_get_strategic_pillar_details_not_found(
-        self, session, user, workspace, mock_get_auth_context
+    async def test_query_strategic_pillars_single_not_found(
+        self,
+        session: Session,
+        user: User,
+        workspace: Workspace,
+        mock_get_workspace_id_from_request: MagicMock,
     ):
         """Test error when pillar not found."""
         fake_identifier = "P-99999"
 
-        result = await get_strategic_pillar_details.fn(
-            pillar_identifier=fake_identifier
-        )
+        result = await query_strategic_pillars.fn(identifier=fake_identifier)
 
         assert_that(result, has_entries({"status": "error", "type": "pillar"}))
         assert "not found" in result["error_message"]
 
     @pytest.mark.asyncio
-    async def test_get_strategic_pillar_details_invalid_uuid(
-        self, session, user, workspace, mock_get_auth_context
+    async def test_query_strategic_pillars_single_invalid_identifier(
+        self,
+        session: Session,
+        user: User,
+        workspace: Workspace,
+        mock_get_workspace_id_from_request: MagicMock,
     ):
-        """Test error when invalid UUID provided."""
-        result = await get_strategic_pillar_details.fn(pillar_identifier="INVALID")
+        """Test error when invalid identifier provided."""
+        result = await query_strategic_pillars.fn(identifier="INVALID")
 
         assert_that(result, has_entries({"status": "error", "type": "pillar"}))
 
     @pytest.mark.asyncio
-    async def test_get_strategic_pillar_details_mcp_context_error(
-        self, session, pillar, mock_get_auth_context
+    async def test_query_strategic_pillars_single_mcp_context_error(
+        self,
+        session: Session,
+        pillar: StrategicPillar,
+        mock_get_workspace_id_from_request: MagicMock,
     ):
         """Test handling of MCPContextError."""
         from src.mcp_server.auth_utils import MCPContextError
 
-        mock_get_auth_context.side_effect = MCPContextError("No workspace in context")
-
-        result = await get_strategic_pillar_details.fn(
-            pillar_identifier=pillar.identifier
+        mock_get_workspace_id_from_request.side_effect = MCPContextError(
+            "No workspace in context"
         )
 
+        result = await query_strategic_pillars.fn(identifier=pillar.identifier)
+
         assert_that(result, has_entries({"status": "error", "type": "pillar"}))
+
+    @pytest.mark.asyncio
+    async def test_query_strategic_pillars_list_returns_all_pillars(
+        self,
+        session: Session,
+        user: User,
+        workspace: Workspace,
+        pillar: StrategicPillar,
+        mock_get_workspace_id_from_request: MagicMock,
+    ):
+        """Test retrieving all strategic pillars without identifier."""
+        result = await query_strategic_pillars.fn()
+
+        assert_that(result, has_entries({"status": "success", "type": "pillar"}))
+        assert_that(result["data"], has_key("pillars"))
+        assert isinstance(result["data"]["pillars"], list)
+        # Should include the pillar we created
+        assert len(result["data"]["pillars"]) >= 1
+        assert any(
+            p["identifier"] == pillar.identifier for p in result["data"]["pillars"]
+        )
+
+    @pytest.mark.asyncio
+    async def test_query_strategic_pillars_list_empty(
+        self,
+        session: Session,
+        user: User,
+        workspace: Workspace,
+        mock_get_workspace_id_from_request: MagicMock,
+    ):
+        """Test retrieving all pillars when none exist."""
+        result = await query_strategic_pillars.fn()
+
+        assert_that(result, has_entries({"status": "success", "type": "pillar"}))
+        assert_that(result["data"], has_key("pillars"))
+        assert isinstance(result["data"]["pillars"], list)
+        assert len(result["data"]["pillars"]) == 0
 
 
 class TestGetPillarDefinitionFramework:
@@ -125,7 +176,7 @@ class TestGetPillarDefinitionFramework:
 
     @pytest.mark.asyncio
     async def test_framework_returns_complete_structure(
-        self, mock_get_workspace_id_from_request
+        self, mock_get_workspace_id_from_request: MagicMock
     ):
         """Test that framework returns all required fields."""
         with patch(
@@ -149,7 +200,7 @@ class TestGetPillarDefinitionFramework:
 
     @pytest.mark.asyncio
     async def test_framework_includes_existing_pillars(
-        self, mock_get_workspace_id_from_request
+        self, mock_get_workspace_id_from_request: MagicMock
     ):
         """Test that framework includes current pillars."""
         # Mock existing pillars
@@ -176,7 +227,7 @@ class TestSubmitStrategicPillar:
     """Test suite for submit_strategic_pillar tool (create and update)."""
 
     @pytest.fixture
-    def pillar(self, workspace, user, session):
+    def pillar(self, workspace: Workspace, user: User, session: Session):
         """Create a pillar for testing updates."""
         pillar = strategic_controller.create_strategic_pillar(
             workspace_id=workspace.id,
@@ -191,7 +242,11 @@ class TestSubmitStrategicPillar:
 
     @pytest.mark.asyncio
     async def test_submit_creates_pillar_successfully(
-        self, session: Session, workspace: Workspace
+        self,
+        session: Session,
+        workspace: Workspace,
+        user: User,
+        mock_get_auth_context: MagicMock,
     ):
         """Test that submit successfully creates pillar via controller."""
         name = "Deep IDE Integration"
@@ -209,9 +264,9 @@ class TestSubmitStrategicPillar:
         self,
         session: Session,
         workspace: Workspace,
-        user,
-        pillar,
-        mock_get_auth_context,
+        user: User,
+        pillar: StrategicPillar,
+        mock_get_auth_context: MagicMock,
     ):
         """Test that submit updates pillar name via upsert."""
         new_name = "Deep IDE Integration (Updated)"
@@ -231,9 +286,9 @@ class TestSubmitStrategicPillar:
         self,
         session: Session,
         workspace: Workspace,
-        user,
-        pillar,
-        mock_get_auth_context,
+        user: User,
+        pillar: StrategicPillar,
+        mock_get_auth_context: MagicMock,
     ):
         """Test that submit updates pillar description via upsert."""
         new_description = (
@@ -255,9 +310,9 @@ class TestSubmitStrategicPillar:
         self,
         session: Session,
         workspace: Workspace,
-        user,
-        pillar,
-        mock_get_auth_context,
+        user: User,
+        pillar: StrategicPillar,
+        mock_get_auth_context: MagicMock,
     ):
         """Test that submit updates both name and description via upsert."""
         new_name = "AI-Native Guidance"
@@ -278,7 +333,11 @@ class TestSubmitStrategicPillar:
 
     @pytest.mark.asyncio
     async def test_submit_update_pillar_not_found(
-        self, session: Session, workspace: Workspace, user, mock_get_auth_context
+        self,
+        session: Session,
+        workspace: Workspace,
+        user: User,
+        mock_get_auth_context: MagicMock,
     ):
         """Test error when pillar not found during update."""
         fake_identifier = "P-9999"

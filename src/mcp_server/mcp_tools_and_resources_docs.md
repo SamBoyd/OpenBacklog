@@ -293,11 +293,26 @@ submit_strategic_initiative(
 
 ---
 
-### `get_strategic_initiatives()`
+### `query_strategic_initiatives(identifier?: str, search?: str, status?: str, include_tasks?: bool)`
 
-Retrieves all strategic initiatives with their narrative connections.
+Query strategic initiatives with flexible filtering and single-entity lookup.
 
-**Returns:**
+**Query modes:**
+- No params: Returns all strategic initiatives
+- identifier: Returns single initiative with full details + narrative summary
+- search: Returns initiatives matching search term (title/description)
+- status: Filters by status (e.g., "IN_PROGRESS" for active only)
+- include_tasks: Include tasks array (only when identifier provided)
+
+Initiatives without a StrategicInitiative record will have one auto-created with minimal context to ensure all initiatives are visible.
+
+**Parameters:**
+- `identifier` (optional): Initiative identifier (e.g., "I-1001") for single lookup
+- `search` (optional): Search string for title/description matching
+- `status` (optional): Filter by status (BACKLOG, TO_DO, IN_PROGRESS)
+- `include_tasks` (optional): Include tasks array (only for single initiative, default: false)
+
+**Returns (list mode):**
 ```json
 {
   "status": "success",
@@ -327,121 +342,7 @@ Retrieves all strategic initiatives with their narrative connections.
 }
 ```
 
-**Use Cases:**
-- Viewing all initiatives with strategic context
-- Understanding the full narrative landscape
-- Planning based on hero/villain connections
-
----
-
-### `get_active_strategic_initiatives()`
-
-Retrieves all strategic initiatives with IN_PROGRESS status.
-
-Returns initiatives that are currently active and available for work, with their full narrative connections (heroes, villains, pillars, themes).
-
-Initiatives without a StrategicInitiative record will have one auto-created with minimal context to ensure all initiatives are visible.
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "strategic_initiative",
-  "message": "Found N active strategic initiative(s)",
-  "data": {
-    "strategic_initiatives": [
-      {
-        "initiative": {
-          "identifier": "I-1001",
-          "title": "...",
-          "description": "...",
-          "status": "IN_PROGRESS"
-        },
-        "strategic_context": {
-          "heroes": [/* linked heroes with identifiers */],
-          "villains": [/* linked villains with identifiers */],
-          "conflicts": [/* linked conflicts with identifiers */],
-          "pillar": {/* linked pillar with identifier */},
-          "theme": {/* linked theme with identifier */},
-          "narrative_intent": "..."
-        },
-        "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Pillar: Deep IDE Integration"
-      }
-    ]
-  }
-}
-```
-
-**Use Cases:**
-- Starting workflow to select an initiative to work on
-- Listing current active work with full strategic context
-- Initiative selection with narrative awareness
-- Filtering to only in-progress work
-
----
-
-### `search_strategic_initiatives(query: str)`
-
-Searches for strategic initiatives by title, description, or identifier.
-
-Searches initiatives and returns them with their full narrative connections (heroes, villains, pillars, themes). Uses case-insensitive matching.
-
-Initiatives without a StrategicInitiative record will have one auto-created with minimal context to ensure all initiatives are visible.
-
-**Parameters:**
-- `query`: Search string to match against title, description, or identifier
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "strategic_initiative",
-  "message": "Found N strategic initiative(s) matching 'query'",
-  "data": {
-    "strategic_initiatives": [
-      {
-        "initiative": {
-          "identifier": "I-1001",
-          "title": "...",
-          "description": "...",
-          "status": "IN_PROGRESS"
-        },
-        "strategic_context": {
-          "heroes": [/* linked heroes with identifiers */],
-          "villains": [/* linked villains with identifiers */],
-          "conflicts": [/* linked conflicts with identifiers */],
-          "pillar": {/* linked pillar with identifier */},
-          "theme": {/* linked theme with identifier */},
-          "narrative_intent": "..."
-        },
-        "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Pillar: Deep IDE Integration"
-      }
-    ]
-  }
-}
-```
-
-**Use Cases:**
-- Finding specific initiatives by keyword
-- Searching by initiative identifier (e.g., "I-1001")
-- Locating initiatives related to a topic
-- Quick lookup with full narrative context
-
----
-
-### `get_strategic_initiative_details(query: str)`
-
-Retrieves a single strategic initiative by ID or identifier.
-
-Accepts a flexible query that tries multiple lookup strategies:
-1. First tries as StrategicInitiative UUID
-2. Then tries as Initiative UUID
-3. Finally tries as Initiative identifier (e.g., "I-1001")
-
-**Parameters:**
-- `query`: Strategic initiative ID, initiative ID, or initiative identifier
-
-**Returns:**
+**Returns (single mode):**
 ```json
 {
   "status": "success",
@@ -449,20 +350,47 @@ Accepts a flexible query that tries multiple lookup strategies:
   "message": "Found strategic initiative: Title",
   "data": {
     "initiative": {
+      "id": "<uuid>",
       "identifier": "I-1001",
       "title": "...",
       "description": "...",
       "status": "IN_PROGRESS"
     },
     "strategic_context": {/* full strategic initiative details */},
-    "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Why: ..."
+    "narrative_summary": "Helps: Sarah | Defeats: Context Switching | Why: ...",
+    "tasks": [/* optional, only if include_tasks=True */]
   }
 }
 ```
 
+**Examples:**
+```python
+# Get all initiatives
+await query_strategic_initiatives()
+
+# Get single initiative by identifier
+await query_strategic_initiatives(identifier="I-1001")
+
+# Get active initiatives only
+await query_strategic_initiatives(status="IN_PROGRESS")
+
+# Search initiatives
+await query_strategic_initiatives(search="context switching")
+
+# Get initiative with tasks
+await query_strategic_initiatives(identifier="I-1001", include_tasks=True)
+
+# Combine search and status filter
+await query_strategic_initiatives(search="auth", status="IN_PROGRESS")
+```
+
 **Use Cases:**
+- Viewing all initiatives with strategic context
 - Getting full context for a specific initiative
-- Looking up initiative by human-readable identifier
+- Starting workflow to select an initiative to work on
+- Listing current active work with full strategic context
+- Finding specific initiatives by keyword
+- Searching by initiative identifier (e.g., "I-1001")
 - Understanding narrative connections before work
 
 ---
@@ -844,11 +772,18 @@ Framework similar to vision with pillar-specific criteria:
 
 ---
 
-#### `get_strategic_pillars()`
+#### `query_strategic_pillars(identifier?: str)`
 
-Lists all strategic pillars for the workspace.
+Query strategic pillars with optional single-entity lookup.
 
-**Returns:**
+**Query modes:**
+- No params: Returns all strategic pillars
+- identifier: Returns single pillar with linked outcomes
+
+**Parameters:**
+- `identifier` (optional): Pillar identifier (e.g., "P-001") for single lookup
+
+**Returns (list mode):**
 ```json
 {
   "status": "success",
@@ -866,28 +801,12 @@ Lists all strategic pillars for the workspace.
 }
 ```
 
-**Use Cases:**
-- Viewing current strategic pillars
-- Checking available pillars before linking outcomes
-- Strategic foundation review
-
----
-
-#### `get_strategic_pillar_details(pillar_identifier: str)`
-
-Retrieves a single strategic pillar with linked outcomes.
-
-Returns the pillar with its full details including all linked product outcomes for comprehensive context.
-
-**Parameters:**
-- `pillar_identifier`: Human-readable identifier (e.g., "P-001")
-
-**Returns:**
+**Returns (single mode):**
 ```json
 {
   "status": "success",
   "type": "pillar",
-  "message": "Retrieved strategic pillar 'Pillar Name'",
+  "message": "Found strategic pillar: Pillar Name",
   "data": {
     "identifier": "P-001",
     "name": "...",
@@ -903,10 +822,21 @@ Returns the pillar with its full details including all linked product outcomes f
 }
 ```
 
+**Examples:**
+```python
+# Get all pillars
+await query_strategic_pillars()
+
+# Get single pillar by identifier
+await query_strategic_pillars(identifier="P-001")
+```
+
 **Use Cases:**
+- Viewing current strategic pillars
+- Checking available pillars before linking outcomes
 - Getting full pillar details with linked outcomes
 - Understanding pillar-outcome relationships
-- Reviewing strategic alignment
+- Strategic foundation review
 
 ---
 
@@ -1033,11 +963,18 @@ submit_product_outcome(
 
 ---
 
-#### `get_product_outcomes()`
+#### `query_product_outcomes(identifier?: str)`
 
-Lists all product outcomes for the workspace.
+Query product outcomes with optional single-entity lookup.
 
-**Returns:**
+**Query modes:**
+- No params: Returns all product outcomes
+- identifier: Returns single outcome with linked pillars and themes
+
+**Parameters:**
+- `identifier` (optional): Outcome identifier (e.g., "O-001") for single lookup
+
+**Returns (list mode):**
 ```json
 {
   "status": "success",
@@ -1056,9 +993,42 @@ Lists all product outcomes for the workspace.
 }
 ```
 
+**Returns (single mode):**
+```json
+{
+  "status": "success",
+  "type": "outcome",
+  "message": "Found product outcome: Outcome Name",
+  "data": {
+    "identifier": "O-001",
+    "name": "...",
+    "description": "...",
+    "pillars": [/* linked pillars with identifiers */],
+    "pillar_names": ["Pillar 1", "Pillar 2"],
+    "linked_themes": [
+      {
+        "identifier": "T-001",
+        "name": "...",
+        "is_prioritized": true
+      }
+    ]
+  }
+}
+```
+
+**Examples:**
+```python
+# Get all outcomes
+await query_product_outcomes()
+
+# Get single outcome by identifier
+await query_product_outcomes(identifier="O-001")
+```
+
 **Use Cases:**
 - Viewing all defined product outcomes
 - Getting outcome IDs for linking to themes
+- Getting full outcome details with linked entities
 - Strategic planning review
 
 ---
@@ -1238,11 +1208,20 @@ Success response with alignment score.
 
 ---
 
-#### `get_roadmap_themes()`
+#### `query_roadmap_themes(identifier?: str, prioritized_only?: bool)`
 
-Lists all roadmap themes for the workspace (both prioritized and unprioritized).
+Query roadmap themes with optional filtering and single-entity lookup.
 
-**Returns:**
+**Query modes:**
+- No params: Returns all themes (prioritized and unprioritized)
+- identifier: Returns single theme with full linked entities and alignment score
+- prioritized_only: Returns only prioritized themes
+
+**Parameters:**
+- `identifier` (optional): Theme identifier (e.g., "T-001") for single lookup
+- `prioritized_only` (optional): If True, filters to prioritized themes only (default: false)
+
+**Returns (list mode):**
 ```json
 {
   "status": "success",
@@ -1265,9 +1244,42 @@ Lists all roadmap themes for the workspace (both prioritized and unprioritized).
 }
 ```
 
+**Returns (single mode):**
+```json
+{
+  "status": "success",
+  "type": "theme",
+  "message": "Found roadmap theme: Theme Name",
+  "data": {
+    "identifier": "T-001",
+    "name": "...",
+    "description": "...",
+    "outcome_names": ["Outcome 1", "Outcome 2"],
+    "hero_names": ["Sarah"],
+    "villain_names": ["Context Switching"],
+    "primary_villain_name": "Context Switching",
+    "is_prioritized": true,
+    "alignment_score": 0.85
+  }
+}
+```
+
+**Examples:**
+```python
+# Get all themes
+await query_roadmap_themes()
+
+# Get single theme by identifier
+await query_roadmap_themes(identifier="T-001")
+
+# Get only prioritized themes
+await query_roadmap_themes(prioritized_only=True)
+```
+
 **Use Cases:**
 - Viewing all themes (prioritized and unprioritized)
 - Getting theme IDs for linking to initiatives
+- Getting full theme details with alignment score
 - Roadmap planning review
 
 ---
@@ -1460,6 +1472,7 @@ All tools return consistent error responses:
 10. **Natural language extraction**: Use `conversation_guidelines` and `natural_questions` from framework responses to ask questions in the user's domain language, then extract structured data using `extraction_guidance` patterns.
 11. **Use upsert pattern**: All `submit_*` functions support both create and update via optional identifier parameters. Pass identifier to update (e.g., `hero_identifier="H-001"`), omit to create.
 12. **Partial updates**: When updating entities, only provide fields you want to change. Omitted fields preserve existing values. For example, `submit_hero(hero_identifier="H-001", name="New Name")` updates only the name.
+13. **Use unified query tools**: Each entity type has a single `query_*` function (e.g., `query_heroes`, `query_strategic_initiatives`) that handles both listing and single-entity lookup. Pass `identifier` parameter for details, omit for list view. Some also support filtering (e.g., `status`, `active_only`, `prioritized_only`).
 
 ---
 
@@ -1540,24 +1553,68 @@ submit_hero(
 
 ---
 
-#### `get_heroes()`
+#### `query_heroes(identifier?: str)`
 
-Retrieves all heroes for a workspace.
+Query heroes with optional single-entity lookup.
 
-**Returns:**
-List of heroes with full details including identifier, name, description, is_primary status.
-
----
-
-#### `get_hero_details(hero_identifier: str)`
-
-Retrieves full hero details including journey summary.
+**Query modes:**
+- No params: Returns all heroes (list view)
+- identifier: Returns single hero with full details + journey_summary
 
 **Parameters:**
-- `hero_identifier`: Human-readable identifier (e.g., "H-001")
+- `identifier` (optional): Hero identifier (e.g., "H-001") for single lookup
 
-**Returns:**
-Hero details + journey summary (active arcs, open conflicts).
+**Returns (list mode):**
+```json
+{
+  "status": "success",
+  "type": "hero",
+  "message": "Found N hero(es)",
+  "data": {
+    "heroes": [
+      {
+        "identifier": "H-001",
+        "name": "...",
+        "description": "...",
+        "is_primary": true
+      }
+    ]
+  }
+}
+```
+
+**Returns (single mode):**
+```json
+{
+  "status": "success",
+  "type": "hero",
+  "message": "Found hero: Sarah",
+  "data": {
+    "identifier": "H-001",
+    "name": "...",
+    "description": "...",
+    "is_primary": true,
+    "journey_summary": {
+      "active_arcs": [...],
+      "open_conflicts": [...]
+    }
+  }
+}
+```
+
+**Examples:**
+```python
+# Get all heroes
+await query_heroes()
+
+# Get single hero by identifier
+await query_heroes(identifier="H-001")
+```
+
+**Use Cases:**
+- Viewing all heroes for a workspace
+- Getting full hero details with journey summary
+- Understanding active arcs and open conflicts for a hero
 
 ---
 
@@ -1649,30 +1706,45 @@ submit_villain(
 
 ---
 
-#### `get_villains()`
+#### `query_villains(identifier?: str, active_only?: bool)`
 
-Retrieves all villains for a workspace.
+Query villains with optional filtering and single-entity lookup.
 
-**Returns:**
-List of villains with full details including identifier, name, villain_type, severity, is_defeated status.
-
----
-
-#### `get_villain_details(villain_identifier: str)`
-
-Retrieves full villain details including battle summary.
-
-Returns enriched villain data including counts of conflicts, linked themes, and initiatives confronting this villain.
+**Query modes:**
+- No params: Returns all villains
+- identifier: Returns single villain with full details + battle_summary
+- active_only: Filters to non-defeated villains only
 
 **Parameters:**
-- `villain_identifier`: Human-readable identifier (e.g., "V-001")
+- `identifier` (optional): Villain identifier (e.g., "V-001") for single lookup
+- `active_only` (optional): If True, filters to non-defeated villains only (default: false)
 
-**Returns:**
+**Returns (list mode):**
 ```json
 {
   "status": "success",
   "type": "villain",
-  "message": "Retrieved villain details for Context Switching",
+  "message": "Found N villain(s)",
+  "data": {
+    "villains": [
+      {
+        "identifier": "V-001",
+        "name": "Context Switching",
+        "villain_type": "WORKFLOW",
+        "severity": 4,
+        "is_defeated": false
+      }
+    ]
+  }
+}
+```
+
+**Returns (single mode):**
+```json
+{
+  "status": "success",
+  "type": "villain",
+  "message": "Found villain: Context Switching",
   "data": {
     "identifier": "V-001",
     "name": "Context Switching",
@@ -1692,10 +1764,24 @@ Returns enriched villain data including counts of conflicts, linked themes, and 
 }
 ```
 
+**Examples:**
+```python
+# Get all villains
+await query_villains()
+
+# Get single villain by identifier
+await query_villains(identifier="V-001")
+
+# Get only active (non-defeated) villains
+await query_villains(active_only=True)
+```
+
 **Use Cases:**
-- Getting comprehensive villain context
+- Viewing all villains for a workspace
+- Getting comprehensive villain context with battle summary
 - Understanding what initiatives are fighting this villain
 - Reviewing conflicts and themes related to a villain
+- Filtering to only active threats
 - Strategic planning around specific problems
 
 ---
@@ -1783,17 +1869,81 @@ Success response with created or updated conflict.
 
 ---
 
-#### `get_conflicts(status: str | None, hero_identifier: str | None, villain_identifier: str | None)`
+#### `query_conflicts(identifier?: str, status?: str, hero_identifier?: str, villain_identifier?: str)`
 
-Retrieves conflicts with optional filtering.
+Query conflicts with flexible filtering and single-entity lookup.
+
+**Query modes:**
+- No params: Returns all conflicts
+- identifier: Returns single conflict with full hero/villain context
+- Filters (status, hero_identifier, villain_identifier): Can be combined
 
 **Parameters:**
-- `status`: Optional filter by status (OPEN, ESCALATING, RESOLVING, RESOLVED)
-- `hero_identifier`: Optional filter by hero identifier (e.g., "H-001")
-- `villain_identifier`: Optional filter by villain identifier (e.g., "V-001")
+- `identifier` (optional): Conflict identifier (e.g., "C-001") for single lookup
+- `status` (optional): Filter by status (OPEN, ESCALATING, RESOLVING, RESOLVED)
+- `hero_identifier` (optional): Filter by hero identifier (e.g., "H-001")
+- `villain_identifier` (optional): Filter by villain identifier (e.g., "V-001")
 
-**Returns:**
-List of conflicts matching filters.
+**Returns (list mode):**
+```json
+{
+  "status": "success",
+  "type": "conflict",
+  "message": "Found N conflict(s)",
+  "data": {
+    "conflicts": [
+      {
+        "identifier": "C-001",
+        "description": "...",
+        "status": "OPEN",
+        "hero": {/* hero details */},
+        "villain": {/* villain details */}
+      }
+    ]
+  }
+}
+```
+
+**Returns (single mode):**
+```json
+{
+  "status": "success",
+  "type": "conflict",
+  "message": "Found conflict: C-001",
+  "data": {
+    "identifier": "C-001",
+    "description": "...",
+    "status": "OPEN",
+    "hero": {/* hero details */},
+    "villain": {/* villain details */},
+    "roadmap_theme": {/* theme details if linked */}
+  }
+}
+```
+
+**Examples:**
+```python
+# Get all conflicts
+await query_conflicts()
+
+# Get single conflict by identifier
+await query_conflicts(identifier="C-001")
+
+# Get open conflicts only
+await query_conflicts(status="OPEN")
+
+# Get conflicts for a specific hero
+await query_conflicts(hero_identifier="H-001")
+
+# Combine filters
+await query_conflicts(status="OPEN", hero_identifier="H-001")
+```
+
+**Use Cases:**
+- Viewing all conflicts for a workspace
+- Getting full conflict details with hero/villain context
+- Filtering by status, hero, or villain
+- Understanding conflict resolution status
 
 ---
 

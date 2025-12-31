@@ -5,18 +5,13 @@ from typing import List
 from unittest.mock import Mock, patch
 
 import pytest
-from hamcrest import assert_that, equal_to, has_entries, is_
+from hamcrest import assert_that, has_entries, has_key
 from sqlalchemy.orm import Session
 
-from src.initiative_management.task_controller import (
-    TaskControllerError,
-    TaskNotFoundError,
-)
+from src.initiative_management.task_controller import TaskControllerError
 from src.mcp_server.task_tools import (
     TaskChecklistItem,
-    get_initiative_tasks,
-    get_task_details,
-    search_tasks,
+    query_tasks,
     submit_task,
     validate_context,
 )
@@ -43,20 +38,29 @@ def initiative(user: User, workspace: Workspace, session: Session) -> Initiative
     return initiative
 
 
-class TestGetInitiativeTasks:
-    """Test suite for get_initiative_tasks MCP tool."""
+@pytest.fixture
+def mock_get_auth_context(user: User, workspace: Workspace):
+    """Mock get_auth_context for MCP tools."""
+    with patch("src.mcp_server.task_tools.get_auth_context") as mock_auth:
+        mock_auth.return_value = (str(user.id), str(workspace.id))
+        yield mock_auth
+
+
+class TestQueryTasksByInitiative:
+    """Test suite for query_tasks with initiative_identifier filter."""
 
     @pytest.fixture
-    def sample_tasks(self, user: User, workspace: Workspace):
+    def sample_tasks(
+        self, user: User, workspace: Workspace, initiative: Initiative, session: Session
+    ) -> List[Task]:
         """Sample tasks for testing."""
-        initiative_id = uuid.uuid4()
-        return [
+        tasks = [
             Task(
                 id=uuid.uuid4(),
                 title="Task 1",
                 description="Description 1",
                 status=TaskStatus.TO_DO,
-                initiative_id=initiative_id,
+                initiative_id=initiative.id,
                 workspace_id=workspace.id,
                 user_id=user.id,
                 identifier="T-001",
@@ -67,106 +71,105 @@ class TestGetInitiativeTasks:
                 title="Task 2",
                 description="Description 2",
                 status=TaskStatus.IN_PROGRESS,
-                initiative_id=initiative_id,
+                initiative_id=initiative.id,
                 workspace_id=workspace.id,
                 user_id=user.id,
                 identifier="T-002",
                 type="CODING",
             ),
         ]
+        for task in tasks:
+            session.add(task)
+        session.commit()
+        return tasks
 
     @pytest.mark.asyncio
-    async def test_get_initiative_tasks_successful_retrieval(
+    async def test_query_tasks_by_initiative_successful_retrieval(
         self,
         user: User,
         workspace: Workspace,
         session: Session,
+        initiative: Initiative,
         sample_tasks: List[Task],
+        mock_get_auth_context,
     ):
         """Test successful retrieval of initiative tasks."""
-        initiative_id = str(sample_tasks[0].initiative_id)
+        result = await query_tasks.fn(initiative_identifier=initiative.identifier)
 
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
-            mock_controller = Mock()
-            mock_controller_class.return_value = mock_controller
-            mock_controller.get_initiative_tasks.return_value = sample_tasks
-
-            result = await get_initiative_tasks.fn(initiative_id)
-
-            # Verify controller was called correctly
-            mock_controller.get_initiative_tasks.assert_called_once_with(
-                user.id, uuid.UUID(initiative_id)
-            )
-
-            # Verify successful result
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "success",
-                        "type": "task",
-                        "message": f"Found 2 tasks for initiative {initiative_id}",
-                        "initiative_id": initiative_id,
-                    }
-                ),
-            )
-            assert len(result["data"]) == 2
-            assert result["data"][0]["title"] == "Task 1"
-            assert result["data"][1]["title"] == "Task 2"
+        assert_that(
+            result,
+            has_entries(
+                {
+                    "status": "success",
+                    "type": "task",
+                }
+            ),
+        )
+        assert_that(result["data"], has_key("tasks"))
+        assert len(result["data"]["tasks"]) == 2
+        assert result["data"]["tasks"][0]["title"] == "Task 1"
+        assert result["data"]["tasks"][1]["title"] == "Task 2"
 
     @pytest.mark.asyncio
-    async def test_get_initiative_tasks_empty_response(
-        self, user: User, workspace: Workspace, session: Session
+    async def test_query_tasks_by_initiative_empty_response(
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context,
     ):
         """Test handling of empty task list."""
-        initiative_id = str(uuid.uuid4())
+        result = await query_tasks.fn(initiative_identifier=initiative.identifier)
 
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
-            mock_controller = Mock()
-            mock_controller_class.return_value = mock_controller
-            mock_controller.get_initiative_tasks.return_value = []
-
-            result = await get_initiative_tasks.fn(initiative_id)
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "success",
-                        "type": "task",
-                        "message": f"Found 0 tasks for initiative {initiative_id}",
-                        "data": [],
-                    }
-                ),
-            )
+        assert_that(
+            result,
+            has_entries(
+                {
+                    "status": "success",
+                    "type": "task",
+                }
+            ),
+        )
+        assert_that(result["data"], has_key("tasks"))
+        assert len(result["data"]["tasks"]) == 0
 
     @pytest.mark.asyncio
-    async def test_get_initiative_tasks_controller_error(
-        self, user: User, workspace: Workspace, session: Session
+    async def test_query_tasks_by_initiative_not_found(
+        self, user: User, workspace: Workspace, session: Session, mock_get_auth_context
+    ):
+        """Test handling when initiative is not found."""
+        result = await query_tasks.fn(initiative_identifier="I-99999")
+
+        assert_that(
+            result,
+            has_entries(
+                {
+                    "status": "error",
+                    "type": "task",
+                    "error_type": "not_found",
+                }
+            ),
+        )
+
+    @pytest.mark.asyncio
+    async def test_query_tasks_by_initiative_controller_error(
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context,
     ):
         """Test handling of controller error."""
-        initiative_id = str(uuid.uuid4())
-
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
+        with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
             mock_controller = Mock()
             mock_controller_class.return_value = mock_controller
             mock_controller.get_initiative_tasks.side_effect = TaskControllerError(
                 "Controller error"
             )
 
-            result = await get_initiative_tasks.fn(initiative_id)
+            result = await query_tasks.fn(initiative_identifier=initiative.identifier)
 
             assert_that(
                 result,
@@ -180,190 +183,131 @@ class TestGetInitiativeTasks:
                 ),
             )
 
-    @pytest.mark.asyncio
-    async def test_get_initiative_tasks_invalid_uuid(
-        self, user: User, workspace: Workspace, session: Session
-    ):
-        """Test handling of invalid UUID format."""
-        with patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local:
-            mock_session_local.return_value = session
 
-            result = await get_initiative_tasks.fn("invalid-uuid")
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task",
-                        "error_type": "validation_error",
-                    }
-                ),
-            )
-
-
-class TestGetTaskDetails:
-    """Test suite for get_task_details MCP tool."""
+class TestQueryTasksSingle:
+    """Test suite for query_tasks with identifier filter (single task lookup)."""
 
     @pytest.fixture
-    def sample_task(self, user: User, workspace: Workspace):
+    def sample_task(
+        self, user: User, workspace: Workspace, initiative: Initiative, session: Session
+    ) -> Task:
         """Sample task for testing."""
-        initiative_id = uuid.uuid4()
         task = Task(
             id=uuid.uuid4(),
             title="Test Task",
             description="Test Description",
             status=TaskStatus.TO_DO,
-            initiative_id=initiative_id,
+            initiative_id=initiative.id,
             workspace_id=workspace.id,
             user_id=user.id,
             identifier="T-123",
             type="CODING",
         )
+        session.add(task)
+        session.commit()
+        session.refresh(task)
         return task
 
-    @pytest.fixture
-    def sample_initiative(self, user: User, workspace: Workspace, sample_task: Task):
-        """Sample initiative for testing."""
-        return Initiative(
-            id=sample_task.initiative_id,
-            title="User Authentication System",
-            description="Implement secure user authentication",
-            status=TaskStatus.IN_PROGRESS,
-            identifier="I-001",
-            user_id=user.id,
-            workspace_id=workspace.id,
-        )
-
     @pytest.mark.asyncio
-    async def test_get_task_details_successful_retrieval(
+    async def test_query_tasks_single_successful_retrieval(
         self,
         user: User,
         workspace: Workspace,
         session: Session,
+        initiative: Initiative,
         sample_task: Task,
-        sample_initiative: Initiative,
+        mock_get_auth_context,
     ):
         """Test successful retrieval of task details."""
-        task_id = str(sample_task.id)
-        user_id = user.id  # Cache user_id to avoid detached instance error
+        result = await query_tasks.fn(identifier=sample_task.identifier)
 
-        # Add checklist items to the task
-        sample_task.checklist_items = [
-            ChecklistItem(
-                id=uuid.uuid4(),
-                task_id=sample_task.id,
-                title="First item",
-                is_complete=False,
-                order=1,
+        assert_that(
+            result,
+            has_entries(
+                {
+                    "status": "success",
+                    "type": "task",
+                }
             ),
-        ]
-
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
-            mock_controller = Mock()
-            mock_controller_class.return_value = mock_controller
-            mock_controller.get_task_details.return_value = sample_task
-            mock_controller.get_initiative_tasks.return_value = [sample_task]
-
-            # Mock the Initiative query
-            session.add(sample_initiative)
-            session.commit()
-
-            result = await get_task_details.fn(task_id)
-
-            # Verify controller was called correctly
-            mock_controller.get_task_details.assert_called_once_with(
-                user_id, uuid.UUID(task_id)
-            )
-
-            # Verify successful result
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "success",
-                        "type": "task_details",
-                        "message": f"Retrieved comprehensive task context for {sample_task.title}",
-                    }
-                ),
-            )
-            assert "task" in result
-            assert "checklist_items" in result
-            assert "task_context" in result
-            assert len(result["checklist_items"]) == 1
+        )
+        assert_that(result["data"], has_key("task"))
+        assert_that(result["data"], has_key("checklist_items"))
+        assert_that(result["data"], has_key("task_context"))
+        assert result["data"]["task"]["identifier"] == sample_task.identifier
 
     @pytest.mark.asyncio
-    async def test_get_task_details_task_not_found(
-        self, user: User, workspace: Workspace, session: Session
+    async def test_query_tasks_single_includes_checklist(
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        sample_task: Task,
+        mock_get_auth_context,
+    ):
+        """Test that task details include checklist items."""
+        checklist_item = ChecklistItem(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            task_id=sample_task.id,
+            title="First item",
+            is_complete=False,
+            order=1,
+        )
+        session.add(checklist_item)
+        session.commit()
+
+        result = await query_tasks.fn(identifier=sample_task.identifier)
+
+        assert_that(result["data"], has_key("checklist_items"))
+        assert len(result["data"]["checklist_items"]) == 1
+        assert result["data"]["checklist_items"][0]["title"] == "First item"
+
+    @pytest.mark.asyncio
+    async def test_query_tasks_single_not_found(
+        self, user: User, workspace: Workspace, session: Session, mock_get_auth_context
     ):
         """Test handling when task is not found."""
-        task_id = str(uuid.uuid4())
+        result = await query_tasks.fn(identifier="T-99999")
 
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
-            mock_controller = Mock()
-            mock_controller_class.return_value = mock_controller
-            mock_controller.get_task_details.return_value = None
-
-            result = await get_task_details.fn(task_id)
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task_details",
-                        "error_message": f"Task {task_id} not found",
-                    }
-                ),
-            )
+        assert_that(
+            result,
+            has_entries(
+                {
+                    "status": "error",
+                    "type": "task",
+                    "error_type": "not_found",
+                }
+            ),
+        )
+        assert "not found" in result["error_message"].lower()
 
     @pytest.mark.asyncio
-    async def test_get_task_details_controller_error(
-        self, user: User, workspace: Workspace, session: Session
+    async def test_query_tasks_single_includes_initiative_context(
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        sample_task: Task,
+        mock_get_auth_context,
     ):
-        """Test handling of controller error."""
-        task_id = str(uuid.uuid4())
+        """Test that task details include initiative context."""
+        result = await query_tasks.fn(identifier=sample_task.identifier)
 
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
-            mock_controller = Mock()
-            mock_controller_class.return_value = mock_controller
-            mock_controller.get_task_details.side_effect = TaskNotFoundError(
-                "Task not found"
-            )
-
-            result = await get_task_details.fn(task_id)
-
-            assert_that(
-                result,
-                has_entries(
-                    {
-                        "status": "error",
-                        "type": "task_details",
-                        "error_type": "not_found",
-                    }
-                ),
-            )
+        assert_that(result["data"], has_key("task_context"))
+        assert initiative.title in result["data"]["task_context"]
 
 
-class TestSearchTasks:
-    """Test suite for search_tasks MCP tool."""
+class TestQueryTasksSearch:
+    """Test suite for query_tasks with search filter."""
 
     @pytest.fixture
-    def sample_search_results(self, user: User, workspace: Workspace):
+    def sample_search_results(
+        self, user: User, workspace: Workspace, initiative: Initiative, session: Session
+    ) -> List[Task]:
         """Sample search results for testing."""
-        return [
+        tasks = [
             Task(
                 id=uuid.uuid4(),
                 title="Fix authentication bug",
@@ -371,6 +315,7 @@ class TestSearchTasks:
                 identifier="AUTH-123",
                 user_id=user.id,
                 workspace_id=workspace.id,
+                initiative_id=initiative.id,
                 status=TaskStatus.TO_DO,
                 type="CODING",
             ),
@@ -381,78 +326,69 @@ class TestSearchTasks:
                 identifier="AUTH-124",
                 user_id=user.id,
                 workspace_id=workspace.id,
+                initiative_id=initiative.id,
                 status=TaskStatus.IN_PROGRESS,
                 type="CODING",
             ),
         ]
+        for task in tasks:
+            session.add(task)
+        session.commit()
+        return tasks
 
     @pytest.mark.asyncio
-    async def test_search_tasks_successful_search(
+    async def test_query_tasks_search_successful(
         self,
         user: User,
         workspace: Workspace,
         session: Session,
+        initiative: Initiative,
         sample_search_results: List[Task],
+        mock_get_auth_context,
     ):
         """Test successful task search."""
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
-            mock_controller = Mock()
-            mock_controller_class.return_value = mock_controller
-            mock_controller.search_tasks.return_value = sample_search_results
+        result = await query_tasks.fn(search="authentication")
 
-            result = await search_tasks.fn("authentication")
-
-            # Verify controller was called correctly
-            mock_controller.search_tasks.assert_called_once_with(
-                user.id, workspace.id, "authentication"
-            )
-
-            # Verify successful result
-            assert_that(result, has_entries({"status": "success", "type": "task"}))
-            assert len(result["data"]) == 2
+        assert_that(result, has_entries({"status": "success", "type": "task"}))
+        assert_that(result["data"], has_key("tasks"))
+        assert len(result["data"]["tasks"]) == 2
 
     @pytest.mark.asyncio
-    async def test_search_tasks_empty_results(
-        self, user: User, workspace: Workspace, session: Session
+    async def test_query_tasks_search_empty_results(
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context,
     ):
         """Test search with no results."""
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
-            mock_controller = Mock()
-            mock_controller_class.return_value = mock_controller
-            mock_controller.search_tasks.return_value = []
+        result = await query_tasks.fn(search="nonexistent")
 
-            result = await search_tasks.fn("nonexistent")
-
-            assert_that(
-                result,
-                has_entries({"status": "success", "type": "task", "data": []}),
-            )
+        assert_that(
+            result,
+            has_entries({"status": "success", "type": "task"}),
+        )
+        assert_that(result["data"], has_key("tasks"))
+        assert len(result["data"]["tasks"]) == 0
 
     @pytest.mark.asyncio
-    async def test_search_tasks_controller_error(
-        self, user: User, workspace: Workspace, session: Session
+    async def test_query_tasks_search_controller_error(
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context,
     ):
         """Test handling of controller error during search."""
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
+        with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
             mock_controller = Mock()
             mock_controller_class.return_value = mock_controller
             mock_controller.search_tasks.side_effect = TaskControllerError(
                 "Search failed"
             )
 
-            result = await search_tasks.fn("test")
+            result = await query_tasks.fn(search="test")
 
             assert_that(
                 result,
@@ -466,11 +402,40 @@ class TestSearchTasks:
             )
 
 
+class TestQueryTasksNoParams:
+    """Test suite for query_tasks with no parameters."""
+
+    @pytest.mark.asyncio
+    async def test_query_tasks_no_params_returns_error(
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context,
+    ):
+        """Test that query_tasks with no params returns validation error."""
+        result = await query_tasks.fn()
+
+        assert_that(
+            result,
+            has_entries(
+                {
+                    "status": "error",
+                    "type": "task",
+                    "error_type": "validation_error",
+                }
+            ),
+        )
+        assert "at least one filter required" in result["error_message"].lower()
+
+
 class TestValidateContext:
     """Test suite for validate_context MCP tool."""
 
     @pytest.fixture
-    def sample_task_with_checklist(self, user: User, workspace: Workspace):
+    def sample_task_with_checklist(
+        self, user: User, workspace: Workspace, initiative: Initiative, session: Session
+    ) -> Task:
         """Sample task with checklist for testing."""
         task = Task(
             id=uuid.uuid4(),
@@ -479,12 +444,17 @@ class TestValidateContext:
             status=TaskStatus.IN_PROGRESS,
             user_id=user.id,
             workspace_id=workspace.id,
+            initiative_id=initiative.id,
             identifier="T-123",
             type="CODING",
         )
-        task.checklist_items = [
+        session.add(task)
+        session.commit()
+
+        checklist_items = [
             ChecklistItem(
                 id=uuid.uuid4(),
+                user_id=user.id,
                 task_id=task.id,
                 title="Item 1",
                 is_complete=True,
@@ -492,6 +462,7 @@ class TestValidateContext:
             ),
             ChecklistItem(
                 id=uuid.uuid4(),
+                user_id=user.id,
                 task_id=task.id,
                 title="Item 2",
                 is_complete=False,
@@ -499,12 +470,17 @@ class TestValidateContext:
             ),
             ChecklistItem(
                 id=uuid.uuid4(),
+                user_id=user.id,
                 task_id=task.id,
                 title="Item 3",
                 is_complete=True,
                 order=3,
             ),
         ]
+        for item in checklist_items:
+            session.add(item)
+        session.commit()
+        session.refresh(task)
         return task
 
     @pytest.mark.asyncio
@@ -513,28 +489,24 @@ class TestValidateContext:
         user: User,
         workspace: Workspace,
         session: Session,
+        initiative: Initiative,
         sample_task_with_checklist: Task,
+        mock_get_auth_context,
     ):
         """Test successful context validation with checklist progress."""
         task_id = str(sample_task_with_checklist.id)
 
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
+        with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
             mock_controller = Mock()
             mock_controller_class.return_value = mock_controller
             mock_controller.get_task_details.return_value = sample_task_with_checklist
 
             result = await validate_context.fn(task_id)
 
-            # Verify controller was called correctly
             mock_controller.get_task_details.assert_called_once_with(
                 user.id, uuid.UUID(task_id)
             )
 
-            # Verify successful result with progress calculation
             assert_that(
                 result,
                 has_entries(
@@ -547,7 +519,6 @@ class TestValidateContext:
                 ),
             )
 
-            # Check checklist summary
             assert result["checklist_summary"]["total_items"] == 3
             assert result["checklist_summary"]["completed_items"] == 2
             completion_percentage = result["checklist_summary"]["completion_percentage"]
@@ -555,16 +526,12 @@ class TestValidateContext:
 
     @pytest.mark.asyncio
     async def test_validate_context_task_not_found(
-        self, user: User, workspace: Workspace, session: Session
+        self, user: User, workspace: Workspace, session: Session, mock_get_auth_context
     ):
         """Test validation when task is not found."""
         task_id = str(uuid.uuid4())
 
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
+        with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
             mock_controller = Mock()
             mock_controller_class.return_value = mock_controller
             mock_controller.get_task_details.return_value = None
@@ -584,7 +551,12 @@ class TestValidateContext:
 
     @pytest.mark.asyncio
     async def test_validate_context_empty_checklist(
-        self, user: User, workspace: Workspace, session: Session
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context,
     ):
         """Test validation with empty checklist (0% completion)."""
         task = Task(
@@ -594,24 +566,21 @@ class TestValidateContext:
             status=TaskStatus.IN_PROGRESS,
             user_id=user.id,
             workspace_id=workspace.id,
-            identifier="T-123",
+            initiative_id=initiative.id,
+            identifier="T-EMPTY",
             type="CODING",
         )
-        task.checklist_items = []
+        session.add(task)
+        session.commit()
         task_id = str(task.id)
 
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
+        with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
             mock_controller = Mock()
             mock_controller_class.return_value = mock_controller
             mock_controller.get_task_details.return_value = task
 
             result = await validate_context.fn(task_id)
 
-            # Should handle empty checklist with 0% completion
             assert_that(
                 result,
                 has_entries(
@@ -632,9 +601,21 @@ class TestValidateContext:
 class TestSubmitTask:
     """Test suite for submit_task MCP tool (upsert pattern)."""
 
+    @pytest.fixture
+    def mock_get_auth_context_for_submit(self, user: User, workspace: Workspace):
+        """Mock get_auth_context for submit_task tests."""
+        with patch("src.mcp_server.task_tools.get_auth_context") as mock_auth:
+            mock_auth.return_value = (str(user.id), str(workspace.id))
+            yield mock_auth
+
     @pytest.mark.asyncio
     async def test_submit_task_create_minimal(
-        self, user: User, workspace: Workspace, session: Session, initiative: Initiative
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context_for_submit,
     ):
         """Test creating task with only required fields."""
         with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
@@ -643,6 +624,11 @@ class TestSubmitTask:
 
             mock_task = Mock()
             mock_task.identifier = "T-001"
+            mock_task.title = "Test Task"
+            mock_task.description = None
+            mock_task.status.value = "TO_DO"
+            mock_task.type = "CODING"
+            mock_task.initiative = initiative
             mock_controller.create_task.return_value = mock_task
 
             result = await submit_task.fn(
@@ -664,7 +650,12 @@ class TestSubmitTask:
 
     @pytest.mark.asyncio
     async def test_submit_task_create_missing_title(
-        self, user: User, workspace: Workspace, session: Session, initiative: Initiative
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context_for_submit,
     ):
         """Test error when title is missing for create."""
         result = await submit_task.fn(initiative_identifier="I-001", title=None)
@@ -675,7 +666,11 @@ class TestSubmitTask:
 
     @pytest.mark.asyncio
     async def test_submit_task_update_task_not_found(
-        self, user: User, workspace: Workspace, session: Session
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context_for_submit,
     ):
         """Test error when task_identifier doesn't exist."""
         result = await submit_task.fn(task_identifier="T-999", status="DONE")
@@ -684,14 +679,16 @@ class TestSubmitTask:
         assert "not found" in result["error_message"]
         assert result["error_type"] == "not_found"
 
-    # === CREATE PATH: Additional Tests ===
-
     @pytest.mark.asyncio
     async def test_submit_task_create_missing_initiative_identifier(
-        self, user: User, workspace: Workspace, session: Session, initiative: Initiative
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context_for_submit,
     ):
         """Test error when initiative_identifier is missing for create."""
-
         result = await submit_task.fn(title="New Task")
 
         assert result["status"] == "error"
@@ -700,7 +697,12 @@ class TestSubmitTask:
 
     @pytest.mark.asyncio
     async def test_submit_task_create_with_all_optional_params(
-        self, user: User, workspace: Workspace, session: Session, initiative: Initiative
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context_for_submit,
     ):
         """Test creating task with all optional parameters."""
         with (
@@ -715,6 +717,11 @@ class TestSubmitTask:
 
             mock_task = Mock()
             mock_task.identifier = "T-002"
+            mock_task.title = "Test Task"
+            mock_task.description = "Detailed description"
+            mock_task.status.value = "IN_PROGRESS"
+            mock_task.type = "TESTING"
+            mock_task.initiative = initiative
             mock_controller.create_task.return_value = mock_task
 
             result = await submit_task.fn(
@@ -734,10 +741,14 @@ class TestSubmitTask:
 
     @pytest.mark.asyncio
     async def test_submit_task_create_with_checklist(
-        self, user: User, workspace: Workspace, session: Session, initiative: Initiative
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context_for_submit,
     ):
         """Test creating task with checklist items."""
-
         with (
             patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
             patch(
@@ -750,6 +761,11 @@ class TestSubmitTask:
 
             mock_task = Mock()
             mock_task.identifier = "T-003"
+            mock_task.title = "Task with Checklist"
+            mock_task.description = None
+            mock_task.status.value = "TO_DO"
+            mock_task.type = None
+            mock_task.initiative = initiative
             mock_controller.create_task.return_value = mock_task
 
             checklist_items = [
@@ -770,7 +786,12 @@ class TestSubmitTask:
 
     @pytest.mark.asyncio
     async def test_submit_task_create_initiative_not_found(
-        self, user: User, workspace: Workspace, session: Session, initiative: Initiative
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context_for_submit,
     ):
         """Test error when initiative doesn't exist."""
         with (
@@ -793,7 +814,12 @@ class TestSubmitTask:
 
     @pytest.mark.asyncio
     async def test_submit_task_create_invalid_status(
-        self, user: User, workspace: Workspace, session: Session, initiative: Initiative
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context_for_submit,
     ):
         """Test error when invalid status is provided during create."""
         with (
@@ -816,7 +842,12 @@ class TestSubmitTask:
 
     @pytest.mark.asyncio
     async def test_submit_task_create_controller_error(
-        self, user: User, workspace: Workspace, session: Session, initiative: Initiative
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        initiative: Initiative,
+        mock_get_auth_context_for_submit,
     ):
         """Test handling of controller error during creation."""
         with (
@@ -841,22 +872,23 @@ class TestSubmitTask:
             assert "Failed to create task" in result["error_message"]
             assert result["error_type"] == "controller_error"
 
-    # === UPDATE PATH: Additional Tests ===
-
     @pytest.mark.asyncio
     async def test_submit_task_update_status_to_in_progress(
-        self, user: User, workspace: Workspace, session: Session
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context_for_submit,
     ):
         """Test updating task status to IN_PROGRESS."""
-        # Create real task in database
-        initiative = Initiative(
+        local_initiative = Initiative(
             id=uuid.uuid4(),
             title="Test Initiative",
             identifier="I-UPD-STAT",
             user_id=user.id,
             workspace_id=workspace.id,
         )
-        session.add(initiative)
+        session.add(local_initiative)
         session.commit()
 
         task = Task(
@@ -865,15 +897,13 @@ class TestSubmitTask:
             identifier="T-STAT-001",
             user_id=user.id,
             workspace_id=workspace.id,
-            initiative_id=initiative.id,
+            initiative_id=local_initiative.id,
             status=TaskStatus.TO_DO,
         )
         session.add(task)
         session.commit()
 
-        with (
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
+        with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
             mock_controller = Mock()
             mock_controller_class.return_value = mock_controller
 
@@ -888,18 +918,21 @@ class TestSubmitTask:
 
     @pytest.mark.asyncio
     async def test_submit_task_update_invalid_status(
-        self, user: User, workspace: Workspace, session: Session
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context_for_submit,
     ):
         """Test error when invalid status is provided during update."""
-        # Create real task in database
-        initiative = Initiative(
+        local_initiative = Initiative(
             id=uuid.uuid4(),
             title="Test Initiative",
             identifier="I-UPD-INVSTAT",
             user_id=user.id,
             workspace_id=workspace.id,
         )
-        session.add(initiative)
+        session.add(local_initiative)
         session.commit()
 
         task = Task(
@@ -908,38 +941,38 @@ class TestSubmitTask:
             identifier="T-INVSTAT-001",
             user_id=user.id,
             workspace_id=workspace.id,
-            initiative_id=initiative.id,
+            initiative_id=local_initiative.id,
             status=TaskStatus.TO_DO,
         )
         session.add(task)
         session.commit()
 
-        with patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local:
-            mock_session_local.return_value = session
+        result = await submit_task.fn(
+            task_identifier="T-INVSTAT-001", status="INVALID_STATUS"
+        )
 
-            result = await submit_task.fn(
-                task_identifier="T-INVSTAT-001", status="INVALID_STATUS"
-            )
-
-            assert result["status"] == "error"
-            assert "Invalid status" in result["error_message"]
-            assert "INVALID_STATUS" in result["error_message"]
-            assert result["error_type"] == "validation_error"
+        assert result["status"] == "error"
+        assert "Invalid status" in result["error_message"]
+        assert "INVALID_STATUS" in result["error_message"]
+        assert result["error_type"] == "validation_error"
 
     @pytest.mark.asyncio
     async def test_submit_task_update_status_controller_error(
-        self, user: User, workspace: Workspace, session: Session
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context_for_submit,
     ):
         """Test handling of controller error during status update."""
-        # Create real task in database
-        initiative = Initiative(
+        local_initiative = Initiative(
             id=uuid.uuid4(),
             title="Test Initiative",
             identifier="I-UPD-ERR",
             user_id=user.id,
             workspace_id=workspace.id,
         )
-        session.add(initiative)
+        session.add(local_initiative)
         session.commit()
 
         task = Task(
@@ -948,17 +981,13 @@ class TestSubmitTask:
             identifier="T-ERR-001",
             user_id=user.id,
             workspace_id=workspace.id,
-            initiative_id=initiative.id,
+            initiative_id=local_initiative.id,
             status=TaskStatus.TO_DO,
         )
         session.add(task)
         session.commit()
 
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
+        with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
             mock_controller = Mock()
             mock_controller_class.return_value = mock_controller
             mock_controller.move_task_to_status.side_effect = TaskControllerError(
@@ -973,18 +1002,21 @@ class TestSubmitTask:
 
     @pytest.mark.asyncio
     async def test_submit_task_update_title(
-        self, user: User, workspace: Workspace, session: Session
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context_for_submit,
     ):
         """Test updating task title only."""
-        # Create real task in database
-        initiative = Initiative(
+        local_initiative = Initiative(
             id=uuid.uuid4(),
             title="Test Initiative",
             identifier="I-UPD-TITLE",
             user_id=user.id,
             workspace_id=workspace.id,
         )
-        session.add(initiative)
+        session.add(local_initiative)
         session.commit()
 
         task = Task(
@@ -993,36 +1025,36 @@ class TestSubmitTask:
             identifier="T-TITLE-001",
             user_id=user.id,
             workspace_id=workspace.id,
-            initiative_id=initiative.id,
+            initiative_id=local_initiative.id,
             status=TaskStatus.TO_DO,
         )
         session.add(task)
         session.commit()
 
-        with patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local:
-            mock_session_local.return_value = session
+        result = await submit_task.fn(
+            task_identifier="T-TITLE-001", title="Updated Title"
+        )
 
-            result = await submit_task.fn(
-                task_identifier="T-TITLE-001", title="Updated Title"
-            )
-
-            assert result["status"] == "success"
-            assert result["data"]["title"] == "Updated Title"
+        assert result["status"] == "success"
+        assert result["data"]["title"] == "Updated Title"
 
     @pytest.mark.asyncio
     async def test_submit_task_update_type(
-        self, user: User, workspace: Workspace, session: Session
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context_for_submit,
     ):
         """Test updating task type only."""
-        # Create real task in database
-        initiative = Initiative(
+        local_initiative = Initiative(
             id=uuid.uuid4(),
             title="Test Initiative",
             identifier="I-UPD-TYPE",
             user_id=user.id,
             workspace_id=workspace.id,
         )
-        session.add(initiative)
+        session.add(local_initiative)
         session.commit()
 
         task = Task(
@@ -1031,37 +1063,35 @@ class TestSubmitTask:
             identifier="T-TYPE-001",
             user_id=user.id,
             workspace_id=workspace.id,
-            initiative_id=initiative.id,
+            initiative_id=local_initiative.id,
             status=TaskStatus.TO_DO,
             type="CODING",
         )
         session.add(task)
         session.commit()
 
-        with patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local:
-            mock_session_local.return_value = session
+        result = await submit_task.fn(task_identifier="T-TYPE-001", task_type="TESTING")
 
-            result = await submit_task.fn(
-                task_identifier="T-TYPE-001", task_type="TESTING"
-            )
-
-            assert result["status"] == "success"
-            assert result["data"]["type"] == "TESTING"
+        assert result["status"] == "success"
+        assert result["data"]["type"] == "TESTING"
 
     @pytest.mark.asyncio
     async def test_submit_task_update_checklist(
-        self, user: User, workspace: Workspace, session: Session
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context_for_submit,
     ):
         """Test replacing task checklist."""
-        # Create real task in database
-        initiative = Initiative(
+        local_initiative = Initiative(
             id=uuid.uuid4(),
             title="Test Initiative",
             identifier="I-UPD-CHECK",
             user_id=user.id,
             workspace_id=workspace.id,
         )
-        session.add(initiative)
+        session.add(local_initiative)
         session.commit()
 
         task = Task(
@@ -1070,17 +1100,13 @@ class TestSubmitTask:
             identifier="T-CHECK-001",
             user_id=user.id,
             workspace_id=workspace.id,
-            initiative_id=initiative.id,
+            initiative_id=local_initiative.id,
             status=TaskStatus.TO_DO,
         )
         session.add(task)
         session.commit()
 
-        with (
-            patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local,
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
-            mock_session_local.return_value = session
+        with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
             mock_controller = Mock()
             mock_controller_class.return_value = mock_controller
 
@@ -1101,18 +1127,21 @@ class TestSubmitTask:
 
     @pytest.mark.asyncio
     async def test_submit_task_update_multiple_fields(
-        self, user: User, workspace: Workspace, session: Session
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context_for_submit,
     ):
         """Test updating multiple fields simultaneously."""
-        # Create real task in database
-        initiative = Initiative(
+        local_initiative = Initiative(
             id=uuid.uuid4(),
             title="Test Initiative",
             identifier="I-UPD-MULTI",
             user_id=user.id,
             workspace_id=workspace.id,
         )
-        session.add(initiative)
+        session.add(local_initiative)
         session.commit()
 
         task = Task(
@@ -1121,15 +1150,13 @@ class TestSubmitTask:
             identifier="T-MULTI-001",
             user_id=user.id,
             workspace_id=workspace.id,
-            initiative_id=initiative.id,
+            initiative_id=local_initiative.id,
             status=TaskStatus.TO_DO,
         )
         session.add(task)
         session.commit()
 
-        with (
-            patch("src.mcp_server.task_tools.TaskController") as mock_controller_class,
-        ):
+        with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
             mock_controller = Mock()
             mock_controller_class.return_value = mock_controller
 
@@ -1145,29 +1172,29 @@ class TestSubmitTask:
             mock_controller.move_task_to_status.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_submit_task_update_invalid_uuid(
-        self, user: User, workspace: Workspace, session: Session
+    async def test_submit_task_update_invalid_identifier(
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context_for_submit,
     ):
-        """Test handling of invalid UUID formats - treated as not found."""
-
-        # Any invalid identifier (including invalid-uuid, 123, etc) returns not_found
+        """Test handling of invalid identifier - treated as not found."""
         result = await submit_task.fn(task_identifier="invalid-uuid", status="DONE")
 
         assert result["status"] == "error"
-        # Invalid identifiers are treated as "not found" since they don't match any task
         assert result["error_type"] == "not_found"
 
     @pytest.mark.asyncio
     async def test_submit_task_update_nonexistent_task(
-        self, user: User, workspace: Workspace, session: Session
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context_for_submit,
     ):
-        """Test handling when task doesn't exist (task not found vs validation error)."""
-        with patch("src.mcp_server.task_tools.SessionLocal") as mock_session_local:
-            mock_session_local.return_value = session
+        """Test handling when task doesn't exist."""
+        result = await submit_task.fn(task_identifier="T-NONEXISTENT", status="DONE")
 
-            # "123" is a valid string but not a valid UUID, so it returns not_found
-            result = await submit_task.fn(task_identifier="123", status="DONE")
-
-            assert result["status"] == "error"
-            # When task isn't found, the error is "not_found" not "validation_error"
-            assert result["error_type"] == "not_found"
+        assert result["status"] == "error"
+        assert result["error_type"] == "not_found"

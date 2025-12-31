@@ -296,10 +296,10 @@ class TaskController:
                 raise TaskNotFoundError(f"Task {task_id} not found for user {user_id}")
 
             # Access checklist items to trigger lazy loading
-            _ = task.checklist_items
+            _ = task.checklist
 
             logger.info(
-                f"Retrieved task {task_id} with {len(task.checklist_items)} checklist items for user {user_id}"
+                f"Retrieved task {task_id} with {len(task.checklist)} checklist items for user {user_id}"
             )
             return task
 

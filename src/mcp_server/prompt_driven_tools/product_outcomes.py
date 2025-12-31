@@ -543,23 +543,79 @@ async def submit_product_outcome(
 
 
 @mcp.tool()
-async def get_product_outcomes() -> Dict[str, Any]:
-    """List all product outcomes for the workspace.
+async def query_product_outcomes(
+    identifier: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Query product outcomes with optional single-entity lookup.
+
+    A unified query tool that replaces get_product_outcomes and get_product_outcome_details.
+
+    **Query modes:**
+    - No params: Returns all product outcomes
+    - identifier: Returns single outcome with linked pillars and themes
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
-    Returns:
-        List of product outcomes with full details
+    Args:
+        identifier: Outcome identifier (e.g., "O-001") for single lookup
 
-    Example:
-        >>> result = await get_product_outcomes()
-        >>> print(result["data"]["outcomes"])
+    Returns:
+        For single: outcome details with pillar_names and linked_themes
+        For list: array of outcomes
+
+    Examples:
+        >>> # Get all outcomes
+        >>> await query_product_outcomes()
+
+        >>> # Get single outcome by identifier
+        >>> await query_product_outcomes(identifier="O-001")
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        logger.info(f"Getting product outcomes for workspace {workspace_uuid}")
+
+        # SINGLE OUTCOME MODE: identifier provided
+        if identifier:
+            logger.info(
+                f"Getting product outcome '{identifier}' in workspace {workspace_uuid}"
+            )
+
+            outcome = (
+                session.query(ProductOutcome)
+                .filter_by(identifier=identifier, workspace_id=workspace_uuid)
+                .first()
+            )
+
+            if not outcome:
+                return build_error_response(
+                    "outcome", f"Product outcome not found: {identifier}"
+                )
+
+            outcome_data = serialize_outcome(outcome)
+
+            # Add enrichments
+            outcome_data["pillar_names"] = [pillar.name for pillar in outcome.pillars]
+
+            linked_themes = []
+            for theme in outcome.themes:
+                linked_themes.append(
+                    {
+                        "identifier": theme.identifier,
+                        "name": theme.name,
+                        "is_prioritized": theme.display_order is not None,
+                    }
+                )
+            outcome_data["linked_themes"] = linked_themes
+
+            return build_success_response(
+                entity_type="outcome",
+                message=f"Found product outcome: {outcome.name}",
+                data=outcome_data,
+            )
+
+        # LIST MODE: return all outcomes
+        logger.info(f"Getting all product outcomes for workspace {workspace_uuid}")
 
         outcomes = strategic_controller.get_product_outcomes(workspace_uuid, session)
 
@@ -575,76 +631,7 @@ async def get_product_outcomes() -> Dict[str, Any]:
         logger.error(f"Validation error: {e}")
         return build_error_response("outcome", str(e))
     except Exception as e:
-        logger.exception(f"Error getting product outcomes: {e}")
-        return build_error_response("outcome", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def get_product_outcome_details(outcome_identifier: str) -> Dict[str, Any]:
-    """Retrieves full product outcome details including linked pillars and themes.
-
-    Returns enriched outcome data including linked strategic pillars
-    and any roadmap themes that target this outcome.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        outcome_identifier: Human-readable identifier (e.g., "O-002")
-
-    Returns:
-        Outcome details + linked pillars + linked themes
-
-    Example:
-        >>> result = await get_product_outcome_details(outcome_identifier="O-002")
-        >>> print(result["data"]["pillar_names"])
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-        logger.info(
-            f"Getting product outcome details for {outcome_identifier} in workspace {workspace_uuid}"
-        )
-
-        outcome = (
-            session.query(ProductOutcome)
-            .filter_by(identifier=outcome_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not outcome:
-            return build_error_response(
-                "outcome", f"Product outcome {outcome_identifier} not found"
-            )
-
-        outcome_data = serialize_outcome(outcome)
-
-        outcome_data["pillar_names"] = [pillar.name for pillar in outcome.pillars]
-
-        linked_themes = []
-        for theme in outcome.themes:
-            linked_themes.append(
-                {
-                    "identifier": theme.identifier,
-                    "name": theme.name,
-                    "is_prioritized": theme.display_order is not None,
-                }
-            )
-        outcome_data["linked_themes"] = linked_themes
-
-        return build_success_response(
-            entity_type="outcome",
-            message=f"Retrieved product outcome details for {outcome.name}",
-            data=outcome_data,
-        )
-
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("outcome", str(e))
-    except Exception as e:
-        logger.exception(f"Error getting product outcome details: {e}")
+        logger.exception(f"Error querying product outcomes: {e}")
         return build_error_response("outcome", f"Server error: {str(e)}")
     finally:
         session.close()

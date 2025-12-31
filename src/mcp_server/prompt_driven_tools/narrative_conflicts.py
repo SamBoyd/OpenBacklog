@@ -469,30 +469,86 @@ async def submit_conflict(
 
 
 @mcp.tool()
-async def get_conflicts(
+async def query_conflicts(
+    identifier: Optional[str] = None,
     status: Optional[str] = None,
     hero_identifier: Optional[str] = None,
     villain_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Retrieves conflicts with optional filtering.
+    """Query conflicts with flexible filtering and single-entity lookup.
+
+    A unified query tool that replaces get_conflicts and get_conflict_details.
+
+    **Query modes:**
+    - No params: Returns all conflicts
+    - identifier: Returns single conflict with full hero/villain context
+    - Filters (status, hero_identifier, villain_identifier): Can be combined
 
     Authentication is handled by FastMCP's RemoteAuthProvider.
     Workspace is automatically loaded from the authenticated user.
 
     Args:
-        status: Optional filter by status (OPEN, ESCALATING, RESOLVING, RESOLVED)
-        hero_identifier: Optional filter by hero identifier (e.g., "H-2003")
-        villain_identifier: Optional filter by villain identifier (e.g., "V-2003")
+        identifier: Conflict identifier (e.g., "C-001") for single lookup
+        status: Filter by status (OPEN, ESCALATING, RESOLVING, RESOLVED)
+        hero_identifier: Filter by hero identifier (e.g., "H-001")
+        villain_identifier: Filter by villain identifier (e.g., "V-001")
 
     Returns:
-        List of conflicts matching filters
+        For single: conflict details with hero/villain context
+        For list: array of conflicts matching filters
+
+    Examples:
+        >>> # Get all conflicts
+        >>> await query_conflicts()
+
+        >>> # Get single conflict by identifier
+        >>> await query_conflicts(identifier="C-001")
+
+        >>> # Get open conflicts only
+        >>> await query_conflicts(status="OPEN")
+
+        >>> # Get conflicts for a specific hero
+        >>> await query_conflicts(hero_identifier="H-001")
+
+        >>> # Combine filters
+        >>> await query_conflicts(status="OPEN", hero_identifier="H-001")
     """
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
-        logger.info(f"Getting conflicts for workspace {workspace_uuid}")
 
         publisher = EventPublisher(session)
+
+        # SINGLE CONFLICT MODE: identifier provided
+        if identifier:
+            logger.info(
+                f"Getting conflict '{identifier}' in workspace {workspace_uuid}"
+            )
+
+            conflict = (
+                session.query(Conflict)
+                .options(*_get_conflict_eager_load_options())
+                .filter_by(identifier=identifier, workspace_id=workspace_uuid)
+                .first()
+            )
+
+            if not conflict:
+                return build_error_response(
+                    "conflict",
+                    f"Conflict not found: {identifier}",
+                )
+
+            return build_success_response(
+                entity_type="conflict",
+                message=f"Found conflict: {conflict.identifier}",
+                data=serialize_conflict(conflict),
+            )
+
+        # LIST MODE: filter and return conflicts
+        logger.info(
+            f"Querying conflicts for workspace {workspace_uuid} "
+            f"(status={status}, hero={hero_identifier}, villain={villain_identifier})"
+        )
 
         query = (
             session.query(Conflict)
@@ -526,9 +582,23 @@ async def get_conflicts(
 
         conflicts = query.all()
 
+        # Build message based on filters applied
+        filter_parts = []
+        if status:
+            filter_parts.append(f"status={status}")
+        if hero_identifier:
+            filter_parts.append(f"hero={hero_identifier}")
+        if villain_identifier:
+            filter_parts.append(f"villain={villain_identifier}")
+
+        if filter_parts:
+            message = f"Found {len(conflicts)} conflict(s) ({', '.join(filter_parts)})"
+        else:
+            message = f"Found {len(conflicts)} conflict(s)"
+
         return build_success_response(
             entity_type="conflict",
-            message=f"Found {len(conflicts)} conflict(s)",
+            message=message,
             data={
                 "conflicts": [serialize_conflict(conflict) for conflict in conflicts],
             },
@@ -541,68 +611,7 @@ async def get_conflicts(
         logger.error(f"Validation error: {e}")
         return build_error_response("conflict", str(e))
     except Exception as e:
-        logger.exception(f"Error getting conflicts: {e}")
-        return build_error_response("conflict", f"Server error: {str(e)}")
-    finally:
-        session.close()
-
-
-@mcp.tool()
-async def get_conflict_details(conflict_identifier: str) -> Dict[str, Any]:
-    """Retrieves full conflict details including hero/villain context.
-
-    Returns enriched conflict data including hero and villain details,
-    linked roadmap theme, and resolution status.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Args:
-        conflict_identifier: Human-readable identifier (e.g., "C-2003")
-
-    Returns:
-        Conflict details + hero/villain context + theme linkage
-
-    Example:
-        >>> result = await get_conflict_details(conflict_identifier="C-2003")
-        >>> print(result["data"]["hero_name"])
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-        logger.info(
-            f"Getting conflict details for {conflict_identifier} in workspace {workspace_uuid}"
-        )
-
-        conflict = (
-            session.query(Conflict)
-            .options(*_get_conflict_eager_load_options())
-            .filter_by(identifier=conflict_identifier, workspace_id=workspace_uuid)
-            .first()
-        )
-
-        if not conflict:
-            return build_error_response(
-                "conflict",
-                f"Conflict with identifier '{conflict_identifier}' not found",
-            )
-
-        conflict_data = serialize_conflict(conflict)
-
-        return build_success_response(
-            entity_type="conflict",
-            message=f"Retrieved conflict details for {conflict.identifier}",
-            data=conflict_data,
-        )
-
-    except DomainException as e:
-        logger.warning(f"Domain error: {e}")
-        return build_error_response("conflict", str(e))
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        return build_error_response("conflict", str(e))
-    except Exception as e:
-        logger.exception(f"Error getting conflict details: {e}")
+        logger.exception(f"Error querying conflicts: {e}")
         return build_error_response("conflict", f"Server error: {str(e)}")
     finally:
         session.close()
