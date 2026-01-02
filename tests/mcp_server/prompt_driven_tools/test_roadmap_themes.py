@@ -55,7 +55,7 @@ class TestGetThemeExplorationFramework:
                 mock_get_prioritized.return_value = []
                 mock_get_unprioritized.return_value = []
 
-                result = await get_theme_exploration_framework.fn()
+                result = await get_theme_exploration_framework()
 
         # Verify framework structure
         assert_that(result, has_key("entity_type"))
@@ -111,7 +111,7 @@ class TestGetThemeExplorationFramework:
                 mock_get_prioritized.return_value = []
                 mock_get_unprioritized.return_value = [mock_theme]
 
-                result = await get_theme_exploration_framework.fn()
+                result = await get_theme_exploration_framework()
 
         # Verify current state shows existing theme and outcome
         assert_that(result["current_state"]["theme_count"], equal_to(1))

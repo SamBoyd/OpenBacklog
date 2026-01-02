@@ -88,7 +88,7 @@ class TestGetHeroDefinitionFramework:
         self, session, workspace, mock_get_workspace_id_from_request
     ):
         """Test framework retrieval with no existing heroes."""
-        result = await get_hero_definition_framework.fn()
+        result = await get_hero_definition_framework()
 
         # Verify framework structure
         assert_that(result, has_entries({"entity_type": "hero"}))
@@ -109,7 +109,7 @@ class TestGetHeroDefinitionFramework:
         self, session, workspace, existing_hero, mock_get_workspace_id_from_request
     ):
         """Test framework retrieval includes current state with existing heroes."""
-        result = await get_hero_definition_framework.fn()
+        result = await get_hero_definition_framework()
 
         # Verify current state reflects existing heroes
         assert_that(result["current_state"]["hero_count"], equal_to(1))
@@ -125,7 +125,7 @@ class TestGetHeroDefinitionFramework:
         self, session, workspace, mock_get_workspace_id_from_request
     ):
         """Test framework includes all required coaching and guidance content."""
-        result = await get_hero_definition_framework.fn()
+        result = await get_hero_definition_framework()
 
         # Verify coaching and natural questions
         assert_that(result, has_key("conversation_guidelines"))

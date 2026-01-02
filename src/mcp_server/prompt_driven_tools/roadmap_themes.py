@@ -42,7 +42,6 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
-@mcp.tool()
 async def get_theme_exploration_framework() -> Dict[str, Any]:
     """Get framework for defining roadmap theme (6-12 month strategic bet area).
 

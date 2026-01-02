@@ -273,7 +273,7 @@ class TestGetOutcomeDefinitionFramework:
         mock_get_workspace_id_from_request: MagicMock,
     ):
         """Test that framework returns all required fields."""
-        result = await get_outcome_definition_framework.fn()
+        result = await get_outcome_definition_framework()
 
         assert_that(result, has_key("entity_type"))
         assert_that(result, has_key("purpose"))
@@ -309,7 +309,7 @@ class TestGetOutcomeDefinitionFramework:
             session=session,
         )
 
-        result = await get_outcome_definition_framework.fn()
+        result = await get_outcome_definition_framework()
 
         assert_that(result["current_state"]["outcome_count"], equal_to(1))
         assert_that(result["current_state"]["pillar_count"], equal_to(1))
@@ -324,7 +324,7 @@ class TestGetOutcomeDefinitionFramework:
         mock_get_workspace_id_from_request: MagicMock,
     ):
         """Test that framework provides helpful context when no pillars exist."""
-        result = await get_outcome_definition_framework.fn()
+        result = await get_outcome_definition_framework()
 
         assert_that(result, has_key("current_state"))
         assert_that(result["current_state"]["pillar_count"], equal_to(0))
@@ -337,7 +337,7 @@ class TestGetOutcomeDefinitionFramework:
         mock_get_workspace_id_from_request: MagicMock,
     ):
         """Test that framework includes extraction guidance for user inputs."""
-        result = await get_outcome_definition_framework.fn()
+        result = await get_outcome_definition_framework()
 
         assert_that(result, has_key("extraction_guidance"))
         assert_that(result, has_key("inference_examples"))
@@ -355,7 +355,7 @@ class TestGetOutcomeDefinitionFramework:
         ) as mock_get_outcomes:
             mock_get_outcomes.side_effect = Exception("Database error")
 
-            result = await get_outcome_definition_framework.fn()
+            result = await get_outcome_definition_framework()
 
         assert_that(result, has_entries({"status": "error"}))
 

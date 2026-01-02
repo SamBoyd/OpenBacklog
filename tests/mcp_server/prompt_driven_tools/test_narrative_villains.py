@@ -180,7 +180,7 @@ class TestGetVillainDefinitionFramework:
         self, session, workspace, mock_get_workspace_id_from_request
     ):
         """Test framework retrieval returns correct structure."""
-        result = await get_villain_definition_framework.fn()
+        result = await get_villain_definition_framework()
 
         # Verify framework structure
         assert_that(result, has_key("entity_type"))
@@ -196,7 +196,7 @@ class TestGetVillainDefinitionFramework:
         self, session, workspace, existing_villain, mock_get_workspace_id_from_request
     ):
         """Test framework retrieval includes current state with existing villains."""
-        result = await get_villain_definition_framework.fn()
+        result = await get_villain_definition_framework()
 
         # Verify current state reflects existing villains
         assert_that(result["current_state"]["villain_count"], equal_to(1))
@@ -208,7 +208,7 @@ class TestGetVillainDefinitionFramework:
         self, session, workspace, mock_get_workspace_id_from_request
     ):
         """Test framework includes villain type definitions."""
-        result = await get_villain_definition_framework.fn()
+        result = await get_villain_definition_framework()
 
         # Verify villain types are included in context
         assert_that(result, has_key("villain_types"))
@@ -224,7 +224,7 @@ class TestGetVillainDefinitionFramework:
         self, session, workspace, mock_get_workspace_id_from_request
     ):
         """Test framework includes all required coaching and guidance content."""
-        result = await get_villain_definition_framework.fn()
+        result = await get_villain_definition_framework()
 
         # Verify coaching and natural questions
         assert_that(result, has_key("conversation_guidelines"))

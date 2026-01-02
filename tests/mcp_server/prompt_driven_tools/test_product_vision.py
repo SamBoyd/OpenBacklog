@@ -126,7 +126,7 @@ class TestGetVisionDefinitionFramework:
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
-                result = await get_vision_definition_framework.fn()
+                result = await get_vision_definition_framework()
 
         # Verify framework has required fields
         assert_that(result, has_key("entity_type"))
@@ -162,7 +162,7 @@ class TestGetVisionDefinitionFramework:
             ) as mock_get_vision:
                 mock_get_vision.return_value = mock_vision
 
-                result = await get_vision_definition_framework.fn()
+                result = await get_vision_definition_framework()
 
         # Verify current state shows existing vision
         assert_that(result["current_state"]["has_vision"], equal_to(True))
@@ -186,7 +186,7 @@ class TestGetVisionDefinitionFramework:
             # Mock get_workspace_id_from_request to raise ValueError
             mock_get_workspace_id.side_effect = ValueError("Invalid workspace ID")
 
-            result = await get_vision_definition_framework.fn()
+            result = await get_vision_definition_framework()
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "vision"}))
@@ -293,7 +293,7 @@ class TestVisionFrameworkNaturalLanguageMapping:
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
-                result = await get_vision_definition_framework.fn()
+                result = await get_vision_definition_framework()
 
         assert_that(result, has_key("conversation_guidelines"))
         guidelines = result["conversation_guidelines"]
@@ -315,7 +315,7 @@ class TestVisionFrameworkNaturalLanguageMapping:
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
-                result = await get_vision_definition_framework.fn()
+                result = await get_vision_definition_framework()
 
         assert_that(result, has_key("natural_questions"))
         assert isinstance(result["natural_questions"], list)
@@ -339,7 +339,7 @@ class TestVisionFrameworkNaturalLanguageMapping:
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
-                result = await get_vision_definition_framework.fn()
+                result = await get_vision_definition_framework()
 
         assert_that(result, has_key("extraction_guidance"))
         assert isinstance(result["extraction_guidance"], list)
@@ -363,7 +363,7 @@ class TestVisionFrameworkNaturalLanguageMapping:
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
-                result = await get_vision_definition_framework.fn()
+                result = await get_vision_definition_framework()
 
         assert_that(result, has_key("inference_examples"))
         assert isinstance(result["inference_examples"], list)
@@ -498,7 +498,7 @@ class TestVisionFrameworkContent:
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
-                result = await get_vision_definition_framework.fn()
+                result = await get_vision_definition_framework()
 
         assert_that(result, has_key("criteria"))
         assert isinstance(result["criteria"], list)
@@ -518,7 +518,7 @@ class TestVisionFrameworkContent:
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
-                result = await get_vision_definition_framework.fn()
+                result = await get_vision_definition_framework()
 
         assert_that(result, has_key("examples"))
         assert isinstance(result["examples"], list)
@@ -543,7 +543,7 @@ class TestVisionFrameworkContent:
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
-                result = await get_vision_definition_framework.fn()
+                result = await get_vision_definition_framework()
 
         assert_that(result, has_key("anti_patterns"))
         assert isinstance(result["anti_patterns"], list)
@@ -569,6 +569,6 @@ class TestVisionFrameworkContent:
             ) as mock_get_vision:
                 mock_get_vision.return_value = None
 
-                result = await get_vision_definition_framework.fn()
+                result = await get_vision_definition_framework()
 
         assert_that(result["entity_type"], equal_to("vision"))

@@ -184,7 +184,7 @@ class TestGetPillarDefinitionFramework:
         ) as mock_get_pillars:
             mock_get_pillars.return_value = []
 
-            result = await get_pillar_definition_framework.fn()
+            result = await get_pillar_definition_framework()
 
         # Verify framework structure
         assert_that(result, has_key("entity_type"))
@@ -215,7 +215,7 @@ class TestGetPillarDefinitionFramework:
         ) as mock_get_pillars:
             mock_get_pillars.return_value = [mock_pillar]
 
-            result = await get_pillar_definition_framework.fn()
+            result = await get_pillar_definition_framework()
 
         # Verify current state shows existing pillar
         assert_that(result["current_state"]["pillar_count"], equal_to(1))

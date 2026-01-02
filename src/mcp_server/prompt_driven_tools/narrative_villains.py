@@ -35,7 +35,6 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
-@mcp.tool()
 async def get_villain_definition_framework() -> Dict[str, Any]:
     """Get framework for defining a villain (problem/obstacle).
 

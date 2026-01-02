@@ -71,7 +71,7 @@ class TestGetStrategicInitiativeDefinitionFramework:
                 )
                 mock_session.query.return_value = mock_query
 
-                result = await get_strategic_initiative_definition_framework.fn()
+                result = await get_strategic_initiative_definition_framework()
 
         # Verify framework has required fields
         assert_that(result, has_key("entity_type"))
@@ -127,7 +127,7 @@ class TestGetStrategicInitiativeDefinitionFramework:
                 )
                 mock_session.query.return_value = mock_query
 
-                result = await get_strategic_initiative_definition_framework.fn()
+                result = await get_strategic_initiative_definition_framework()
 
         # Verify templates are present
         assert_that(result, has_key("templates"))
@@ -201,7 +201,7 @@ class TestGetStrategicInitiativeDefinitionFramework:
                 )
                 mock_session.query.return_value = mock_query
 
-                result = await get_strategic_initiative_definition_framework.fn()
+                result = await get_strategic_initiative_definition_framework()
 
         # Verify heroes and villains are included
         assert_that(result["current_state"]["hero_count"], equal_to(1))
@@ -262,7 +262,7 @@ class TestGetStrategicInitiativeDefinitionFramework:
                 )
                 mock_session.query.return_value = mock_query
 
-                result = await get_strategic_initiative_definition_framework.fn()
+                result = await get_strategic_initiative_definition_framework()
 
         # Verify only active villains are included
         assert_that(result["current_state"]["villain_count"], equal_to(1))
@@ -317,7 +317,7 @@ class TestGetStrategicInitiativeDefinitionFramework:
         ) as mock_get_workspace:
             mock_get_workspace.return_value = workspace.id
 
-            result = await get_strategic_initiative_definition_framework.fn()
+            result = await get_strategic_initiative_definition_framework()
 
         current_state = result["current_state"]
         assert_that(current_state["hero_count"], equal_to(1))
@@ -1428,7 +1428,7 @@ class TestStrategicInitiativeErrors:
         ) as mock_get_workspace_id:
             mock_get_workspace_id.side_effect = Exception("Database connection error")
 
-            result = await get_strategic_initiative_definition_framework.fn()
+            result = await get_strategic_initiative_definition_framework()
 
         # Verify error response
         assert_that(

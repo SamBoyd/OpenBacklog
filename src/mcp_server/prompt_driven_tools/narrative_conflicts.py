@@ -52,7 +52,6 @@ def _get_conflict_eager_load_options() -> List[Any]:
 # ============================================================================
 
 
-@mcp.tool()
 async def get_conflict_creation_framework() -> Dict[str, Any]:
     """Get framework for creating a conflict between hero and villain.
 

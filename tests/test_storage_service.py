@@ -1,9 +1,7 @@
-import hashlib
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
-import pytest
 from hamcrest import assert_that, equal_to, raises
 
 from src import storage_service

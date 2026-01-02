@@ -28,7 +28,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool()
 async def get_pillar_definition_framework() -> Dict[str, Any]:
     """Get framework for defining strategic pillars (enduring ways to win).
 

@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
-@mcp.tool()
 async def get_vision_definition_framework() -> Dict[str, Any]:
     """Get framework for defining product vision (the change you want to make in the world).
 

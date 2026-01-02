@@ -82,7 +82,6 @@ It advances the **[theme name]** story arc by [contribution to the larger narrat
 """
 
 
-@mcp.tool()
 async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
     """Get framework for defining a strategic initiative.
 

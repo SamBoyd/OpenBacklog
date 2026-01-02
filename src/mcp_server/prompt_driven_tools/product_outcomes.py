@@ -33,7 +33,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool()
 async def get_outcome_definition_framework() -> Dict[str, Any]:
     """Get framework for defining product outcome (measurable behavioral change).
 
