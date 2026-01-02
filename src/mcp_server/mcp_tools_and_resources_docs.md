@@ -102,32 +102,6 @@ Verifies MCP server connectivity and authentication status.
 
 ---
 
-### `start_openbacklog_workflow()`
-
-Returns structured workflow guidance for the complete OpenBacklog integration process.
-
-**Returns:**
-Comprehensive workflow object with 11 steps covering:
-1. Health check
-2. Initiative selection
-3. Task selection
-4. Task prioritization
-5. Context retrieval
-6. Plan mode entry
-7. Plan confirmation
-8. Task updates
-9. Implementation tracking
-10. Task completion
-11. Continuation workflow
-
-**Key Workflow Rules:**
-- Enter plan mode before implementation
-- Get explicit user confirmation before updates
-- Update OpenBacklog task BEFORE any coding
-- TodoWrite is for local tracking only
-
----
-
 ## Workspace Management Tools
 
 ### `create_workspace(name: str, description: str = "")`
@@ -187,6 +161,8 @@ Strategic initiative tools follow the **prompt-driven collaboration pattern**:
 These tools create initiatives with full narrative connections (heroes, villains, conflicts, pillars, themes), bridging strategic planning with the narrative layer.
 
 ### `get_strategic_initiative_definition_framework()`
+
+**Deprecated:** Use `get_framework(entity_type="initiative")` instead. This function still exists internally but is no longer registered as an MCP tool.
 
 Returns comprehensive framework for defining a strategic initiative with narrative connections.
 
@@ -598,38 +574,6 @@ Searches tasks by title, description, and identifier using PostgreSQL full-text 
 
 ---
 
-### `validate_context(task_id: str)`
-
-Verifies current task state matches expected state.
-
-**Parameters:**
-- `task_id`: UUID of the task
-
-**Returns:**
-```json
-{
-  "status": "success",
-  "type": "context_validation",
-  "message": "Task context is valid and up-to-date",
-  "task_id": "<task_uuid>",
-  "task": {/* core task fields */},
-  "checklist_summary": {
-    "total_items": 5,
-    "completed_items": 2,
-    "completion_percentage": 40
-  },
-  "validation_timestamp": "current"
-}
-```
-
-**Use Cases:**
-- Pre-update validation
-- Ensuring no external changes
-- Progress tracking
-- Debugging context issues
-
----
-
 ## Strategic Planning Tools
 
 Strategic planning tools follow a **prompt-driven collaboration pattern**:
@@ -637,7 +581,9 @@ Strategic planning tools follow a **prompt-driven collaboration pattern**:
 
 ### Framework Response Structure
 
-All `get_*_framework()` tools return a rich framework dictionary with the following fields:
+All framework tools return a rich framework dictionary with the following fields:
+
+**Note:** The `get_framework(entity_type)` unified tool consolidates 8 separate framework tools into a single parameterized tool, reducing token consumption. Individual `get_*_framework()` functions still exist internally but are no longer registered as MCP tools.
 
 **Core Fields:**
 - `entity_type`: Type of entity (vision, pillar, outcome, hero, villain, etc.)
@@ -698,9 +644,53 @@ These fields help Claude Code conduct natural product conversations without expo
 
 ---
 
+### Unified Framework Tool
+
+#### `get_framework(entity_type: str)`
+
+**Unified tool that replaces 8 separate framework tools.** Returns comprehensive framework for defining any entity type through collaborative refinement.
+
+**Parameters:**
+- `entity_type`: Type of entity to get framework for. Must be one of:
+  - `"hero"` - User persona definition
+  - `"villain"` - Problem/obstacle definition
+  - `"conflict"` - Conflict between hero and villain
+  - `"vision"` - Product vision statement
+  - `"pillar"` - Strategic pillar definition
+  - `"outcome"` - Product outcome definition
+  - `"theme"` - Roadmap theme exploration
+  - `"initiative"` - Strategic initiative definition
+
+**Returns:**
+Framework dict with all standard fields (see Framework Response Structure above) plus entity-specific criteria, examples, and current state.
+
+**Example:**
+```python
+# Get framework for hero
+await get_framework(entity_type="hero")
+
+# Get framework for vision
+await get_framework(entity_type="vision")
+```
+
+**Use Cases:**
+- Starting entity creation/update workflows with full context
+- Getting entity-specific guidance and examples
+- Understanding current workspace state for an entity type
+- All use cases that previously required individual `get_*_framework()` tools
+
+**Benefits:**
+- Reduces MCP tool count from 40 to 33 (17.5% reduction)
+- Reduces token consumption by 25-30% (consolidates 8 tool definitions into 1)
+- Simpler API surface while maintaining full functionality
+
+---
+
 ### Vision Management
 
 #### `get_vision_definition_framework()`
+
+**Deprecated:** Use `get_framework(entity_type="vision")` instead. This function still exists internally but is no longer registered as an MCP tool.
 
 Returns comprehensive framework for defining a product vision through collaborative refinement.
 
@@ -760,6 +750,8 @@ Returns error if no vision is defined yet.
 ### Strategic Pillars
 
 #### `get_pillar_definition_framework()`
+
+**Deprecated:** Use `get_framework(entity_type="pillar")` instead. This function still exists internally but is no longer registered as an MCP tool.
 
 Returns framework for defining strategic pillars (differentiators).
 
@@ -910,6 +902,8 @@ Deletes a strategic pillar permanently.
 ### Product Outcomes
 
 #### `get_outcome_definition_framework()`
+
+**Deprecated:** Use `get_framework(entity_type="outcome")` instead. This function still exists internally but is no longer registered as an MCP tool.
 
 Returns framework for defining measurable product outcomes.
 
@@ -1067,6 +1061,8 @@ Deletes a product outcome permanently.
 
 #### `get_theme_exploration_framework()`
 
+**Deprecated:** Use `get_framework(entity_type="theme")` instead. This function still exists internally but is no longer registered as an MCP tool.
+
 Returns framework for defining hypothesis-driven roadmap themes.
 
 **Returns:**
@@ -1127,22 +1123,6 @@ submit_roadmap_theme(
 
 ### Prioritization
 
-#### `get_prioritization_context()`
-
-Returns context for prioritizing roadmap themes.
-
-**Returns:**
-```json
-{
-  "prioritized_themes": [/* currently prioritized */],
-  "unprioritized_themes": [/* backlog */],
-  "outcomes": [/* product outcomes for alignment */],
-  "guidance": {/* prioritization tips */}
-}
-```
-
----
-
 #### `set_theme_priority(theme_identifier: str, priority_position?: int)`
 
 Sets theme priority position or deprioritizes a theme.
@@ -1180,18 +1160,6 @@ set_theme_priority(
 - Moving theme back to backlog
 
 **Note:** Previously separate `prioritize_workstream()` and `deprioritize_workstream()` functions have been consolidated into this single function.
-
----
-
-#### `organize_roadmap(theme_order: Dict[str, int])`
-
-Reorders prioritized themes in the roadmap.
-
-**Parameters:**
-- `theme_order`: Dict mapping theme_identifier (str) to new position (int). Must include ALL prioritized themes.
-
-**Returns:**
-Success response with new ordering.
 
 ---
 
@@ -1314,30 +1282,6 @@ Deletes a roadmap theme permanently.
 
 ## Utility Tools
 
-### `review_strategic_foundation()`
-
-Analyzes completeness and quality of workspace strategic foundation.
-
-**Returns:**
-```json
-{
-  "type": "strategic_foundation_review",
-  "status": "healthy" | "partial" | "missing",
-  "vision": {/* vision status and data */},
-  "pillars": {/* pillar count and details */},
-  "outcomes": {/* outcome count and linkage */},
-  "gaps": [/* identified issues */],
-  "next_steps": [/* recommended actions */],
-  "summary": "Human-readable health summary"
-}
-```
-
-**Use Cases:**
-- Strategic planning health check
-- Identifying gaps
-- Getting recommendations
-
----
 
 ### `connect_outcome_to_pillars(outcome_identifier: str, pillar_identifiers: List[str])`
 
@@ -1414,19 +1358,6 @@ Strategy: Seamless developer workflow. Anti-Strategy: No web/mobile...
 ---
 
 ## Prompts
-
-### `start_work_command`
-
-Provides structured markdown workflow guidance for the complete OpenBacklog integration process.
-
-**Returns:** Markdown-formatted workflow with 11 steps, validation tips, and clear instructions.
-
-**Use Cases:**
-- Getting started with OpenBacklog
-- Workflow reference
-- Training/onboarding
-
----
 
 ### `framework_invisible_conversation`
 
@@ -1521,7 +1452,7 @@ All tools return consistent error responses:
 3. **Validate context before updates** using `validate_context()`
 4. **Get user confirmation** before making changes
 5. **Update OpenBacklog first** before local implementation
-6. **Use framework tools** for strategic planning (get framework, collaborate, submit)
+6. **Use framework tools** for strategic planning (use `get_framework(entity_type)` unified tool, collaborate, submit)
 7. **Link entities** for strategic alignment (outcomes to pillars, themes to outcomes)
 8. **Track progress** using checklist updates via the `checklist` parameter in `submit_task()`
 9. **Framework-invisible conversations**: Use `framework_invisible_conversation` prompt for strategic planning sessions to ensure natural product conversations. Never expose framework terminology (Hero, Villain, Pillar) to users - use their own product language instead.
@@ -1555,6 +1486,8 @@ All narrative framework tools include the standard framework response fields plu
 ### Hero Management
 
 #### `get_hero_definition_framework()`
+
+**Deprecated:** Use `get_framework(entity_type="hero")` instead. This function still exists internally but is no longer registered as an MCP tool.
 
 Returns comprehensive framework for defining a hero (user persona) through collaborative refinement.
 
@@ -1705,6 +1638,8 @@ Deletes a hero permanently.
 ### Villain Management
 
 #### `get_villain_definition_framework()`
+
+**Deprecated:** Use `get_framework(entity_type="villain")` instead. This function still exists internally but is no longer registered as an MCP tool.
 
 Returns comprehensive framework for defining a villain (problem/obstacle).
 
@@ -1874,6 +1809,8 @@ Deletes a villain permanently.
 
 #### `get_conflict_creation_framework()`
 
+**Deprecated:** Use `get_framework(entity_type="conflict")` instead. This function still exists internally but is no longer registered as an MCP tool.
+
 Returns framework for creating conflicts between heroes and villains.
 
 **Returns:**
@@ -2031,51 +1968,6 @@ Deletes a conflict permanently.
 
 ---
 
-### Narrative Recap Tools
-
-#### `get_recent_turning_points(limit: int = 10)`
-
-Retrieves recent turning points for narrative recap.
-
-**Parameters:**
-- `limit`: Maximum number of turning points to return (default 10)
-
-**Returns:**
-List of recent turning points ordered by created_at DESC.
-
----
-
-#### `generate_previously_on()`
-
-Generates 'Previously on...' narrative recap.
-
-This is the key MCP tool that enables narrative-aware development. It generates a story-style summary of recent progress.
-
-**Returns:**
-Narrative recap including:
-- `recap_text`: Story-style summary
-- `primary_hero`: Primary hero details
-- `active_arcs`: Active story arcs with narrative context
-- `recent_turning_points`: Recent turning points
-- `open_conflicts`: Open conflicts
-- `suggested_next_tasks`: Suggested next tasks (placeholder)
-
----
-
-#### `get_story_bible()`
-
-Retrieves complete story bible for workspace.
-
-**Returns:**
-Complete story bible including:
-- `heroes`: All heroes
-- `villains`: All villains
-- `story_arcs`: All roadmap themes with narrative context
-- `conflicts`: All conflicts
-- `turning_points`: Recent turning points
-
----
-
 ### Enhanced Roadmap Theme Tools
 
 #### `submit_roadmap_theme(..., hero_identifier: str | None, primary_villain_identifier: str | None)`
@@ -2121,12 +2013,10 @@ Success response with updated theme.
 - Initiative tools: `src/mcp_server/initiative_tools.py`
 - Task tools: `src/mcp_server/task_tools.py`
 - Workflow: `src/mcp_server/start_openbacklog_workflow.py`
-- Strategic foundation: `src/mcp_server/prompt_driven_tools/strategic_foundation.py`
 - Strategic initiatives: `src/mcp_server/prompt_driven_tools/strategic_initiatives.py`
 - Roadmap themes: `src/mcp_server/prompt_driven_tools/roadmap_themes.py`
 - Narrative heroes: `src/mcp_server/prompt_driven_tools/narrative_heroes.py`
 - Narrative villains: `src/mcp_server/prompt_driven_tools/narrative_villains.py`
 - Narrative conflicts: `src/mcp_server/prompt_driven_tools/narrative_conflicts.py`
-- Narrative recap: `src/mcp_server/prompt_driven_tools/narrative_recap.py`
 - Utilities: `src/mcp_server/prompt_driven_tools/utilities.py`
 - Prompts: `src/mcp_server/slash_commands.py`
