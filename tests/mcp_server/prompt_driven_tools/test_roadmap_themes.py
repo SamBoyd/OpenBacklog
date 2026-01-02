@@ -10,9 +10,7 @@ from sqlalchemy.orm.session import Session
 from src.mcp_server.prompt_driven_tools.roadmap_themes import (
     connect_theme_to_outcomes,
     delete_roadmap_theme,
-    get_prioritization_context,
     get_theme_exploration_framework,
-    organize_roadmap,
     query_roadmap_themes,
     set_theme_priority,
     submit_roadmap_theme,
@@ -197,97 +195,6 @@ class TestSubmitRoadmapTheme:
 
         # Verify error response
         assert_that(result, has_entries({"status": "error", "type": "theme"}))
-
-
-class TestGetPrioritizationContext:
-    """Test suite for get_prioritization_context tool."""
-
-    @pytest.mark.asyncio
-    async def test_context_returns_complete_structure(self):
-        """Test that context returns all required fields."""
-        with patch(
-            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
-
-            with (
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.strategic_controller.get_product_outcomes"
-                ) as mock_get_outcomes,
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.strategic_controller.get_strategic_pillars"
-                ) as mock_get_pillars,
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.get_prioritized_themes"
-                ) as mock_get_prioritized,
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.get_unprioritized_themes"
-                ) as mock_get_unprioritized,
-            ):
-                mock_get_outcomes.return_value = []
-                mock_get_pillars.return_value = []
-                mock_get_prioritized.return_value = []
-                mock_get_unprioritized.return_value = []
-
-                result = await get_prioritization_context.fn()
-
-        # Verify context structure
-        assert_that(result, has_key("entity_type"))
-        assert_that(result, has_key("purpose"))
-        assert_that(result, has_key("current_roadmap"))
-        assert_that(result, has_key("prioritization_guidance"))
-        assert_that(result, has_key("capacity_check"))
-
-    @pytest.mark.asyncio
-    async def test_context_includes_alignment_scores(self):
-        """Test that context includes alignment scores for themes."""
-        with patch(
-            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
-
-            # Mock outcome
-            mock_outcome = MagicMock(spec=ProductOutcome)
-            mock_outcome.id = uuid.uuid4()
-            mock_outcome.name = "Developer Daily Adoption"
-
-            # Mock theme with outcome link
-            mock_theme = MagicMock(spec=RoadmapTheme)
-            mock_theme.id = uuid.uuid4()
-            mock_theme.name = "Test Theme"
-            mock_theme.problem_statement = "Test problem"
-            mock_theme.outcomes = [mock_outcome]
-            mock_theme.hypothesis = "Test hypothesis"
-            mock_theme.indicative_metrics = "Test metrics"
-            mock_theme.time_horizon_months = 6
-
-            with (
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.strategic_controller.get_product_outcomes"
-                ) as mock_get_outcomes,
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.strategic_controller.get_strategic_pillars"
-                ) as mock_get_pillars,
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.get_prioritized_themes"
-                ) as mock_get_prioritized,
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.get_unprioritized_themes"
-                ) as mock_get_unprioritized,
-            ):
-                mock_get_outcomes.return_value = [mock_outcome]
-                mock_get_pillars.return_value = []
-                mock_get_prioritized.return_value = []
-                mock_get_unprioritized.return_value = [mock_theme]
-
-                result = await get_prioritization_context.fn()
-
-        # Verify unprioritized theme has alignment score
-        unprioritized = result["current_roadmap"]["unprioritized_themes"]
-        assert_that(len(unprioritized), equal_to(1))
-        assert_that(unprioritized[0], has_key("strategic_alignment_score"))
 
 
 class TestSetThemePriority:
@@ -526,59 +433,7 @@ class TestSetThemePriority:
 
 
 class TestUtilityTools:
-    """Test suite for utility tools (organize, connect)."""
-
-    @pytest.mark.asyncio
-    async def test_organize_reorders_themes_correctly(self):
-        """Test that organize successfully reorders themes."""
-        theme_identifier_1 = "T-001"
-        theme_identifier_2 = "T-002"
-        theme_order = {theme_identifier_1: 0, theme_identifier_2: 1}
-
-        with patch(
-            "src.mcp_server.prompt_driven_tools.roadmap_themes.SessionLocal"
-        ) as mock_session_local:
-            mock_session = MagicMock()
-            mock_session_local.return_value = mock_session
-
-            mock_themes = [MagicMock(spec=RoadmapTheme) for _ in range(2)]
-            for i, theme in enumerate(mock_themes):
-                theme.identifier = f"T-00{i+1}"
-                theme.id = uuid.uuid4()
-                theme.outcomes = []
-                theme.created_at = None
-                theme.updated_at = None
-                theme.display_order = 0
-                theme.hypothesis = None
-                theme.indicative_metrics = None
-                theme.time_horizon_months = None
-                theme.primary_villain_id = None
-
-            with (
-                patch(
-                    "src.mcp_server.prompt_driven_tools.roadmap_themes.roadmap_controller.reorder_roadmap_themes"
-                ) as mock_reorder,
-            ):
-
-                def mock_query_filter(identifier, workspace_id):
-                    mock_theme = next(
-                        (t for t in mock_themes if t.identifier == identifier), None
-                    )
-                    mock_result = MagicMock()
-                    mock_result.first.return_value = mock_theme
-                    return mock_result
-
-                mock_session.query.return_value.filter_by.side_effect = (
-                    mock_query_filter
-                )
-                mock_reorder.return_value = mock_themes
-
-                result = await organize_roadmap.fn(theme_order)
-
-        # Verify success response
-        assert_that(result, has_entries({"status": "success", "type": "roadmap"}))
-        assert_that(result, has_key("data"))
-        assert_that(result["data"]["count"], equal_to(2))
+    """Test suite for utility tools (connect)."""
 
     @pytest.mark.asyncio
     async def test_connect_updates_outcome_links(self, workspace: Workspace):

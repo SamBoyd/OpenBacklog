@@ -24,7 +24,6 @@ from src.mcp_server.prompt_driven_tools.utils import (
     serialize_theme,
     serialize_villain,
 )
-from src.narrative.aggregates.hero import Hero
 from src.narrative.aggregates.villain import Villain
 from src.narrative.services.hero_service import HeroService
 from src.narrative.services.villain_service import VillainService

@@ -16,7 +16,6 @@ from src.mcp_server.prompt_driven_tools.utils import (
     get_user_id_from_request,
     get_workspace_id_from_request,
     serialize_outcome,
-    serialize_strategic_foundation,
 )
 from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
     resolve_outcome_identifier,
@@ -24,46 +23,6 @@ from src.mcp_server.prompt_driven_tools.utils.identifier_resolvers import (
 )
 from src.strategic_planning import controller as strategic_controller
 from src.strategic_planning.exceptions import DomainException
-
-
-@mcp.tool()
-async def review_strategic_foundation() -> Dict[str, Any]:
-    """Get health check and gap analysis of strategic foundation.
-
-    Analyzes the completeness and quality of workspace strategic foundation
-    (vision, pillars, outcomes) and provides actionable recommendations.
-
-    Returns:
-        Dict containing:
-        - status: "healthy" | "partial" | "missing"
-        - vision: Vision status and data
-        - pillars: Pillar count and details
-        - outcomes: Outcome count and linkage status
-        - gaps: List of identified issues
-        - next_steps: Recommended actions
-        - summary: Human-readable health summary
-    """
-    session = SessionLocal()
-    try:
-        workspace_uuid = get_workspace_id_from_request()
-
-        # Fetch strategic foundation components
-        vision = strategic_controller.get_workspace_vision(workspace_uuid, session)
-        pillars = strategic_controller.get_strategic_pillars(workspace_uuid, session)
-        outcomes = strategic_controller.get_product_outcomes(workspace_uuid, session)
-
-        # Serialize with health analysis
-        foundation_data = serialize_strategic_foundation(vision, pillars, outcomes)
-
-        return {
-            "type": "strategic_foundation_review",
-            **foundation_data,
-        }
-
-    except ValueError as e:
-        return build_error_response("strategic_foundation_review", str(e))
-    finally:
-        session.close()
 
 
 @mcp.tool()

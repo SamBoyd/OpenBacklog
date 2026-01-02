@@ -9,7 +9,6 @@ Pattern: Get Framework → Claude + User Collaborate → Submit Result
 
 from src.mcp_server.prompt_driven_tools.narrative_conflicts import *
 from src.mcp_server.prompt_driven_tools.narrative_heroes import *
-from src.mcp_server.prompt_driven_tools.narrative_recap import *
 from src.mcp_server.prompt_driven_tools.narrative_villains import *
 from src.mcp_server.prompt_driven_tools.product_outcomes import *
 from src.mcp_server.prompt_driven_tools.product_vision import *
@@ -38,9 +37,7 @@ __all__ = [
     "submit_roadmap_theme",
     "query_roadmap_themes",
     "delete_roadmap_theme",
-    "get_prioritization_context",
     "set_theme_priority",
-    "organize_roadmap",
     "connect_theme_to_outcomes",
     # Narrative Layer - Heroes
     "get_hero_definition_framework",
@@ -57,16 +54,11 @@ __all__ = [
     "submit_conflict",
     "query_conflicts",
     "delete_conflict",
-    # Narrative Recap
-    "get_recent_turning_points",
-    "generate_previously_on",
-    "get_story_bible",
     # Strategic Initiatives
     "get_strategic_initiative_definition_framework",
     "submit_strategic_initiative",
     "query_strategic_initiatives",
     "delete_strategic_initiative",
     # Utility Tools
-    "review_strategic_foundation",
     "connect_outcome_to_pillars",
 ]
