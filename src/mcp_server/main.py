@@ -34,6 +34,7 @@ from src.mcp_server.slash_commands import *
 
 # Import all tool modules to register them with the MCP server
 from src.mcp_server.start_openbacklog_workflow import *
+from src.mcp_server.strategic_context_resource import *
 from src.mcp_server.task_tools import *
 from src.mcp_server.workspace_tools import *
 

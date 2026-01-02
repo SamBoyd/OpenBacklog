@@ -5,10 +5,10 @@ business logic for defining and refining a workspace's product vision.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, text
+from sqlalchemy import DateTime, ForeignKey, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -68,16 +68,16 @@ class ProductVision(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=datetime.now(timezone.utc),
         server_default=text("CURRENT_TIMESTAMP"),
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=datetime.now(timezone.utc),
         server_default=text("CURRENT_TIMESTAMP"),
-        onupdate=datetime.utcnow,
+        onupdate=datetime.now(timezone.utc),
     )
 
     workspace: Mapped["Workspace"] = relationship(
@@ -120,7 +120,7 @@ class ProductVision(Base):
         """
         self._validate_vision_text(refined_text)
         self.vision_text = refined_text
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
         event = DomainEvent(
             user_id=uuid.uuid4(),

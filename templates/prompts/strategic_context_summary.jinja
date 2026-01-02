@@ -1,0 +1,185 @@
+# Strategic Context Summary
+
+> This summary provides the complete strategic foundation for your product. Use it to evaluate new ideas, understand priorities, and ensure alignment with your roadmap.
+
+---
+
+## How to Use This Context
+
+When evaluating a new idea, bug fix, or feature request, ask:
+1. **Does this advance our vision?** If not, deprioritize or reject.
+2. **Which pillar does this support?** Work should align with at least one strategic pillar.
+3. **Which outcome does this move?** Prioritize work that advances measurable outcomes.
+4. **Does this help our hero?** Keep the primary user's needs central.
+5. **Does this defeat a villain?** Prioritize work that addresses real problems.
+
+---
+
+## Vision
+{% if vision.vision_text|length > 0 %}
+> {{ vision.vision_text }}
+
+*Defined: {{ vision.created_at.strftime('%Y-%m-%d') if vision.created_at else 'Unknown' }}*
+{% else %}
+⚠️ **No vision defined yet.**
+
+Your vision describes the change you want to make in the world—not what you're building, but why it matters. Consider defining one using `get_vision_definition_framework()`.
+{% endif %}
+
+---
+
+## Strategic Pillars (How We Win)
+
+Pillars are enduring choices that define HOW you'll achieve your vision. Each pillar should have a clear strategy AND anti-strategy (what you won't do).
+
+{% if pillars %}
+{% for pillar in pillars %}
+### {{ pillar.identifier }}: {{ pillar.name }}
+
+{{ pillar.description }}
+
+{% endfor %}
+{% if pillars|length < 2 %}
+⚠️ **Only {{ pillars|length }} pillar(s) defined.** Consider defining 2-5 pillars for strategic clarity.
+{% endif %}
+{% else %}
+⚠️ **No strategic pillars defined.**
+
+Pillars explain your unique approach—what makes you different. Consider defining 2-5 pillars using `get_pillar_definition_framework()`.
+{% endif %}
+
+---
+
+## Product Outcomes (Success Metrics)
+
+Outcomes describe observable, measurable changes that indicate progress. They express IMPACT (what changed), not OUTPUT (what you shipped).
+
+{% if outcomes %}
+{% for outcome in outcomes %}
+### {{ outcome.identifier }}: {{ outcome.name }}
+
+{{ outcome.description }}
+
+{% if outcome.pillar_names %}
+**Linked Pillars:** {{ outcome.pillar_names|join(', ') }}
+{% endif %}
+
+{% endfor %}
+{% if outcomes|length < 2 %}
+⚠️ **Only {{ outcomes|length }} outcome(s) defined.** Consider defining 2-3 outcomes to measure progress.
+{% endif %}
+{% else %}
+⚠️ **No product outcomes defined.**
+
+Outcomes define what success looks like—how you'll know your product is working. Consider defining 2-3 outcomes using `get_outcome_definition_framework()`.
+{% endif %}
+
+---
+
+## Roadmap Themes (Current Bets)
+
+Themes are strategic bet areas that organize your roadmap around problems to solve, not features to build. They sit in a 6-12 month horizon.
+
+{% if themes %}
+{% set prioritized_themes = themes|selectattr('is_prioritized')|list %}
+{% set unprioritized_themes = themes|rejectattr('is_prioritized')|list %}
+
+{% if prioritized_themes %}
+### Prioritized Themes (Active Focus)
+
+{% for theme in prioritized_themes|sort(attribute='priority_order') %}
+#### {{ theme.identifier }}: {{ theme.name }} ⭐ Priority #{{ theme.priority_order + 1 }}
+
+{{ theme.description }}
+
+{% if theme.outcomes|length > 0 %}
+**Advances Outcomes:** {{ theme.outcome|map(attribute="name")|join(', ') }}
+{% else %}
+**Advances Outcomes:** None set for this theme.
+{% endif %}
+{% if theme.heroes|length > 0 %}
+**Helps:** {{ theme.heroes|map(attribute="name")|join(', ') }}
+{% else %}
+**Helps:** No hero set for this theme.
+{% endif %}
+
+{% endfor %}
+{% else %}
+⚠️ **No themes are currently prioritized.** Consider prioritizing themes using `set_theme_priority()`.
+
+{% endif %}
+
+{% if unprioritized_themes %}
+### Backlog Themes (Not Yet Prioritized)
+
+{% for theme in unprioritized_themes %}
+#### {{ theme.identifier }}: {{ theme.name }}
+
+{{ theme.description }}
+
+{% endfor %}
+{% endif %}
+{% else %}
+⚠️ **No roadmap themes defined.**
+
+Themes represent your next focus areas—the hypotheses you want to test. Consider defining themes using `get_theme_exploration_framework()`.
+{% endif %}
+
+---
+
+## Heroes (Who We're Building For)
+
+Heroes are specific user personas with names, motivations, and real problems. They make strategy tangible.
+
+{% if heroes %}
+{% for hero in heroes %}
+### {{ hero.identifier }}: {{ hero.name }}{% if hero.is_primary %} 👑 PRIMARY{% endif %}
+
+{{ hero.description }}
+
+{% endfor %}
+{% else %}
+⚠️ **No heroes defined.**
+
+A hero is the specific person you're building for—give them a name and understand their world. Consider defining one using `get_hero_definition_framework()`.
+{% endif %}
+
+---
+
+## Villains (Problems We're Fighting)
+
+Villains are the obstacles blocking your heroes. They make problems concrete and memorable.
+
+{% if villains %}
+{% set active_villains = villains|rejectattr('is_defeated')|list %}
+{% set defeated_villains = villains|selectattr('is_defeated')|list %}
+
+{% if active_villains %}
+### Active Villains
+
+{% for villain in active_villains|sort(attribute='severity', reverse=True) %}
+#### {{ villain.identifier }}: {{ villain.name }}
+**Type:** {{ villain.villain_type }} | **Severity:** {{ '🔴' * villain.severity }}{{ '⚪' * (5 - villain.severity) }} ({{ villain.severity }}/5)
+
+{{ villain.description }}
+
+{% endfor %}
+{% endif %}
+
+{% if defeated_villains %}
+### Defeated Villains ✅
+
+{% for villain in defeated_villains %}
+- ~~{{ villain.identifier }}: {{ villain.name }}~~ ({{ villain.villain_type }})
+{% endfor %}
+{% endif %}
+{% else %}
+⚠️ **No villains defined.**
+
+Villains represent the problems blocking your heroes. Consider defining one using `get_villain_definition_framework()`.
+{% endif %}
+
+---
+
+*Generated from OpenBacklog strategic foundation. Request this resource anytime for current strategic context.*
+

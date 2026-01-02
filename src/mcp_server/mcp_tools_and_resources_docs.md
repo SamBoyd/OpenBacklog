@@ -1357,6 +1357,62 @@ Success response with updated outcome data.
 
 ---
 
+### `get_strategic_context_summary()`
+
+Returns a comprehensive, human-readable strategic foundation summary.
+
+This tool generates a denormalized markdown summary of the complete strategic foundation including vision, pillars, outcomes, themes, heroes, and villains. It's designed to be called once to get complete strategic context in a single response.
+
+**Returns:** Rendered markdown string containing:
+
+1. **How to Use This Context** - Instructions for evaluating ideas against strategy
+2. **Vision** - The product vision statement (with warning if missing)
+3. **Strategic Pillars** - All pillars with descriptions and anti-strategies
+4. **Product Outcomes** - Success metrics with pillar linkages
+5. **Roadmap Themes** - Prioritized (⭐) and backlog themes with outcome linkages
+6. **Heroes** - User personas with primary indicator (👑)
+7. **Villains** - Problems with severity indicators and defeat status
+8. **Strategic Foundation Health** - Summary table showing completeness
+
+**Example Output:**
+
+```markdown
+# Strategic Context Summary
+
+> This summary provides the complete strategic foundation for your product...
+
+## Vision
+> Enable developers to manage tasks without leaving their IDE
+
+## Strategic Pillars (How We Win)
+### P-001: Deep IDE Integration
+Strategy: Seamless developer workflow. Anti-Strategy: No web/mobile...
+
+## Roadmap Themes (Current Bets)
+### Prioritized Themes (Active Focus)
+#### T-001: MCP-Native Product Management ⭐ Priority #1
+...
+
+## Heroes (Who We're Building For)
+### H-001: Alex, The Solo Builder 👑 PRIMARY
+...
+
+## Strategic Foundation Health
+✅ **Healthy Foundation** — All strategic elements are in place.
+```
+
+**When to Use:**
+- At the start of a session to understand the complete strategic context
+- When evaluating whether a new idea aligns with the roadmap
+- When you need to understand priorities and strategic direction
+- To check for gaps in the strategic foundation
+
+**Related Tools:**
+- `review_strategic_foundation()` - For structured JSON health check with actionable recommendations
+- `get_story_bible()` - For narrative entities (conflicts, turning points)
+
+---
+
 ## Prompts
 
 ### `start_work_command`
