@@ -144,13 +144,7 @@ const StoryBiblePage: React.FC<StoryBiblePageProps> = ({
     };
 
     return (
-        <div className="flex flex-col gap-6 p-6 bg-background min-h-screen">
-            {/* Narrative Summary Card */}
-            <NarrativeSummaryCard
-                summary={narrativeSummary}
-                healthPercentage={healthPercentage}
-            />
-
+        <div className="flex flex-col gap-6 pb-6 min-h-screen">
             {/* Tabbed Content Section */}
             <div className="flex flex-col gap-4">
                 {/* Tab List */}

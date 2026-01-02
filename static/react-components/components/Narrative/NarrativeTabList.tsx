@@ -78,7 +78,7 @@ const NarrativeTabList: React.FC<NarrativeTabListProps> = ({
 
     return (
         <div
-            className={`border-b border-border ${className}`}
+            className={`bg-background border-b border-border pt-8 ${className}`}
             data-testid={dataTestId}
         >
             <div className="flex items-center" data-testid={`${dataTestId}-container`}>

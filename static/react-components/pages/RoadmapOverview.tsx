@@ -134,14 +134,6 @@ export function RoadmapOverview() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Page Header */}
-      <RoadmapHeader
-        workspaceName="Workspace Name"
-        onViewToggle={(view) => {
-          console.log('View changed to:', view);
-          setCurrentView(view);
-        }}
-      />
 
       {/* Filter Controls */}
       <RoadmapFilterControls
