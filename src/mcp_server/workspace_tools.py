@@ -16,33 +16,14 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool()
 async def create_workspace(name: str, description: str = "") -> Dict[str, Any]:
-    """
-    Create a new workspace for the authenticated user.
-
-    A workspace is a container for initiatives, tasks, and strategic planning.
-    Creating a workspace automatically creates required dependencies (vision, roadmap).
-
-    If the user doesn't have a workspace yet, this is the first step in their OpenBacklog setup.
-    After creating a workspace, the user should create their first initiative.
+    """Create a new workspace.
 
     Args:
         name: Workspace name (required, max 255 characters)
         description: Optional workspace description
 
     Returns:
-        {
-            "status": "success" | "error",
-            "type": "workspace",
-            "message": "Created workspace '{name}'",
-            "workspace": {
-                "id": "<uuid>",
-                "name": "...",
-                "description": "...",
-                "icon": "..."
-            }
-        }
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
+        Success response with created workspace
     """
     logger.info(f"Creating workspace with name: {name}")
     session: Session = SessionLocal()
