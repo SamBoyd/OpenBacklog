@@ -39,9 +39,6 @@ logger = logging.getLogger(__name__)
 async def get_recent_turning_points(limit: int = 10) -> Dict[str, Any]:
     """Retrieves recent turning points for narrative recap.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         limit: Maximum number of turning points to return (default 10)
 
@@ -83,9 +80,6 @@ async def generate_previously_on() -> Dict[str, Any]:
     This is the key MCP tool that enables narrative-aware development.
     It generates a story-style summary of recent progress.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Returns:
         Narrative recap including:
         - recap_text: Story-style summary
@@ -126,9 +120,6 @@ async def get_story_bible() -> Dict[str, Any]:
     """Retrieves complete story bible for workspace.
 
     Returns all narrative entities in one unified view.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
 
     Returns:
         Complete story bible including:

@@ -35,37 +35,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool()
 async def get_outcome_definition_framework() -> Dict[str, Any]:
-    """Get comprehensive framework for defining a product outcome.
+    """Get framework for defining product outcome (measurable behavioral change).
 
-    Product outcomes describe observable, measurable changes in user behavior
-    or business health that indicate progress toward the vision and strategic
-    pillars. They express IMPACT (what changed because of what you shipped),
-    not OUTPUT (what you shipped).
-
-    Good outcomes measure behavior, not activity. They show that users are
-    succeeding, not that the team is busy.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        Framework dictionary containing:
-        - purpose: Why outcomes matter in the strategy cascade
-        - criteria: What makes a good outcome (behavior-focused, measurable, etc.)
-        - examples: Real outcome examples with explanations
-        - questions_to_explore: Discovery questions for refinement
-        - anti_patterns: Common mistakes and how to fix them
-        - coaching_tips: Guidance for crafting strong outcomes
-        - conversation_guidelines: How to discuss without framework jargon
-        - natural_questions: User-friendly question alternatives
-        - extraction_guidance: Patterns for parsing user input
-        - inference_examples: How to infer outcomes from context
-        - current_state: Existing outcomes and available pillars
-
-    Example:
-        >>> framework = await get_outcome_definition_framework()
-        >>> # Claude Code uses framework to guide user through refinement
-        >>> await submit_product_outcome(name, description, pillar_identifiers)
+    Returns context with purpose, criteria, examples, questions, anti-patterns, coaching tips, and conversational mappings.
     """
     session = SessionLocal()
     try:
@@ -365,43 +337,15 @@ async def submit_product_outcome(
     pillar_identifiers: Optional[List[str]] = None,
     outcome_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Submit a refined product outcome after collaborative definition.
+    """Create or update product outcome (upsert: omit outcome_identifier to create, provide to update).
 
-    Creates a new product outcome or updates an existing one.
-
-    IMPORTANT: Reflect the outcome back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    **Upsert Behavior:**
-    - If `outcome_identifier` is **omitted**: Creates new outcome
-    - If `outcome_identifier` is **provided**: Updates existing outcome
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Reflect outcome back to user and confirm before calling.
 
     Args:
         name: Outcome name (1-150 characters, required for create, optional for update)
-        description: Outcome description including goal, baseline, target, and timeline
-                    (required for create, optional for update)
-        pillar_identifiers: List of pillar identifiers (e.g., "P-001") to link (optional)
-        outcome_identifier: If provided, updates existing outcome (optional)
-
-    Returns:
-        Success response with created or updated outcome
-
-    Example:
-        >>> # Create
-        >>> result = await submit_product_outcome(
-        ...     name="Developer Daily Adoption",
-        ...     description="Goal: Increase daily active IDE plugin users...",
-        ...     pillar_identifiers=["P-001"]
-        ... )
-        >>> # Update
-        >>> result = await submit_product_outcome(
-        ...     outcome_identifier="O-002",
-        ...     name="Updated Name",
-        ...     description="Updated description...",
-        ... )
+        description: Goal, baseline, target, and timeline (required for create, optional for update)
+        pillar_identifiers: List of pillar identifiers to link (e.g., "P-001")
+        outcome_identifier: Outcome identifier to update
     """
     session = SessionLocal()
     try:
@@ -548,28 +492,12 @@ async def query_product_outcomes(
 ) -> Dict[str, Any]:
     """Query product outcomes with optional single-entity lookup.
 
-    A unified query tool that replaces get_product_outcomes and get_product_outcome_details.
-
-    **Query modes:**
+    Query modes:
     - No params: Returns all product outcomes
     - identifier: Returns single outcome with linked pillars and themes
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         identifier: Outcome identifier (e.g., "O-001") for single lookup
-
-    Returns:
-        For single: outcome details with pillar_names and linked_themes
-        For list: array of outcomes
-
-    Examples:
-        >>> # Get all outcomes
-        >>> await query_product_outcomes()
-
-        >>> # Get single outcome by identifier
-        >>> await query_product_outcomes(identifier="O-001")
     """
     session = SessionLocal()
     try:
@@ -639,22 +567,13 @@ async def query_product_outcomes(
 
 @mcp.tool()
 async def delete_product_outcome(outcome_identifier: str) -> Dict[str, Any]:
-    """Delete a product outcome permanently.
+    """Delete product outcome permanently.
 
-    IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
-    This will also unlink the outcome from any associated pillars and themes.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Confirm with user BEFORE calling - cannot be undone.
+    Unlinks outcome from associated pillars and themes.
 
     Args:
-        outcome_identifier: Human-readable identifier of the product outcome to delete (e.g., "O-002")
-
-    Returns:
-        Success response confirming deletion
-
-    Example:
-        >>> result = await delete_product_outcome(outcome_identifier="O-002")
+        outcome_identifier: Outcome identifier (e.g., "O-002")
     """
     session = SessionLocal()
     try:

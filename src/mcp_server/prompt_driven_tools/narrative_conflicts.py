@@ -54,22 +54,9 @@ def _get_conflict_eager_load_options() -> List[Any]:
 
 @mcp.tool()
 async def get_conflict_creation_framework() -> Dict[str, Any]:
-    """Get comprehensive framework for creating a conflict.
+    """Get framework for creating a conflict between hero and villain.
 
-    Returns rich context to help Claude Code guide the user through
-    creating a high-quality conflict between a hero and villain.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        Framework dictionary with purpose, criteria, examples, questions,
-        anti-patterns, current state (available heroes/villains), and coaching tips
-
-    Example:
-        >>> framework = await get_conflict_creation_framework()
-        >>> # Claude Code uses framework to guide user through refinement
-        >>> await create_conflict(hero_identifier, villain_identifier, description)
+    Returns context with purpose, criteria, examples, questions, anti-patterns, and coaching tips.
     """
     session = SessionLocal()
     try:
@@ -252,43 +239,17 @@ async def submit_conflict(
     resolved_by_initiative_identifier: Optional[str] = None,
     conflict_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Creates a new conflict or updates an existing conflict.
+    """Create or update conflict (upsert: omit conflict_identifier to create, provide to update).
 
-    IMPORTANT: Reflect the conflict back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    **Upsert Behavior:**
-    - If `conflict_identifier` is **omitted**: Creates new conflict
-    - If `conflict_identifier` is **provided**: Updates existing conflict
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Reflect conflict back to user and confirm before calling.
 
     Args:
-        hero_identifier: Human-readable hero identifier (required for create, e.g., "H-2003")
-        villain_identifier: Human-readable villain identifier (required for create, e.g., "V-2003")
-        description: Rich description including conflict statement, impact, and stakes (required for create, optional for update)
-        roadmap_theme_identifier: Optional roadmap theme identifier to link (e.g., "T-001"), use "null" or "" to unlink
-        resolved_by_initiative_identifier: Initiative identifier that resolved this conflict (e.g., "I-1001")
-        conflict_identifier: If provided, updates existing conflict (e.g., "C-001")
-
-    Returns:
-        Success response with created or updated conflict
-
-    Example:
-        >>> # Create
-        >>> result = await submit_conflict(
-        ...     hero_identifier="H-2003",
-        ...     villain_identifier="V-2003",
-        ...     description="Sarah cannot access product context from IDE...",
-        ...     roadmap_theme_identifier="T-001"
-        ... )
-        >>> # Update
-        >>> result = await submit_conflict(
-        ...     conflict_identifier="C-001",
-        ...     description="Updated description...",
-        ...     resolved_by_initiative_identifier="I-1001"
-        ... )
+        hero_identifier: Hero identifier (e.g., "H-2003")
+        villain_identifier: Villain identifier (e.g., "V-2003")
+        description: Conflict statement, impact, and stakes
+        roadmap_theme_identifier: Theme identifier to link (e.g., "T-001")
+        resolved_by_initiative_identifier: Initiative that resolved this (e.g., "I-1001")
+        conflict_identifier: Conflict identifier to update (e.g., "C-001")
     """
     session = SessionLocal()
     try:
@@ -477,41 +438,16 @@ async def query_conflicts(
 ) -> Dict[str, Any]:
     """Query conflicts with flexible filtering and single-entity lookup.
 
-    A unified query tool that replaces get_conflicts and get_conflict_details.
-
-    **Query modes:**
+    Query modes:
     - No params: Returns all conflicts
-    - identifier: Returns single conflict with full hero/villain context
+    - identifier: Returns single conflict with hero/villain context
     - Filters (status, hero_identifier, villain_identifier): Can be combined
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
 
     Args:
         identifier: Conflict identifier (e.g., "C-001") for single lookup
         status: Filter by status (OPEN, ESCALATING, RESOLVING, RESOLVED)
         hero_identifier: Filter by hero identifier (e.g., "H-001")
         villain_identifier: Filter by villain identifier (e.g., "V-001")
-
-    Returns:
-        For single: conflict details with hero/villain context
-        For list: array of conflicts matching filters
-
-    Examples:
-        >>> # Get all conflicts
-        >>> await query_conflicts()
-
-        >>> # Get single conflict by identifier
-        >>> await query_conflicts(identifier="C-001")
-
-        >>> # Get open conflicts only
-        >>> await query_conflicts(status="OPEN")
-
-        >>> # Get conflicts for a specific hero
-        >>> await query_conflicts(hero_identifier="H-001")
-
-        >>> # Combine filters
-        >>> await query_conflicts(status="OPEN", hero_identifier="H-001")
     """
     session = SessionLocal()
     try:
@@ -619,21 +555,12 @@ async def query_conflicts(
 
 @mcp.tool()
 async def delete_conflict(conflict_identifier: str) -> Dict[str, Any]:
-    """Delete a conflict permanently.
+    """Delete conflict permanently.
 
-    IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Confirm with user BEFORE calling - cannot be undone.
 
     Args:
-        conflict_identifier: Human-readable identifier (e.g., "C-2003")
-
-    Returns:
-        Success response confirming deletion
-
-    Example:
-        >>> result = await delete_conflict(conflict_identifier="C-2003")
+        conflict_identifier: Conflict identifier (e.g., "C-2003")
     """
     session = SessionLocal()
     try:

@@ -44,27 +44,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool()
 async def get_theme_exploration_framework() -> Dict[str, Any]:
-    """Get comprehensive framework for defining a roadmap theme.
+    """Get framework for defining roadmap theme (6-12 month strategic bet area).
 
-    Roadmap themes are strategic bet areas that organize your roadmap around
-    problems to solve, not features to build. Each theme represents a cluster
-    of initiatives that together advance one or more product outcomes.
-
-    Good themes express intent and learning focus, not solution decisions.
-    They communicate what you're exploring and why, not what you're building
-    and when. Themes sit in a 6-12 month horizon.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        Framework dict with purpose, criteria, examples, questions, anti-patterns,
-        current state (outcomes + themes), coaching tips, and natural language
-        mapping guidance.
-
-    Example:
-        >>> framework = await get_theme_exploration_framework()
-        >>> # Use to guide user through defining a hypothesis-driven bet area
+    Returns context with purpose, criteria, examples, questions, anti-patterns, coaching tips, and conversational mappings.
     """
     session = SessionLocal()
     try:
@@ -353,9 +335,6 @@ async def submit_roadmap_theme(
     - If `theme_identifier` is **omitted**: Creates new theme
     - If `theme_identifier` is **provided**: Updates existing theme
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         name: Theme name (1-100 characters, unique per workspace, required for create, optional for update)
         description: Theme description (required for create, optional for update)
@@ -366,10 +345,6 @@ async def submit_roadmap_theme(
 
     Returns:
         Success response with created or updated theme
-
-    Example:
-        >>> # Create
-        >>> result = await submit_roadmap_theme(
         ...     name="First-Week Configuration Success",
         ...     description="Problem Statement: New users abandon initial configuration...",
         ...     outcome_identifiers=["O-001"]
@@ -619,16 +594,9 @@ async def get_prioritization_context() -> Dict[str, Any]:
     Returns rich context including current roadmap state, prioritized themes,
     unprioritized themes with alignment scores, and prioritization guidance.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Returns:
         Framework dict with purpose, current roadmap state, questions to consider,
         prioritization guidance, and capacity check.
-
-    Example:
-        >>> context = await get_prioritization_context()
-        >>> print(len(context["current_roadmap"]["prioritized_themes"]))
         2
     """
     session = SessionLocal()
@@ -758,9 +726,6 @@ async def set_theme_priority(
     Sets a theme's priority position on the active roadmap, or removes it
     from prioritization when priority_position is None.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         theme_identifier: Human-readable identifier of the theme (e.g., "T-001")
         priority_position: Priority position (0-indexed, 0 = highest priority).
@@ -768,15 +733,9 @@ async def set_theme_priority(
 
     Returns:
         Success response with theme data and next steps, or error response.
-
-    Example (Prioritize):
-        >>> result = await set_theme_priority(
         ...     theme_identifier="T-001",
         ...     priority_position=0
         ... )
-
-    Example (Deprioritize):
-        >>> result = await set_theme_priority(
         ...     theme_identifier="T-001",
         ...     priority_position=None
         ... )
@@ -865,9 +824,6 @@ async def set_theme_priority(
 async def organize_roadmap(theme_order: Dict[str, int]) -> Dict[str, Any]:
     """Reorder prioritized themes.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         theme_order: Dict mapping theme_identifier (str) to new position (int).
                      Must include ALL prioritized themes.
@@ -875,9 +831,6 @@ async def organize_roadmap(theme_order: Dict[str, int]) -> Dict[str, Any]:
 
     Returns:
         Success response with ordered theme list, or error response.
-
-    Example:
-        >>> result = await organize_roadmap(
         ...     theme_order={"T-001": 0, "T-002": 1, "T-003": 2}
         ... )
     """
@@ -931,18 +884,12 @@ async def connect_theme_to_outcomes(
 ) -> Dict[str, Any]:
     """Update outcome linkages for a theme.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         theme_identifier: Human-readable identifier of the theme (e.g., "T-001")
         outcome_identifiers: List of outcome identifiers to link to this theme
 
     Returns:
         Success response with updated theme and new alignment score, or error response.
-
-    Example:
-        >>> result = await connect_theme_to_outcomes(
         ...     theme_identifier="T-001",
         ...     outcome_identifiers=["O-001", "O-002"]
         ... )
@@ -1023,9 +970,6 @@ async def query_roadmap_themes(
     - identifier: Returns single theme with full linked entities and alignment score
     - prioritized_only: Returns only prioritized themes
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         identifier: Theme identifier (e.g., "T-001") for single lookup
         prioritized_only: If True, filters to prioritized themes only
@@ -1033,16 +977,6 @@ async def query_roadmap_themes(
     Returns:
         For single: theme details with outcomes, hero/villain, alignment score
         For list: array of themes
-
-    Examples:
-        >>> # Get all themes
-        >>> await query_roadmap_themes()
-
-        >>> # Get single theme by identifier
-        >>> await query_roadmap_themes(identifier="T-001")
-
-        >>> # Get only prioritized themes
-        >>> await query_roadmap_themes(prioritized_only=True)
     """
     session = SessionLocal()
     try:
@@ -1142,17 +1076,11 @@ async def delete_roadmap_theme(theme_identifier: str) -> Dict[str, Any]:
     IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
     This will also unlink the theme from any associated outcomes, heroes, and villains.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         theme_identifier: Human-readable identifier of the roadmap theme to delete (e.g., "T-001")
 
     Returns:
         Success response confirming deletion
-
-    Example:
-        >>> result = await delete_roadmap_theme(theme_identifier="T-001")
     """
     session = SessionLocal()
     try:

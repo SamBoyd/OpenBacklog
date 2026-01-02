@@ -84,24 +84,9 @@ It advances the **[theme name]** story arc by [contribution to the larger narrat
 
 @mcp.tool()
 async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
-    """Get comprehensive framework for defining a strategic initiative.
+    """Get framework for defining a strategic initiative.
 
-    Returns rich context to help Claude Code guide the user through
-    creating an initiative with full narrative connections - who it helps,
-    what problems it defeats, and why it matters strategically.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        Framework dictionary with purpose, criteria, examples, questions,
-        anti-patterns, current state (available heroes/villains/pillars/themes),
-        and coaching tips
-
-    Example:
-        >>> framework = await get_strategic_initiative_definition_framework()
-        >>> # Claude Code uses framework to guide user through refinement
-        >>> await submit_strategic_initiative(title, description, hero_ids, ...)
+    Returns rich context with purpose, criteria, examples, questions etc
     """
     session = SessionLocal()
     try:
@@ -350,30 +335,15 @@ async def submit_strategic_initiative(
     status: Optional[str] = None,
     strategic_initiative_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Submit a strategic initiative optionally with full narrative connections.
-
-    Creates both an Initiative and its StrategicInitiative context in one
-    operation, or updates an existing one, linking to heroes, villains, conflicts, pillars, and themes.
-
-    Uses graceful degradation: invalid narrative IDs are skipped with warnings
-    rather than failing the entire operation.
+    """Create or update a strategic initiative optionally with full narrative connections (upsert: omit strategic_initiative_identifier to create, provide to update).
 
     IMPORTANT: Reflect the initiative back to the user and get explicit confirmation
     BEFORE calling this function. This persists immediately.
 
-    **Upsert Behavior:**
-    - If `strategic_initiative_identifier` is **omitted**: Creates new initiative
-    - If `strategic_initiative_identifier` is **provided**: Updates existing initiative
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         title: Initiative title (required for create, optional for update)
-        implementation_description: What this initiative delivers and how it will be
-            built (required for create, optional for update). Supports markdown formatting.
-        strategic_description: How this initiative connects to the larger product
-            strategy (optional, defaults to implementation_description for create)
+        implementation_description: What this initiative delivers and how it will be built (required for create, optional for update). Supports markdown formatting.
+        strategic_description: How this initiative connects to the larger product strategy (optional, defaults to implementation_description for create)
         hero_identifiers: List of hero identifiers this initiative helps (optional)
         villain_identifiers: List of villain identifiers this initiative confronts (optional)
         conflict_identifiers: List of conflict identifiers this initiative addresses (optional)
@@ -382,25 +352,6 @@ async def submit_strategic_initiative(
         narrative_intent: Why this initiative matters narratively (optional)
         status: Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG (optional)
         strategic_initiative_identifier: If provided, updates existing initiative (optional)
-
-    Returns:
-        Success response with created or updated initiative and strategic context
-
-    Example:
-        >>> # Create
-        >>> result = await submit_strategic_initiative(
-        ...     title="Smart Context Switching",
-        ...     implementation_description="Auto-save and restore IDE context...",
-        ...     strategic_description="Addresses user need for seamless workflow...",
-        ...     hero_identifiers=["H-001"],
-        ...     villain_identifiers=["V-001"],
-        ... )
-        >>> # Update
-        >>> result = await submit_strategic_initiative(
-        ...     strategic_initiative_identifier="I-1001",
-        ...     status="IN_PROGRESS",
-        ...     hero_identifiers=["H-002"]
-        ... )
     """
     session = SessionLocal()
     try:
@@ -740,21 +691,14 @@ async def query_strategic_initiatives(
     status: Optional[str] = None,
     include_tasks: bool = False,
 ) -> Dict[str, Any]:
-    """Query strategic initiatives with flexible filtering.
+    """Query strategic initiatives with optional single-entity lookup.
 
-    A unified query tool that replaces get_strategic_initiatives,
-    get_active_strategic_initiatives, search_strategic_initiatives,
-    and get_strategic_initiative_details.
-
-    **Query modes:**
+    Query modes:
     - No params: Returns all strategic initiatives
     - identifier: Returns single initiative with full details + narrative summary
     - search: Returns initiatives matching search term (title/description)
     - status: Filters by status (e.g., "IN_PROGRESS" for active only)
     - include_tasks: Include tasks array (only when identifier provided)
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
 
     Args:
         identifier: Initiative identifier (e.g., "I-1001") for single lookup
@@ -763,24 +707,8 @@ async def query_strategic_initiatives(
         include_tasks: Include tasks array (only for single initiative)
 
     Returns:
-        For single: initiative details with optional tasks
+        For single: initiative details with linked tasks and narrative summary
         For list/search: array of initiatives with narrative summaries
-
-    Examples:
-        >>> # Get all initiatives
-        >>> await query_strategic_initiatives()
-
-        >>> # Get single initiative by identifier
-        >>> await query_strategic_initiatives(identifier="I-1001")
-
-        >>> # Get active initiatives only
-        >>> await query_strategic_initiatives(status="IN_PROGRESS")
-
-        >>> # Search initiatives
-        >>> await query_strategic_initiatives(search="context switching")
-
-        >>> # Get initiative with tasks
-        >>> await query_strategic_initiatives(identifier="I-1001", include_tasks=True)
     """
     session = SessionLocal()
     try:
@@ -1113,24 +1041,10 @@ async def delete_strategic_initiative(query: str) -> Dict[str, Any]:
     """Delete a strategic initiative permanently.
 
     IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
-    This deletes both the Initiative and its StrategicInitiative context.
-
-    Accepts a flexible query that tries multiple lookup strategies:
-    1. First tries as StrategicInitiative UUID
-    2. Then tries as Initiative UUID
-    3. Finally tries as Initiative identifier (e.g., "I-1001")
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    Unlinks initiative from associated heroes, villains, conflicts, pillars, and themes.
 
     Args:
-        query: Strategic initiative ID, initiative ID, or initiative identifier
-
-    Returns:
-        Success response confirming deletion
-
-    Example:
-        >>> result = await delete_strategic_initiative(query="I-1001")
+        query: Initiative identifier (e.g., "I-1001")
     """
     session = SessionLocal()
     try:

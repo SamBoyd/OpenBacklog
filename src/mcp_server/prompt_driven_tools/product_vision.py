@@ -34,39 +34,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool()
 async def get_vision_definition_framework() -> Dict[str, Any]:
-    """Get comprehensive framework for defining a product vision.
+    """Get framework for defining product vision (the change you want to make in the world).
 
-    Returns rich context to help Claude Code guide the user through
-    defining a high-quality product vision through collaborative refinement.
-
-    A vision describes the change you want to make in the world—not what you're
-    building, but why it matters. The test: "If others achieve this vision and
-    we can close shop, it's a good one." This ensures the vision is world-centric
-    rather than self-serving.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        Framework dictionary containing:
-        - purpose: Why this entity exists
-        - criteria: Quality standards for a good vision
-        - examples: Strong vision statements with explanations
-        - questions: Discovery questions for refinement
-        - anti_patterns: Common mistakes to avoid
-        - coaching_tips: Guidance for iteration
-        - conversation_guidelines: How to discuss vision in natural language
-        - natural_questions: Framework terms mapped to conversational questions
-        - extraction_guidance: Patterns for parsing user input into vision components
-        - inference_examples: How to infer vision from indirect user statements
-        - current_state: Existing vision if any
-
-    Example:
-        >>> framework = await get_vision_definition_framework()
-        >>> # Use natural_questions to guide conversation
-        >>> # Use extraction_guidance to parse user's response
-        >>> # Draft vision and reflect back in user's own words
-        >>> await submit_product_vision(refined_vision)
+    Returns context with purpose, criteria, examples, questions, anti-patterns, coaching tips, and conversational mappings.
     """
     session = SessionLocal()
     try:
@@ -284,27 +254,12 @@ async def get_vision_definition_framework() -> Dict[str, Any]:
 async def submit_product_vision(
     vision_text: str,
 ) -> Dict[str, Any]:
-    """Submit a refined product vision after collaborative definition.
+    """Submit refined product vision after collaborative definition.
 
-    Called only when Claude Code and user have crafted a high-quality
-    vision through dialogue using the framework guidance.
-
-    IMPORTANT: Reflect the vision back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Reflect vision back to user and confirm before calling.
 
     Args:
         vision_text: Refined vision statement (non-empty text)
-
-    Returns:
-        Success response with created/updated vision
-
-    Example:
-        >>> result = await submit_product_vision(
-        ...     vision_text="Enable developers to manage tasks without leaving their IDE"
-        ... )
     """
     session = SessionLocal()
     try:
@@ -351,20 +306,9 @@ async def submit_product_vision(
 
 @mcp.tool()
 async def get_vision_details() -> Dict[str, Any]:
-    """Retrieves the current product vision for the workspace.
+    """Retrieve current product vision for the workspace.
 
-    Returns the vision statement if one has been defined, or an error
-    if no vision exists yet.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        Success response with vision data, or error if no vision defined
-
-    Example:
-        >>> result = await get_vision_details()
-        >>> print(result["data"]["vision_text"])
+    Returns vision statement if defined, otherwise error.
     """
     session = SessionLocal()
     try:

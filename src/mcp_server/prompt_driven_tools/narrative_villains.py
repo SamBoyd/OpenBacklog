@@ -37,22 +37,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool()
 async def get_villain_definition_framework() -> Dict[str, Any]:
-    """Get comprehensive framework for defining a villain (problem/obstacle).
+    """Get framework for defining a villain (problem/obstacle).
 
-    Returns rich context to help Claude Code guide the user through
-    defining a high-quality villain through collaborative refinement.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        Framework dictionary with purpose, criteria, examples, questions,
-        anti-patterns, current state, and coaching tips
-
-    Example:
-        >>> framework = await get_villain_definition_framework()
-        >>> # Claude Code uses framework to guide user through refinement
-        >>> await submit_villain(name, villain_type, description, severity)
+    Returns context with purpose, criteria, examples, questions, anti-patterns, and coaching tips.
     """
     session = SessionLocal()
     try:
@@ -214,54 +201,17 @@ async def submit_villain(
     villain_identifier: Optional[str] = None,
     is_defeated: Optional[bool] = None,
 ) -> Dict[str, Any]:
-    """Submit a refined villain (problem/obstacle) - creates new or updates existing.
+    """Create or update villain (upsert: omit villain_identifier to create, provide to update).
 
-    UPSERT PATTERN:
-    - If villain_identifier is None: Creates a new villain
-    - If villain_identifier is provided: Updates the existing villain
-
-    Called only when Claude Code and user have crafted a high-quality
-    villain through dialogue using the framework guidance.
-
-    IMPORTANT: Reflect the villain back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Reflect villain back to user and confirm before calling.
 
     Args:
         name: Villain name (e.g., "Context Switching")
         villain_type: Type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER)
-        description: Rich description including how it manifests, impact, and evidence
+        description: How it manifests, impact, and evidence
         severity: How big a threat (1-5)
-        villain_identifier: If provided, updates existing villain instead of creating
-        is_defeated: Whether the villain is defeated (optional, replaces mark_villain_defeated)
-
-    Returns:
-        Success response with created or updated villain
-
-    Example (Create):
-        >>> result = await submit_villain(
-        ...     name="Context Switching",
-        ...     villain_type="WORKFLOW",
-        ...     description="Jumping between tools breaks flow...",
-        ...     severity=5
-        ... )
-
-    Example (Update):
-        >>> result = await submit_villain(
-        ...     villain_identifier="V-001",
-        ...     name="Context Switching (Updated)",
-        ...     villain_type="WORKFLOW",
-        ...     description="Updated description...",
-        ...     severity=4
-        ... )
-
-    Example (Mark Defeated):
-        >>> result = await submit_villain(
-        ...     villain_identifier="V-001",
-        ...     is_defeated=True
-        ... )
+        villain_identifier: Villain identifier to update (e.g., "V-001")
+        is_defeated: Whether the villain is defeated
     """
     session = SessionLocal()
     try:
@@ -412,33 +362,14 @@ async def query_villains(
 ) -> Dict[str, Any]:
     """Query villains with optional filtering and single-entity lookup.
 
-    A unified query tool that replaces get_villains and get_villain_details.
-
-    **Query modes:**
+    Query modes:
     - No params: Returns all villains
-    - identifier: Returns single villain with full details + battle_summary
+    - identifier: Returns single villain with details + battle_summary
     - active_only: Filters to non-defeated villains only
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
 
     Args:
         identifier: Villain identifier (e.g., "V-001") for single lookup
         active_only: If True, filters to non-defeated villains only
-
-    Returns:
-        For single: villain details with battle_summary
-        For list: array of villains
-
-    Examples:
-        >>> # Get all villains
-        >>> await query_villains()
-
-        >>> # Get single villain by identifier
-        >>> await query_villains(identifier="V-001")
-
-        >>> # Get only active (non-defeated) villains
-        >>> await query_villains(active_only=True)
     """
     session = SessionLocal()
     try:
@@ -500,22 +431,13 @@ async def query_villains(
 
 @mcp.tool()
 async def delete_villain(villain_identifier: str) -> Dict[str, Any]:
-    """Delete a villain permanently.
+    """Delete villain permanently.
 
-    IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
-    This will also remove the villain from any linked conflicts and story arcs.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Confirm with user BEFORE calling - cannot be undone.
+    Removes villain from linked conflicts and story arcs.
 
     Args:
-        villain_identifier: Human-readable identifier (e.g., "V-2003")
-
-    Returns:
-        Success response confirming deletion
-
-    Example:
-        >>> result = await delete_villain(villain_identifier="V-2003")
+        villain_identifier: Villain identifier (e.g., "V-2003")
     """
     session = SessionLocal()
     try:

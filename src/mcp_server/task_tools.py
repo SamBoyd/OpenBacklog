@@ -158,17 +158,12 @@ async def query_tasks(
 ) -> Dict[str, Any]:
     """Query tasks with flexible filtering and single-entity lookup.
 
-    A unified query tool that replaces get_initiative_tasks, get_task_details,
-    and search_tasks.
 
     **Query modes:**
     - identifier: Returns single task with full context (checklist, initiative, related tasks)
     - initiative_identifier: Returns all tasks for that initiative
     - search: Returns tasks matching search term (title/description/identifier)
     - No params: Returns error (must specify at least one filter)
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
 
     Args:
         identifier: Task identifier (e.g., "TM-001") for single lookup
@@ -178,16 +173,6 @@ async def query_tasks(
     Returns:
         For single: task details with checklist, initiative context, related tasks
         For list: array of tasks
-
-    Examples:
-        >>> # Get single task by identifier
-        >>> await query_tasks(identifier="TM-001")
-
-        >>> # Get all tasks for an initiative
-        >>> await query_tasks(initiative_identifier="I-1001")
-
-        >>> # Search tasks
-        >>> await query_tasks(search="authentication")
     """
     logger.info(
         f"Querying tasks: identifier={identifier}, initiative={initiative_identifier}, search={search}"
@@ -521,8 +506,6 @@ async def submit_task(
     Create a new task or update an existing one.
 
     Uses upsert pattern: creates when task_identifier is omitted, updates when provided.
-
-    REQUIRES: "Authorization: Bearer <token>" header to be set on the MCP request.
 
     Args:
         task_identifier: Task identifier (e.g., "T-001") for updates (optional)

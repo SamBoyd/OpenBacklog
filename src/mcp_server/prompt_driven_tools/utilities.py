@@ -33,9 +33,6 @@ async def review_strategic_foundation() -> Dict[str, Any]:
     Analyzes the completeness and quality of workspace strategic foundation
     (vision, pillars, outcomes) and provides actionable recommendations.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Returns:
         Dict containing:
         - status: "healthy" | "partial" | "missing"
@@ -45,11 +42,6 @@ async def review_strategic_foundation() -> Dict[str, Any]:
         - gaps: List of identified issues
         - next_steps: Recommended actions
         - summary: Human-readable health summary
-
-    Example:
-        >>> result = await review_strategic_foundation()
-        >>> print(result["status"])  # "partial"
-        >>> print(result["gaps"])    # ["Only 1 strategic pillar..."]
     """
     session = SessionLocal()
     try:
@@ -84,18 +76,12 @@ async def connect_outcome_to_pillars(
     Outcomes should be linked to at least one pillar to validate that they
     support your strategic differentiation.
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         outcome_identifier: Human-readable identifier of the outcome to link (e.g., "O-002")
         pillar_identifiers: List of pillar identifiers to link to this outcome
 
     Returns:
         Success response with updated outcome data
-
-    Example:
-        >>> result = await connect_outcome_to_pillars(
         ...     outcome_identifier="O-002",
         ...     pillar_identifiers=["P-001", "P-002"]
         ... )

@@ -37,22 +37,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool()
 async def get_hero_definition_framework() -> Dict[str, Any]:
-    """Get comprehensive framework for defining a hero (user persona).
+    """Get framework for defining a hero (user persona).
 
-    Returns rich context to help Claude Code guide the user through
-    defining a high-quality hero through collaborative refinement.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        Framework dictionary with purpose, criteria, examples, questions,
-        anti-patterns, current state, and coaching tips
-
-    Example:
-        >>> framework = await get_hero_definition_framework()
-        >>> # Claude Code uses framework to guide user through refinement
-        >>> await submit_hero(name, description, is_primary)
+    Returns context with purpose, criteria, examples, questions, anti-patterns, and coaching tips.
     """
     session = SessionLocal()
     try:
@@ -219,44 +206,15 @@ async def submit_hero(
     is_primary: bool = False,
     hero_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Submit a refined hero (user persona) - creates new or updates existing.
+    """Create or update hero (upsert: omit hero_identifier to create, provide to update).
 
-    UPSERT PATTERN:
-    - If hero_identifier is None: Creates a new hero
-    - If hero_identifier is provided: Updates the existing hero
-
-    Called only when Claude Code and user have crafted a high-quality
-    hero through dialogue using the framework guidance.
-
-    IMPORTANT: Reflect the hero back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Reflect hero back to user and confirm before calling.
 
     Args:
         name: Hero name (e.g., "Sarah, The Solo Builder")
-        description: Rich description including who they are, motivations,
-                     jobs-to-be-done, pains, desired gains, and context
+        description: Who they are, motivations, jobs-to-be-done, pains, gains, context
         is_primary: Whether this is the primary hero
-        hero_identifier: If provided, updates existing hero instead of creating
-
-    Returns:
-        Success response with created or updated hero
-
-    Example (Create):
-        >>> result = await submit_hero(
-        ...     name="Sarah, The Solo Builder",
-        ...     description="Sarah is a solo developer...",
-        ...     is_primary=True
-        ... )
-
-    Example (Update):
-        >>> result = await submit_hero(
-        ...     hero_identifier="H-001",
-        ...     name="Sarah, The Senior Builder",
-        ...     description="Updated description..."
-        ... )
+        hero_identifier: Hero identifier to update (e.g., "H-001")
     """
     session = SessionLocal()
     try:
@@ -409,28 +367,12 @@ async def query_heroes(
 ) -> Dict[str, Any]:
     """Query heroes with optional single-entity lookup.
 
-    A unified query tool that replaces get_heroes and get_hero_details.
-
-    **Query modes:**
+    Query modes:
     - No params: Returns all heroes (list view)
-    - identifier: Returns single hero with full details + journey_summary
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    - identifier: Returns single hero with details + journey_summary
 
     Args:
         identifier: Hero identifier (e.g., "H-001") for single lookup
-
-    Returns:
-        For single: hero details with journey_summary
-        For list: array of heroes
-
-    Examples:
-        >>> # Get all heroes
-        >>> await query_heroes()
-
-        >>> # Get single hero by identifier
-        >>> await query_heroes(identifier="H-001")
     """
     session = SessionLocal()
     try:
@@ -483,22 +425,13 @@ async def query_heroes(
 
 @mcp.tool()
 async def delete_hero(hero_identifier: str) -> Dict[str, Any]:
-    """Delete a hero permanently.
+    """Delete hero permanently.
 
-    IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
-    This will also remove the hero from any linked story arcs and conflicts.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Confirm with user BEFORE calling - cannot be undone.
+    Removes hero from linked story arcs and conflicts.
 
     Args:
-        hero_identifier: Human-readable identifier (e.g., "H-2003")
-
-    Returns:
-        Success response confirming deletion
-
-    Example:
-        >>> result = await delete_hero(hero_identifier="H-2003")
+        hero_identifier: Hero identifier (e.g., "H-2003")
     """
     session = SessionLocal()
     try:

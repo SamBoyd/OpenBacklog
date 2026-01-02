@@ -30,46 +30,9 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool()
 async def get_pillar_definition_framework() -> Dict[str, Any]:
-    """Get comprehensive framework for defining a strategic pillar.
+    """Get framework for defining strategic pillars (enduring ways to win).
 
-    Strategic pillars are enduring, guiding choices that define HOW you'll achieve
-    your vision. They sit between why you exist (vision) and what you'll do next
-    (outcomes and roadmap). Think of them as the scaffolding of your strategy.
-
-    Key insight: Pillars express ADVANTAGE, not activity. They explain how you'll
-    differentiate and sustain value—not what you're doing this quarter.
-
-    Time horizon: 2-4 years. Core question: "What enduring ways will we win?"
-
-    A pillar is a durable "way of competing," not a project or metric.
-    Example pillars: "Seamless Developer Flow," "AI-Native Intelligence," "Radical Simplicity."
-
-    Returns rich context to help Claude Code guide the user through defining
-    high-quality strategic pillars through collaborative refinement.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        Framework dictionary containing:
-        - purpose: Why pillars exist and what they accomplish
-        - criteria: Quality standards for strong pillars (durable, differentiating, actionable)
-        - examples: Strong pillar statements with strategy and anti-strategy
-        - questions: Discovery and validation questions for refinement
-        - anti_patterns: Common mistakes (too tactical, too generic, departmental)
-        - coaching_tips: Guidance for writing belief-style, testable pillars
-        - conversation_guidelines: How to discuss pillars in natural language
-        - natural_questions: Framework terms mapped to conversational questions
-        - extraction_guidance: Patterns for parsing user input into pillar components
-        - inference_examples: How to infer pillars from indirect user statements
-        - current_state: Existing pillars (max 5 allowed)
-
-    Example:
-        >>> framework = await get_pillar_definition_framework()
-        >>> # Use natural_questions to guide conversation about differentiation
-        >>> # Use extraction_guidance to parse user's strategic choices
-        >>> # Draft pillar and reflect back as a belief statement
-        >>> await submit_strategic_pillar(name, description)
+    Returns context with purpose, criteria, examples, questions, anti-patterns, coaching tips, and conversational mappings.
     """
     session = SessionLocal()
     try:
@@ -353,28 +316,12 @@ async def query_strategic_pillars(
 ) -> Dict[str, Any]:
     """Query strategic pillars with optional single-entity lookup.
 
-    A unified query tool that replaces get_strategic_pillars and get_strategic_pillar_details.
-
-    **Query modes:**
+    Query modes:
     - No params: Returns all strategic pillars
     - identifier: Returns single pillar with linked outcomes
 
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
     Args:
         identifier: Pillar identifier (e.g., "P-001") for single lookup
-
-    Returns:
-        For single: pillar details with linked_outcomes
-        For list: array of pillars
-
-    Examples:
-        >>> # Get all pillars
-        >>> await query_strategic_pillars()
-
-        >>> # Get single pillar by identifier
-        >>> await query_strategic_pillars(identifier="P-001")
     """
     session = SessionLocal()
     try:
@@ -439,42 +386,14 @@ async def submit_strategic_pillar(
     description: str,
     pillar_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Submit a refined strategic pillar - creates new or updates existing.
+    """Create or update strategic pillar (upsert: omit pillar_identifier to create, provide to update).
 
-    UPSERT PATTERN:
-    - If pillar_identifier is None: Creates a new pillar
-    - If pillar_identifier is provided: Updates the existing pillar
-
-    Called only when Claude Code and user have crafted a high-quality
-    pillar through dialogue using the framework guidance.
-
-    IMPORTANT: Reflect the pillar back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Reflect pillar back to user and confirm before calling.
 
     Args:
         name: Pillar name (1-100 characters, unique per workspace)
-        description: Pillar description including strategy and anti-strategy (required)
-                    Should include both what you'll do and what you won't do
-        pillar_identifier: If provided, updates existing pillar instead of creating
-
-    Returns:
-        Success response with created or updated pillar
-
-    Example (Create):
-        >>> result = await submit_strategic_pillar(
-        ...     name="Deep IDE Integration",
-        ...     description="Strategy: Seamless developer workflow. Anti-Strategy: No web/mobile."
-        ... )
-
-    Example (Update):
-        >>> result = await submit_strategic_pillar(
-        ...     pillar_identifier="P-001",
-        ...     name="Deep IDE Integration (Updated)",
-        ...     description="Updated strategy..."
-        ... )
+        description: Strategy and anti-strategy (what you'll do and what you won't do)
+        pillar_identifier: Pillar identifier to update
     """
     session = SessionLocal()
     try:
@@ -598,22 +517,13 @@ async def submit_strategic_pillar(
 
 @mcp.tool()
 async def delete_strategic_pillar(pillar_identifier: str) -> Dict[str, Any]:
-    """Delete a strategic pillar permanently.
+    """Delete strategic pillar permanently.
 
-    IMPORTANT: Confirm with user BEFORE calling - this action cannot be undone.
-    This will also unlink the pillar from any associated outcomes and initiatives.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
+    IMPORTANT: Confirm with user BEFORE calling - cannot be undone.
+    Unlinks pillar from associated outcomes and initiatives.
 
     Args:
-        pillar_identifier: Human-readable identifier of the strategic pillar to delete (e.g., "P-001")
-
-    Returns:
-        Success response confirming deletion
-
-    Example:
-        >>> result = await delete_strategic_pillar(pillar_identifier="P-001")
+        pillar_identifier: Pillar identifier (e.g., "P-001")
     """
     session = SessionLocal()
     try:
