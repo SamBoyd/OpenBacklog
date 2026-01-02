@@ -90,24 +90,8 @@ def _adapt_villain_for_template(villain: Villain) -> Dict[str, Any]:
     return data
 
 
-@mcp.tool()
-async def get_strategic_context_summary() -> str:
-    """Comprehensive strategic foundation summary.
-
-    Returns a denormalized, human-readable summary of the complete strategic
-    foundation including vision, pillars, outcomes, themes, heroes, and villains.
-
-    This tool is designed to be called once to get complete strategic
-    context in a single response—enabling developers to evaluate new ideas
-    against the roadmap, understand priorities, and capture problems with
-    full strategic context.
-
-    Authentication is handled by FastMCP's RemoteAuthProvider.
-    Workspace is automatically loaded from the authenticated user.
-
-    Returns:
-        Rendered markdown string containing the complete strategic context.
-    """
+async def _get_strategic_context_summary_impl() -> str:
+    """Implementation of get_strategic_context_summary - separated from decorator for reuse."""
     session = SessionLocal()
     try:
         workspace_uuid = get_workspace_id_from_request()
@@ -172,3 +156,21 @@ async def get_strategic_context_summary() -> str:
         return f"Error: Unable to retrieve strategic context. {str(e)}"
     finally:
         session.close()
+
+
+@mcp.tool()
+async def get_strategic_context_summary() -> str:
+    """Comprehensive strategic foundation summary.
+
+    Returns a summary of the complete strategic foundation including vision,
+    pillars, outcomes, themes, heroes, and villains.
+
+    This tool is designed to be called once to get complete strategic
+    context in a single response—enabling developers to evaluate new ideas
+    against the roadmap, understand priorities, and capture problems with
+    full strategic context.
+
+    Returns:
+        Rendered markdown string containing the complete strategic context.
+    """
+    return await _get_strategic_context_summary_impl()

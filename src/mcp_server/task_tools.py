@@ -150,30 +150,12 @@ def _task_to_dict(task: Task) -> Dict[str, Any]:
     }
 
 
-@mcp.tool()
-async def query_tasks(
+async def _query_tasks_impl(
     identifier: Optional[str] = None,
     initiative_identifier: Optional[str] = None,
     search: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Query tasks with flexible filtering and single-entity lookup.
-
-
-    **Query modes:**
-    - identifier: Returns single task with full context (checklist, initiative, related tasks)
-    - initiative_identifier: Returns all tasks for that initiative
-    - search: Returns tasks matching search term (title/description/identifier)
-    - No params: Returns error (must specify at least one filter)
-
-    Args:
-        identifier: Task identifier (e.g., "TM-001") for single lookup
-        initiative_identifier: Initiative identifier (e.g., "I-1001") to list tasks
-        search: Search string for title/description matching
-
-    Returns:
-        For single: task details with checklist, initiative context, related tasks
-        For list: array of tasks
-    """
+    """Implementation of query_tasks - separated from decorator for reuse."""
     logger.info(
         f"Querying tasks: identifier={identifier}, initiative={initiative_identifier}, search={search}"
     )
@@ -381,7 +363,33 @@ async def query_tasks(
 
 
 @mcp.tool()
-async def submit_task(
+async def query_tasks(
+    identifier: Optional[str] = None,
+    initiative_identifier: Optional[str] = None,
+    search: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Query tasks with flexible filtering and single-entity lookup.
+
+
+    **Query modes:**
+    - identifier: Returns single task with full context (checklist, initiative, related tasks)
+    - initiative_identifier: Returns all tasks for that initiative
+    - search: Returns tasks matching search term (title/description/identifier)
+    - No params: Returns error (must specify at least one filter)
+
+    Args:
+        identifier: Task identifier (e.g., "TM-001") for single lookup
+        initiative_identifier: Initiative identifier (e.g., "I-1001") to list tasks
+        search: Search string for title/description matching
+
+    Returns:
+        For single: task details with checklist, initiative context, related tasks
+        For list: array of tasks
+    """
+    return await _query_tasks_impl(identifier, initiative_identifier, search)
+
+
+async def _submit_task_impl(
     task_identifier: Optional[str] = None,
     initiative_identifier: Optional[str] = None,
     title: Optional[str] = None,
@@ -390,23 +398,7 @@ async def submit_task(
     task_type: Optional[str] = None,
     checklist: Optional[List[TaskChecklistItem]] = None,
 ) -> Dict[str, Any]:
-    """
-    Create a new task or update an existing one.
-
-    Uses upsert pattern: creates when task_identifier is omitted, updates when provided.
-
-    Args:
-        task_identifier: Task identifier (e.g., "T-001") for updates (optional)
-        initiative_identifier: Initiative identifier (required for create)
-        title: Task title (required for create, optional for update)
-        description: Task description (optional)
-        status: Task status (TO_DO, IN_PROGRESS, BLOCKED, DONE, ARCHIVED) (optional)
-        task_type: Task type (CODING, TESTING, DOCUMENTATION, DESIGN) (optional)
-        checklist: List of checklist items (replaces entire checklist if provided) (optional)
-
-    Returns:
-        Success response with created or updated task
-    """
+    """Implementation of submit_task - separated from decorator for reuse."""
     logger.info(
         f"Processing task submission: identifier={task_identifier}, title={title}"
     )
@@ -464,7 +456,11 @@ async def submit_task(
                         "error_message": f"Invalid status '{status}'. Valid: {valid_statuses}",
                         "error_type": "validation_error",
                     }
-                controller.move_task_to_status(user_id, task.id, task_status)
+                controller.move_task_to_status(
+                    task_id=task.id,
+                    user_id=user_id,
+                    new_status=task_status,
+                )
 
             # Update type if provided
             if task_type is not None:
@@ -486,7 +482,11 @@ async def submit_task(
                     )
                     for idx, item in enumerate(checklist)
                 ]
-                controller.update_checklist(user_id, task.id, items_data)
+                controller.update_checklist(
+                    user_id=user_id,
+                    task_id=task.id,
+                    items=items_data,
+                )
 
             session.refresh(task)
 
@@ -612,3 +612,41 @@ async def submit_task(
         }
     finally:
         session.close()
+
+
+@mcp.tool()
+async def submit_task(
+    task_identifier: Optional[str] = None,
+    initiative_identifier: Optional[str] = None,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    status: Optional[str] = None,
+    task_type: Optional[str] = None,
+    checklist: Optional[List[TaskChecklistItem]] = None,
+) -> Dict[str, Any]:
+    """
+    Create a new task or update an existing one.
+
+    Uses upsert pattern: creates when task_identifier is omitted, updates when provided.
+
+    Args:
+        task_identifier: Task identifier (e.g., "T-001") for updates (optional)
+        initiative_identifier: Initiative identifier (required for create)
+        title: Task title (required for create, optional for update)
+        description: Task description (optional)
+        status: Task status (TO_DO, IN_PROGRESS, BLOCKED, DONE, ARCHIVED) (optional)
+        task_type: Task type (CODING, TESTING, DOCUMENTATION, DESIGN) (optional)
+        checklist: List of checklist items (replaces entire checklist if provided) (optional)
+
+    Returns:
+        Success response with created or updated task
+    """
+    return await _submit_task_impl(
+        task_identifier,
+        initiative_identifier,
+        title,
+        description,
+        status,
+        task_type,
+        checklist,
+    )

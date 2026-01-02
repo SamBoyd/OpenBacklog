@@ -20,6 +20,7 @@ from src.db import get_async_db
 
 # from alembic import command
 # from alembic.config import Config
+from src.mcp_server.execution import mcp_execution
 from src.mcp_server.main import mcp
 
 logging.basicConfig(level=logging.INFO)
@@ -44,6 +45,7 @@ from src.utils.assets import get_hashed_css_path
 templates.env.globals["hashed_css_path"] = get_hashed_css_path()
 
 mcp_app = mcp.http_app(path="/")
+mcp_execution_app = mcp_execution.http_app(path="/")
 
 
 @asynccontextmanager
@@ -68,7 +70,8 @@ async def combined_lifespan(app: FastAPI):
     # Run both lifespans
     async with lifespan(app):
         async with mcp_app.lifespan(app):
-            yield
+            async with mcp_execution_app.lifespan(app):
+                yield
 
 
 def app_init() -> FastAPI:
@@ -84,7 +87,11 @@ def app_init() -> FastAPI:
     )
 
     app.mount(
-        "/mcp",
+        "/mcp/execution",
+        mcp_execution_app,
+    )
+    app.mount(
+        "/mcp/planning",
         mcp_app,
     )
 

@@ -320,8 +320,7 @@ async def get_strategic_initiative_definition_framework() -> Dict[str, Any]:
         session.close()
 
 
-@mcp.tool()
-async def submit_strategic_initiative(
+async def _submit_strategic_initiative_impl(
     title: str = None,
     implementation_description: str = None,
     strategic_description: Optional[str] = None,
@@ -334,24 +333,7 @@ async def submit_strategic_initiative(
     status: Optional[str] = None,
     strategic_initiative_identifier: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Create or update a strategic initiative optionally with full narrative connections (upsert: omit strategic_initiative_identifier to create, provide to update).
-
-    IMPORTANT: Reflect the initiative back to the user and get explicit confirmation
-    BEFORE calling this function. This persists immediately.
-
-    Args:
-        title: Initiative title (required for create, optional for update)
-        implementation_description: What this initiative delivers and how it will be built (required for create, optional for update). Supports markdown formatting.
-        strategic_description: How this initiative connects to the larger product strategy (optional, defaults to implementation_description for create)
-        hero_identifiers: List of hero identifiers this initiative helps (optional)
-        villain_identifiers: List of villain identifiers this initiative confronts (optional)
-        conflict_identifiers: List of conflict identifiers this initiative addresses (optional)
-        pillar_identifier: Strategic pillar identifier for alignment (optional, use "null" to unlink)
-        theme_identifier: Roadmap theme identifier for placement (optional, use "null" to unlink)
-        narrative_intent: Why this initiative matters narratively (optional)
-        status: Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG (optional)
-        strategic_initiative_identifier: If provided, updates existing initiative (optional)
-    """
+    """Implementation of submit_strategic_initiative - separated from decorator for reuse."""
     session = SessionLocal()
     try:
         user_id_str, workspace_id_str = get_auth_context(
@@ -684,31 +666,60 @@ async def submit_strategic_initiative(
 
 
 @mcp.tool()
-async def query_strategic_initiatives(
+async def submit_strategic_initiative(
+    title: str = None,
+    implementation_description: str = None,
+    strategic_description: Optional[str] = None,
+    hero_identifiers: Optional[List[str]] = None,
+    villain_identifiers: Optional[List[str]] = None,
+    conflict_identifiers: Optional[List[str]] = None,
+    pillar_identifier: Optional[str] = None,
+    theme_identifier: Optional[str] = None,
+    narrative_intent: Optional[str] = None,
+    status: Optional[str] = None,
+    strategic_initiative_identifier: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Create or update a strategic initiative optionally with full narrative connections (upsert: omit strategic_initiative_identifier to create, provide to update).
+
+    IMPORTANT: Reflect the initiative back to the user and get explicit confirmation
+    BEFORE calling this function. This persists immediately.
+
+    Args:
+        title: Initiative title (required for create, optional for update)
+        implementation_description: What this initiative delivers and how it will be built (required for create, optional for update). Supports markdown formatting.
+        strategic_description: How this initiative connects to the larger product strategy (optional, defaults to implementation_description for create)
+        hero_identifiers: List of hero identifiers this initiative helps (optional)
+        villain_identifiers: List of villain identifiers this initiative confronts (optional)
+        conflict_identifiers: List of conflict identifiers this initiative addresses (optional)
+        pillar_identifier: Strategic pillar identifier for alignment (optional, use "null" to unlink)
+        theme_identifier: Roadmap theme identifier for placement (optional, use "null" to unlink)
+        narrative_intent: Why this initiative matters narratively (optional)
+        status: Initiative status (BACKLOG, TO_DO, IN_PROGRESS) - defaults to BACKLOG (optional)
+        strategic_initiative_identifier: If provided, updates existing initiative (optional)
+    """
+    return await _submit_strategic_initiative_impl(
+        title,
+        implementation_description,
+        strategic_description,
+        hero_identifiers,
+        villain_identifiers,
+        conflict_identifiers,
+        pillar_identifier,
+        theme_identifier,
+        narrative_intent,
+        status,
+        strategic_initiative_identifier,
+    )
+
+
+async def _query_strategic_initiatives_impl(
     identifier: Optional[str] = None,
     search: Optional[str] = None,
     status: Optional[str] = None,
     include_tasks: bool = False,
 ) -> Dict[str, Any]:
-    """Query strategic initiatives with optional single-entity lookup.
+    """Implementation of query_strategic_initiatives - separated from decorator for reuse."""
 
-    Query modes:
-    - No params: Returns all strategic initiatives
-    - identifier: Returns single initiative with full details + narrative summary
-    - search: Returns initiatives matching search term (title/description)
-    - status: Filters by status (e.g., "IN_PROGRESS" for active only)
-    - include_tasks: Include tasks array (only when identifier provided)
-
-    Args:
-        identifier: Initiative identifier (e.g., "I-1001") for single lookup
-        search: Search string for title/description matching
-        status: Filter by status (BACKLOG, TO_DO, IN_PROGRESS)
-        include_tasks: Include tasks array (only for single initiative)
-
-    Returns:
-        For single: initiative details with linked tasks and narrative summary
-        For list/search: array of initiatives with narrative summaries
-    """
     session = SessionLocal()
     try:
         user_id_str, workspace_id_str = get_auth_context(
@@ -903,6 +914,37 @@ async def query_strategic_initiatives(
         return build_error_response("strategic_initiative", f"Server error: {str(e)}")
     finally:
         session.close()
+
+
+@mcp.tool()
+async def query_strategic_initiatives(
+    identifier: Optional[str] = None,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    include_tasks: bool = False,
+) -> Dict[str, Any]:
+    """Query strategic initiatives with optional single-entity lookup.
+
+    Query modes:
+    - No params: Returns all strategic initiatives
+    - identifier: Returns single initiative with full details + narrative summary
+    - search: Returns initiatives matching search term (title/description)
+    - status: Filters by status (e.g., "IN_PROGRESS" for active only)
+    - include_tasks: Include tasks array (only when identifier provided)
+
+    Args:
+        identifier: Initiative identifier (e.g., "I-1001") for single lookup
+        search: Search string for title/description matching
+        status: Filter by status (BACKLOG, TO_DO, IN_PROGRESS)
+        include_tasks: Include tasks array (only for single initiative)
+
+    Returns:
+        For single: initiative details with linked tasks and narrative summary
+        For list/search: array of initiatives with narrative summaries
+    """
+    return await _query_strategic_initiatives_impl(
+        identifier, search, status, include_tasks
+    )
 
 
 def _ensure_strategic_context(

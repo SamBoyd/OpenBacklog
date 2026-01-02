@@ -20,27 +20,70 @@ See the [official Claude Code documentation](https://docs.anthropic.com/en/docs/
 
 ### 2. Configure MCP Server
 
-Add OpenBacklog to your MCP configuration. Create or edit `~/.claude/claude_desktop_config.json`:
+OpenBacklog provides two MCP server modes:
+
+**Execution Mode** (5 tools) - Minimal toolset for coding workflows:
+- Query and update initiatives
+- Query and update tasks
+- Get strategic context summary
+
+**Planning Mode** (35+ tools) - Full toolset for strategic planning:
+- All execution tools
+- Framework tools for vision, pillars, outcomes, themes
+- Hero, villain, and conflict management
+- Roadmap prioritization
+
+#### Why Two Servers?
+
+LLMs have a fixed context window, and every MCP tool definition consumes tokens whether the tool is used or not. When you're focused on **implementation** (pulling down a task and coding), you don't need 35+ strategic planning tools consuming your context window.
+
+**The Problem:**
+- Tool definitions take up valuable context space
+- More tools = less room for code, conversation, and reasoning
+- When coding, you rarely need framework tools, hero/villain management, or roadmap prioritization
+
+**The Solution:**
+- **Execution server**: Only 5 essential tools (~85% reduction)
+- **Strategy server**: Full 35+ toolset for when you're planning
+- Use the right server for the right job
+
+**Benefits:**
+- More context available for actual code when implementing
+- Faster AI tool selection with fewer options to consider
+- Clear mental model: "I'm coding" vs "I'm planning"
+- Better performance and lower API costs
+
+#### Recommended: Dual-Server Configuration
+
+For best performance, configure both servers. Use the execution server when coding, and the strategy server when planning:
 
 ```json
 {
   "mcpServers": {
-    "openbacklog": {
-      "url": "http://localhost:8000/mcp"
+    "openbacklog-execution": {
+      "url": "http://localhost:8000/mcp/execution/",
+      "description": "Minimal toolset for coding workflows"
+    },
+    "openbacklog-strategy": {
+      "url": "http://localhost:8000/mcp/planning/",
+      "description": "Full toolset for strategic planning"
     }
   }
 }
 ```
 
-Or use the `--mcp` flag when starting Claude Code:
 
 ```bash
-claude --mcp http://localhost:8000/mcp
+claude --mcp http://localhost:8000/mcp/planning/
 ```
 
 ### 3. Authenticate
 
 When Claude Code connects to OpenBacklog, you'll be prompted to authenticate via your browser.
+
+### 4. Managing MCP Servers
+
+Once configured, you can dynamically enable and disable MCP servers during your Claude Code session using the `/mcp` command:
 
 ## Available Tools
 

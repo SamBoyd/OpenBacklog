@@ -2,7 +2,7 @@
 
 import uuid
 from typing import List
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from hamcrest import assert_that, has_entries, has_key
@@ -86,7 +86,7 @@ class TestQueryTasksByInitiative:
         session: Session,
         initiative: Initiative,
         sample_tasks: List[Task],
-        mock_get_auth_context,
+        mock_get_auth_context: MagicMock,
     ):
         """Test successful retrieval of initiative tasks."""
         result = await query_tasks.fn(initiative_identifier=initiative.identifier)
@@ -112,7 +112,7 @@ class TestQueryTasksByInitiative:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context,
+        mock_get_auth_context: MagicMock,
     ):
         """Test handling of empty task list."""
         result = await query_tasks.fn(initiative_identifier=initiative.identifier)
@@ -131,7 +131,11 @@ class TestQueryTasksByInitiative:
 
     @pytest.mark.asyncio
     async def test_query_tasks_by_initiative_not_found(
-        self, user: User, workspace: Workspace, session: Session, mock_get_auth_context
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context: MagicMock,
     ):
         """Test handling when initiative is not found."""
         result = await query_tasks.fn(initiative_identifier="I-99999")
@@ -154,7 +158,7 @@ class TestQueryTasksByInitiative:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context,
+        mock_get_auth_context: MagicMock,
     ):
         """Test handling of controller error."""
         with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
@@ -211,7 +215,7 @@ class TestQueryTasksSingle:
         session: Session,
         initiative: Initiative,
         sample_task: Task,
-        mock_get_auth_context,
+        mock_get_auth_context: MagicMock,
     ):
         """Test successful retrieval of task details."""
         result = await query_tasks.fn(identifier=sample_task.identifier)
@@ -238,7 +242,7 @@ class TestQueryTasksSingle:
         session: Session,
         initiative: Initiative,
         sample_task: Task,
-        mock_get_auth_context,
+        mock_get_auth_context: MagicMock,
     ):
         """Test that task details include checklist items."""
         checklist_item = ChecklistItem(
@@ -260,7 +264,11 @@ class TestQueryTasksSingle:
 
     @pytest.mark.asyncio
     async def test_query_tasks_single_not_found(
-        self, user: User, workspace: Workspace, session: Session, mock_get_auth_context
+        self,
+        user: User,
+        workspace: Workspace,
+        session: Session,
+        mock_get_auth_context: MagicMock,
     ):
         """Test handling when task is not found."""
         result = await query_tasks.fn(identifier="T-99999")
@@ -285,7 +293,7 @@ class TestQueryTasksSingle:
         session: Session,
         initiative: Initiative,
         sample_task: Task,
-        mock_get_auth_context,
+        mock_get_auth_context: MagicMock,
     ):
         """Test that task details include initiative context."""
         result = await query_tasks.fn(identifier=sample_task.identifier)
@@ -339,7 +347,7 @@ class TestQueryTasksSearch:
         session: Session,
         initiative: Initiative,
         sample_search_results: List[Task],
-        mock_get_auth_context,
+        mock_get_auth_context: MagicMock,
     ):
         """Test successful task search."""
         result = await query_tasks.fn(search="authentication")
@@ -355,7 +363,7 @@ class TestQueryTasksSearch:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context,
+        mock_get_auth_context: MagicMock,
     ):
         """Test search with no results."""
         result = await query_tasks.fn(search="nonexistent")
@@ -373,7 +381,7 @@ class TestQueryTasksSearch:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context,
+        mock_get_auth_context: MagicMock,
     ):
         """Test handling of controller error during search."""
         with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
@@ -406,7 +414,7 @@ class TestQueryTasksNoParams:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context,
+        mock_get_auth_context: MagicMock,
     ):
         """Test that query_tasks with no params returns validation error."""
         result = await query_tasks.fn()
@@ -441,7 +449,7 @@ class TestSubmitTask:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test creating task with only required fields."""
         with patch("src.mcp_server.task_tools.TaskController") as mock_controller_class:
@@ -481,7 +489,7 @@ class TestSubmitTask:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test error when title is missing for create."""
         result = await submit_task.fn(initiative_identifier="I-001", title=None)
@@ -496,7 +504,7 @@ class TestSubmitTask:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test error when task_identifier doesn't exist."""
         result = await submit_task.fn(task_identifier="T-999", status="DONE")
@@ -512,7 +520,7 @@ class TestSubmitTask:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test error when initiative_identifier is missing for create."""
         result = await submit_task.fn(title="New Task")
@@ -528,7 +536,7 @@ class TestSubmitTask:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test creating task with all optional parameters."""
         with (
@@ -572,7 +580,7 @@ class TestSubmitTask:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test creating task with checklist items."""
         with (
@@ -617,7 +625,7 @@ class TestSubmitTask:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test error when initiative doesn't exist."""
         with (
@@ -645,7 +653,7 @@ class TestSubmitTask:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test error when invalid status is provided during create."""
         with (
@@ -673,7 +681,7 @@ class TestSubmitTask:
         workspace: Workspace,
         session: Session,
         initiative: Initiative,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test handling of controller error during creation."""
         with (
@@ -704,7 +712,7 @@ class TestSubmitTask:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test updating task status to IN_PROGRESS."""
         local_initiative = Initiative(
@@ -739,8 +747,8 @@ class TestSubmitTask:
 
             assert result["status"] == "success"
             mock_controller.move_task_to_status.assert_called_once()
-            call_args = mock_controller.move_task_to_status.call_args
-            assert call_args[0][2] == TaskStatus.IN_PROGRESS
+            call_args = mock_controller.move_task_to_status.call_args.kwargs
+            assert call_args["new_status"] == TaskStatus.IN_PROGRESS
 
     @pytest.mark.asyncio
     async def test_submit_task_update_invalid_status(
@@ -748,7 +756,7 @@ class TestSubmitTask:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test error when invalid status is provided during update."""
         local_initiative = Initiative(
@@ -788,7 +796,7 @@ class TestSubmitTask:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test handling of controller error during status update."""
         local_initiative = Initiative(
@@ -832,7 +840,7 @@ class TestSubmitTask:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test updating task title only."""
         local_initiative = Initiative(
@@ -870,7 +878,7 @@ class TestSubmitTask:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test updating task type only."""
         local_initiative = Initiative(
@@ -907,7 +915,7 @@ class TestSubmitTask:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test replacing task checklist."""
         local_initiative = Initiative(
@@ -947,9 +955,9 @@ class TestSubmitTask:
 
             assert result["status"] == "success"
             mock_controller.update_checklist.assert_called_once()
-            call_args = mock_controller.update_checklist.call_args
-            assert call_args[0][2] is not None
-            assert len(call_args[0][2]) == 2
+            call_args = mock_controller.update_checklist.call_args.kwargs
+            assert call_args["items"] is not None
+            assert len(call_args["items"]) == 2
 
     @pytest.mark.asyncio
     async def test_submit_task_update_multiple_fields(
@@ -957,7 +965,7 @@ class TestSubmitTask:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test updating multiple fields simultaneously."""
         local_initiative = Initiative(
@@ -1003,7 +1011,7 @@ class TestSubmitTask:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test handling of invalid identifier - treated as not found."""
         result = await submit_task.fn(task_identifier="invalid-uuid", status="DONE")
@@ -1017,7 +1025,7 @@ class TestSubmitTask:
         user: User,
         workspace: Workspace,
         session: Session,
-        mock_get_auth_context_for_submit,
+        mock_get_auth_context_for_submit: MagicMock,
     ):
         """Test handling when task doesn't exist."""
         result = await submit_task.fn(task_identifier="T-NONEXISTENT", status="DONE")
