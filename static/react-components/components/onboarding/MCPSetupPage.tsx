@@ -79,11 +79,18 @@ const MCPSetupPage: React.FC = () => {
     }
   };
 
-  const mcpCommand = useMemo((): string => {
+  const executionCommand = useMemo((): string => {
     return `claude mcp add \\
   --transport=http \\
-  OpenBacklog \\
-  ${mcpServerDomain}/mcp/`;
+  OpenBacklogCoding \\
+  ${mcpServerDomain}/mcp/execution/`;
+  }, [mcpServerDomain]);
+
+  const strategyCommand = useMemo((): string => {
+    return `claude mcp add \\
+  --transport=http \\
+  OpenBacklogPlanning \\
+  ${mcpServerDomain}/mcp/planning/`;
   }, [mcpServerDomain]);
 
   const CopyButton: React.FC<{ onClick: (e: React.MouseEvent) => void; copied: boolean }> = ({ onClick, copied }) => (
@@ -144,7 +151,7 @@ const MCPSetupPage: React.FC = () => {
         <div className="relative">
           <div className="absolute left-5 top-10 bottom-10 w-0.5 bg-border/50"></div>
           <div className="space-y-12">
-            {/* Step 1: Install MCP Server */}
+            {/* Step 1: Install MCP Servers */}
             <div>
               <div className="flex items-start gap-4 mb-4">
                 <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-background flex items-center justify-center">
@@ -154,21 +161,54 @@ const MCPSetupPage: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <h2 className="text-2xl font-semibold text-foreground mb-3">
-                    Install MCP Server
+                    Install MCP Servers
                   </h2>
                   <p className="text-base text-muted-foreground mb-4">
-                    Run this command in your terminal:
+                    OpenBacklog provides two MCP servers optimized for different workflows. Run both commands in your terminal:
                   </p>
-                  <CodeBlock
-                    code={mcpCommand}
-                    onCopy={() => handleCopy(mcpCommand, 'command')}
-                    copied={copiedItem === 'command'}
-                  />
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-medium text-foreground">Strategy Server</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">35+ tools</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Full toolset for strategic planning, vision, heroes, villains, and roadmap management.
+                      </p>
+                      <CodeBlock
+                        code={strategyCommand}
+                        onCopy={() => handleCopy(strategyCommand, 'strategy')}
+                        copied={copiedItem === 'strategy'}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-medium text-foreground">Execution Server</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success">5 tools</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Minimal toolset for coding workflows. Uses less context, leaving more room for code.
+                      </p>
+                      <CodeBlock
+                        code={executionCommand}
+                        onCopy={() => handleCopy(executionCommand, 'execution')}
+                        copied={copiedItem === 'execution'}
+                      />
+                    </div>
+
+                    <div className="mt-4 p-3 rounded-lg bg-muted/10 border border-border/50">
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">Why two servers?</span> Tool definitions consume context tokens. When coding, use the execution server to maximize context for your code. Switch to strategy when planning.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Step 2: Authenticate MCP Server */}
+            {/* Step 2: Authenticate MCP Servers */}
             <div>
               <div className="flex items-start gap-4 mb-4">
                 <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-background flex items-center justify-center">
@@ -178,10 +218,10 @@ const MCPSetupPage: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <h2 className="text-2xl font-semibold text-foreground mb-3">
-                    Authenticate MCP Server
+                    Authenticate MCP Servers
                   </h2>
                   <p className="text-base text-muted-foreground mb-4">
-                    In Claude Code, authenticate the MCP server:
+                    In Claude Code, authenticate both MCP servers:
                   </p>
                   <CodeBlock
                     code={'/mcp'}
@@ -189,12 +229,18 @@ const MCPSetupPage: React.FC = () => {
                     copied={copiedItem === 'mcp'}
                   />
                   <p className="text-base text-muted-foreground mt-3 mb-4">
-                    Then select "<b>OpenBacklog</b>" from the list and then "<b>Authenticate</b>".
+                    Select each server (<b>OpenBacklogPlanning</b> and <b>OpenBacklogCoding</b>) and choose "<b>Authenticate</b>".
                   </p>
                   <div className="rounded-lg text-muted-foreground">
                     <p className="text-base text-muted-foreground">
                       Optional: Skip tool approval prompts: Type
-                      <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">/permissions</code> and add <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">mcp__OpenBacklog</code> to the allow list.
+                      <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">/permissions</code> and add <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">mcp__OpenBacklogCoding</code> and <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">mcp__OpenBacklogPlanning</code> to the allow list.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-primary">For onboarding:</span> Disable <b>OpenBacklogCoding</b> until you complete strategic planning. Use <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">/mcp</code> → select <b>OpenBacklogCoding</b> → <b>Disable</b>. You can re-enable it when you start coding.
                     </p>
                   </div>
                 </div>
