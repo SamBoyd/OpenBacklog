@@ -204,6 +204,10 @@ async def submit_villain(
 
     IMPORTANT: Reflect villain back to user and confirm before calling.
 
+    Before creating a new villain, call `get_framework(entity_type='villain')` to load
+    the creation framework. This ensures proper structure, required fields, and alignment
+    with strategic context.
+
     Args:
         name: Villain name (e.g., "Context Switching")
         villain_type: Type (EXTERNAL, INTERNAL, TECHNICAL, WORKFLOW, OTHER)

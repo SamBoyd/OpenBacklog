@@ -340,6 +340,10 @@ async def submit_product_outcome(
 
     IMPORTANT: Reflect outcome back to user and confirm before calling.
 
+    Before creating a new outcome, call `get_framework(entity_type='outcome')` to load
+    the creation framework. This ensures proper structure, required fields, and alignment
+    with strategic context.
+
     Args:
         name: Outcome name (1-150 characters, required for create, optional for update)
         description: Goal, baseline, target, and timeline (required for create, optional for update)

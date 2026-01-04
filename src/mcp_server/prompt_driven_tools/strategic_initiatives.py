@@ -684,6 +684,10 @@ async def submit_strategic_initiative(
     IMPORTANT: Reflect the initiative back to the user and get explicit confirmation
     BEFORE calling this function. This persists immediately.
 
+    Before creating a new initiative, call `get_framework(entity_type='initiative')` to load
+    the creation framework. This ensures proper structure, required fields, and alignment
+    with strategic context.
+
     Args:
         title: Initiative title (required for create, optional for update)
         implementation_description: What this initiative delivers and how it will be built (required for create, optional for update). Supports markdown formatting.

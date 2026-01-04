@@ -330,6 +330,10 @@ async def submit_roadmap_theme(
     IMPORTANT: Reflect the theme back to the user and get explicit confirmation
     BEFORE calling this function. This persists immediately.
 
+    Before creating a new theme, call `get_framework(entity_type='theme')` to load
+    the creation framework. This ensures proper structure, required fields, and alignment
+    with strategic context.
+
     **Upsert Behavior:**
     - If `theme_identifier` is **omitted**: Creates new theme
     - If `theme_identifier` is **provided**: Updates existing theme

@@ -242,6 +242,10 @@ async def submit_conflict(
 
     IMPORTANT: Reflect conflict back to user and confirm before calling.
 
+    Before creating a new conflict, call `get_framework(entity_type='conflict')` to load
+    the creation framework. This ensures proper structure, required fields, and alignment
+    with strategic context.
+
     Args:
         hero_identifier: Hero identifier (e.g., "H-2003")
         villain_identifier: Villain identifier (e.g., "V-2003")

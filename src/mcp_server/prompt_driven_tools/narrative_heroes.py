@@ -209,6 +209,10 @@ async def submit_hero(
 
     IMPORTANT: Reflect hero back to user and confirm before calling.
 
+    Before creating a new hero, call `get_framework(entity_type='hero')` to load
+    the creation framework. This ensures proper structure, required fields, and alignment
+    with strategic context.
+
     Args:
         name: Hero name (e.g., "Sarah, The Solo Builder")
         description: Who they are, motivations, jobs-to-be-done, pains, gains, context

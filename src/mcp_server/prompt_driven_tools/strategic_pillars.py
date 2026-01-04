@@ -389,6 +389,10 @@ async def submit_strategic_pillar(
 
     IMPORTANT: Reflect pillar back to user and confirm before calling.
 
+    Before creating a new pillar, call `get_framework(entity_type='pillar')` to load
+    the creation framework. This ensures proper structure, required fields, and alignment
+    with strategic context.
+
     Args:
         name: Pillar name (1-100 characters, unique per workspace)
         description: Strategy and anti-strategy (what you'll do and what you won't do)
