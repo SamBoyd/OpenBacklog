@@ -35,6 +35,7 @@ import { TasksProvider } from '#contexts/TasksContext';
 import { GithubReposProvider } from '#hooks/useGithubRepos';
 import StoryBiblePage from './Narrative/StoryBible';
 import { RoadmapThemeDetail } from './Narrative/StoryArcDetail';
+import StrategyFlowPage from './StrategyFlowPage';
 
 import '../styles/output.css';
 
@@ -64,6 +65,7 @@ export const MainContent = () => {
             {/* Protected workspace routes */}
             <Route element={<AppGuard><Layout /></AppGuard>}>
                 <Route path="/workspace/roadmap" element={<RoadmapOverview />} />
+                <Route path="/workspace/strategy-flow" element={<StrategyFlowPage />} />
                 <Route path="/workspace/story-bible" element={<StoryBiblePage />} />
                 <Route path="/workspace/story-bible/theme/:themeId" element={<RoadmapThemeDetail />} />
                 <Route path="/workspace/context" element={<ContextDocument />} />
