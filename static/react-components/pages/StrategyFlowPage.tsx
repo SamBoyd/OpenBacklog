@@ -188,11 +188,11 @@ const StrategyFlowPage: React.FC = () => {
         break;
       case 'pillar':
         // Navigate to Story Bible
-        navigate('/workspace/story-bible');
+        navigate('/workspace/story-bible?tab=pillars');
         break;
       case 'outcome':
         // Navigate to Story Bible
-        navigate('/workspace/story-bible');
+        navigate('/workspace/story-bible?tab=pillars');
         break;
       case 'theme':
         // Find theme by identifier and navigate to detail page
