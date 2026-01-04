@@ -6,7 +6,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
 import StrategyFlowCanvas from '../../components/strategyFlowSpike/StrategyFlowCanvas';
-import { fullData, simpleData, emptyData, disconnectedData } from './mockFlowData';
+import { fullData, simpleData, emptyData, disconnectedData, manyInitiativesData } from './mockFlowData';
 
 const meta: Meta<typeof StrategyFlowCanvas> = {
   title: 'Spikes/StrategyFlowCanvas',
@@ -99,4 +99,16 @@ export const DarkMode: Story = {
       </div>
     ),
   ],
+};
+
+/**
+ * Many initiatives distributed across themes.
+ * Tests the wide layout problem when many initiatives exist.
+ * Use this to experiment with alternative initiative tier layouts.
+ */
+export const ManyInitiatives: Story = {
+  args: {
+    ...manyInitiativesData,
+    onNodeClick: fn(),
+  },
 };

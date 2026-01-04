@@ -108,6 +108,7 @@ const mockThemes: ThemeNodeData[] = [
 
 /**
  * Mock strategic initiatives.
+ * Large set to test wide layout scenarios.
  */
 const mockInitiatives: InitiativeNodeData[] = [
   {
@@ -133,6 +134,126 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Interactive canvas showing strategic pillars, outcomes, themes, and initiatives.',
     status: 'IN_PROGRESS',
     theme_identifier: 'T-002',
+  },
+  {
+    identifier: 'I-004',
+    title: 'MCP Server Integration',
+    description:
+      'Enable AI coding agents to interact with backlog through Model Context Protocol.',
+    status: 'IN_PROGRESS',
+    theme_identifier: 'T-001',
+  },
+  {
+    identifier: 'I-005',
+    title: 'Smart Commit Linking',
+    description:
+      'Automatically link git commits to tasks based on branch naming and commit messages.',
+    status: 'TO_DO',
+    theme_identifier: 'T-001',
+  },
+  {
+    identifier: 'I-006',
+    title: 'Context-Aware Task Suggestions',
+    description:
+      'Suggest relevant tasks based on current file and code context.',
+    status: 'BACKLOG',
+    theme_identifier: 'T-001',
+  },
+  {
+    identifier: 'I-007',
+    title: 'Roadmap Timeline View',
+    description:
+      'Gantt-style visualization showing initiative timelines and dependencies.',
+    status: 'TO_DO',
+    theme_identifier: 'T-002',
+  },
+  {
+    identifier: 'I-008',
+    title: 'Progress Dashboard',
+    description:
+      'Executive dashboard showing strategic progress across all pillars.',
+    status: 'BACKLOG',
+    theme_identifier: 'T-002',
+  },
+  {
+    identifier: 'I-009',
+    title: 'Dependency Mapping',
+    description:
+      'Visualize and manage dependencies between initiatives and tasks.',
+    status: 'TO_DO',
+    theme_identifier: 'T-002',
+  },
+  {
+    identifier: 'I-010',
+    title: 'Auto Sprint Planning',
+    description:
+      'AI-powered sprint planning that optimizes for velocity and strategic alignment.',
+    status: 'IN_PROGRESS',
+    theme_identifier: 'T-003',
+  },
+  {
+    identifier: 'I-011',
+    title: 'Smart Task Prioritization',
+    description:
+      'Automatically prioritize tasks based on strategic impact and dependencies.',
+    status: 'TO_DO',
+    theme_identifier: 'T-003',
+  },
+  {
+    identifier: 'I-012',
+    title: 'Automated Status Updates',
+    description:
+      'Generate status updates from git activity and task progress.',
+    status: 'BACKLOG',
+    theme_identifier: 'T-003',
+  },
+  {
+    identifier: 'I-013',
+    title: 'Predictive Delivery Dates',
+    description:
+      'Use historical data to predict realistic delivery dates for initiatives.',
+    status: 'TO_DO',
+    theme_identifier: 'T-003',
+  },
+  {
+    identifier: 'I-014',
+    title: 'Live Cursor Collaboration',
+    description:
+      'See teammate cursors and selections in real-time on boards and documents.',
+    status: 'BACKLOG',
+    theme_identifier: 'T-004',
+  },
+  {
+    identifier: 'I-015',
+    title: 'Shared Context Sidebar',
+    description:
+      'Team sidebar showing who is working on what with live status.',
+    status: 'TO_DO',
+    theme_identifier: 'T-004',
+  },
+  {
+    identifier: 'I-016',
+    title: 'Async Video Updates',
+    description:
+      'Record and attach quick video updates to tasks and initiatives.',
+    status: 'BACKLOG',
+    theme_identifier: 'T-004',
+  },
+  {
+    identifier: 'I-017',
+    title: 'Comment Threading',
+    description:
+      'Threaded discussions on tasks with mentions and notifications.',
+    status: 'IN_PROGRESS',
+    theme_identifier: 'T-004',
+  },
+  {
+    identifier: 'I-018',
+    title: 'IDE Task Panel',
+    description:
+      'Native task panel embedded in VS Code and JetBrains IDEs.',
+    status: 'TO_DO',
+    theme_identifier: 'T-001',
   },
 ];
 
@@ -179,11 +300,24 @@ export const disconnectedData: StrategyFlowCanvasProps = {
   initiatives: [
     ...mockInitiatives,
     {
-      identifier: 'I-004',
+      identifier: 'I-019',
       title: 'Backlog Initiative',
       description: 'An initiative not yet assigned to a theme.',
       status: 'BACKLOG',
       theme_identifier: null,
     },
   ],
+};
+
+/**
+ * Data set specifically for testing wide layout scenarios.
+ * Uses all 18 initiatives distributed across 4 themes.
+ * Distribution: T-001 (7), T-002 (4), T-003 (4), T-004 (4)
+ */
+export const manyInitiativesData: StrategyFlowCanvasProps = {
+  vision: mockVision,
+  pillars: mockPillars,
+  outcomes: mockOutcomes,
+  themes: mockThemes,
+  initiatives: mockInitiatives,
 };
