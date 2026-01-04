@@ -26,7 +26,7 @@ import {
   InitiativeNodeData,
 } from './types';
 import { EDGE_STYLE } from './nodes/nodeStyles';
-import { computeDagreLayout } from './utils/dagreLayout';
+import { computeInitiativeGridLayout } from './utils/initiativeGridLayout';
 import VisionNode from './nodes/VisionNode';
 import PillarNode from './nodes/PillarNode';
 import OutcomeNode from './nodes/OutcomeNode';
@@ -151,10 +151,9 @@ function buildFlowData(props: StrategyFlowCanvasProps): {
     }
   });
 
-  // Compute positions using dagre layout
-  const positionedNodes = computeDagreLayout(nodes, edges);
-
-  return { nodes: positionedNodes, edges };
+  // Compute positions using initiative grid layout
+  // Uses dagre for upper tiers, grid layout for initiatives
+  return computeInitiativeGridLayout(nodes, edges);
 }
 
 /**
