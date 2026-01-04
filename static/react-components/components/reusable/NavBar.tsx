@@ -35,6 +35,7 @@ const NavBar = ({ enableNavigation = true }: NavBarProps) => {
             toggleTheme={toggleTheme}
             dashboardPath={'/workspace'}
             initiativesPath={'/workspace/initiatives'}
+            strategyFlowPath={'/workspace/strategy-flow'}
             supportPath={`${docsSiteUrl}/support`}
             accountPath={'/account'}
             roadmapPath={'/workspace/roadmap'}

@@ -1,7 +1,8 @@
 import React from 'react';
-import { MdBento, MdCategory, MdMenu, MdClose, MdMap } from 'react-icons/md';
-import { FaChartLine, FaDatabase } from "react-icons/fa6";
+import { MdBento, MdMenu, MdClose, MdMap } from 'react-icons/md';
+import { FaChartLine} from "react-icons/fa6";
 import { ButtonProps, NoBorderButton } from './Button';
+import { ImTree } from "react-icons/im";
 
 const NAV_BAR_ICON_SIZE = 'size-5';
 
@@ -58,6 +59,7 @@ interface NavBarViewProps {
     onNavigate: (path: string) => void;
     dashboardPath: string;
     initiativesPath: string;
+    strategyFlowPath: string;
     supportPath: string;
     accountPath: string;
     storyBiblePath: string;
@@ -75,6 +77,7 @@ const NavBarView: React.FC<NavBarViewProps> = ({
     currentTheme,
     toggleTheme,
     initiativesPath,
+    strategyFlowPath,
     supportPath,
     accountPath,
     storyBiblePath,
@@ -124,6 +127,12 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                                             title="Roadmap"
                                             onClick={() => onNavigate(roadmapPath)}
                                             active={currentPath.includes(roadmapPath)}
+                                        />
+                                        <NavBarButton
+                                            icon={<ImTree />}
+                                            title="Strategy"
+                                            onClick={() => onNavigate(strategyFlowPath)}
+                                            active={currentPath.includes(strategyFlowPath)}
                                         />
                                         <NavBarButton
                                             icon={<FaChartLine />}
@@ -198,6 +207,15 @@ const NavBarView: React.FC<NavBarViewProps> = ({
                                 className="block w-full text-left"
                             >
                                 <span>Roadmap</span>
+                            </MobileNavBarButton>
+                            <MobileNavBarButton
+                                icon={<ImTree />}
+                                title="Strategy"
+                                onClick={() => onNavigate(strategyFlowPath)}
+                                active={currentPath.includes(strategyFlowPath)}
+                                className="block w-full text-left"
+                            >
+                                <span>Strategy</span>
                             </MobileNavBarButton>
                             <MobileNavBarButton
                                 icon={<FaChartLine />}
