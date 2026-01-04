@@ -30,7 +30,7 @@ const InitiativeNode = memo(({ data }: InitiativeNodeProps) => {
     >
       <Handle
         type="target"
-        position={Position.Left}
+        position={Position.Top}
         className="!bg-muted-foreground !w-2 !h-2 !border-0"
       />
       <div className="flex items-start gap-2">

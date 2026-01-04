@@ -18,6 +18,12 @@ export const NODE_COLORS: Record<
     identifierBg: string;
   }
 > = {
+  vision: {
+    background: 'bg-secondary/90',
+    border: 'border-secondary/50',
+    iconColor: 'text-secondary-foreground',
+    identifierBg: 'bg-secondary/30',
+  },
   pillar: {
     background: 'bg-primary/10',
     border: 'border-primary/30',
@@ -56,29 +62,6 @@ export const LAYOUT = {
   PADDING_TOP: 50,
 };
 
-/**
- * Column order for entity types (left to right).
- */
-const COLUMN_ORDER: EntityType[] = ['pillar', 'outcome', 'theme', 'initiative'];
-
-/**
- * Calculate X position for a node based on its entity type.
- * @param entityType - The type of entity
- * @returns X coordinate for the node
- */
-export function getColumnX(entityType: EntityType): number {
-  const columnIndex = COLUMN_ORDER.indexOf(entityType);
-  return LAYOUT.PADDING_LEFT + columnIndex * LAYOUT.COLUMN_GAP;
-}
-
-/**
- * Calculate Y position for a node based on its row index.
- * @param index - The row index (0-based)
- * @returns Y coordinate for the node
- */
-export function getRowY(index: number): number {
-  return LAYOUT.PADDING_TOP + index * LAYOUT.ROW_GAP;
-}
 
 /**
  * Status badge styling for initiative nodes.

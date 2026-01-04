@@ -29,7 +29,7 @@ const ThemeNode = memo(({ data }: ThemeNodeProps) => {
     >
       <Handle
         type="target"
-        position={Position.Left}
+        position={Position.Top}
         className="!bg-accent !w-2 !h-2 !border-0"
       />
       <div className="flex items-start gap-2">
@@ -54,7 +54,7 @@ const ThemeNode = memo(({ data }: ThemeNodeProps) => {
       </div>
       <Handle
         type="source"
-        position={Position.Right}
+        position={Position.Bottom}
         className="!bg-accent !w-2 !h-2 !border-0"
       />
     </div>

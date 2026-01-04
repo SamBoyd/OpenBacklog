@@ -25,7 +25,9 @@ import {
   ThemeNodeData,
   InitiativeNodeData,
 } from './types';
-import { getColumnX, getRowY, EDGE_STYLE, LAYOUT } from './nodes/nodeStyles';
+import { EDGE_STYLE } from './nodes/nodeStyles';
+import { computeDagreLayout } from './utils/dagreLayout';
+import VisionNode from './nodes/VisionNode';
 import PillarNode from './nodes/PillarNode';
 import OutcomeNode from './nodes/OutcomeNode';
 import ThemeNode from './nodes/ThemeNode';
@@ -35,6 +37,7 @@ import InitiativeNode from './nodes/InitiativeNode';
  * Custom node types registry for React Flow.
  */
 const nodeTypes: NodeTypes = {
+  vision: VisionNode,
   pillar: PillarNode,
   outcome: OutcomeNode,
   theme: ThemeNode,
@@ -53,7 +56,7 @@ const defaultEdgeOptions = {
 /**
  * Build React Flow nodes and edges from strategic entities.
  * @param props - Strategic entity data
- * @returns Object containing nodes and edges arrays
+ * @returns Object containing nodes and edges arrays with dagre-computed positions
  */
 function buildFlowData(props: StrategyFlowCanvasProps): {
   nodes: Node[];
@@ -62,23 +65,42 @@ function buildFlowData(props: StrategyFlowCanvasProps): {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
+  // Create vision node as root (if provided)
+  if (props.vision) {
+    nodes.push({
+      id: 'vision',
+      type: 'vision',
+      position: { x: 0, y: 0 },
+      data: { ...props.vision },
+    });
+  }
+
   // Create pillar nodes
-  props.pillars.forEach((pillar, index) => {
+  props.pillars.forEach((pillar) => {
     nodes.push({
       id: pillar.identifier,
       type: 'pillar',
-      position: { x: getColumnX('pillar'), y: getRowY(index) },
-      data: {...pillar},
+      position: { x: 0, y: 0 },
+      data: { ...pillar },
     });
+
+    // Create edge from vision to pillar (if vision exists)
+    if (props.vision) {
+      edges.push({
+        id: `vision-${pillar.identifier}`,
+        source: 'vision',
+        target: pillar.identifier,
+      });
+    }
   });
 
   // Create outcome nodes and edges from pillars
-  props.outcomes.forEach((outcome, index) => {
+  props.outcomes.forEach((outcome) => {
     nodes.push({
       id: outcome.identifier,
       type: 'outcome',
-      position: { x: getColumnX('outcome'), y: getRowY(index) },
-      data: {...outcome},
+      position: { x: 0, y: 0 },
+      data: { ...outcome },
     });
 
     // Create edges from each linked pillar to this outcome
@@ -92,12 +114,12 @@ function buildFlowData(props: StrategyFlowCanvasProps): {
   });
 
   // Create theme nodes and edges from outcomes
-  props.themes.forEach((theme, index) => {
+  props.themes.forEach((theme) => {
     nodes.push({
       id: theme.identifier,
       type: 'theme',
-      position: { x: getColumnX('theme'), y: getRowY(index) },
-      data: {...theme},
+      position: { x: 0, y: 0 },
+      data: { ...theme },
     });
 
     // Create edges from each linked outcome to this theme
@@ -111,12 +133,12 @@ function buildFlowData(props: StrategyFlowCanvasProps): {
   });
 
   // Create initiative nodes and edges from themes
-  props.initiatives.forEach((initiative, index) => {
+  props.initiatives.forEach((initiative) => {
     nodes.push({
       id: initiative.identifier,
       type: 'initiative',
-      position: { x: getColumnX('initiative'), y: getRowY(index) },
-      data: {...initiative},
+      position: { x: 0, y: 0 },
+      data: { ...initiative },
     });
 
     // Create edge from linked theme to this initiative
@@ -129,7 +151,10 @@ function buildFlowData(props: StrategyFlowCanvasProps): {
     }
   });
 
-  return { nodes, edges };
+  // Compute positions using dagre layout
+  const positionedNodes = computeDagreLayout(nodes, edges);
+
+  return { nodes: positionedNodes, edges };
 }
 
 /**
@@ -140,12 +165,12 @@ function buildFlowData(props: StrategyFlowCanvasProps): {
  * @returns React Flow canvas with custom nodes and edges
  */
 const StrategyFlowCanvas: React.FC<StrategyFlowCanvasProps> = (props) => {
-  const { pillars, outcomes, themes, initiatives, onNodeClick } = props;
+  const { vision, pillars, outcomes, themes, initiatives, onNodeClick } = props;
 
   // Memoize flow data to avoid recalculation on every render
   const { nodes, edges } = useMemo(
-    () => buildFlowData({ pillars, outcomes, themes, initiatives }),
-    [pillars, outcomes, themes, initiatives]
+    () => buildFlowData({ vision, pillars, outcomes, themes, initiatives }),
+    [vision, pillars, outcomes, themes, initiatives]
   );
 
   // Handle node click events
@@ -160,6 +185,7 @@ const StrategyFlowCanvas: React.FC<StrategyFlowCanvasProps> = (props) => {
 
   // Empty state
   if (
+    !vision &&
     pillars.length === 0 &&
     outcomes.length === 0 &&
     themes.length === 0 &&

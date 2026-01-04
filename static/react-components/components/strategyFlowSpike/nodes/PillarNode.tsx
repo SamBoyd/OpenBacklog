@@ -49,7 +49,7 @@ const PillarNode = memo(({ data }: PillarNodeProps) => {
       </div>
       <Handle
         type="source"
-        position={Position.Right}
+        position={Position.Bottom}
         className="!bg-primary !w-2 !h-2 !border-0"
       />
     </div>

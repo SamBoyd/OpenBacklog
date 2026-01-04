@@ -4,14 +4,22 @@
  */
 
 /**
- * The four strategic entity types displayed on the canvas.
+ * The strategic entity types displayed on the canvas.
  */
-export type EntityType = 'pillar' | 'outcome' | 'theme' | 'initiative';
+export type EntityType = 'vision' | 'pillar' | 'outcome' | 'theme' | 'initiative';
 
 /**
  * Initiative status values for status badge display.
  */
 export type InitiativeStatus = 'BACKLOG' | 'TO_DO' | 'IN_PROGRESS';
+
+/**
+ * Data for a product vision node.
+ */
+export interface VisionNodeData {
+  name: string;
+  description: string;
+}
 
 /**
  * Data for a strategic pillar node.
@@ -57,6 +65,7 @@ export interface InitiativeNodeData {
  * Props for the StrategyFlowCanvas component.
  */
 export interface StrategyFlowCanvasProps {
+  vision?: VisionNodeData;
   pillars: PillarNodeData[];
   outcomes: OutcomeNodeData[];
   themes: ThemeNodeData[];
@@ -68,6 +77,7 @@ export interface StrategyFlowCanvasProps {
  * Union type for all node data types.
  */
 export type StrategyNodeData =
+  | VisionNodeData
   | PillarNodeData
   | OutcomeNodeData
   | ThemeNodeData

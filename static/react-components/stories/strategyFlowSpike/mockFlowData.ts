@@ -4,12 +4,22 @@
  */
 
 import {
+  VisionNodeData,
   PillarNodeData,
   OutcomeNodeData,
   ThemeNodeData,
   InitiativeNodeData,
   StrategyFlowCanvasProps,
 } from '../../components/strategyFlowSpike/types';
+
+/**
+ * Mock product vision.
+ */
+const mockVision: VisionNodeData = {
+  name: 'OpenBacklog Product Vision',
+  description:
+    'Empower development teams to seamlessly connect daily work with strategic objectives, enabling faster delivery and better alignment across the organization.',
+};
 
 /**
  * Mock strategic pillars.
@@ -27,6 +37,12 @@ const mockPillars: PillarNodeData[] = [
     description:
       'Provide clear visibility into product strategy and roadmap alignment for all stakeholders.',
   },
+  {
+    identifier: 'P-003',
+    name: 'Developer Experience',
+    description:
+      'Create a seamless experience where developers can manage tasks, view context, and track progress in one place.',
+  }
 ];
 
 /**
@@ -124,6 +140,7 @@ const mockInitiatives: InitiativeNodeData[] = [
  * Full mock data set with all entity types and connections.
  */
 export const fullData: StrategyFlowCanvasProps = {
+  vision: mockVision,
   pillars: mockPillars,
   outcomes: mockOutcomes,
   themes: mockThemes,
@@ -134,6 +151,7 @@ export const fullData: StrategyFlowCanvasProps = {
  * Simplified mock data with fewer entities.
  */
 export const simpleData: StrategyFlowCanvasProps = {
+  vision: mockVision,
   pillars: [mockPillars[0]],
   outcomes: [mockOutcomes[0]],
   themes: [mockThemes[0]],
@@ -154,6 +172,7 @@ export const emptyData: StrategyFlowCanvasProps = {
  * Data with unconnected initiatives (no theme_identifier).
  */
 export const disconnectedData: StrategyFlowCanvasProps = {
+  vision: mockVision,
   pillars: mockPillars,
   outcomes: mockOutcomes,
   themes: mockThemes,
