@@ -173,6 +173,9 @@ const StrategyFlowPage: React.FC = () => {
           description: initiative.description || '',
           status: mappedStatus,
           theme_identifier: themeIdentifier,
+          onNavigate: () => {
+            navigate(`/workspace/initiatives/${initiative.id}`);
+          },
         });
       });
     });
@@ -211,6 +214,8 @@ const StrategyFlowPage: React.FC = () => {
           if (strategicInitiative?.initiative?.id) {
             navigate(`/workspace/initiatives/${strategicInitiative.initiative.id}`);
             return;
+          } else {
+            console.error(`Initiative ${id} not found in any theme`);
           }
         }
         break;

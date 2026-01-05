@@ -59,6 +59,7 @@ export interface InitiativeNodeData {
   description: string;
   status: InitiativeStatus;
   theme_identifier: string | null;
+  onNavigate: () => void;
 }
 
 /**

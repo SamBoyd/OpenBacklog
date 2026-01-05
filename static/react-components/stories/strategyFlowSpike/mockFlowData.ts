@@ -106,6 +106,9 @@ const mockThemes: ThemeNodeData[] = [
   },
 ];
 
+const mockOnNavigate = () => {
+  alert('Navigating to initiative');
+};
 /**
  * Mock strategic initiatives.
  * Large set to test wide layout scenarios.
@@ -118,6 +121,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Embed code review workflows directly into the task management interface.',
     status: 'IN_PROGRESS',
     theme_identifier: 'T-001',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-002',
@@ -126,6 +130,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Use AI to automatically break down large initiatives into actionable tasks.',
     status: 'TO_DO',
     theme_identifier: 'T-001',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-003',
@@ -134,6 +139,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Interactive canvas showing strategic pillars, outcomes, themes, and initiatives.',
     status: 'IN_PROGRESS',
     theme_identifier: 'T-002',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-004',
@@ -142,6 +148,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Enable AI coding agents to interact with backlog through Model Context Protocol.',
     status: 'IN_PROGRESS',
     theme_identifier: 'T-001',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-005',
@@ -150,6 +157,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Automatically link git commits to tasks based on branch naming and commit messages.',
     status: 'TO_DO',
     theme_identifier: 'T-001',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-006',
@@ -158,6 +166,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Suggest relevant tasks based on current file and code context.',
     status: 'BACKLOG',
     theme_identifier: 'T-001',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-007',
@@ -166,6 +175,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Gantt-style visualization showing initiative timelines and dependencies.',
     status: 'TO_DO',
     theme_identifier: 'T-002',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-008',
@@ -174,6 +184,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Executive dashboard showing strategic progress across all pillars.',
     status: 'BACKLOG',
     theme_identifier: 'T-002',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-009',
@@ -182,6 +193,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Visualize and manage dependencies between initiatives and tasks.',
     status: 'TO_DO',
     theme_identifier: 'T-002',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-010',
@@ -190,6 +202,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'AI-powered sprint planning that optimizes for velocity and strategic alignment.',
     status: 'IN_PROGRESS',
     theme_identifier: 'T-003',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-011',
@@ -198,6 +211,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Automatically prioritize tasks based on strategic impact and dependencies.',
     status: 'TO_DO',
     theme_identifier: 'T-003',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-012',
@@ -206,6 +220,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Generate status updates from git activity and task progress.',
     status: 'BACKLOG',
     theme_identifier: 'T-003',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-013',
@@ -214,6 +229,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Use historical data to predict realistic delivery dates for initiatives.',
     status: 'TO_DO',
     theme_identifier: 'T-003',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-014',
@@ -222,6 +238,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'See teammate cursors and selections in real-time on boards and documents.',
     status: 'BACKLOG',
     theme_identifier: 'T-004',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-015',
@@ -230,6 +247,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Team sidebar showing who is working on what with live status.',
     status: 'TO_DO',
     theme_identifier: 'T-004',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-016',
@@ -238,6 +256,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Record and attach quick video updates to tasks and initiatives.',
     status: 'BACKLOG',
     theme_identifier: 'T-004',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-017',
@@ -246,6 +265,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Threaded discussions on tasks with mentions and notifications.',
     status: 'IN_PROGRESS',
     theme_identifier: 'T-004',
+    onNavigate: mockOnNavigate,
   },
   {
     identifier: 'I-018',
@@ -254,6 +274,7 @@ const mockInitiatives: InitiativeNodeData[] = [
       'Native task panel embedded in VS Code and JetBrains IDEs.',
     status: 'TO_DO',
     theme_identifier: 'T-001',
+    onNavigate: mockOnNavigate,
   },
 ];
 
@@ -305,6 +326,7 @@ export const disconnectedData: StrategyFlowCanvasProps = {
       description: 'An initiative not yet assigned to a theme.',
       status: 'BACKLOG',
       theme_identifier: null,
+      onNavigate: mockOnNavigate,
     },
   ],
 };

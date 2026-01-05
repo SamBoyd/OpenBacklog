@@ -138,7 +138,12 @@ function buildFlowData(props: StrategyFlowCanvasProps): {
       id: initiative.identifier,
       type: 'initiative',
       position: { x: 0, y: 0 },
-      data: { ...initiative },
+      data: {
+        ...initiative,
+        onNavigate: props.onNodeClick
+          ? () => props.onNodeClick!(initiative.identifier, 'initiative')
+          : undefined,
+      },
     });
 
     // Create edge from linked theme to this initiative
@@ -168,7 +173,7 @@ const StrategyFlowCanvas: React.FC<StrategyFlowCanvasProps> = (props) => {
 
   // Memoize flow data to avoid recalculation on every render
   const { nodes, edges } = useMemo(
-    () => buildFlowData({ vision, pillars, outcomes, themes, initiatives }),
+    () => buildFlowData({ vision, pillars, outcomes, themes, initiatives, onNodeClick}),
     [vision, pillars, outcomes, themes, initiatives]
   );
 
