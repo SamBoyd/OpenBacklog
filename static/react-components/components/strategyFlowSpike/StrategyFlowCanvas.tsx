@@ -33,6 +33,8 @@ import OutcomeNode from './nodes/OutcomeNode';
 import ThemeNode from './nodes/ThemeNode';
 import InitiativeNode from './nodes/InitiativeNode';
 
+import { useUserPreferences } from '#hooks/useUserPreferences';
+
 /**
  * Custom node types registry for React Flow.
  */
@@ -171,6 +173,8 @@ function buildFlowData(props: StrategyFlowCanvasProps): {
 const StrategyFlowCanvas: React.FC<StrategyFlowCanvasProps> = (props) => {
   const { vision, pillars, outcomes, themes, initiatives, onNodeClick } = props;
 
+  const { preferences } = useUserPreferences();
+
   // Memoize flow data to avoid recalculation on every render
   const { nodes, edges } = useMemo(
     () => buildFlowData({ vision, pillars, outcomes, themes, initiatives, onNodeClick}),
@@ -208,7 +212,7 @@ const StrategyFlowCanvas: React.FC<StrategyFlowCanvasProps> = (props) => {
   }
 
   return (
-    <div className="w-full h-full bg-background">
+    <div className="w-full h-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -230,12 +234,13 @@ const StrategyFlowCanvas: React.FC<StrategyFlowCanvasProps> = (props) => {
         minZoom={0.25}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
+        colorMode={preferences.theme}
       >
         <Background
           variant={BackgroundVariant.Dots}
           gap={20}
           size={1}
-          className="!bg-background"
+          className="!bg-transparent"
         />
         <Controls
           showZoom={true}
