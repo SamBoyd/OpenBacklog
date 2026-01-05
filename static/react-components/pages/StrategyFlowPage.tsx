@@ -236,7 +236,7 @@ const StrategyFlowPage: React.FC = () => {
 
   // Render canvas with transformed data
   return (
-    <div className="w-full h-full">
+    <div className="absolute inset-0 w-full h-full">
       <StrategyFlowCanvas
         vision={visionNodeData}
         pillars={pillarNodes}
