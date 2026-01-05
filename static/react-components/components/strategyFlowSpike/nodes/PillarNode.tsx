@@ -27,6 +27,12 @@ const PillarNode = memo(({ data }: PillarNodeProps) => {
       className={`${colors.background} ${colors.border} border rounded-lg p-3`}
       style={{ width: LAYOUT.NODE_WIDTH }}
     >
+
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!bg-primary !w-2 !h-2 !border-0"
+      />
       <div className="flex items-start gap-2">
         <div className={`p-1.5 rounded ${colors.identifierBg} flex-shrink-0`}>
           <Compass className={`w-4 h-4 ${colors.iconColor}`} />
