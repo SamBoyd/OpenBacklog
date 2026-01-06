@@ -68,6 +68,7 @@ const MCPSetupPage: React.FC = () => {
   }, [status, navigate]);
 
   const mcpServerDomain = window.location.origin;
+  const isAuth0Enabled = process.env.AUTH0_ENABLED === 'true';
 
   const handleCopy = async (text: string, item: string) => {
     try {
@@ -208,7 +209,7 @@ const MCPSetupPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Step 2: Authenticate MCP Servers */}
+            {/* Step 2: Authenticate/Configure MCP Servers */}
             <div>
               <div className="flex items-start gap-4 mb-4">
                 <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-background flex items-center justify-center">
@@ -218,22 +219,28 @@ const MCPSetupPage: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <h2 className="text-2xl font-semibold text-foreground mb-3">
-                    Authenticate MCP Servers
+                    {isAuth0Enabled ? 'Authenticate MCP Servers' : 'Configure MCP Servers'}
                   </h2>
-                  <p className="text-base text-muted-foreground mb-4">
-                    In Claude Code, authenticate both MCP servers:
-                  </p>
-                  <CodeBlock
-                    code={'/mcp'}
-                    onCopy={() => handleCopy('/mcp', 'mcp')}
-                    copied={copiedItem === 'mcp'}
-                  />
-                  <p className="text-base text-muted-foreground mt-3 mb-4">
-                    Select each server (<b>OpenBacklogPlanning</b> and <b>OpenBacklogCoding</b>) and choose "<b>Authenticate</b>".
-                  </p>
+
+                  {isAuth0Enabled && (
+                    <>
+                      <p className="text-base text-muted-foreground mb-4">
+                        In Claude Code, authenticate both MCP servers:
+                      </p>
+                      <CodeBlock
+                        code={'/mcp'}
+                        onCopy={() => handleCopy('/mcp', 'mcp')}
+                        copied={copiedItem === 'mcp'}
+                      />
+                      <p className="text-base text-muted-foreground mt-3 mb-4">
+                        Select each server (<b>OpenBacklogPlanning</b> and <b>OpenBacklogCoding</b>) and choose "<b>Authenticate</b>".
+                      </p>
+                    </>
+                  )}
+
                   <div className="rounded-lg text-muted-foreground">
                     <p className="text-base text-muted-foreground">
-                      Optional: Skip tool approval prompts: Type
+                      {isAuth0Enabled ? 'Optional: ' : ''}Skip tool approval prompts: Type
                       <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">/permissions</code> and add <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">mcp__OpenBacklogCoding</code> and <code className="px-1.5 py-0.5 bg-muted/10 rounded font-mono">mcp__OpenBacklogPlanning</code> to the allow list.
                     </p>
                   </div>
