@@ -271,8 +271,8 @@ const MCPSetupPage: React.FC = () => {
                   </p>
                   <div className="space-y-3">
                     <CodeBlock
-                      code="Create a workspace in OpenBacklog called {your workspace name}"
-                      onCopy={() => handleCopy("Create a workspace in OpenBacklog called ", 'workspace')}
+                      code="Start strategic planning by creating a workspace in OpenBacklog called {your workspace name}"
+                      onCopy={() => handleCopy("Start strategic planning by creating a workspace in OpenBacklog called ", 'workspace')}
                       copied={copiedItem === 'workspace'}
                     />
                   </div>
