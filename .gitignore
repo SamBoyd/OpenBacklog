@@ -10,7 +10,7 @@ __pycache__/
 *.env*
 !.env.test
 !.env.example
-!.env.development
+!.env.cluster-dev
 
 # FastAPI
 instance/
