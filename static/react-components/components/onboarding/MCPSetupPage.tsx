@@ -201,7 +201,7 @@ const MCPSetupPage: React.FC = () => {
 
                     <div className="mt-4 p-3 rounded-lg bg-muted/10 border border-border/50">
                       <p className="text-sm text-muted-foreground">
-                        <span className="font-medium text-foreground">Why two servers?</span> Tool definitions consume context tokens. When coding, use the execution server to maximize context for your code. Switch to strategy when planning.
+                        <span className="font-medium text-foreground">Why two servers?</span> Tool definitions consume context tokens. When coding, use the execution server to maximize context for your code. Switch to strategy when planning. Only enable one server at a time based on your current workflow.
                       </p>
                     </div>
                   </div>
