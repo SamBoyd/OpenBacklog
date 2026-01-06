@@ -1,6 +1,6 @@
 # OpenBacklog
 
-**Product management for solo developers.** OpenBacklog is the strategic layer that helps you decide *what* to build, not just execute tasks. Define your vision, plan your roadmap, and break strategy into actionable work, all while connecting your own AI via MCP.
+**Product management for solo developers.** OpenBacklog is a strategic planning layer that helps you decide what to build next, not just track tasks. It structures vision, product thinking, initiatives, and priorities into actionable work, while letting you connect your own AI tools via MCP for planning and execution.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
@@ -36,6 +36,33 @@ No built-in AI. OpenBacklog is an MCP server + UI so you can use your own model/
 - **MCP Integration** — Connect Claude Code, Cursor, or any MCP-compatible AI. No vendor lock-in.
 - **Self-Hosted** — Your data stays on your machine. No tracking, no ads, no subscriptions.
 - **Full API** — REST API for custom integrations and automation.
+
+
+## How OpenBacklog is different (in practice)
+
+Most project tools start with tasks. OpenBacklog starts with intent.
+
+**In practice, this means:**
+
+- **Work flows top-down, not as a flat list**
+
+  You define a vision, break it into strategic bets then into initiatives. Tasks always belong to a higher-level goal, so you don’t end up with an unprioritized backlog of disconnected tickets.
+
+- **Every task has context by default**
+
+  Tasks carry the “why” (initiative, rationale, constraints) alongside the “what”. You don’t have to reconstruct intent weeks later or keep it in a separate doc.
+
+- **Planning and execution stay close to code**
+
+  OpenBacklog exposes a full API and MCP interface, so you can generate, refine, and update work items directly from your editor or AI tools (Claude, Cursor, etc.) instead of switching between apps.
+
+- **Designed for solo developers, not teams**
+  
+  No sprints, story points, standups, or permission systems. The model assumes one person making decisions and writing code, and optimizes for focus rather than coordination.
+
+- **Self-hosted and vendor-agnostic**
+  
+  Your data stays local. You choose which AI tools (if any) to connect. OpenBacklog works without requiring accounts, cloud services, or proprietary workflows.
 
 ## Quick Start
 
