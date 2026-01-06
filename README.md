@@ -1,6 +1,6 @@
 # OpenBacklog
 
-**AI-powered product management for solo developers.** OpenBacklog is the strategic layer that helps you decide *what* to build, not just execute tasks. Define your vision, plan your roadmap, and break strategy into actionable work, all while connecting your own AI via MCP.
+**Product management for solo developers.** OpenBacklog is the strategic layer that helps you decide *what* to build, not just execute tasks. Define your vision, plan your roadmap, and break strategy into actionable work, all while connecting your own AI via MCP.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
@@ -18,6 +18,8 @@
 ## Overview
 
 Most developer tools focus on task execution. OpenBacklog adds the product management layer solo developers are missing.
+
+No built-in AI. OpenBacklog is an MCP server + UI so you can use your own model/tool (Claude Code, Cursor, etc.).”
 
 | | Task Management Tools | OpenBacklog |
 |---|---|---|
@@ -38,7 +40,7 @@ Most developer tools focus on task execution. OpenBacklog adds the product manag
 ## Quick Start
 
 ```bash
-git clone https://github.com/openbacklog/openbacklog.git
+git clone https://github.com/samboyd/openbacklog.git
 cd openbacklog
 docker compose --env-file .env.cluster-dev up
 ```
