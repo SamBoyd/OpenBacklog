@@ -38,9 +38,8 @@ services:
     environment:
       # Computed connection string that references Docker service hostname
       - PGRST_DB_URI=postgres://${postgrest_authenticator__role}:${postgrest_authenticator__password}@postgres:5432/${POSTGRES_DB}
-
     depends_on:
-      postgres:
+      fastapi:
         condition: service_healthy
     networks:
       - app-network
