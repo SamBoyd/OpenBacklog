@@ -40,7 +40,7 @@ Most developer tools focus on task execution. OpenBacklog adds the product manag
 ```bash
 git clone https://github.com/openbacklog/openbacklog.git
 cd openbacklog
-docker-compose --env-file .env.development up
+docker compose --env-file .env.development up
 ```
 
 Open http://localhost:8000 to get started.
