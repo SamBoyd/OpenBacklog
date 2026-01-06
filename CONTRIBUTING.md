@@ -8,50 +8,57 @@ This guide will help you get started with contributing code, reporting issues, a
 
 ### Prerequisites
 
-- **Python 3.12** (recommended, 3.8+ supported) with pip
-- **Node.js 18+** with npm
-- **PostgreSQL 16+** (for running tests with database)
+- **Docker** and **Docker Compose** (for running the application)
+- **Python 3.12** (recommended, 3.8+ supported) with pip (for running tests/linters locally)
+- **Node.js 18+** with npm (for running frontend tests locally)
 - **Git** for version control
 
-> **Note**: The GitHub Actions workflows test against Python 3.12 and Node.js 22, so using these versions is recommended for the most consistent experience.
+> **Note**: The application runs in Docker containers. Python and Node.js are only needed locally for running tests and linters.
 
-### 1. Clone and Install Dependencies
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/samboyd/OpenBacklog.git
-cd OpenBacklog
+git clone https://github.com/samboyd/OpenBacklog.git OpenBacklogContrib
+cd OpenBacklogContrib
+```
 
-# Install Python dependencies
+### 2. Set Up Your Development Cluster
+
+OpenBacklog uses Docker Compose for local development:
+
+```bash
+# One-time setup - creates .env.cluster-dev
+./scripts/setup-cluster.sh create dev
+
+# Build your cluster
+docker compose --env-file .env.cluster-dev -p OpenBacklogContrib build
+
+# Start your cluster
+docker compose --env-file .env.cluster-dev -p OpenBacklogContrib up
+```
+
+### 3. Access the Application
+
+Open http://localhost:8000 to access your development cluster.
+
+### 4. Install Local Development Dependencies (for tests/linting)
+
+While the application runs in Docker, you'll need local Python and Node.js for running tests and linters:
+
+```bash
+# Python dependencies (for running pytest, black, isort)
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
-# Install root npm dependencies
-npm install
-
-# Install React app dependencies
+# React app dependencies (for running vitest, typescript checks)
 cd static/react-components
 npm install
 cd ../..
 ```
 
-### 2. Build Static Assets
-
-```bash
-# Build all static assets using the provided script
-chmod +x scripts/build_static_files.sh
-./scripts/build_static_files.sh
-```
-
-### 3. Set Up Test Environment
-
-```bash
-# Install development dependencies (includes testing tools)
-pip install -r requirements-dev.txt
-
-# Set up test database (requires PostgreSQL)
-./scripts/bootstrap_blank_test_database.sh
-```
-
 ## 🛠️ Development Workflow
+
+> **How it works**: The application runs in Docker containers, but tests and linters run locally on your machine. This gives you fast feedback while keeping the runtime environment consistent.
 
 ### Backend Development (Python/FastAPI)
 
@@ -94,9 +101,6 @@ isort --check-only --diff src/ tests/
 **Development Commands:**
 ```bash
 cd static/react-components
-
-# Install dependencies
-npm install
 
 # Run tests
 npm run test
