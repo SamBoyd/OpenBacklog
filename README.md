@@ -1,6 +1,6 @@
 # OpenBacklog
 
-**AI-powered product management for solo developers. Your strategy, your data, your AI.** OpenBacklog is the strategic layer that helps you decide *what* to build, not just execute tasks. Define your vision, plan your roadmap, and break strategy into actionable work, all while connecting your own AI via MCP.
+**AI-powered product management for solo developers.** OpenBacklog is the strategic layer that helps you decide *what* to build, not just execute tasks. Define your vision, plan your roadmap, and break strategy into actionable work, all while connecting your own AI via MCP.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
