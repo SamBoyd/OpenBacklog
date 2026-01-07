@@ -1,11 +1,16 @@
 # OpenBacklog
 
-**Product management for solo developers.** OpenBacklog is a strategic planning layer that helps you decide what to build next, not just track tasks. It structures vision, product thinking, initiatives, and priorities into actionable work, while letting you connect your own AI tools via MCP for planning and execution.
+OpenBacklog is where you plan your product before you code.
+
+Figure out what you're building and why. Define who it's for and what problems you're solving. Break it into projects and tasks. It's the product thinking teams often rely on PMs for, simplified for solo developers.
+
+Your AI assistant connects via MCP. Not just to pull context when coding, but to help you think through what to build, reason about priorities, and flesh out ideas before you commit to them.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python Tests](https://github.com/SamBoyd/OpenBacklog/actions/workflows/python-tests.yml/badge.svg)](https://github.com/SamBoyd/OpenBacklog/actions/workflows/python-tests.yml)
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-latest-009688.svg)](https://fastapi.tiangolo.com/)
+![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)
 
 <p align="center">
   <img src="static/screenshot.png" alt="OpenBacklog Screenshot" width="800" />
@@ -15,19 +20,15 @@
 
 ---
 
-## Overview
+## What does using it look like?
 
-Most developer tools focus on task execution. OpenBacklog adds the product management layer solo developers are missing.
+1. **Define what you're building** — Write down your goal, who it's for, and what problems you're solving.
 
-No built-in AI. OpenBacklog is an MCP server + UI so you can use your own model/tool (Claude Code, Cursor, etc.).”
+2. **Break it into projects** — Each project is a chunk of work that moves your goal forward. Prioritize them.
 
-| | Task Management Tools | OpenBacklog |
-|---|---|---|
-| **Focus** | Execute tasks from a list | Decide what to build and why |
-| **Planning** | PRDs → Tasks | Vision → Strategy → Roadmap → Tasks |
-| **AI Integration** | Built-in AI (subscription) | Bring your own AI via MCP |
-| **Data** | Cloud-hosted | Self-hosted, you own it |
-| **Cost** | Per-seat pricing | Free and open source |
+3. **Add tasks** — Each task belongs to a project, so you always know *why* you're doing the work.
+
+4. **Connect your AI** — Via MCP, your AI can read your plan, help you decide what's worth building, and understand the full context when you're coding.
 
 ## Features
 
@@ -35,7 +36,6 @@ No built-in AI. OpenBacklog is an MCP server + UI so you can use your own model/
 - **Problem-First Planning** — Start with who you're building for and what problems they face.
 - **MCP Integration** — Connect Claude Code, Cursor, or any MCP-compatible AI. No vendor lock-in.
 - **Self-Hosted** — Your data stays on your machine. No tracking, no ads, no subscriptions.
-- **Full API** — REST API for custom integrations and automation.
 
 
 ## How OpenBacklog is different (in practice)
