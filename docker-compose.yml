@@ -38,6 +38,9 @@ services:
     environment:
       # Computed connection string that references Docker service hostname
       - PGRST_DB_URI=postgres://${postgrest_authenticator__role}:${postgrest_authenticator__password}@postgres:5432/${POSTGRES_DB}
+      - PGRST_OPENAPI_MODE=ignore-privileges
+      - PGRST_DB_ANON_ROLE=${postgrest_anonymous__role}
+      - PGRST_SERVER_CORS_ALLOWED_ORIGINS=
     depends_on:
       fastapi:
         condition: service_healthy
