@@ -1,6 +1,6 @@
 {
   "name": "taskmanagement",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Task Management Application",
   "scripts": {
     "build": "webpack --mode production",

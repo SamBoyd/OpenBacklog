@@ -87,7 +87,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "taskmanagement"
-version = "0.1.0"
+version = "1.0.0"
 
 description = "A development task manager and product management tool for solo and hobbyist developers."
 authors = [{ name = "Sam Boyd", email = "samboyd10@gmail.com" }]
